@@ -56,16 +56,43 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getUserIdentifier(): string { return $this->email; }
-    public function getRoles(): array { return array_unique([...$this->roles, 'ROLE_USER']); }
-    public function getPassword(): string { return $this->password; }
+    public function getUserIdentifier(): string
+    {
+        return $this->email;
+    }
+    public function getRoles(): array
+    {
+        return array_unique([...$this->roles, 'ROLE_USER']);
+    }
+    public function getPassword(): string
+    {
+        return $this->password;
+    }
     public function eraseCredentials(): void {}
 
-    public function getId(): Uuid { return $this->id; }
-    public function getTenant(): ?Tenant { return $this->tenant; }
-    public function getEmail(): string { return $this->email; }
-    public function isSuperAdmin(): bool { return in_array('ROLE_SUPER_ADMIN', $this->roles, true); }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+    public function getTenant(): ?Tenant
+    {
+        return $this->tenant;
+    }
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+    public function isSuperAdmin(): bool
+    {
+        return in_array('ROLE_SUPER_ADMIN', $this->roles, true);
+    }
 
-    public function setPassword(string $hashedPassword): void { $this->password = $hashedPassword; }
-    public function setTenant(?Tenant $tenant): void { $this->tenant = $tenant; }
+    public function setPassword(string $hashedPassword): void
+    {
+        $this->password = $hashedPassword;
+    }
+    public function setTenant(?Tenant $tenant): void
+    {
+        $this->tenant = $tenant;
+    }
 }

@@ -59,17 +59,53 @@ class Tenant
         $this->updatedAt = new \DateTimeImmutable();
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getName(): string { return $this->name; }
-    public function getSlug(): string { return $this->slug; }
-    public function getPublicKey(): string { return $this->publicKey; }
-    public function getPlan(): string { return $this->plan; }
-    public function isActive(): bool { return $this->active; }
-    public function getBranding(): ?TenantBranding { return $this->branding; }
-    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+    public function getName(): string
+    {
+        return $this->name;
+    }
+    public function getSlug(): string
+    {
+        return $this->slug;
+    }
+    public function getPublicKey(): string
+    {
+        return $this->publicKey;
+    }
+    public function getPlan(): string
+    {
+        return $this->plan;
+    }
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+    public function getBranding(): ?TenantBranding
+    {
+        return $this->branding;
+    }
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
 
-    public function setName(string $name): void { $this->name = $name; }
-    public function activate(): void { $this->active = true; }
-    public function suspend(): void { $this->active = false; }
-    public function upgradePlan(string $plan): void { $this->plan = $plan; }
+    public function setName(string $name): void
+    {
+        $this->name = $name;
+    }
+    public function activate(): void
+    {
+        $this->active = true;
+    }
+    public function suspend(): void
+    {
+        $this->active = false;
+    }
+    public function upgradePlan(string $plan): void
+    {
+        $this->plan = $plan;
+    }
 }

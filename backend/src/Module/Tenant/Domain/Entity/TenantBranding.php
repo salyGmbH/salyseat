@@ -64,16 +64,46 @@ class TenantBranding
         $this->tenant = $tenant;
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getTenant(): Tenant { return $this->tenant; }
-    public function getPrimaryColor(): string { return $this->primaryColor; }
-    public function getBackgroundColor(): string { return $this->backgroundColor; }
-    public function getTextColor(): string { return $this->textColor; }
-    public function getFontFamily(): string { return $this->fontFamily; }
-    public function getBorderRadius(): string { return $this->borderRadius; }
-    public function getButtonStyle(): string { return $this->buttonStyle; }
-    public function getLogoUrl(): ?string { return $this->logoUrl; }
-    public function getWidgetTitle(): ?string { return $this->widgetTitle; }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+    public function getTenant(): Tenant
+    {
+        return $this->tenant;
+    }
+    public function getPrimaryColor(): string
+    {
+        return $this->primaryColor;
+    }
+    public function getBackgroundColor(): string
+    {
+        return $this->backgroundColor;
+    }
+    public function getTextColor(): string
+    {
+        return $this->textColor;
+    }
+    public function getFontFamily(): string
+    {
+        return $this->fontFamily;
+    }
+    public function getBorderRadius(): string
+    {
+        return $this->borderRadius;
+    }
+    public function getButtonStyle(): string
+    {
+        return $this->buttonStyle;
+    }
+    public function getLogoUrl(): ?string
+    {
+        return $this->logoUrl;
+    }
+    public function getWidgetTitle(): ?string
+    {
+        return $this->widgetTitle;
+    }
 
     public function update(
         string $primaryColor,

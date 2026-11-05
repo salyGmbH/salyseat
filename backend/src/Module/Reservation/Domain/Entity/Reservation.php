@@ -108,21 +108,69 @@ class Reservation
         $this->status = ReservationStatus::NO_SHOW;
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getVenue(): Venue { return $this->venue; }
-    public function getToken(): string { return $this->token; }
-    public function getGuestName(): string { return $this->guestName; }
-    public function getGuestEmail(): string { return $this->guestEmail; }
-    public function getGuestPhone(): ?string { return $this->guestPhone; }
-    public function getGuestNotes(): ?string { return $this->guestNotes; }
-    public function getPartySize(): int { return $this->partySize; }
-    public function getStartsAt(): \DateTimeImmutable { return $this->startsAt; }
-    public function getEndsAt(): \DateTimeImmutable { return $this->endsAt; }
-    public function getStatus(): string { return $this->status; }
-    public function getAdminNotes(): ?string { return $this->adminNotes; }
-    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+    public function getVenue(): Venue
+    {
+        return $this->venue;
+    }
+    public function getToken(): string
+    {
+        return $this->token;
+    }
+    public function getGuestName(): string
+    {
+        return $this->guestName;
+    }
+    public function getGuestEmail(): string
+    {
+        return $this->guestEmail;
+    }
+    public function getGuestPhone(): ?string
+    {
+        return $this->guestPhone;
+    }
+    public function getGuestNotes(): ?string
+    {
+        return $this->guestNotes;
+    }
+    public function getPartySize(): int
+    {
+        return $this->partySize;
+    }
+    public function getStartsAt(): \DateTimeImmutable
+    {
+        return $this->startsAt;
+    }
+    public function getEndsAt(): \DateTimeImmutable
+    {
+        return $this->endsAt;
+    }
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+    public function getAdminNotes(): ?string
+    {
+        return $this->adminNotes;
+    }
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
 
-    public function isPending(): bool { return $this->status === ReservationStatus::PENDING; }
-    public function isConfirmed(): bool { return $this->status === ReservationStatus::CONFIRMED; }
-    public function isCancelled(): bool { return $this->status === ReservationStatus::CANCELLED; }
+    public function isPending(): bool
+    {
+        return $this->status === ReservationStatus::PENDING;
+    }
+    public function isConfirmed(): bool
+    {
+        return $this->status === ReservationStatus::CONFIRMED;
+    }
+    public function isCancelled(): bool
+    {
+        return $this->status === ReservationStatus::CANCELLED;
+    }
 }
