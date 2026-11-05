@@ -13,6 +13,9 @@ widget/node_modules/
 widget/dist/
 widget/.angular/
 
+# Lokale Docker-Einstellungen (eigene Ports usw., nicht committen)
+docker-compose.override.yml
+
 # Editor / IDE
 .idea/
 .vscode/

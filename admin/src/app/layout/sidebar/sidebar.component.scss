@@ -1,0 +1,176 @@
+@use '../../../styles/variables' as *;
+
+.sidebar {
+  width: $sidebar-width;
+  min-height: 100vh;
+  background-color: $color-dark;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.25s ease;
+  overflow: hidden;
+
+  &.collapsed {
+    width: $sidebar-collapsed;
+
+    .sidebar__logo img {
+      opacity: 0;
+      width: 0;
+    }
+
+    .sidebar__restaurant {
+      justify-content: center;
+      padding: 10px 0;
+    }
+  }
+}
+
+// ─── Mobile ──────────────────────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: $sidebar-width !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 200;
+
+    &.mobile-open {
+      transform: translateX(0);
+    }
+  }
+}
+
+.sidebar__logo {
+  padding: 16px 12px;
+  border-bottom: 1px solid $color-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 180px;
+    transition: opacity 0.2s, width 0.25s;
+  }
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  color: $color-text-muted;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+  border-left: 3px solid transparent;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background-color: $color-dark-soft;
+    color: $color-white;
+  }
+
+  &.active {
+    background-color: rgba($color-accent, 0.12);
+    color: $color-accent;
+    border-left-color: $color-accent;
+  }
+}
+
+.sidebar__footer {
+  border-top: 1px solid $color-border;
+  padding: 8px 0 0;
+}
+
+.sidebar__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+
+  &:hover {
+    background-color: $color-dark-soft;
+    color: $color-white;
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.sidebar__restaurant {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px 14px;
+  color: $color-text-muted;
+  font-size: 13px;
+  white-space: nowrap;
+  border-top: 1px solid $color-border;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: $color-accent;
+  }
+}
+
+.sidebar__restaurant-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__restaurant-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: $color-text-muted;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.2s, background 0.2s;
+
+  &:hover {
+    background-color: $color-dark-soft;
+    color: $color-white;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: inherit;
+  }
+}

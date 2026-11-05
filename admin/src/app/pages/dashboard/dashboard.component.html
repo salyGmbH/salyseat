@@ -1,0 +1,63 @@
+<div class="dashboard">
+  <div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Willkommen zurück, hier ist deine Übersicht.</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__icon">
+        <mat-icon>event_available</mat-icon>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__label">Reservierungen heute</span>
+        <span class="stat-card__value">–</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon">
+        <mat-icon>table_restaurant</mat-icon>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__label">Tische gesamt</span>
+        <span class="stat-card__value">–</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon">
+        <mat-icon>people</mat-icon>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__label">Gäste heute</span>
+        <span class="stat-card__value">–</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon">
+        <mat-icon>meeting_room</mat-icon>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__label">Räume</span>
+        <span class="stat-card__value">–</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-actions">
+    <h2 class="section-title">Schnellzugriff</h2>
+    <div class="quick-actions__grid">
+      <a routerLink="/restaurant-plan" class="quick-card">
+        <mat-icon>table_restaurant</mat-icon>
+        <span>Restaurantplan</span>
+      </a>
+      <a routerLink="/statistiken" class="quick-card">
+        <mat-icon>bar_chart</mat-icon>
+        <span>Statistiken</span>
+      </a>
+      <a routerLink="/einstellungen" class="quick-card">
+        <mat-icon>settings</mat-icon>
+        <span>Einstellungen</span>
+      </a>
+    </div>
+  </div>
+</div>

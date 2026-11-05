@@ -1,0 +1,29 @@
+<div class="admin-layout">
+
+  <!-- Mobile Top Bar -->
+  <header class="mobile-header">
+    <button class="hamburger" (click)="layout.toggleMobile()">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <div class="mobile-datetime">
+      <span class="mobile-datetime__date">
+        {{ now() | date:'EEEE, d. MMMM yyyy' : '' : 'de' }}
+      </span>
+      <span class="mobile-datetime__time">
+        {{ now() | date:'HH:mm:ss' }}
+      </span>
+    </div>
+  </header>
+
+  <!-- Backdrop -->
+  @if (layout.mobileOpen()) {
+    <div class="backdrop" (click)="layout.closeMobile()"></div>
+  }
+
+  <app-sidebar />
+
+  <main class="admin-layout__content">
+    <router-outlet />
+  </main>
+
+</div>

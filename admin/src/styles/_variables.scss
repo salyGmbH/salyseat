@@ -1,0 +1,28 @@
+// ─── Brand Colors ────────────────────────────────────────────────────────────
+$color-primary:       #2979ff;   // Blau – Hauptfarbe
+$color-primary-dark:  #1565c0;   // Blau dunkel – Hover / Gradient
+$color-accent:        #ffb700;   // Gold / Gelb – Highlights, aktive Elemente
+$color-accent-dark:   #e6a500;   // Gold dunkel – Hover
+
+// ─── Neutrals ────────────────────────────────────────────────────────────────
+$color-dark:          #111111;   // Fast schwarz – Navbar, Sidebar
+$color-dark-soft:     #1e2535;   // Dunkles Blaugrau – Sidebar Hover
+$color-light:         #f4f5f7;   // Helles Grau – Seitenhintergrund (Light Mode)
+$color-white:         #ffffff;
+
+// ─── Dark Mode ───────────────────────────────────────────────────────────────
+$color-bg:            #0f1117;   // Seitenhintergrund dunkel
+$color-surface:       #1a1f2e;   // Karten / Panels dunkel
+$color-surface-soft:  #222840;   // Hover auf Karten
+
+// ─── Text ─────────────────────────────────────────────────────────────────────
+$color-text:          #111111;   // Haupttext
+$color-text-muted:    rgba(255, 255, 255, 0.55);  // Gedämpfter Text auf dunkel
+$color-text-on-dark:  #ffffff;
+
+// ─── Borders ─────────────────────────────────────────────────────────────────
+$color-border:        rgba(255, 255, 255, 0.08);
+
+// ─── Sidebar ─────────────────────────────────────────────────────────────────
+$sidebar-width:       240px;
+$sidebar-collapsed:   64px;

@@ -1,0 +1,221 @@
+@if (!isEditing()) {
+
+  <div class="restaurant-plan">
+    <div class="page-header"><h1 class="page-title">Restaurantplan</h1></div>
+    <div class="empty-state">
+      <div class="empty-state__icon"><mat-icon>table_restaurant</mat-icon></div>
+      <h2 class="empty-state__title">Noch kein Restaurantplan vorhanden</h2>
+      <p class="empty-state__description">Erstelle deinen ersten Raum und leg los mit der Planung deines Restaurants.</p>
+      <button class="btn-primary" (click)="openEditor()"><mat-icon>add</mat-icon> Raum erstellen</button>
+    </div>
+  </div>
+
+} @else {
+
+  <div class="room-editor">
+
+    <!-- Header -->
+    <div class="room-editor__header">
+      <button class="btn-icon" (click)="closeEditor()"><mat-icon>arrow_back</mat-icon></button>
+      <span class="room-editor__title">Raum gestalten</span>
+      <button class="btn-primary btn-primary--small"><mat-icon>save</mat-icon> Speichern</button>
+    </div>
+
+    <!-- Palette -->
+    <div class="palette">
+      <span class="palette__label">Tische</span>
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'round')">
+        <svg viewBox="0 0 70 70" class="table-svg">
+          <circle cx="35" cy="5"  r="5" fill="#2979ff" opacity="0.8"/>
+          <circle cx="35" cy="65" r="5" fill="#2979ff" opacity="0.8"/>
+          <circle cx="5"  cy="35" r="5" fill="#2979ff" opacity="0.8"/>
+          <circle cx="65" cy="35" r="5" fill="#2979ff" opacity="0.8"/>
+          <circle cx="35" cy="35" r="24" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+        </svg>
+        <span>Runder Tisch</span>
+      </div>
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'square')">
+        <svg viewBox="0 0 70 70" class="table-svg">
+          <rect x="25" y="1"  width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="25" y="59" width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="1"  y="25" width="10" height="20" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="59" y="25" width="10" height="20" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="13" y="13" width="44" height="44" rx="5" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+        </svg>
+        <span>Eckiger Tisch</span>
+      </div>
+      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'long')">
+        <svg viewBox="0 0 140 70" class="table-svg table-svg--wide">
+          <rect x="18" y="2"  width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="60" y="2"  width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="102" y="2" width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="18" y="58" width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="60" y="58" width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="102" y="58" width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
+          <rect x="8"  y="13" width="124" height="44" rx="5" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+        </svg>
+        <span>Langer Tisch</span>
+      </div>
+      <div class="palette__divider"></div>
+      <span class="palette__label">Raum</span>
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'wall')">
+        <svg viewBox="0 0 70 24" class="wall-svg">
+          <rect x="0" y="8" width="70" height="8" rx="2" fill="#546e7a" stroke="#78909c" stroke-width="1"/>
+        </svg>
+        <span>Raumtrenner</span>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="room-canvas" #canvas
+         (mousedown)="onCanvasMouseDown($event)"
+         (dragover)="onCanvasDragOver($event)"
+         (drop)="onCanvasDrop($event)">
+
+      @if (placedTables().length === 0 && placedWalls().length === 0) {
+        <div class="room-canvas__hint">
+          <mat-icon>drag_indicator</mat-icon>
+          <span>Elemente aus der Leiste oben hierher ziehen</span>
+        </div>
+      }
+
+      <!-- Wände -->
+      @for (wall of placedWalls(); track wall.id) {
+        <div class="placed-wall" [class.is-selected]="selectedWallId() === wall.id"
+             [style.left.px]="wall.x - wall.length / 2"
+             [style.top.px]="wall.y - 8"
+             [style.width.px]="wall.length"
+             [style.transform]="'rotate(' + wall.rotation + 'deg)'"
+             (mousedown)="onWallMouseDown($event, wall.id)">
+          <div class="wall-body"></div>
+          @if (selectedWallId() === wall.id) {
+            <div class="handle handle--delete" (mousedown)="$event.stopPropagation()" (click)="removeWall($event, wall.id)"><mat-icon>close</mat-icon></div>
+            <div class="handle handle--rotate" (mousedown)="onRotateHandleMouseDown($event, wall.id, 'wall')"><mat-icon>refresh</mat-icon></div>
+            <div class="handle handle--wall-end handle--wall-end-left"  (mousedown)="onWallEndMouseDown($event, wall.id, 'left')"></div>
+            <div class="handle handle--wall-end handle--wall-end-right" (mousedown)="onWallEndMouseDown($event, wall.id, 'right')"></div>
+          }
+        </div>
+      }
+
+      <!-- Verbindungslinien zwischen zusammengestellten Tischen -->
+      @for (pair of getMergedPairs(); track pair.a.id) {
+        <div class="merge-line" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
+        <!-- Split-Button in der Mitte -->
+        <div class="merge-badge" [style]="getMidpointStyle(pair.a, pair.b)"
+             (mousedown)="$event.stopPropagation()"
+             (click)="onSplitClick($event, pair.a.id)"
+             title="Tische auseinander stellen">
+          <mat-icon>link</mat-icon>
+          <span>2 Tische</span>
+        </div>
+      }
+
+      <!-- Tische -->
+      @for (table of placedTables(); track table.id) {
+        <div class="placed-table"
+             [class.is-selected]="selectedTableId() === table.id"
+             [class.is-merged]="table.mergedWith !== undefined"
+             [style.left.px]="table.x"
+             [style.top.px]="table.y"
+             [style.width.px]="getTableSize(table.type).w * table.scale"
+             [style.height.px]="getTableSize(table.type).h * table.scale"
+             [style.transform]="'rotate(' + table.rotation + 'deg)'"
+             (mousedown)="onTableMouseDown($event, table.id)">
+
+          @if (table.type === 'long') {
+            <svg viewBox="0 0 140 70" class="table-svg">
+              @for (pos of getLongTableSeatPositions(table.seats); track $index) {
+                <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" fill="#2979ff" opacity="0.8"/>
+              }
+              <rect x="8" y="13" width="124" height="44" rx="5" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+            </svg>
+          } @else {
+            <svg viewBox="0 0 70 70" class="table-svg">
+              @for (pos of getSeatPositions(table.seats); track $index) {
+                @if (table.type === 'round') {
+                  <circle [attr.cx]="pos.x" [attr.cy]="pos.y" r="5" fill="#2979ff" opacity="0.8"/>
+                } @else {
+                  <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" fill="#2979ff" opacity="0.8"/>
+                }
+              }
+              @if (table.type === 'round') {
+                <circle cx="35" cy="35" r="24" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+              } @else {
+                <rect x="13" y="13" width="44" height="44" rx="5" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+              }
+            </svg>
+          }
+
+          @if (selectedTableId() === table.id) {
+            <div class="handle handle--delete" (mousedown)="$event.stopPropagation()" (click)="removeTable($event, table.id)"><mat-icon>close</mat-icon></div>
+            <div class="handle handle--rotate" (mousedown)="onRotateHandleMouseDown($event, table.id, 'table')"><mat-icon>refresh</mat-icon></div>
+            <div class="handle handle--seats"  (mousedown)="$event.stopPropagation()" (click)="openSeatsEdit($event, table.id)">
+              <mat-icon>person</mat-icon><span>{{ table.seats }}</span>
+            </div>
+            <div class="handle handle--resize" (mousedown)="onResizeHandleMouseDown($event, table.id)"></div>
+          }
+        </div>
+
+        @if (editingSeatsId() === table.id) {
+          <div class="seats-popup"
+               [style.left.px]="table.x + getTableSize(table.type).w * table.scale / 2"
+               [style.top.px]="table.y - 68"
+               (mousedown)="$event.stopPropagation()">
+            <mat-icon class="seats-popup__icon">person</mat-icon>
+            <span>Personen:</span>
+            <input class="seats-popup__input" type="number" min="1" max="20" [value]="table.seats"
+                   (keydown)="onSeatsKeydown($event, table.id)"
+                   (blur)="onSeatsBlur($event, table.id)">
+          </div>
+        }
+      }
+
+      <!-- ── Dialoge ──────────────────────────────────────────────────── -->
+
+      @if (mergeConfirmDialog() || mergeSeatsDialog() || splitDialog() !== null) {
+        <div class="dialog-backdrop" (click)="cancelMerge(); cancelSplit()"></div>
+      }
+
+      @if (mergeConfirmDialog()) {
+        <div class="dialog">
+          <div class="dialog__icon dialog__icon--merge"><mat-icon>table_restaurant</mat-icon></div>
+          <h3 class="dialog__title">Tische zusammenstellen?</h3>
+          <p class="dialog__text">Sollen die beiden Tische zu einem großen Tisch zusammengestellt werden?</p>
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelMerge()">Nein</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmMerge()">Ja, zusammenstellen</button>
+          </div>
+        </div>
+      }
+
+      @if (mergeSeatsDialog()) {
+        <div class="dialog">
+          <div class="dialog__icon dialog__icon--people"><mat-icon>people</mat-icon></div>
+          <h3 class="dialog__title">Wie viele Personen?</h3>
+          <p class="dialog__text">Wie viele Personen sollen am zusammengestellten Tisch Platz haben?</p>
+          <input class="dialog__seats-input" type="number" min="2" max="40"
+                 [value]="mergeSeatsInput"
+                 (input)="mergeSeatsInput = +$any($event.target).value"
+                 (keydown.enter)="confirmMergeSeats()">
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelMerge()">Abbrechen</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmMergeSeats()">Bestätigen</button>
+          </div>
+        </div>
+      }
+
+      @if (splitDialog() !== null) {
+        <div class="dialog">
+          <div class="dialog__icon dialog__icon--split"><mat-icon>link_off</mat-icon></div>
+          <h3 class="dialog__title">Tische auseinander stellen?</h3>
+          <p class="dialog__text">Die beiden Tische werden wieder getrennt und auf ihre ursprüngliche Personenanzahl zurückgesetzt.</p>
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelSplit()">Nein</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmSplit()">Ja, trennen</button>
+          </div>
+        </div>
+      }
+
+    </div>
+  </div>
+}

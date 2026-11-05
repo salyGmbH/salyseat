@@ -1,0 +1,58 @@
+<aside class="sidebar" [class.collapsed]="collapsed()" [class.mobile-open]="layout.mobileOpen()">
+
+  <div class="sidebar__logo">
+    <img src="images/salyseat-logo-dunkle-schrift.png" alt="Salyseat">
+  </div>
+
+  <nav class="sidebar__nav">
+    <a routerLink="/dashboard" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? 'Dashboard' : ''" (click)="layout.closeMobile()">
+      <mat-icon>dashboard</mat-icon>
+      @if (!collapsed()) { <span>Dashboard</span> }
+    </a>
+    <a routerLink="/restaurant-plan" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? 'Restaurantplan' : ''" (click)="layout.closeMobile()">
+      <mat-icon>table_restaurant</mat-icon>
+      @if (!collapsed()) { <span>Restaurantplan</span> }
+    </a>
+    <a routerLink="/statistiken" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? 'Statistiken' : ''" (click)="layout.closeMobile()">
+      <mat-icon>bar_chart</mat-icon>
+      @if (!collapsed()) { <span>Statistiken</span> }
+    </a>
+    <a routerLink="/einstellungen" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? 'Einstellungen' : ''" (click)="layout.closeMobile()">
+      <mat-icon>settings</mat-icon>
+      @if (!collapsed()) { <span>Einstellungen</span> }
+    </a>
+  </nav>
+
+  <div class="sidebar__footer">
+    <button class="sidebar__toggle" (click)="toggle()">
+      <mat-icon>{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+    </button>
+    <div class="sidebar__restaurant">
+      <mat-icon>storefront</mat-icon>
+      @if (!collapsed()) {
+        <span class="sidebar__restaurant-name">{{ selectedRestaurant() }}</span>
+        <button class="sidebar__restaurant-dots" [matMenuTriggerFor]="restaurantMenu">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+      }
+    </div>
+
+    <mat-menu #restaurantMenu="matMenu">
+      @for (r of restaurants; track r) {
+        <button mat-menu-item (click)="selectRestaurant(r)">
+          @if (r === selectedRestaurant()) {
+            <mat-icon>check</mat-icon>
+          } @else {
+            <mat-icon>storefront</mat-icon>
+          }
+          <span>{{ r }}</span>
+        </button>
+      }
+    </mat-menu>
+  </div>
+
+</aside>
