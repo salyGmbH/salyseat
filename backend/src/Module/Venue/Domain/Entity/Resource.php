@@ -41,9 +41,24 @@ class Resource
         $this->capacity = $capacity;
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getVenue(): Venue { return $this->venue; }
-    public function getName(): string { return $this->name; }
-    public function getCapacity(): int { return $this->capacity; }
-    public function isActive(): bool { return $this->active; }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+    public function getVenue(): Venue
+    {
+        return $this->venue;
+    }
+    public function getName(): string
+    {
+        return $this->name;
+    }
+    public function getCapacity(): int
+    {
+        return $this->capacity;
+    }
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
 }

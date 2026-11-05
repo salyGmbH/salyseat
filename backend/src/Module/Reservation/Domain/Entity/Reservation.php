@@ -22,6 +22,11 @@ class Reservation
     #[ORM\JoinColumn(nullable: false)]
     private Venue $venue;
 
+    /** Optional — wird gesetzt wenn der Gast bereits im Gästebuch existiert */
+    #[ORM\ManyToOne(inversedBy: 'reservations')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Guest $guest = null;
+
     /** Öffentlicher Token für Gast-Links (Stornierung, Status) */
     #[ORM\Column(length: 64, unique: true)]
     private string $token;
@@ -159,6 +164,16 @@ class Reservation
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getGuest(): ?Guest
+    {
+        return $this->guest;
+    }
+
+    public function setGuest(?Guest $guest): void
+    {
+        $this->guest = $guest;
     }
 
     public function isPending(): bool

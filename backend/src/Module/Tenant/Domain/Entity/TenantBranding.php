@@ -51,7 +51,6 @@ class TenantBranding
     #[ORM\Column(length: 10, options: ['default' => 'filled'])]
     private string $buttonStyle = 'filled'; // filled | outlined | ghost
 
-    // Logo & Branding
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $logoUrl = null;
 
