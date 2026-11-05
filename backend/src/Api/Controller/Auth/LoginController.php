@@ -36,7 +36,7 @@ class LoginController extends AbstractController
         // Eingabe validieren bevor wir den Handler aufrufen
         $violations = $this->validator->validate($data, new Assert\Collection([
             'email'    => [new Assert\NotBlank(), new Assert\Email()],
-            'password' => [new Assert\NotBlank(), new Assert\Length(min: 6)],
+            'password' => [new Assert\NotBlank(), new Assert\Length(min: 4)],
         ]));
 
         if (count($violations) > 0) {

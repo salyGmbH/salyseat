@@ -1,28 +1,42 @@
+// ─────────────────────────────────────────────────────────────────────────
+//  Sass-Variablen → zeigen auf CSS Custom Properties.
+//  Die tatsächlichen Farbwerte leben in src/styles.scss unter :root
+//  (Hell) bzw. body.dark-theme (Dunkel). Dadurch wechseln alle Komponenten
+//  automatisch mit der Theme-Klasse am <body>, ohne dass das SCSS neu
+//  kompiliert werden muss.
+//
+//  Für rgba() gibt es jeweils eine *-rgb-Variable mit dem Triplet,
+//  z.B. rgba(var(--color-primary-rgb), 0.4).
+// ─────────────────────────────────────────────────────────────────────────
+
 // ─── Brand Colors ────────────────────────────────────────────────────────────
-$color-primary:       #2979ff;   // Blau – Hauptfarbe
-$color-primary-dark:  #1565c0;   // Blau dunkel – Hover / Gradient
-$color-accent:        #ffb700;   // Gold / Gelb – Highlights, aktive Elemente
-$color-accent-dark:   #e6a500;   // Gold dunkel – Hover
+$color-primary:       var(--color-primary);
+$color-primary-dark:  var(--color-primary-dark);
+$color-accent:        var(--color-accent);
+$color-accent-dark:   var(--color-accent-dark);
 
 // ─── Neutrals ────────────────────────────────────────────────────────────────
-$color-dark:          #111111;   // Fast schwarz – Navbar, Sidebar
-$color-dark-soft:     #1e2535;   // Dunkles Blaugrau – Sidebar Hover
-$color-light:         #f4f5f7;   // Helles Grau – Seitenhintergrund (Light Mode)
-$color-white:         #ffffff;
+$color-dark:          var(--color-dark);
+$color-dark-soft:     var(--color-dark-soft);
+$color-light:         #f4f5f7;                // statisch
+$color-white:         #ffffff;                // statisch
 
-// ─── Dark Mode ───────────────────────────────────────────────────────────────
-$color-bg:            #0f1117;   // Seitenhintergrund dunkel
-$color-surface:       #1a1f2e;   // Karten / Panels dunkel
-$color-surface-soft:  #222840;   // Hover auf Karten
+// ─── Surfaces (wechseln mit Theme) ───────────────────────────────────────────
+$color-bg:            var(--color-bg);
+$color-surface:       var(--color-surface);
+$color-surface-soft:  var(--color-surface-soft);
 
-// ─── Text ─────────────────────────────────────────────────────────────────────
-$color-text:          #111111;   // Haupttext
-$color-text-muted:    rgba(255, 255, 255, 0.55);  // Gedämpfter Text auf dunkel
-$color-text-on-dark:  #ffffff;
+// ─── Text (wechselt mit Theme) ───────────────────────────────────────────────
+$color-text:          var(--color-text);
+$color-text-muted:    var(--color-text-muted);
+$color-text-on-dark:  var(--color-text-on-dark);
 
 // ─── Borders ─────────────────────────────────────────────────────────────────
-$color-border:        rgba(255, 255, 255, 0.08);
+$color-border:        var(--color-border);
 
-// ─── Sidebar ─────────────────────────────────────────────────────────────────
+// ─── Semantics ───────────────────────────────────────────────────────────────
+$color-success:       var(--color-success);
+
+// ─── Sidebar-Geometrie (keine Farben) ────────────────────────────────────────
 $sidebar-width:       240px;
 $sidebar-collapsed:   64px;

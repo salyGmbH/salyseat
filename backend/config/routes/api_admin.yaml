@@ -1,0 +1,9 @@
+api_admin:
+    resource: '../../src/Api/Controller/Admin/'
+    type: attribute
+    prefix: /api/v1/admin
+
+api_auth:
+    resource: '../../src/Api/Controller/Auth/'
+    type: attribute
+    prefix: /api/v1/auth

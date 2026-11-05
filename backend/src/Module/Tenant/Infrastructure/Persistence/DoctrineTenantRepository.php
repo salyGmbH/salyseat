@@ -6,12 +6,18 @@ namespace App\Module\Tenant\Infrastructure\Persistence;
 
 use App\Module\Tenant\Domain\Entity\Tenant;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Common\Collections\Criteria;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
- * Datenbankzugriff für Tenants (Betriebe, die Salyseat nutzen).
+ * Minimal-Repository für Tenants.
  *
- * @extends ServiceEntityRepository<Tenant>
+ * Das Tenant-Entity referenziert diese Klasse über
+ * `#[ORM\Entity(repositoryClass: DoctrineTenantRepository::class)]`.
+ * Ohne diese Klasse scheitert schon das Laden der Doctrine-Metadaten.
+ *
+ * Später können hier weitere Query-Methoden ergänzt werden.
  */
 class DoctrineTenantRepository extends ServiceEntityRepository
 {
@@ -20,13 +26,13 @@ class DoctrineTenantRepository extends ServiceEntityRepository
         parent::__construct($registry, Tenant::class);
     }
 
-    /**
-     * Aktiven Tenant anhand des Public Keys aus dem Widget finden
-     * (wird vom PublicKeyAuthenticator gebraucht).
-     */
-    public function findActiveByPublicKey(string $publicKey): ?Tenant
+    public function findById(Uuid $id): ?Tenant
     {
-        return $this->findOneBy(['publicKey' => $publicKey, 'active' => true]);
+        $criteria = Criteria::create()
+            ->where(Criteria::expr()->eq('id', $id))
+            ->setMaxResults(1);
+
+        return $this->matching($criteria)->first() ?: null;
     }
 
     public function findBySlug(string $slug): ?Tenant
@@ -34,21 +40,9 @@ class DoctrineTenantRepository extends ServiceEntityRepository
         return $this->findOneBy(['slug' => $slug]);
     }
 
-    public function save(Tenant $tenant, bool $flush = true): void
+    public function save(Tenant $tenant): void
     {
         $this->getEntityManager()->persist($tenant);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
-    public function remove(Tenant $tenant, bool $flush = true): void
-    {
-        $this->getEntityManager()->remove($tenant);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
+        $this->getEntityManager()->flush();
     }
 }

@@ -1,0 +1,85 @@
+<div class="login-page">
+
+  <div class="login-card">
+
+    <div class="login-card__logo">
+      <img src="images/salyseat-logo-dunkle-schrift.png" alt="Salyseat">
+    </div>
+
+    <h1 class="login-card__title">Admin-Bereich</h1>
+    <p class="login-card__subtitle">Bitte melde dich an, um fortzufahren.</p>
+
+    <form #form="ngForm" class="login-form" (ngSubmit)="onSubmit(form)" novalidate>
+
+      <label class="login-form__field">
+        <span class="login-form__label">E-Mail</span>
+        <div class="login-form__input-wrap">
+          <mat-icon class="login-form__icon">mail_outline</mat-icon>
+          <input
+            type="email"
+            name="email"
+            autocomplete="username"
+            required
+            email
+            placeholder="name@restaurant.de"
+            [(ngModel)]="email"
+            [disabled]="loading()"
+            class="login-form__input"
+          />
+        </div>
+      </label>
+
+      <label class="login-form__field">
+        <span class="login-form__label">Passwort</span>
+        <div class="login-form__input-wrap">
+          <mat-icon class="login-form__icon">lock_outline</mat-icon>
+          <input
+            [type]="showPassword() ? 'text' : 'password'"
+            name="password"
+            autocomplete="current-password"
+            required
+            minlength="4"
+            placeholder="••••••••"
+            [(ngModel)]="password"
+            [disabled]="loading()"
+            class="login-form__input"
+          />
+          <button
+            type="button"
+            class="login-form__toggle"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword() ? 'Passwort verbergen' : 'Passwort anzeigen'"
+            tabindex="-1"
+          >
+            <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </div>
+      </label>
+
+      @if (error()) {
+        <div class="login-form__error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <button
+        type="submit"
+        class="login-form__submit"
+        [disabled]="form.invalid || loading()"
+      >
+        @if (loading()) {
+          <span class="login-form__spinner"></span>
+          <span>Einloggen…</span>
+        } @else {
+          <span>Einloggen</span>
+        }
+      </button>
+
+    </form>
+
+    <p class="login-card__footer">© Salyseat</p>
+
+  </div>
+
+</div>

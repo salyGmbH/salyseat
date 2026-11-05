@@ -23,36 +23,33 @@
       <!-- ─── Linkes Panel ─── -->
       <aside class="res-panel" (click)="closeMenu()">
 
-        <!-- Datum-Karte mit Sparkline -->
+        <!-- Datum-Karte -->
         <div class="date-card">
           <div class="date-card__row">
             <button class="btn-icon btn-icon--ghost" (click)="shiftDate(-1)" title="Vorheriger Tag">
               <mat-icon>chevron_left</mat-icon>
             </button>
-            <div class="date-card__middle">
-              <div class="date-card__label">{{ formatDateLabel() }}</div>
+            <button type="button" class="date-card__middle" (click)="picker.open()"
+                    title="Anderes Datum wählen">
+              <div class="date-card__label">
+                <mat-icon class="date-card__label-icon">event</mat-icon>
+                {{ formatDateLabel() }}
+              </div>
               <div class="date-card__summary">
                 {{ stats().total }} Reservierung{{ stats().total === 1 ? '' : 'en' }}
                 · {{ stats().guests }} Gäste
               </div>
-              <input class="date-card__hidden-input" type="date"
-                     [value]="selectedDate()"
-                     (change)="selectedDate.set($any($event.target).value)">
-            </div>
+            </button>
             <button class="btn-icon btn-icon--ghost" (click)="shiftDate(1)" title="Nächster Tag">
               <mat-icon>chevron_right</mat-icon>
             </button>
           </div>
 
-          <!-- Tagesverlauf (Stunden) -->
-          <div class="day-load">
-            @for (bucket of dayLoad(); track bucket.hour) {
-              <div class="day-load__cell" [class.is-peak]="bucket.isPeak" [title]="bucket.hour + ':00 · ' + bucket.count + ' Res.'">
-                <div class="day-load__bar" [style.height.%]="bucket.count === 0 ? 8 : 20 + bucket.count * 22"></div>
-                <div class="day-load__hour">{{ bucket.hour }}</div>
-              </div>
-            }
-          </div>
+          <!-- Unsichtbares Material-Input, das nur den MatDatepicker triggert -->
+          <input matInput [matDatepicker]="picker" class="date-card__hidden-input"
+                 [value]="selectedDateAsDate()"
+                 (dateChange)="onDateSelected($event)" />
+          <mat-datepicker #picker panelClass="salyseat-datepicker-panel"></mat-datepicker>
 
           @if (selectedDate() !== todayIsoPublic()) {
             <button class="date-card__today-link" (click)="goToday()">
@@ -60,51 +57,6 @@
             </button>
           }
         </div>
-
-        <!-- Hero: Jetzt eingecheckt / Nächster Gast -->
-        @if (hero().reservation; as heroRes) {
-          <div class="hero-card" [class.hero-card--seated]="hero().kind === 'seated'" [class.hero-card--next]="hero().kind === 'next'">
-            <div class="hero-card__label">
-              @if (hero().kind === 'seated') {
-                <span class="live-dot"></span> Jetzt am Tisch
-              } @else {
-                <mat-icon>schedule</mat-icon> Nächster Gast
-              }
-            </div>
-            <div class="hero-card__guest">{{ heroRes.guestName }}</div>
-            <div class="hero-card__info">
-              <span><mat-icon>person</mat-icon>{{ heroRes.partySize }} Pers.</span>
-              @if (heroRes.tableId) {
-                <span><mat-icon>table_restaurant</mat-icon>Tisch #{{ heroRes.tableId }}</span>
-              } @else {
-                <span class="hero-card__info--warn"><mat-icon>help_outline</mat-icon>Kein Tisch</span>
-              }
-              @if (hero().kind === 'seated') {
-                <span><mat-icon>timelapse</mat-icon>seit {{ minutesSince(heroRes.time) }} Min.</span>
-              } @else {
-                <span><mat-icon>schedule</mat-icon>um {{ heroRes.time }}
-                  @if (minutesUntil(heroRes.time) > 0 && minutesUntil(heroRes.time) < 180) {
-                    · in {{ minutesUntil(heroRes.time) }} Min.
-                  }
-                </span>
-              }
-            </div>
-            <div class="hero-card__actions">
-              @if (hero().kind === 'seated') {
-                <button class="btn-primary btn-primary--full" (click)="markCompleted(heroRes)">
-                  <mat-icon>logout</mat-icon> Tisch frei geben
-                </button>
-              } @else {
-                <button class="btn-primary btn-primary--full" (click)="checkIn(heroRes)">
-                  <mat-icon>login</mat-icon> Einchecken
-                </button>
-              }
-              <button class="btn-ghost" (click)="openEditDialog(heroRes)" title="Bearbeiten">
-                <mat-icon>edit</mat-icon>
-              </button>
-            </div>
-          </div>
-        }
 
         <!-- Neue Reservierung -->
         <button class="btn-new" (click)="openNewDialog()">
@@ -218,7 +170,42 @@
       </aside>
 
       <!-- ─── Rechtes Panel: Plan ─── -->
-      <div class="raum-detail__canvas">
+      <div class="raum-detail__right">
+
+        <!-- Tagesverlauf (Stunden) — über dem Tischplan -->
+        <div class="day-load-bar">
+          <div class="day-load-bar__header">
+            <span class="day-load-bar__title">
+              <mat-icon>query_stats</mat-icon> Tagesverlauf
+            </span>
+            <span class="day-load-bar__hint">Balkenhöhe = Reservierungen pro Stunde</span>
+          </div>
+          <div class="day-load">
+            @for (bucket of dayLoad(); track bucket.hour) {
+              <div class="day-load__cell" [class.is-peak]="bucket.isPeak"
+                   [title]="bucket.hour + ':00 · ' + bucket.count + ' Res.'">
+                <div class="day-load__bar" [style.height.%]="bucket.count === 0 ? 8 : 20 + bucket.count * 22"></div>
+                <div class="day-load__hour">{{ bucket.hour }}</div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="raum-detail__canvas"
+             [class.is-reassigning]="reassignMode()"
+             (click)="onCanvasClick()">
+
+        <!-- Hinweis-Banner im Umplatzier-Modus -->
+        @if (reassignMode()) {
+          <div class="reassign-hint" (click)="$event.stopPropagation()">
+            <mat-icon>swap_horiz</mat-icon>
+            <span>Wähle einen Zieltisch, um die Reservierung umzusetzen.</span>
+            <button class="reassign-hint__close" (click)="cancelReassign()" title="Abbrechen (Esc)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+
         <!-- Wände -->
         @for (wall of r.walls; track wall.id) {
           <div class="placed-wall"
@@ -238,11 +225,25 @@
         <!-- Tische -->
         @for (table of r.tables; track table.id) {
           <div class="placed-table" [class]="tableStatusClass(table.id)"
+               [class.is-reassign-source]="reassignMode()?.sourceTableId === table.id"
+               [class.is-reassign-target]="reassignMode() && reassignMode()?.sourceTableId !== table.id"
                [style.left.px]="table.x"
                [style.top.px]="table.y"
                [style.width.px]="getTableSize(table.type).w * table.scale"
                [style.height.px]="getTableSize(table.type).h * table.scale"
-               [style.transform]="'rotate(' + table.rotation + 'deg)'">
+               [style.transform]="'rotate(' + table.rotation + 'deg)'"
+               (pointerdown)="onTablePointerDown(table.id, $event)"
+               (pointerup)="onTablePointerEnd()"
+               (pointerleave)="onTablePointerEnd()"
+               (pointercancel)="onTablePointerEnd()"
+               (click)="onTableClick(table.id, $event)"
+               [title]="reassignMode()
+                          ? (reassignMode()?.sourceTableId === table.id
+                               ? 'Abbrechen'
+                               : 'Hierhin umsetzen')
+                          : (tableStatus(table.id).reservation
+                               ? 'Klick: bearbeiten · Lang drücken: umsetzen'
+                               : 'Neue Reservierung auf Tisch #' + table.id)">
 
             @if (table.type === 'long') {
               <svg viewBox="0 0 140 70" class="table-svg">
@@ -279,6 +280,7 @@
             }
           </div>
         }
+      </div>
       </div>
     </div>
 

@@ -1,0 +1,188 @@
+@use '../../../../styles/variables' as *;
+
+.settings-block {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: $color-accent;
+  padding: 6px;
+  border-radius: 50%;
+  transition: 0.2s;
+
+  mat-icon {
+    font-size: 20px;
+  }
+
+  &:hover {
+    background: rgba(var(--color-accent-rgb), 0.1);
+    transform: scale(1.05);
+  }
+
+  &.active {
+    background: rgba(var(--color-accent-rgb), 0.15);
+  }
+}
+
+.info-box {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  color: $color-text-muted;
+
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.25s ease;
+
+  &.open {
+    max-height: 200px;
+    opacity: 1;
+    transform: translateY(0);
+    margin-bottom: 14px;
+  }
+}
+
+/* ===================== TOGGLE ===================== */
+.view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  button {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid $color-border;
+    background: $color-surface;
+    color: $color-text-muted;
+    cursor: pointer;
+    font-size: 12px;
+    transition: 0.2s;
+
+    &.active {
+      background: rgba(var(--color-accent-rgb), 0.15);
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+
+    &:hover {
+      border-color: $color-accent;
+    }
+  }
+}
+
+/* ===================== ACTIONS ===================== */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ===================== BUTTON ===================== */
+.save-button {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+
+  background: $color-accent;
+  color: white;
+  font-weight: 500;
+  font-size: 13px;
+
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-accent 92%, white);
+  }
+
+  &.saved {
+    background: #22c55e;
+    transform: scale(1.03);
+
+    &:hover {
+      background: color-mix(in srgb, #22c55e 92%, white);
+    }
+  }
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (min-width: 600px) {
+
+  .settings-block {
+    padding: 18px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .view-toggle button {
+    font-size: 13px;
+  }
+
+  .save-button {
+    width: auto;
+  }
+}
+
+@media (min-width: 992px) {
+
+  .settings-block {
+    padding: 24px;
+    border-radius: 16px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .view-toggle button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .save-button {
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+}

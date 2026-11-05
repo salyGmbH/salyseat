@@ -35,7 +35,7 @@
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background-color: rgba($color-primary, 0.12);
+    background-color: rgba(var(--color-primary-rgb), 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -141,7 +141,7 @@
 }
 
 .room-editor__edit-tag {
-  background: rgba($color-primary, 0.18);
+  background: rgba(var(--color-primary-rgb), 0.18);
   color: $color-primary;
   font-size: 11px;
   font-weight: 700;
@@ -195,7 +195,7 @@
 
   &:hover {
     background-color: $color-surface-soft;
-    border-color: rgba($color-primary, 0.4);
+    border-color: rgba(var(--color-primary-rgb), 0.4);
     transform: translateY(-1px);
   }
 
@@ -204,7 +204,7 @@
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background-color: rgba($color-primary, 0.12);
+    background-color: rgba(var(--color-primary-rgb), 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -306,7 +306,7 @@
 
   span { font-size: 11px; color: $color-text-muted; white-space: nowrap; }
 
-  &:hover { border-color: $color-primary; background-color: rgba($color-primary, 0.06); }
+  &:hover { border-color: $color-primary; background-color: rgba(var(--color-primary-rgb), 0.06); }
   &:active { cursor: grabbing; }
 }
 

@@ -1,0 +1,23 @@
+@use '../../../styles/variables' as *;
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+// Header wie im Dashboard
+.page-header {
+  .page-title {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+
+  .page-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+}

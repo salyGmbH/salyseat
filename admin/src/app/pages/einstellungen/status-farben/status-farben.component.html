@@ -1,0 +1,266 @@
+<div class="settings-container">
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Status</h2>
+
+    <div class="header-actions">
+      <button class="reset-button" (click)="resetStatusColors()">
+        Standard
+      </button>
+
+      <button class="info-button"
+              [class.active]="statusInfo"
+              (click)="toggleStatusInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="statusInfo">
+    Definiere hier die Farben und Darstellung der Reservierungsstatus.
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="statusView === 'text'" (click)="statusView = 'text'">Text</button>
+    <button [class.active]="statusView === 'svg'" (click)="statusView = 'svg'">Icons</button>
+  </div>
+
+  <div class="status-grid">
+    <div class="status-item" *ngFor="let status of statuses">
+      <label class="status-label-wrapper">
+        <input type="color" [(ngModel)]="status.color" class="color-input" />
+
+        <ng-container *ngIf="statusView === 'text'">
+          <span class="status-label"
+                [style.background]="status.color"
+                [style.color]="getTextColor(status.color)">
+            {{ status.label }}
+          </span>
+        </ng-container>
+
+        <ng-container *ngIf="statusView === 'svg'">
+          <div class="svg-box">
+            <svg viewBox="0 0 24 24" class="status-svg">
+              <circle cx="12" cy="12" r="10" [attr.fill]="status.color"></circle>
+              <path d="M8 12l2 2 4-4" stroke="white" stroke-width="2" fill="none"/>
+            </svg>
+            <span class="svg-label">{{ status.label }}</span>
+          </div>
+        </ng-container>
+      </label>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="save-button" [class.saved]="statusSaved" (click)="saveStatus()">
+      {{ statusSaved ? 'Gespeichert ✓' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>
+
+
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Hinweise</h2>
+
+    <div class="header-actions">
+      <button class="reset-button" (click)="resetHinweiseColors()">Standard</button>
+
+      <button class="info-button"
+              [class.active]="hinweisInfo"
+              (click)="toggleHinweisInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="hinweisInfo">
+    Lege fest, wie Hinweise dargestellt werden.
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="hinweisView === 'text'" (click)="hinweisView = 'text'">Text</button>
+    <button [class.active]="hinweisView === 'svg'" (click)="hinweisView = 'svg'">Icons</button>
+  </div>
+
+  <div class="status-grid icon-grid">
+
+    <div class="status-item" *ngFor="let hint of hinweise">
+      <label class="status-label-wrapper">
+        <input type="color" [(ngModel)]="hint.color" class="color-input" />
+
+        <ng-container *ngIf="hinweisView === 'text'">
+          <span class="status-label"
+                [style.background]="hint.color"
+                [style.color]="getTextColor(hint.color)">
+            {{ hint.label }}
+          </span>
+        </ng-container>
+
+        <ng-container *ngIf="hinweisView === 'svg'">
+          <div class="svg-box">
+            <svg viewBox="0 0 24 24" class="status-svg">
+              <rect x="4" y="4" width="16" height="16" rx="4" [attr.fill]="hint.color"></rect>
+              <path d="M12 7v5" stroke="white" stroke-width="2"/>
+              <circle cx="12" cy="15" r="1" fill="white"/>
+            </svg>
+            <span class="svg-label">{{ hint.label }}</span>
+          </div>
+        </ng-container>
+      </label>
+    </div>
+
+    <!-- ➕ ADD -->
+    <div class="status-item add-item" (click)="openModal('hinweis')">
+      <mat-icon>add</mat-icon>
+    </div>
+
+  </div>
+
+  <!-- ✅ NEU: SAVE BUTTON -->
+  <div class="actions">
+    <button class="save-button" [class.saved]="hinweisSaved" (click)="saveHinweise()">
+      {{ hinweisSaved ? 'Gespeichert ✓' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>
+
+
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Gäste-Typen</h2>
+
+    <div class="header-actions">
+      <button class="reset-button" (click)="resetGasttypenColors()">Standard</button>
+
+      <button class="info-button"
+              [class.active]="gastInfo"
+              (click)="toggleGastInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="gastInfo">
+    Definiere Kategorien wie VIP oder Stammgast.
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="gastView === 'text'" (click)="gastView = 'text'">Text</button>
+    <button [class.active]="gastView === 'svg'" (click)="gastView = 'svg'">Icons</button>
+  </div>
+
+  <div class="status-grid icon-grid">
+
+    <div class="status-item" *ngFor="let guest of gasttypen">
+      <label class="status-label-wrapper">
+        <input type="color" [(ngModel)]="guest.color" class="color-input" />
+
+        <ng-container *ngIf="gastView === 'text'">
+          <span class="status-label"
+                [style.background]="guest.color"
+                [style.color]="getTextColor(guest.color)">
+            {{ guest.label }}
+          </span>
+        </ng-container>
+
+        <ng-container *ngIf="gastView === 'svg'">
+          <div class="svg-box">
+            <svg viewBox="0 0 24 24" class="status-svg">
+              <circle cx="12" cy="8" r="4" [attr.fill]="guest.color"></circle>
+              <path d="M4 20c1.5-4 6-6 8-6s6.5 2 8 6"
+                    [attr.fill]="guest.color"></path>
+            </svg>
+            <span class="svg-label">{{ guest.label }}</span>
+          </div>
+        </ng-container>
+      </label>
+    </div>
+
+    <!-- ➕ ADD -->
+    <div class="status-item add-item" (click)="openModal('gast')">
+      <mat-icon>add</mat-icon>
+    </div>
+
+  </div>
+
+  <!-- ✅ NEU: SAVE BUTTON -->
+  <div class="actions">
+    <button class="save-button" [class.saved]="gastSaved" (click)="saveGasttypen()">
+      {{ gastSaved ? 'Gespeichert ✓' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>
+
+
+<!-- ===================== SORTIERUNG ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Sortierung</h2>
+
+    <div class="header-actions">
+      <button class="info-button"
+              [class.active]="sortInfo"
+              (click)="toggleSortInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="sortInfo">
+    Bestimme, wie Reservierungen sortiert werden.
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="sortMode === 'status'" (click)="setSortMode('status')">
+      Status
+    </button>
+    <button [class.active]="sortMode === 'time'" (click)="setSortMode('time')">
+      Zeit
+    </button>
+    <button [class.active]="sortMode === 'combined'" (click)="setSortMode('combined')">
+      Kombiniert
+    </button>
+  </div>
+
+  <div class="actions">
+    <button class="save-button" [class.saved]="sortSaved" (click)="saveSort()">
+      {{ sortSaved ? 'Gespeichert ✓' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>
+
+
+<div class="modal-backdrop" *ngIf="modalOpen" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+
+    <h3>
+      {{ modalType === 'hinweis' ? 'Hinweis hinzufügen' : 'Gasttyp hinzufügen' }}
+    </h3>
+
+    <input type="text" placeholder="Bezeichnung" [(ngModel)]="newItem.label" />
+    <input type="color" [(ngModel)]="newItem.color" />
+
+    <select [(ngModel)]="newItem.icon">
+      <option value="default">Standard</option>
+      <option value="star">Star</option>
+      <option value="alert">Alert</option>
+      <option value="gift">Gift</option>
+      <option value="user">User</option>
+    </select>
+
+    <div class="modal-actions">
+      <button (click)="closeModal()">Abbrechen</button>
+      <button (click)="addItem()">Speichern</button>
+    </div>
+
+  </div>
+</div></div>

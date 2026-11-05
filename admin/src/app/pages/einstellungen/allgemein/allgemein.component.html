@@ -1,0 +1,40 @@
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Darstellung des Systems</h2>
+
+    <div class="header-actions">
+      <button class="info-button"
+              [class.active]="themeInfo"
+              (click)="toggleThemeInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="themeInfo">
+    Wähle, ob das System im hellen oder dunklen Modus angezeigt wird.
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="theme === 'light'" (click)="setTheme('light')">
+      ☀️ Hell
+    </button>
+
+    <button [class.active]="theme === 'dark'" (click)="setTheme('dark')">
+      🌙 Dunkel
+    </button>
+
+    <button [class.active]="theme === 'system'" (click)="setTheme('system')">
+      💻 System
+    </button>
+  </div>
+
+  <!-- SAVE -->
+  <div class="actions">
+    <button class="save-button" [class.saved]="themeSaved" (click)="saveTheme()">
+      {{ themeSaved ? 'Gespeichert ✓' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>

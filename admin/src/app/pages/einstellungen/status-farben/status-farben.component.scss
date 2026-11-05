@@ -1,0 +1,597 @@
+@use '../../../../styles/variables' as *;
+
+// BASE (Mobile First)
+.settings-block {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+// HEADER
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+// HEADER ACTIONS
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// INFO BUTTON (immer gelb 🔥)
+.info-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: $color-accent;
+  padding: 6px;
+  border-radius: 50%;
+  transition: 0.2s;
+
+  mat-icon {
+    font-size: 20px;
+  }
+
+  &:hover {
+    background: rgba(var(--color-accent-rgb), 0.1);
+    transform: scale(1.05);
+  }
+
+  &.active {
+    background: rgba(var(--color-accent-rgb), 0.15);
+  }
+}
+
+// RESET BUTTON
+.reset-button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid $color-border;
+  background: transparent;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: 0.2s;
+
+  &:hover {
+    border-color: $color-accent;
+    color: $color-accent;
+  }
+}
+
+// INFO BOX (ANIMATION 🔥)
+.info-box {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  color: $color-text-muted;
+
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.25s ease;
+
+  &.open {
+    max-height: 200px;
+    opacity: 1;
+    transform: translateY(0);
+    margin-bottom: 14px;
+  }
+}
+
+// TOGGLE
+.view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  button {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid $color-border;
+    background: $color-surface;
+    color: $color-text-muted;
+    cursor: pointer;
+    font-size: 12px;
+    transition: 0.2s;
+
+    &.active {
+      background: rgba(var(--color-accent-rgb), 0.15);
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+
+    &:hover {
+      border-color: $color-accent;
+    }
+  }
+}
+
+// GRID
+.status-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+
+  flex: 0 0 auto; // 🔥 verhindert Stretch & Chaos
+}
+// CLICK WRAPPER
+.status-label-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+// COLOR PICKER
+.color-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+// TEXT CHIP
+.status-label {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  transition: transform 0.1s, box-shadow 0.1s;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// SVG BOX
+.svg-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  gap: 2px;
+}
+
+// SVG
+.status-svg {
+  width: 22px;
+  height: 22px;
+}
+
+// SVG TEXT
+.svg-label {
+  font-size: 10px;
+  color: $color-text-muted;
+}
+
+// ACTIONS
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+// BUTTON
+.save-button {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+
+  background: $color-accent;
+  color: white;
+  font-weight: 500;
+  font-size: 13px;
+
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-accent 92%, white);
+  }
+
+  &.saved {
+    background: #22c55e;
+    transform: scale(1.03);
+
+    &:hover {
+      background: color-mix(in srgb, #22c55e 92%, white);
+    }
+  }
+}
+
+// GRID WRAPPER
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+// CARD (falls du sie nutzt)
+.config-card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+
+// MEHR ABSTAND NUR FÜR ICON GRID
+.icon-grid {
+  gap: 14px; // 🔥 deutlich mehr spacing
+}
+
+// SVG BOX größer + luftiger
+.svg-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  gap: 6px;
+}
+
+// SVG größer
+.status-svg {
+  width: 28px;
+  height: 28px;
+}
+
+// PLUS BUTTON
+.add-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: transparent;
+  cursor: pointer;
+
+  color: $color-accent;
+
+  transition: 0.2s;
+
+  mat-icon {
+    font-size: 20px;
+  }
+
+  &:hover {
+    background: rgba(var(--color-accent-rgb), 0.1);
+    transform: scale(1.05);
+  }
+}
+
+.add-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 44px;
+  height: 44px;
+
+  border-radius: 10px;
+  cursor: pointer;
+
+  color: $color-accent;
+  transition: 0.2s;
+
+  mat-icon {
+    font-size: 26px;
+  }
+
+  &:hover {
+    background: rgba(var(--color-accent-rgb), 0.1);
+    border-color: $color-accent;
+    transform: scale(1.05);
+  }
+}
+
+.icon-grid .add-item {
+  height: 60px;
+  width: 60px;
+}
+
+.modal-backdrop {
+  position: fixed; // 🔥 DAS ist der Gamechanger
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 1000;
+}
+
+.modal {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+
+  padding: 20px;
+  width: 90%;
+  max-width: 400px;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal input[type="text"],
+.modal select {
+  width: 100%;
+  padding: 8px 10px;
+
+  border-radius: 8px;
+  border: 1px solid $color-border;
+
+  background: $color-surface;
+  color: $color-text-on-dark;
+}
+
+/* 🔥 COLOR PICKER FIX */
+.modal input[type="color"] {
+  width: 100%;
+  height: 40px;
+  padding: 4px;
+
+  border-radius: 8px;
+  border: 1px solid $color-border;
+
+  background: none;
+  cursor: pointer;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  margin-top: 10px;
+
+  button {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+  }
+
+  button:first-child {
+    background: transparent;
+    color: $color-text-muted;
+  }
+
+  button:last-child {
+    background: $color-accent;
+    color: white;
+  }
+}
+
+.modal {
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.settings-container {
+  height: 100%;
+  max-height: 85vh;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-right: 6px;
+
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+.settings-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, $color-accent 92%, white),
+    color-mix(in srgb, $color-accent 92%, black)
+  );
+  border-radius: 10px;
+}
+
+.settings-container::-webkit-scrollbar-thumb {
+  background: $color-accent;
+  border-radius: 10px;
+}
+
+.settings-container::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, $color-accent 92%, white);
+}
+
+@media (min-width: 600px) {
+
+  .settings-block {
+    padding: 18px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .view-toggle {
+    gap: 10px;
+
+    button {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+  }
+
+  .status-grid {
+    gap: 8px;
+  }
+
+  .status-item {
+    min-height: 52px;
+  }
+
+  .status-label {
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+
+  .svg-box {
+    height: 52px;
+  }
+
+  .svg-label {
+    font-size: 11px;
+  }
+
+  .save-button {
+    width: auto;
+  }
+}
+
+
+// ===================== DESKTOP =====================
+@media (min-width: 992px) {
+
+  .settings-block {
+    padding: 24px;
+    border-radius: 16px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .view-toggle button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .status-grid {
+    gap: 10px;
+  }
+
+  .status-item {
+    min-height: 64px;
+  }
+
+  .status-label {
+    padding: 9px 14px;
+    font-size: 14px;
+  }
+
+  .svg-box {
+    height: 64px;
+    gap: 4px;
+  }
+
+  .status-svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .svg-label {
+    font-size: 12px;
+  }
+
+  .save-button {
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .config-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+@media (min-width: 1200px) {
+
+  .settings-block {
+    padding: 28px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .status-item {
+    min-height: 72px;
+  }
+
+  .status-label {
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+
+  .status-svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .svg-box {
+    height: 72px;
+  }
+
+  .config-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

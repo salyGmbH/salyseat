@@ -1,14 +1,14 @@
 <aside class="sidebar" [class.collapsed]="collapsed()" [class.mobile-open]="layout.mobileOpen()">
 
   <div class="sidebar__logo">
-    <img src="images/lyandro-logo.png" alt="Lyandro Booking">
+    <img src="images/salyseat-logo-helle-schrift.png" alt="Salyseat">
   </div>
 
   <nav class="sidebar__nav">
-    <a routerLink="/raum" routerLinkActive="active" class="nav-item"
-       [title]="collapsed() ? 'Raum' : ''" (click)="layout.closeMobile()">
+    <a routerLink="/raum" routerLinkActive="active" class="nav-item nav-item--featured"
+       [title]="collapsed() ? 'Raum Übersicht' : ''" (click)="layout.closeMobile()">
       <mat-icon>meeting_room</mat-icon>
-      @if (!collapsed()) { <span>Raum</span> }
+      @if (!collapsed()) { <span>Raum Übersicht</span> }
     </a>
     <a routerLink="/dashboard" routerLinkActive="active" class="nav-item"
        [title]="collapsed() ? 'Dashboard' : ''" (click)="layout.closeMobile()">
@@ -33,6 +33,18 @@
   </nav>
 
   <div class="sidebar__footer">
+    <button class="sidebar__logout" (click)="logout()"
+            [title]="collapsed() ? 'Abmelden' : ''">
+      <mat-icon>logout</mat-icon>
+      @if (!collapsed()) {
+        <span class="sidebar__logout-label">
+          <span class="sidebar__logout-text">Abmelden</span>
+          @if (currentUserEmail()) {
+            <span class="sidebar__logout-email">{{ currentUserEmail() }}</span>
+          }
+        </span>
+      }
+    </button>
     <button class="sidebar__toggle" (click)="toggle()">
       <mat-icon>{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
     </button>

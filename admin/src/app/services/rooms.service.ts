@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { PlacedTable, PlacedWall, SavedRoom } from './room.types';
 
-const STORAGE_KEY = 'lyandro.rooms.v1';
+const STORAGE_KEY = 'salyseat.rooms.v1';
 
 @Injectable({ providedIn: 'root' })
 export class RoomsService {

@@ -65,7 +65,7 @@
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background-color: rgba($color-primary, 0.12);
+    background-color: rgba(var(--color-primary-rgb), 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -117,7 +117,7 @@
 
   &:hover {
     background-color: $color-surface-soft;
-    border-color: rgba($color-primary, 0.4);
+    border-color: rgba(var(--color-primary-rgb), 0.4);
     transform: translateY(-1px);
   }
 
@@ -126,7 +126,7 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background-color: rgba($color-primary, 0.12);
+    background-color: rgba(var(--color-primary-rgb), 0.12);
     display: flex;
     align-items: center;
     justify-content: center;

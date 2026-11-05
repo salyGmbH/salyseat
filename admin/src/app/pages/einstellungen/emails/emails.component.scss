@@ -1,0 +1,149 @@
+@use '../../../../styles/variables' as *;
+
+.settings-block {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.info-box {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  color: $color-text-muted;
+
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.25s ease;
+
+  &.open {
+    max-height: 200px;
+    opacity: 1;
+    margin-bottom: 10px;
+  }
+}
+
+.info-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $color-accent;
+
+  mat-icon {
+    font-size: 20px;
+  }
+}
+
+.toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toggle-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* SWITCH */
+.switch {
+  position: relative;
+  width: 42px;
+  height: 22px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: $color-border;
+  border-radius: 999px;
+  transition: 0.2s;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  top: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+input:checked + .slider {
+  background: $color-accent;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.view-toggle {
+  display: flex;
+  gap: 8px;
+
+  button {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid $color-border;
+    background: $color-surface;
+    color: $color-text-muted;
+    cursor: pointer;
+    font-size: 12px;
+
+    &.active {
+      background: rgba(var(--color-accent-rgb), 0.15);
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+
+  background: $color-accent;
+  color: white;
+
+  &.saved {
+    background: #22c55e;
+  }
+}

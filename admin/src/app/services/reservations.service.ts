@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Reservation, ReservationStatus } from './reservation.types';
 
-const STORAGE_KEY = 'lyandro.reservations.v1';
+const STORAGE_KEY = 'salyseat.reservations.v1';
 
 @Injectable({ providedIn: 'root' })
 export class ReservationsService {

@@ -1,5 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule, MatDatepickerInputEvent } from '@angular/material/datepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -13,7 +16,14 @@ type StatusFilter = 'all' | 'active' | ReservationStatus;
 @Component({
   selector: 'app-raum-detail',
   standalone: true,
-  imports: [MatIconModule, RouterLink, FormsModule],
+  imports: [
+    MatIconModule,
+    MatDatepickerModule,
+    MatInputModule,
+    MatFormFieldModule,
+    RouterLink,
+    FormsModule,
+  ],
   templateUrl: './raum-detail.component.html',
   styleUrl: './raum-detail.component.scss'
 })
@@ -95,30 +105,6 @@ export class RaumDetailComponent {
     };
   });
 
-  // ── Hero-Karte: aktuell eingecheckt oder nächste geplante ─────────────
-  currentlySeated = computed<Reservation | null>(() => {
-    const seated = this.allReservationsForDay().filter(r => r.status === 'seated');
-    if (seated.length === 0) return null;
-    // Den ältesten Eingecheckten zuerst
-    return seated.sort((a, b) => a.time.localeCompare(b.time))[0];
-  });
-
-  nextUpcoming = computed<Reservation | null>(() => {
-    const upcoming = this.allReservationsForDay().filter(r => r.status === 'upcoming');
-    if (upcoming.length === 0) return null;
-    return upcoming.sort((a, b) => a.time.localeCompare(b.time))[0];
-  });
-
-  // Heroes: was wir oben groß zeigen (nur am heutigen Tag relevant)
-  hero = computed<{ kind: 'seated' | 'next' | 'none'; reservation: Reservation | null }>(() => {
-    if (this.selectedDate() !== this.todayIso()) return { kind: 'none', reservation: null };
-    const seated = this.currentlySeated();
-    if (seated) return { kind: 'seated', reservation: seated };
-    const next = this.nextUpcoming();
-    if (next) return { kind: 'next', reservation: next };
-    return { kind: 'none', reservation: null };
-  });
-
   // ── Tagesverlauf (kleine Sparkline-Punkte pro Stunde) ─────────────────
   dayLoad = computed<Array<{ hour: number; count: number; isPeak: boolean }>>(() => {
     const buckets = new Map<number, number>();
@@ -160,25 +146,6 @@ export class RaumDetailComponent {
 
   closeMenu() { this.openMenuId.set(null); }
 
-  // ── Hero-Helfer ───────────────────────────────────────────────────────
-  minutesSince(time: string): number {
-    const [h, m] = time.split(':').map(Number);
-    const now = new Date();
-    const start = new Date();
-    start.setHours(h, m, 0, 0);
-    const diff = Math.floor((now.getTime() - start.getTime()) / 60000);
-    return Math.max(0, diff);
-  }
-
-  minutesUntil(time: string): number {
-    const [h, m] = time.split(':').map(Number);
-    const now = new Date();
-    const target = new Date();
-    target.setHours(h, m, 0, 0);
-    const diff = Math.floor((target.getTime() - now.getTime()) / 60000);
-    return diff;
-  }
-
   // ── Datum-Helfer ──────────────────────────────────────────────────────
   private todayIso(): string {
     const d = new Date();
@@ -200,6 +167,25 @@ export class RaumDetailComponent {
 
   goToday() { this.selectedDate.set(this.todayIso()); }
 
+  /**
+   * Das MatDatepicker-Widget arbeitet mit nativen Date-Objekten.
+   * Intern speichern wir das Datum als ISO-String (YYYY-MM-DD), damit
+   * Reservierungen einfach nach Datum gruppiert werden können.
+   * Diese beiden Helper überbrücken das.
+   */
+  selectedDateAsDate = computed<Date>(() => {
+    const [y, m, d] = this.selectedDate().split('-').map(Number);
+    return new Date(y, m - 1, d);
+  });
+
+  onDateSelected(event: MatDatepickerInputEvent<Date>): void {
+    const d = event.value;
+    if (!d) return;
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    this.selectedDate.set(`${d.getFullYear()}-${mm}-${dd}`);
+  }
+
   formatDateLabel(): string {
     const iso = this.selectedDate();
     const today = this.todayIso();
@@ -213,7 +199,7 @@ export class RaumDetailComponent {
   }
 
   // ── Neuer-Reservierung-Dialog ─────────────────────────────────────────
-  openNewDialog() {
+  openNewDialog(preset?: Partial<typeof this.form>) {
     this.form = {
       guestName: '',
       partySize: 2,
@@ -222,6 +208,7 @@ export class RaumDetailComponent {
       tableId: 0,
       phone: '',
       notes: '',
+      ...preset,
     };
     this.formError.set(null);
     this.editingId.set(null);
@@ -230,6 +217,82 @@ export class RaumDetailComponent {
       (document.querySelector('.reservation-form__name-input') as HTMLInputElement | null)?.focus();
     }, 0);
   }
+
+  // ── Tisch-Umplatzierung per Long-Press ────────────────────────────────
+  reassignMode = signal<{ reservationId: string; sourceTableId: number } | null>(null);
+  private longPressTimer: any = null;
+  private suppressNextClick = false;
+
+  /** Pointer runter: ggf. Long-Press-Timer starten (nur wenn Tisch eine Reservierung hat). */
+  onTablePointerDown(tableId: number, event: PointerEvent): void {
+    // Nur primäre Taste (Maus links, Touch)
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    // Während Reassign-Modus nicht neu starten
+    if (this.reassignMode()) return;
+
+    const status = this.tableStatus(tableId);
+    if (!status.reservation) return;
+
+    const reservationId = status.reservation.id;
+    this.longPressTimer = setTimeout(() => {
+      this.longPressTimer = null;
+      this.suppressNextClick = true;
+      try { (navigator as any).vibrate?.(30); } catch { /* ignore */ }
+      this.reassignMode.set({ reservationId, sourceTableId: tableId });
+    }, 500);
+  }
+
+  /** Pointer hoch / verlässt Tisch: Long-Press abbrechen, falls noch nicht gefeuert. */
+  onTablePointerEnd(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
+  /**
+   * Normaler Klick auf einen Tisch:
+   *  – im Umplatzier-Modus: Ziel festlegen (oder bei Quelltisch abbrechen)
+   *  – Tisch frei  → neue Reservierung mit vorausgewähltem Tisch
+   *  – Tisch belegt → bestehende Reservierung bearbeiten
+   */
+  onTableClick(tableId: number, event: MouseEvent): void {
+    event.stopPropagation();
+
+    // Nach Long-Press den darauf folgenden Klick schlucken
+    if (this.suppressNextClick) {
+      this.suppressNextClick = false;
+      return;
+    }
+
+    const mode = this.reassignMode();
+    if (mode) {
+      if (tableId === mode.sourceTableId) {
+        this.reassignMode.set(null);
+        return;
+      }
+      this.reservationsService.update(mode.reservationId, { tableId });
+      this.reassignMode.set(null);
+      return;
+    }
+
+    const status = this.tableStatus(tableId);
+    if (status.reservation) {
+      this.openEditDialog(status.reservation);
+      return;
+    }
+    const t = this.room()?.tables.find(x => x.id === tableId);
+    const seats = t?.seats ?? 2;
+    this.openNewDialog({ tableId, partySize: Math.min(seats, 4) });
+  }
+
+  cancelReassign(): void { this.reassignMode.set(null); }
+
+  /** Klick in den leeren Plan oder Escape → Umplatzierung abbrechen. */
+  onCanvasClick(): void { if (this.reassignMode()) this.cancelReassign(); }
+
+  @HostListener('document:keyup.escape')
+  onEscape(): void { if (this.reassignMode()) this.cancelReassign(); }
 
   openEditDialog(res: Reservation) {
     this.form = {

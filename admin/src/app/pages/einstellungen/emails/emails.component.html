@@ -1,0 +1,97 @@
+
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Automatische Mails</h2>
+
+    <div class="header-actions">
+      <button class="info-button"
+              [class.active]="mailInfo"
+              (click)="toggleMailInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="mailInfo">
+    Lege fest, welche Mails automatisch versendet werden.
+  </div>
+
+  <div class="toggle-list">
+
+    <div class="toggle-item" *ngFor="let mail of mailSettings">
+      <span>{{ mail.label }}</span>
+
+      <label class="switch">
+        <input type="checkbox" [(ngModel)]="mail.enabled">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+  </div>
+
+</div>
+
+
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Erinnerung</h2>
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="reminderTime === '2h'" (click)="setReminder('2h')">
+      2h vorher
+    </button>
+
+    <button [class.active]="reminderTime === '24h'" (click)="setReminder('24h')">
+      24h vorher
+    </button>
+  </div>
+
+</div>
+
+
+<!-- ===================== SPRACHE ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Sprache</h2>
+
+    <div class="header-actions">
+      <button class="info-button"
+              [class.active]="languageInfo"
+              (click)="toggleLanguageInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="languageInfo">
+    Wähle die Sprache für deine E-Mails.
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="language === 'de'" (click)="setLanguage('de')">
+      Deutsch
+    </button>
+
+    <button [class.active]="language === 'en'" (click)="setLanguage('en')">
+      Englisch
+    </button>
+    <button [class.active]="language === 'it'" (click)="setLanguage('it')">
+      Italienisch
+    </button>
+  </div>
+
+</div>
+
+<div class="settings-block">
+
+  <div class="actions">
+    <button class="save-button" [class.saved]="saved" (click)="save()">
+      {{ saved ? 'Gespeichert ✓' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>

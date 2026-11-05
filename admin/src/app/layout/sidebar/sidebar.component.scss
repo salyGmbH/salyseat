@@ -89,10 +89,72 @@
   }
 
   &.active {
-    background-color: rgba($color-accent, 0.12);
+    background-color: rgba(var(--color-accent-rgb), 0.12);
     color: $color-accent;
     border-left-color: $color-accent;
   }
+}
+
+// ─── Featured Nav-Item (Raum Übersicht) ──────────────────────────────────────
+// Größer, immer hervorgehoben, weil das der Haupt-Arbeitsbereich ist.
+.nav-item--featured {
+  padding: 22px 20px;
+  margin: 6px 10px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: $color-accent;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-accent-rgb), 0.18) 0%,
+    rgba(var(--color-accent-rgb), 0.08) 100%
+  );
+  border-left: 3px solid $color-accent;
+  box-shadow:
+    0 4px 12px rgba(var(--color-accent-rgb), 0.10),
+    inset 0 0 0 1px rgba(var(--color-accent-rgb), 0.22);
+  position: relative;
+
+  mat-icon {
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
+  }
+
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--color-accent-rgb), 0.28) 0%,
+      rgba(var(--color-accent-rgb), 0.14) 100%
+    );
+    color: $color-accent;
+  }
+
+  &.active {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--color-accent-rgb), 0.35) 0%,
+      rgba(var(--color-accent-rgb), 0.18) 100%
+    );
+    color: $color-white;
+    border-left-color: $color-accent;
+    box-shadow:
+      0 6px 18px rgba(var(--color-accent-rgb), 0.20),
+      inset 0 0 0 1px rgba(var(--color-accent-rgb), 0.40);
+
+    mat-icon {
+      color: $color-accent;
+    }
+  }
+}
+
+// In der eingeklappten Sidebar: auf Icon-Größe schrumpfen, damit's passt
+.sidebar.collapsed .nav-item--featured {
+  margin: 6px 6px 10px;
+  padding: 16px 0;
+  justify-content: center;
+  border-radius: 8px;
 }
 
 .sidebar__footer {
@@ -122,6 +184,61 @@
     width: 20px;
     height: 20px;
   }
+}
+
+// ─── Logout ──────────────────────────────────────────────────────────────────
+.sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid $color-border;
+  color: $color-text-muted;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background-color: $color-dark-soft;
+    color: $color-white;
+  }
+}
+
+.sidebar__logout-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+.sidebar__logout-text {
+  font-size: 14px;
+}
+
+.sidebar__logout-email {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 170px;
+}
+
+.sidebar.collapsed .sidebar__logout {
+  justify-content: center;
+  padding: 12px 0;
 }
 
 .sidebar__restaurant {
