@@ -1,13 +1,40 @@
 @if (!isEditing()) {
 
   <div class="restaurant-plan">
-    <div class="page-header"><h1 class="page-title">Restaurantplan</h1></div>
-    <div class="empty-state">
-      <div class="empty-state__icon"><mat-icon>table_restaurant</mat-icon></div>
-      <h2 class="empty-state__title">Noch kein Restaurantplan vorhanden</h2>
-      <p class="empty-state__description">Erstelle deinen ersten Raum und leg los mit der Planung deines Restaurants.</p>
-      <button class="btn-primary" (click)="openEditor()"><mat-icon>add</mat-icon> Raum erstellen</button>
+    <div class="page-header">
+      <h1 class="page-title">Restaurantplan</h1>
+      @if (savedRooms().length > 0) {
+        <button class="btn-primary btn-primary--small" (click)="openEditor()">
+          <mat-icon>add</mat-icon> Neuen Raum erstellen
+        </button>
+      }
     </div>
+
+    @if (savedRooms().length === 0) {
+      <div class="empty-state">
+        <div class="empty-state__icon"><mat-icon>table_restaurant</mat-icon></div>
+        <h2 class="empty-state__title">Noch kein Restaurantplan vorhanden</h2>
+        <p class="empty-state__description">Erstelle deinen ersten Raum und leg los mit der Planung deines Restaurants.</p>
+        <button class="btn-primary" (click)="openEditor()"><mat-icon>add</mat-icon> Raum erstellen</button>
+      </div>
+    } @else {
+      <div class="rooms-grid">
+        @for (room of savedRooms(); track room.id) {
+          <button class="room-card" (click)="editRoom(room.id)">
+            <div class="room-card__icon"><mat-icon>edit</mat-icon></div>
+            <div class="room-card__body">
+              <h3 class="room-card__name">{{ room.name }}</h3>
+              <div class="room-card__meta">
+                <span><mat-icon>table_restaurant</mat-icon>{{ room.tables.length }} Tische</span>
+                <span><mat-icon>person</mat-icon>{{ totalSeats(room) }} Plätze</span>
+              </div>
+              <div class="room-card__date">Zuletzt geändert {{ room.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</div>
+            </div>
+            <div class="room-card__action"><mat-icon>chevron_right</mat-icon></div>
+          </button>
+        }
+      </div>
+    }
   </div>
 
 } @else {
@@ -16,9 +43,22 @@
 
     <!-- Header -->
     <div class="room-editor__header">
-      <button class="btn-icon" (click)="closeEditor()"><mat-icon>arrow_back</mat-icon></button>
-      <span class="room-editor__title">Raum gestalten</span>
-      <button class="btn-primary btn-primary--small"><mat-icon>save</mat-icon> Speichern</button>
+      <button class="btn-icon" (click)="askDiscardChanges()"><mat-icon>arrow_back</mat-icon></button>
+      <span class="room-editor__title">
+        @if (editingRoomId()) {
+          <span class="room-editor__edit-tag">Bearbeiten</span> {{ currentRoomName() }}
+        } @else {
+          Neuen Raum gestalten
+        }
+      </span>
+      @if (saveFeedback(); as msg) {
+        <span class="room-editor__feedback">
+          <mat-icon>check_circle</mat-icon>{{ msg }}
+        </span>
+      }
+      <button class="btn-primary btn-primary--small" (click)="openSaveDialog()">
+        <mat-icon>save</mat-icon> Speichern
+      </button>
     </div>
 
     <!-- Palette -->
@@ -172,8 +212,49 @@
 
       <!-- ── Dialoge ──────────────────────────────────────────────────── -->
 
-      @if (mergeConfirmDialog() || mergeSeatsDialog() || splitDialog() !== null) {
-        <div class="dialog-backdrop" (click)="cancelMerge(); cancelSplit()"></div>
+      @if (mergeConfirmDialog() || mergeSeatsDialog() || splitDialog() !== null || saveDialogOpen() || discardDialogOpen()) {
+        <div class="dialog-backdrop" (click)="cancelMerge(); cancelSplit(); cancelSaveDialog(); cancelDiscard()"></div>
+      }
+
+      @if (discardDialogOpen()) {
+        <div class="dialog">
+          <div class="dialog__icon dialog__icon--split"><mat-icon>warning</mat-icon></div>
+          <h3 class="dialog__title">Editor verlassen?</h3>
+          <p class="dialog__text">Nicht gespeicherte Änderungen gehen verloren.</p>
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelDiscard()">Abbrechen</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmDiscard()">Verlassen</button>
+          </div>
+        </div>
+      }
+
+      @if (saveDialogOpen()) {
+        <div class="dialog">
+          <div class="dialog__icon dialog__icon--merge"><mat-icon>save</mat-icon></div>
+          <h3 class="dialog__title">
+            @if (editingRoomId()) { Änderungen speichern } @else { Raum speichern }
+          </h3>
+          <p class="dialog__text">
+            @if (editingRoomId()) {
+              Du kannst den Namen anpassen oder einfach so speichern.
+            } @else {
+              Wie soll dieser Raum heißen? (z.B. "Hauptraum", "Terrasse", "Wintergarten")
+            }
+          </p>
+          <input class="dialog__name-input" type="text" maxlength="50" placeholder="Name des Raums"
+                 [value]="roomNameInput"
+                 (input)="roomNameInput = $any($event.target).value"
+                 (keydown.enter)="confirmSaveRoom()">
+          @if (saveError()) {
+            <p class="dialog__error">{{ saveError() }}</p>
+          }
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelSaveDialog()">Abbrechen</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmSaveRoom()">
+              @if (editingRoomId()) { Aktualisieren } @else { Speichern }
+            </button>
+          </div>
+        </div>
       }
 
       @if (mergeConfirmDialog()) {

@@ -1,0 +1,381 @@
+@if (room(); as r) {
+  <div class="raum-detail">
+    <!-- ── Header ────────────────────────────────────────────────────── -->
+    <div class="raum-detail__header">
+      <a class="btn-icon" routerLink="/raum" title="Zurück zur Übersicht">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <div class="raum-detail__title-wrap">
+        <h1 class="raum-detail__title">{{ r.name }}</h1>
+        <div class="raum-detail__meta">
+          <span><mat-icon>table_restaurant</mat-icon>{{ r.tables.length }} Tische</span>
+          <span><mat-icon>person</mat-icon>{{ totalSeats() }} Plätze</span>
+        </div>
+      </div>
+      <a class="btn-secondary" [routerLink]="['/restaurant-plan', r.id]">
+        <mat-icon>edit</mat-icon> Plan bearbeiten
+      </a>
+    </div>
+
+    <!-- ── Hauptbereich: Links Reservierungen / Rechts Plan ────────────── -->
+    <div class="raum-detail__body">
+
+      <!-- ─── Linkes Panel ─── -->
+      <aside class="res-panel" (click)="closeMenu()">
+
+        <!-- Datum-Karte mit Sparkline -->
+        <div class="date-card">
+          <div class="date-card__row">
+            <button class="btn-icon btn-icon--ghost" (click)="shiftDate(-1)" title="Vorheriger Tag">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <div class="date-card__middle">
+              <div class="date-card__label">{{ formatDateLabel() }}</div>
+              <div class="date-card__summary">
+                {{ stats().total }} Reservierung{{ stats().total === 1 ? '' : 'en' }}
+                · {{ stats().guests }} Gäste
+              </div>
+              <input class="date-card__hidden-input" type="date"
+                     [value]="selectedDate()"
+                     (change)="selectedDate.set($any($event.target).value)">
+            </div>
+            <button class="btn-icon btn-icon--ghost" (click)="shiftDate(1)" title="Nächster Tag">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+
+          <!-- Tagesverlauf (Stunden) -->
+          <div class="day-load">
+            @for (bucket of dayLoad(); track bucket.hour) {
+              <div class="day-load__cell" [class.is-peak]="bucket.isPeak" [title]="bucket.hour + ':00 · ' + bucket.count + ' Res.'">
+                <div class="day-load__bar" [style.height.%]="bucket.count === 0 ? 8 : 20 + bucket.count * 22"></div>
+                <div class="day-load__hour">{{ bucket.hour }}</div>
+              </div>
+            }
+          </div>
+
+          @if (selectedDate() !== todayIsoPublic()) {
+            <button class="date-card__today-link" (click)="goToday()">
+              <mat-icon>today</mat-icon> Zurück zu heute
+            </button>
+          }
+        </div>
+
+        <!-- Hero: Jetzt eingecheckt / Nächster Gast -->
+        @if (hero().reservation; as heroRes) {
+          <div class="hero-card" [class.hero-card--seated]="hero().kind === 'seated'" [class.hero-card--next]="hero().kind === 'next'">
+            <div class="hero-card__label">
+              @if (hero().kind === 'seated') {
+                <span class="live-dot"></span> Jetzt am Tisch
+              } @else {
+                <mat-icon>schedule</mat-icon> Nächster Gast
+              }
+            </div>
+            <div class="hero-card__guest">{{ heroRes.guestName }}</div>
+            <div class="hero-card__info">
+              <span><mat-icon>person</mat-icon>{{ heroRes.partySize }} Pers.</span>
+              @if (heroRes.tableId) {
+                <span><mat-icon>table_restaurant</mat-icon>Tisch #{{ heroRes.tableId }}</span>
+              } @else {
+                <span class="hero-card__info--warn"><mat-icon>help_outline</mat-icon>Kein Tisch</span>
+              }
+              @if (hero().kind === 'seated') {
+                <span><mat-icon>timelapse</mat-icon>seit {{ minutesSince(heroRes.time) }} Min.</span>
+              } @else {
+                <span><mat-icon>schedule</mat-icon>um {{ heroRes.time }}
+                  @if (minutesUntil(heroRes.time) > 0 && minutesUntil(heroRes.time) < 180) {
+                    · in {{ minutesUntil(heroRes.time) }} Min.
+                  }
+                </span>
+              }
+            </div>
+            <div class="hero-card__actions">
+              @if (hero().kind === 'seated') {
+                <button class="btn-primary btn-primary--full" (click)="markCompleted(heroRes)">
+                  <mat-icon>logout</mat-icon> Tisch frei geben
+                </button>
+              } @else {
+                <button class="btn-primary btn-primary--full" (click)="checkIn(heroRes)">
+                  <mat-icon>login</mat-icon> Einchecken
+                </button>
+              }
+              <button class="btn-ghost" (click)="openEditDialog(heroRes)" title="Bearbeiten">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Neue Reservierung -->
+        <button class="btn-new" (click)="openNewDialog()">
+          <mat-icon>add</mat-icon>
+          <span>Neue Reservierung</span>
+        </button>
+
+        <!-- Filter-Tabs -->
+        <div class="filter-tabs">
+          <button [class.active]="statusFilter() === 'active'"    (click)="statusFilter.set('active')">
+            Aktiv
+            @if (stats().upcoming + stats().seated > 0) {
+              <span class="filter-tabs__badge">{{ stats().upcoming + stats().seated }}</span>
+            }
+          </button>
+          <button [class.active]="statusFilter() === 'all'"       (click)="statusFilter.set('all')">Alle</button>
+          <button [class.active]="statusFilter() === 'completed'" (click)="statusFilter.set('completed')">Beendet</button>
+        </div>
+
+        <!-- Liste: Gruppiert nach Stunde -->
+        <div class="res-panel__list">
+          @if (filteredReservations().length === 0) {
+            <div class="res-empty">
+              <mat-icon>event_available</mat-icon>
+              <p>Keine Reservierungen</p>
+              <small>Leg eine neue Reservierung an, um loszulegen.</small>
+            </div>
+          } @else {
+            @for (group of timeGroups(); track group.hour) {
+              <div class="time-group">
+                <div class="time-group__header">
+                  <span class="time-group__hour">{{ group.hour }}</span>
+                  <span class="time-group__line"></span>
+                  <span class="time-group__count">{{ group.reservations.length }}</span>
+                </div>
+                <div class="time-group__items">
+                  @for (res of group.reservations; track res.id) {
+                    <div class="res-row" [class]="'res-row--' + res.status">
+                      <div class="res-row__dot"></div>
+                      <div class="res-row__time">{{ res.time }}</div>
+                      <div class="res-row__body">
+                        <div class="res-row__top">
+                          <span class="res-row__name">{{ res.guestName }}</span>
+                          <span class="res-row__party">· {{ res.partySize }} Pers.</span>
+                        </div>
+                        <div class="res-row__sub">
+                          @if (res.tableId) {
+                            <span><mat-icon>table_restaurant</mat-icon>Tisch #{{ res.tableId }}</span>
+                          } @else {
+                            <span class="warn"><mat-icon>help_outline</mat-icon>Ohne Tisch</span>
+                          }
+                          @if (res.status === 'completed' || res.status === 'cancelled' || res.status === 'no-show') {
+                            <span class="muted">· {{ statusLabel(res.status) }}</span>
+                          }
+                          @if (res.phone) { <span class="muted">· <mat-icon>call</mat-icon>{{ res.phone }}</span> }
+                        </div>
+                        @if (res.notes) {
+                          <div class="res-row__notes"><mat-icon>sticky_note_2</mat-icon>{{ res.notes }}</div>
+                        }
+                      </div>
+                      <div class="res-row__actions">
+                        @switch (res.status) {
+                          @case ('upcoming') {
+                            <button class="action action--primary" (click)="checkIn(res)" title="Einchecken">
+                              <mat-icon>login</mat-icon>
+                            </button>
+                          }
+                          @case ('seated') {
+                            <button class="action action--success" (click)="markCompleted(res)" title="Beenden">
+                              <mat-icon>logout</mat-icon>
+                            </button>
+                          }
+                          @default {
+                            <button class="action" (click)="reopen(res)" title="Wieder aktivieren">
+                              <mat-icon>replay</mat-icon>
+                            </button>
+                          }
+                        }
+                        <div class="kebab-wrap">
+                          <button class="action" (click)="toggleMenu($event, res.id)" title="Mehr">
+                            <mat-icon>more_vert</mat-icon>
+                          </button>
+                          @if (openMenuId() === res.id) {
+                            <div class="kebab-menu" (click)="$event.stopPropagation()">
+                              <button class="kebab-menu__item" (click)="openEditDialog(res); closeMenu()">
+                                <mat-icon>edit</mat-icon> Bearbeiten
+                              </button>
+                              @if (res.status === 'upcoming' || res.status === 'seated') {
+                                <button class="kebab-menu__item" (click)="markNoShow(res); closeMenu()">
+                                  <mat-icon>person_off</mat-icon> Nicht erschienen
+                                </button>
+                                <button class="kebab-menu__item kebab-menu__item--danger" (click)="cancel(res); closeMenu()">
+                                  <mat-icon>cancel</mat-icon> Stornieren
+                                </button>
+                              } @else {
+                                <button class="kebab-menu__item kebab-menu__item--danger" (click)="remove(res); closeMenu()">
+                                  <mat-icon>delete</mat-icon> Löschen
+                                </button>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </aside>
+
+      <!-- ─── Rechtes Panel: Plan ─── -->
+      <div class="raum-detail__canvas">
+        <!-- Wände -->
+        @for (wall of r.walls; track wall.id) {
+          <div class="placed-wall"
+               [style.left.px]="wall.x - wall.length / 2"
+               [style.top.px]="wall.y - 8"
+               [style.width.px]="wall.length"
+               [style.transform]="'rotate(' + wall.rotation + 'deg)'">
+            <div class="wall-body"></div>
+          </div>
+        }
+
+        <!-- Merge-Verbindungslinien -->
+        @for (pair of getMergedPairs(); track pair.a.id) {
+          <div class="merge-line" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
+        }
+
+        <!-- Tische -->
+        @for (table of r.tables; track table.id) {
+          <div class="placed-table" [class]="tableStatusClass(table.id)"
+               [style.left.px]="table.x"
+               [style.top.px]="table.y"
+               [style.width.px]="getTableSize(table.type).w * table.scale"
+               [style.height.px]="getTableSize(table.type).h * table.scale"
+               [style.transform]="'rotate(' + table.rotation + 'deg)'">
+
+            @if (table.type === 'long') {
+              <svg viewBox="0 0 140 70" class="table-svg">
+                @for (pos of getLongTableSeatPositions(table.seats); track $index) {
+                  <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" fill="#2979ff" opacity="0.8"/>
+                }
+                <rect x="8" y="13" width="124" height="44" rx="5" class="table-svg__body"/>
+              </svg>
+            } @else {
+              <svg viewBox="0 0 70 70" class="table-svg">
+                @for (pos of getSeatPositions(table.seats); track $index) {
+                  @if (table.type === 'round') {
+                    <circle [attr.cx]="pos.x" [attr.cy]="pos.y" r="5" fill="#2979ff" opacity="0.8"/>
+                  } @else {
+                    <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" fill="#2979ff" opacity="0.8"/>
+                  }
+                }
+                @if (table.type === 'round') {
+                  <circle cx="35" cy="35" r="24" class="table-svg__body"/>
+                } @else {
+                  <rect x="13" y="13" width="44" height="44" rx="5" class="table-svg__body"/>
+                }
+              </svg>
+            }
+
+            <span class="placed-table__seats-badge">{{ table.seats }}</span>
+
+            @if (tableStatus(table.id).reservation; as res) {
+              <div class="placed-table__guest">
+                <mat-icon>person</mat-icon>
+                <span>{{ res.guestName }}</span>
+                <small>{{ res.time }}</small>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Dialoge ────────────────────────────────────────────────────── -->
+    @if (newDialogOpen() || editDialogOpen() || tablePickerFor()) {
+      <div class="dialog-backdrop" (click)="closeFormDialog(); closeTablePicker()"></div>
+    }
+
+    @if (newDialogOpen() || editDialogOpen()) {
+      <div class="dialog dialog--form">
+        <h3 class="dialog__title">
+          @if (editDialogOpen()) { Reservierung bearbeiten } @else { Neue Reservierung }
+        </h3>
+
+        <form class="reservation-form" (ngSubmit)="saveForm()" #resForm="ngForm">
+          <label class="field">
+            <span class="field__label">Name</span>
+            <input class="field__input reservation-form__name-input" name="guestName" type="text" maxlength="60" placeholder="Gastname"
+                   [(ngModel)]="form.guestName">
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Personen</span>
+              <input class="field__input" name="partySize" type="number" min="1" max="40" [(ngModel)]="form.partySize">
+            </label>
+            <label class="field">
+              <span class="field__label">Uhrzeit</span>
+              <input class="field__input" name="time" type="time" [(ngModel)]="form.time">
+            </label>
+            <label class="field">
+              <span class="field__label">Dauer (min)</span>
+              <input class="field__input" name="duration" type="number" min="15" max="480" step="15" [(ngModel)]="form.durationMinutes">
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Tisch (optional)</span>
+            <select class="field__input" name="tableId" [(ngModel)]="form.tableId">
+              <option [ngValue]="0">— Kein Tisch zuweisen —</option>
+              @for (t of availableTables(); track t.id) {
+                <option [ngValue]="t.id">Tisch #{{ t.id }} · {{ tableLabel(t.id) }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field__label">Telefon (optional)</span>
+            <input class="field__input" name="phone" type="tel" placeholder="+49 ..." [(ngModel)]="form.phone">
+          </label>
+
+          <label class="field">
+            <span class="field__label">Notiz (optional)</span>
+            <textarea class="field__input field__input--area" name="notes" rows="2" placeholder="Allergien, Geburtstag, Wünsche..."
+                      [(ngModel)]="form.notes"></textarea>
+          </label>
+
+          @if (formError()) {
+            <p class="dialog__error">{{ formError() }}</p>
+          }
+
+          <div class="dialog__actions">
+            <button type="button" class="dialog__btn dialog__btn--secondary" (click)="closeFormDialog()">Abbrechen</button>
+            <button type="submit" class="dialog__btn dialog__btn--primary">
+              @if (editDialogOpen()) { Speichern } @else { Anlegen }
+            </button>
+          </div>
+        </form>
+      </div>
+    }
+
+    @if (tablePickerFor()) {
+      <div class="dialog dialog--table-picker">
+        <h3 class="dialog__title">Tisch zuweisen</h3>
+        <p class="dialog__text">Welcher Tisch soll für diese Reservierung belegt werden?</p>
+
+        <div class="table-picker">
+          @for (t of availableTables(); track t.id) {
+            <button class="table-picker__item" (click)="assignTableAndCheckIn(t.id)">
+              <span class="table-picker__num">#{{ t.id }}</span>
+              <span class="table-picker__lbl">{{ tableLabel(t.id) }}</span>
+            </button>
+          }
+        </div>
+
+        <div class="dialog__actions">
+          <button class="dialog__btn dialog__btn--secondary" (click)="closeTablePicker()">Abbrechen</button>
+          <button class="dialog__btn dialog__btn--primary"   (click)="skipTableAndCheckIn()">Ohne Tisch einchecken</button>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  <div class="raum-detail raum-detail--missing">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Raum nicht gefunden</h2>
+    <p>Der angeforderte Raum existiert nicht (mehr).</p>
+    <a class="btn-primary" routerLink="/raum">Zurück zur Übersicht</a>
+  </div>
+}

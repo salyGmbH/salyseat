@@ -1,0 +1,244 @@
+@use '../../../styles/variables' as *;
+
+.raum-page {
+  padding: 24px;
+  height: 100%;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+// ── Buttons ────────────────────────────────────────────────────────────────
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background-color: $color-accent;
+  color: $color-dark;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s;
+
+  &:hover { background-color: $color-accent-dark; }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &--small {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
+// ── Empty State ────────────────────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  background-color: $color-surface;
+  border-radius: 12px;
+  border: 1px solid $color-border;
+
+  &__icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: rgba($color-primary, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+
+    mat-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+      color: $color-primary;
+    }
+  }
+
+  &__title {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+
+  &__description {
+    margin: 0 0 32px;
+    font-size: 14px;
+    color: $color-text-muted;
+    max-width: 420px;
+    line-height: 1.6;
+  }
+}
+
+// ── Rooms Grid ─────────────────────────────────────────────────────────────
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.room-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+
+  &:hover {
+    background-color: $color-surface-soft;
+    border-color: rgba($color-primary, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &__icon {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: rgba($color-primary, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      color: $color-primary;
+    }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  &__date {
+    font-size: 12px;
+    color: $color-text-muted;
+  }
+
+  &__delete {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    opacity: 0;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    &:hover {
+      background: rgba(229, 57, 53, 0.15);
+      color: #e53935;
+    }
+  }
+
+  &:hover &__delete { opacity: 1; }
+
+  &__confirm {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 17, 23, 0.95);
+    border: 1px solid rgba(229, 57, 53, 0.4);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: $color-text-on-dark;
+  }
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: $color-text-muted;
+  background: rgba(255,255,255,0.04);
+  padding: 4px 8px;
+  border-radius: 6px;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.confirm-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &--no {
+    background: rgba(255,255,255,0.1);
+    color: $color-text-on-dark;
+    &:hover { background: rgba(255,255,255,0.15); }
+  }
+
+  &--yes {
+    background: #e53935;
+    color: #fff;
+    &:hover { background: #c62828; }
+  }
+}

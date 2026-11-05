@@ -1,0 +1,929 @@
+@use '../../../styles/variables' as *;
+
+// ── Root Layout ────────────────────────────────────────────────────────────
+.raum-detail {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  margin: -32px;
+  background: $color-bg;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    background-color: $color-dark;
+    border-bottom: 1px solid $color-border;
+    flex-shrink: 0;
+  }
+
+  &__title-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+
+  &__meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: $color-text-muted;
+
+    span { display: inline-flex; align-items: center; gap: 4px; }
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+  }
+
+  &__body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    min-height: 0;
+  }
+
+  &__canvas {
+    position: relative;
+    background:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px) 0 0 / 20px 20px,
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px) 0 0 / 20px 20px,
+      $color-surface;
+    overflow: auto;
+  }
+
+  &--missing {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    mat-icon {
+      font-size: 48px; width: 48px; height: 48px;
+      color: #e53935; margin-bottom: 12px;
+    }
+    h2 { margin: 0 0 8px; color: $color-text-on-dark; }
+    p  { margin: 0 0 24px; color: $color-text-muted; }
+  }
+}
+
+// ── Buttons ────────────────────────────────────────────────────────────────
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  color: $color-text-on-dark;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(255,255,255,0.1); }
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background-color: $color-accent;
+  color: $color-dark;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover { background-color: $color-accent-dark; }
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &--full { width: 100%; }
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.06);
+  color: $color-text-on-dark;
+  text-decoration: none;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover { background: rgba(255,255,255,0.1); }
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+// ── Left Panel: Reservierungen ────────────────────────────────────────────
+.res-panel {
+  display: flex;
+  flex-direction: column;
+  background: $color-dark;
+  border-right: 1px solid $color-border;
+  min-height: 0;
+  width: 100%;
+}
+
+.btn-icon--ghost {
+  background: transparent;
+  &:hover { background: rgba(255,255,255,0.06); }
+}
+
+// ── Date Card ─────────────────────────────────────────────────────────────
+.date-card {
+  margin: 14px 14px 12px;
+  padding: 14px 12px 10px;
+  background: linear-gradient(135deg, rgba($color-primary, 0.08), rgba(255,255,255,0.02));
+  border: 1px solid $color-border;
+  border-radius: 12px;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__middle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+  }
+
+  &__label {
+    font-size: 16px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    letter-spacing: 0.01em;
+  }
+
+  &__summary {
+    margin-top: 2px;
+    font-size: 12px;
+    color: $color-text-muted;
+  }
+
+  &__hidden-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color-scheme: dark;
+  }
+
+  &__today-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    background: transparent;
+    border: none;
+    color: $color-accent;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover { text-decoration: underline; }
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+  }
+}
+
+.day-load {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 2px;
+  margin-top: 12px;
+  height: 40px;
+
+  &__cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    cursor: default;
+  }
+
+  &__bar {
+    width: 100%;
+    background: rgba($color-primary, 0.4);
+    border-radius: 2px 2px 0 0;
+    min-height: 3px;
+    transition: background 0.15s;
+  }
+
+  &__cell.is-peak &__bar { background: $color-accent; }
+  &__cell:hover &__bar { background: $color-primary; }
+
+  &__hour {
+    font-size: 8px;
+    color: rgba(255,255,255,0.3);
+    margin-top: 2px;
+  }
+}
+
+// ── Hero Card ─────────────────────────────────────────────────────────────
+.hero-card {
+  margin: 0 14px 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid $color-border;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: $color-primary;
+  }
+
+  &--seated {
+    background: linear-gradient(135deg, rgba(67, 160, 71, 0.12), rgba(67, 160, 71, 0.02));
+    border-color: rgba(67, 160, 71, 0.3);
+    &::before { background: #43a047; }
+  }
+
+  &--next {
+    background: linear-gradient(135deg, rgba($color-primary, 0.1), rgba($color-primary, 0.02));
+    border-color: rgba($color-primary, 0.3);
+  }
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+  }
+
+  &__guest {
+    font-size: 20px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    line-height: 1.2;
+  }
+
+  &__info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: $color-text-muted;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+    &--warn { color: #fb8c00; }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #43a047;
+  box-shadow: 0 0 0 0 rgba(67, 160, 71, 0.6);
+  animation: pulse 1.6s infinite;
+}
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(67, 160, 71, 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(67, 160, 71, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(67, 160, 71, 0); }
+}
+
+// ── Neue-Reservierung-Button ────────────────────────────────────────────
+.btn-new {
+  margin: 0 14px 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba($color-primary, 0.12);
+  border: 1px dashed rgba($color-primary, 0.4);
+  border-radius: 10px;
+  color: $color-primary;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: rgba($color-primary, 0.2);
+    border-color: $color-primary;
+    border-style: solid;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  span { flex: 1; text-align: left; }
+}
+
+.btn-ghost {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  color: $color-text-on-dark;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover { background: rgba(255,255,255,0.1); }
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
+// ── Filter-Tabs ─────────────────────────────────────────────────────────
+.filter-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid $color-border;
+
+  button {
+    flex: 1;
+    padding: 10px 4px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: $color-text-muted;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+
+    &:hover { color: $color-text-on-dark; }
+
+    &.active {
+      color: $color-text-on-dark;
+      border-bottom-color: $color-accent;
+    }
+  }
+
+  &__badge {
+    background: rgba($color-accent, 0.2);
+    color: $color-accent;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    min-width: 18px;
+    text-align: center;
+  }
+}
+
+.res-panel__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.res-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 16px;
+  color: $color-text-muted;
+
+  mat-icon { font-size: 40px; width: 40px; height: 40px; margin-bottom: 12px; opacity: 0.4; }
+  p { margin: 0 0 4px; font-size: 14px; color: $color-text-on-dark; }
+  small { font-size: 12px; }
+}
+
+// ── Time Group / Schedule-Style ─────────────────────────────────────────
+.time-group {
+  margin-top: 8px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 8px;
+    position: sticky;
+    top: 0;
+    background: $color-dark;
+    z-index: 1;
+  }
+
+  &__hour {
+    font-size: 11px;
+    font-weight: 700;
+    color: $color-text-muted;
+    letter-spacing: 0.06em;
+  }
+
+  &__line {
+    flex: 1;
+    height: 1px;
+    background: $color-border;
+  }
+
+  &__count {
+    font-size: 10px;
+    color: $color-text-muted;
+    background: rgba(255,255,255,0.05);
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+.res-row {
+  display: grid;
+  grid-template-columns: 8px 44px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 10px;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(255,255,255,0.05); }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $color-primary;
+    align-self: center;
+  }
+
+  &--seated &__dot    { background: #43a047; box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.2); }
+  &--upcoming &__dot  { background: $color-primary; }
+  &--completed &__dot { background: #607d8b; }
+  &--cancelled &__dot { background: #e53935; }
+  &--no-show &__dot   { background: #fb8c00; }
+
+  &--completed,
+  &--cancelled,
+  &--no-show { opacity: 0.6; }
+
+  &__time {
+    font-size: 14px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__top {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 14px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__party {
+    font-size: 12px;
+    color: $color-text-muted;
+    flex-shrink: 0;
+  }
+
+  &__sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    font-size: 11px;
+    color: $color-text-muted;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+
+    .warn   { color: #fb8c00; }
+    .muted  { color: rgba(255,255,255,0.4); }
+  }
+
+  &__notes {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    font-style: italic;
+    margin-top: 2px;
+
+    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+// ── Action Buttons & Kebab ──────────────────────────────────────────────
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: rgba(255,255,255,0.04);
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+
+  &:hover {
+    background: rgba(255,255,255,0.1);
+    color: $color-text-on-dark;
+  }
+
+  &--primary {
+    background: $color-accent;
+    color: $color-dark;
+    border-color: $color-accent;
+
+    &:hover { background: $color-accent-dark; color: $color-dark; }
+  }
+
+  &--success {
+    background: rgba(67, 160, 71, 0.18);
+    color: #66bb6a;
+    border-color: rgba(67, 160, 71, 0.4);
+
+    &:hover { background: rgba(67, 160, 71, 0.3); color: #43a047; }
+  }
+}
+
+.kebab-wrap {
+  position: relative;
+}
+
+.kebab-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  padding: 4px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: kebabIn 0.12s ease-out;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: $color-text-on-dark;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; color: $color-text-muted; }
+
+    &:hover {
+      background: rgba(255,255,255,0.06);
+      mat-icon { color: $color-text-on-dark; }
+    }
+
+    &--danger {
+      color: #ef5350;
+      mat-icon { color: #ef5350; }
+      &:hover {
+        background: rgba(229, 57, 53, 0.12);
+        color: #e53935;
+      }
+    }
+  }
+}
+
+@keyframes kebabIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Floor Plan Elements ──────────────────────────────────────────────────
+.placed-wall {
+  position: absolute;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  transform-origin: center center;
+
+  .wall-body {
+    width: 100%;
+    height: 8px;
+    background: #546e7a;
+    border: 1px solid #78909c;
+    border-radius: 2px;
+  }
+}
+
+.placed-table {
+  position: absolute;
+  transform-origin: center center;
+
+  .table-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+
+    &__body {
+      fill: #1a1f2e;
+      stroke: #2979ff;
+      stroke-width: 2;
+      transition: fill 0.25s, stroke 0.25s;
+    }
+  }
+
+  &__seats-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    pointer-events: none;
+  }
+
+  &__guest {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translate(-50%, 4px);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(15, 17, 23, 0.92);
+    border: 1px solid $color-border;
+    border-radius: 14px;
+    font-size: 11px;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+    pointer-events: none;
+
+    mat-icon { font-size: 12px; width: 12px; height: 12px; color: $color-text-muted; }
+    small { font-size: 10px; color: $color-text-muted; }
+  }
+
+  // Status-Färbung
+  &.is-upcoming .table-svg__body { fill: rgba(41, 121, 255, 0.25); stroke: $color-primary; }
+  &.is-seated   .table-svg__body { fill: rgba(67, 160, 71, 0.3);  stroke: #43a047; }
+  &.is-seated   .placed-table__guest { border-color: rgba(67, 160, 71, 0.6); }
+}
+
+.merge-line {
+  position: absolute;
+  height: 4px;
+  background: rgba(41, 121, 255, 0.6);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+// ── Dialoge ──────────────────────────────────────────────────────────────
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 200;
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 201;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &--form { width: 480px; }
+  &--table-picker { width: 420px; }
+
+  &__title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: 13px;
+    color: $color-text-muted;
+  }
+
+  &__error {
+    margin: 0;
+    font-size: 12px;
+    color: #e53935;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  &__btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &--secondary {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.75);
+      &:hover { background: rgba(255,255,255,0.12); }
+    }
+
+    &--primary {
+      background: $color-accent;
+      color: $color-dark;
+      &:hover { background: $color-accent-dark; }
+    }
+  }
+}
+
+// ── Form Fields ─────────────────────────────────────────────────────────
+.reservation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__input {
+    background: $color-bg;
+    border: 1px solid $color-border;
+    border-radius: 6px;
+    color: $color-text-on-dark;
+    font-size: 14px;
+    padding: 9px 10px;
+    font-family: inherit;
+
+    &:focus { outline: none; border-color: $color-primary; }
+    &::placeholder { color: rgba(255,255,255,0.3); }
+
+    &--area { resize: vertical; min-height: 44px; }
+  }
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+// ── Tisch-Picker ────────────────────────────────────────────────────────
+.table-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 12px 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid $color-border;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+      background: rgba($color-primary, 0.15);
+      border-color: $color-primary;
+    }
+  }
+
+  &__num {
+    font-size: 16px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+
+  &__lbl {
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+}

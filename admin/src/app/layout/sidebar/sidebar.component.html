@@ -1,10 +1,15 @@
 <aside class="sidebar" [class.collapsed]="collapsed()" [class.mobile-open]="layout.mobileOpen()">
 
   <div class="sidebar__logo">
-    <img src="images/salyseat-logo-dunkle-schrift.png" alt="Salyseat">
+    <img src="images/lyandro-logo.png" alt="Lyandro Booking">
   </div>
 
   <nav class="sidebar__nav">
+    <a routerLink="/raum" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? 'Raum' : ''" (click)="layout.closeMobile()">
+      <mat-icon>meeting_room</mat-icon>
+      @if (!collapsed()) { <span>Raum</span> }
+    </a>
     <a routerLink="/dashboard" routerLinkActive="active" class="nav-item"
        [title]="collapsed() ? 'Dashboard' : ''" (click)="layout.closeMobile()">
       <mat-icon>dashboard</mat-icon>

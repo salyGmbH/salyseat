@@ -1,25 +1,10 @@
-import { Component, ElementRef, HostListener, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, computed, inject, signal, ViewChild } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-
-export type TableType = 'round' | 'square' | 'long';
-
-interface PlacedTable {
-  id: number;
-  type: TableType;
-  x: number; y: number;
-  rotation: number;
-  scale: number;
-  seats: number;
-  mergedWith?: number;
-  originalSeats?: number;
-}
-
-interface PlacedWall {
-  id: number;
-  x: number; y: number;
-  length: number;
-  rotation: number;
-}
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { RoomsService } from '../../services/rooms.service';
+import { PlacedTable, PlacedWall, SavedRoom, TableType } from '../../services/room.types';
 
 interface MergeDialogData {
   movingId: number;
@@ -38,11 +23,11 @@ type ActiveDrag =
 @Component({
   selector: 'app-restaurant-plan',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [MatIconModule, RouterLink, DatePipe],
   templateUrl: './restaurant-plan.component.html',
   styleUrl: './restaurant-plan.component.scss'
 })
-export class RestaurantPlanComponent {
+export class RestaurantPlanComponent implements OnInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLDivElement>;
 
   isEditing       = signal(false);
@@ -52,20 +37,185 @@ export class RestaurantPlanComponent {
   selectedWallId  = signal<number | null>(null);
   editingSeatsId  = signal<number | null>(null);
 
+  // Edit-Modus: id des geladenen Raums, sonst null = neuer Raum
+  editingRoomId  = signal<string | null>(null);
+  currentRoomName = signal<string>('');
+  saveFeedback    = signal<string | null>(null);
+
   // Dialoge
   mergeConfirmDialog = signal<MergeDialogData | null>(null);
   mergeSeatsDialog   = signal<MergeDialogData | null>(null);
   splitDialog        = signal<number | null>(null); // id eines der beiden Tische
+  saveDialogOpen     = signal(false);
+  saveError          = signal<string | null>(null);
+  discardDialogOpen  = signal(false);
   mergeSeatsInput    = 8;
+  roomNameInput      = '';
 
   private nextId     = 1;
   private activeDrag: ActiveDrag | null = null;
   private dragFromPalette: TableType | 'wall' | null = null;
 
+  private readonly roomsService = inject(RoomsService);
+  private readonly router       = inject(Router);
+  private readonly route        = inject(ActivatedRoute);
+
+  private readonly paramMap = toSignal(this.route.paramMap);
+
+  // Liste der gespeicherten Räume (für die Landing Page)
+  savedRooms = this.roomsService.rooms;
+
+  totalSeats(room: SavedRoom): number {
+    return room.tables.reduce((sum, t) => sum + t.seats, 0);
+  }
+
+  ngOnInit(): void {
+    const id = this.paramMap()?.get('id');
+    if (id) {
+      this.loadRoomForEditing(id);
+    }
+  }
+
+  // ── Edit-Modus ─────────────────────────────────────────────────────────
+  editRoom(id: string) {
+    this.router.navigate(['/restaurant-plan', id]);
+  }
+
+  private loadRoomForEditing(id: string) {
+    const room = this.roomsService.getRoom(id);
+    if (!room) {
+      this.router.navigate(['/restaurant-plan']);
+      return;
+    }
+    // deep-copy, damit Änderungen erst beim Speichern greifen
+    const tables = JSON.parse(JSON.stringify(room.tables)) as PlacedTable[];
+    const walls  = JSON.parse(JSON.stringify(room.walls)) as PlacedWall[];
+    this.placedTables.set(tables);
+    this.placedWalls.set(walls);
+    this.editingRoomId.set(room.id);
+    this.currentRoomName.set(room.name);
+    this.isEditing.set(true);
+
+    // nextId so setzen, dass neue Elemente keine Kollisionen haben
+    const maxId = Math.max(
+      0,
+      ...tables.map(t => t.id),
+      ...walls.map(w => w.id),
+    );
+    this.nextId = maxId + 1;
+  }
+
   // ── Editor ───────────────────────────────────────────────────────────────
 
-  openEditor()  { this.isEditing.set(true); }
-  closeEditor() { this.isEditing.set(false); }
+  openEditor() {
+    this.resetEditor();
+    this.isEditing.set(true);
+  }
+
+  closeEditor() {
+    // Beim Verlassen Editor zurücksetzen und ggf. Route bereinigen
+    this.isEditing.set(false);
+    this.resetEditor();
+    if (this.paramMap()?.get('id')) {
+      this.router.navigate(['/restaurant-plan']);
+    }
+  }
+
+  private resetEditor() {
+    this.placedTables.set([]);
+    this.placedWalls.set([]);
+    this.selectedTableId.set(null);
+    this.selectedWallId.set(null);
+    this.editingSeatsId.set(null);
+    this.editingRoomId.set(null);
+    this.currentRoomName.set('');
+    this.saveFeedback.set(null);
+    this.saveError.set(null);
+    this.nextId = 1;
+  }
+
+  // ── Speichern ────────────────────────────────────────────────────────────
+
+  openSaveDialog() {
+    if (this.placedTables().length === 0 && this.placedWalls().length === 0) {
+      this.saveError.set('Füge zuerst mindestens einen Tisch oder Raumtrenner hinzu.');
+      this.saveDialogOpen.set(true);
+      return;
+    }
+    this.saveError.set(null);
+    // im Edit-Modus den bestehenden Namen vorausfüllen, sonst leer
+    this.roomNameInput = this.editingRoomId() ? this.currentRoomName() : '';
+    this.saveDialogOpen.set(true);
+    setTimeout(() => {
+      const input = document.querySelector('.dialog__name-input') as HTMLInputElement | null;
+      input?.focus();
+      input?.select();
+    }, 0);
+  }
+
+  cancelSaveDialog() {
+    this.saveDialogOpen.set(false);
+    this.saveError.set(null);
+  }
+
+  confirmSaveRoom() {
+    const name = this.roomNameInput.trim();
+    if (!name) {
+      this.saveError.set('Bitte gib einen Namen für den Raum ein.');
+      return;
+    }
+    if (this.placedTables().length === 0 && this.placedWalls().length === 0) {
+      this.saveError.set('Füge zuerst mindestens einen Tisch oder Raumtrenner hinzu.');
+      return;
+    }
+
+    const existingId = this.editingRoomId();
+    if (existingId) {
+      // Bestehenden Raum aktualisieren
+      this.roomsService.updateRoom(existingId, {
+        name,
+        tables: this.placedTables(),
+        walls:  this.placedWalls(),
+      });
+      this.currentRoomName.set(name);
+      this.saveDialogOpen.set(false);
+      this.saveError.set(null);
+      this.showSaveFeedback(`"${name}" wurde aktualisiert.`);
+    } else {
+      // Neuen Raum anlegen
+      const room = this.roomsService.addRoom(name, this.placedTables(), this.placedWalls());
+      this.saveDialogOpen.set(false);
+      this.saveError.set(null);
+      // Nach dem Speichern zum neuen Raum navigieren
+      this.router.navigate(['/raum', room.id]);
+    }
+  }
+
+  private showSaveFeedback(msg: string) {
+    this.saveFeedback.set(msg);
+    setTimeout(() => {
+      if (this.saveFeedback() === msg) this.saveFeedback.set(null);
+    }, 2500);
+  }
+
+  // ── Verwerfen-Dialog ───────────────────────────────────────────────────
+  askDiscardChanges() {
+    // Wenn unten im Editor, aber nichts drauf, direkt schließen
+    if (this.placedTables().length === 0 && this.placedWalls().length === 0) {
+      this.closeEditor();
+      return;
+    }
+    this.discardDialogOpen.set(true);
+  }
+
+  cancelDiscard() {
+    this.discardDialogOpen.set(false);
+  }
+
+  confirmDiscard() {
+    this.discardDialogOpen.set(false);
+    this.closeEditor();
+  }
 
   // ── Selektion ─────────────────────────────────────────────────────────────
 
