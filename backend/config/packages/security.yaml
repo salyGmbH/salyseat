@@ -1,0 +1,55 @@
+security:
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    providers:
+        # Vorläufig leer. Sobald die User-Entity existiert, ersetzen durch:
+        # app_user_provider:
+        #     entity:
+        #         class: App\Module\User\Domain\Entity\User
+        #         property: email
+        users_in_memory: { memory: null }
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
+            security: false
+
+        # Login: E-Mail + Passwort → JWT-Token
+        # (json_login aktivieren, sobald die User-Entity existiert)
+        api_login:
+            pattern: ^/api/v1/auth/login
+            stateless: true
+
+        # Widget-API: öffentlich, später über einen Public-Key-Header abgesichert
+        # (custom_authenticators: [App\Api\Security\PublicKeyAuthenticator])
+        widget_api:
+            pattern: ^/api/v1/widget
+            stateless: true
+
+        # Admin-API: nur mit gültigem JWT-Token
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: users_in_memory
+            jwt: ~
+
+        main:
+            lazy: true
+            provider: users_in_memory
+
+    # Es gilt immer nur die erste passende Regel
+    access_control:
+        - { path: ^/api/v1/auth/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/widget, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/admin, roles: ROLE_TENANT_ADMIN }
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

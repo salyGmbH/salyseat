@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+parameters:
+    widget_base_url: '%env(WIDGET_BASE_URL)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # Alle Klassen in src/ werden automatisch als Services registriert.
+    # Entities sind keine Services und werden deshalb ausgeschlossen.
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/Module/*/Domain/Entity/'

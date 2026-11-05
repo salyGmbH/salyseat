@@ -1,0 +1,118 @@
+# Salyseat – lokale Entwicklungsumgebung
+#
+# Die Ports sind so gewählt, dass sie nicht mit anderen lokalen Projekten kollidieren.
+name: salyseat
+
+x-php-env: &php-env
+  APP_ENV: dev
+  DATABASE_URL: "mysql://salyseat:secret@mysql:3306/salyseat?serverVersion=8.0&charset=utf8mb4"
+  MESSENGER_TRANSPORT_DSN: "redis://redis:6379/messages"
+  MAILER_DSN: "smtp://mailpit:1025"
+
+services:
+
+  # PHP-FPM: führt das Symfony-Backend aus
+  php:
+    build:
+      context: ./docker/php
+    volumes:
+      - ./backend:/var/www/backend
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-salyseat.ini:ro
+    environment: *php-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [salyseat]
+
+  # Nginx: Webserver vor PHP-FPM
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8010:80"        # Backend-API → http://localhost:8010
+    volumes:
+      - ./backend/public:/var/www/backend/public:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [php]
+    networks: [salyseat]
+
+  # MySQL 8: Datenbank
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3311:3306"      # von außen (z. B. TablePlus) über Port 3311
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: salyseat
+      MYSQL_USER: salyseat
+      MYSQL_PASSWORD: secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-usalyseat", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [salyseat]
+
+  # Redis: Warteschlange für den Messenger
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6390:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [salyseat]
+
+  # Mailpit: fängt alle Mails ab, Web-Oberfläche zum Ansehen
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8028:8025"      # Web-UI → http://localhost:8028
+      - "1028:1025"      # SMTP
+    networks: [salyseat]
+
+  # phpMyAdmin: Datenbank im Browser ansehen
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    ports:
+      - "8093:80"        # → http://localhost:8093
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: salyseat
+      PMA_PASSWORD: secret
+      UPLOAD_LIMIT: 64M
+    depends_on: [mysql]
+    networks: [salyseat]
+
+  # Messenger-Worker: arbeitet die Warteschlange im Hintergrund ab
+  messenger_worker:
+    build:
+      context: ./docker/php
+    command: ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "-vv"]
+    volumes:
+      - ./backend:/var/www/backend
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-salyseat.ini:ro
+    environment: *php-env
+    depends_on:
+      php:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [salyseat]
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  salyseat:
+    driver: bridge

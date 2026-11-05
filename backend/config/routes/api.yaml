@@ -1,0 +1,19 @@
+# API-Routen. Controller mit #[Route]-Attributen in diesen Ordnern
+# werden automatisch mit dem jeweiligen Präfix geladen.
+#
+# Sobald du die Controller schreibst, die passenden Blöcke einkommentieren:
+#
+# api_admin:
+#     resource: '../../src/Api/Controller/Admin/'
+#     type: attribute
+#     prefix: /api/v1/admin
+#
+# api_auth:
+#     resource: '../../src/Api/Controller/Auth/'
+#     type: attribute
+#     prefix: /api/v1/auth
+#
+# api_widget:
+#     resource: '../../src/Api/Controller/Widget/'
+#     type: attribute
+#     prefix: /api/v1/widget

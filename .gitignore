@@ -1,0 +1,23 @@
+# Backend (weitere Regeln stehen in backend/.gitignore)
+backend/vendor/
+backend/var/
+backend/.env.local
+backend/.env.*.local
+backend/config/jwt/*.pem
+
+# Angular
+admin/node_modules/
+admin/dist/
+admin/.angular/
+widget/node_modules/
+widget/dist/
+widget/.angular/
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS / Windows
+.DS_Store
+Thumbs.db

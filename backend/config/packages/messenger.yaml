@@ -1,0 +1,30 @@
+framework:
+    messenger:
+        # Nachrichten, die auch nach allen Wiederholungen scheitern, landen hier
+        failure_transport: failed
+
+        transports:
+            # Haupt-Warteschlange in Redis, abgearbeitet vom messenger_worker-Container
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    stream: salyseat_messages
+                    group: salyseat_workers
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+
+            failed: 'doctrine://default?queue_name=failed'
+
+            sync: 'sync://'
+
+        routing:
+            # Alle Nachrichten-Klassen aus src/Messenger/Message laufen asynchron
+            'App\Messenger\Message\*': async
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'in-memory://'
