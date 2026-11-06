@@ -1,76 +1,85 @@
-import { Injectable, computed, signal } from '@angular/core';
-import { Reservation, ReservationStatus } from './reservation.types';
-
-const STORAGE_KEY = 'salyseat.reservations.v1';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, catchError, map, of, tap } from 'rxjs';
+import { Reservation, ReservationListResponse } from './reservation.types';
 
 @Injectable({ providedIn: 'root' })
 export class ReservationsService {
-  private readonly _reservations = signal<Reservation[]>(this.load());
+  private readonly http = inject(HttpClient);
+  private readonly base = '/api/v1/admin/reservations';
+
+  private readonly _reservations = signal<Reservation[]>([]);
+  private readonly _total        = signal(0);
+  private readonly _loading      = signal(false);
+
   readonly reservations = computed(() => this._reservations());
+  readonly total        = computed(() => this._total());
+  readonly loading      = computed(() => this._loading());
 
-  // ── Persistenz ──────────────────────────────────────────────────────────
-  private load(): Reservation[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as Reservation[]) : [];
-    } catch {
-      return [];
-    }
-  }
+  load(params: { status?: string; date?: string; limit?: number; offset?: number } = {}): Observable<ReservationListResponse> {
+    this._loading.set(true);
 
-  private persist(): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this._reservations()));
-    } catch { /* ignore */ }
-  }
+    let qp = new HttpParams();
+    if (params.status) qp = qp.set('status', params.status);
+    if (params.date)   qp = qp.set('date',   params.date);
+    if (params.limit)  qp = qp.set('limit',  String(params.limit));
+    if (params.offset) qp = qp.set('offset', String(params.offset));
 
-  // ── Abfragen ────────────────────────────────────────────────────────────
-  forRoomAndDate(roomId: string, date: string): Reservation[] {
-    return this._reservations()
-      .filter(r => r.roomId === roomId && r.date === date)
-      .sort((a, b) => a.time.localeCompare(b.time));
-  }
-
-  forRoom(roomId: string): Reservation[] {
-    return this._reservations().filter(r => r.roomId === roomId);
-  }
-
-  // ── CRUD ────────────────────────────────────────────────────────────────
-  add(input: Omit<Reservation, 'id' | 'status' | 'createdAt' | 'updatedAt'> & {
-    status?: ReservationStatus;
-  }): Reservation {
-    const now = Date.now();
-    const reservation: Reservation = {
-      ...input,
-      id: crypto.randomUUID(),
-      status: input.status ?? 'upcoming',
-      createdAt: now,
-      updatedAt: now,
-    };
-    this._reservations.update(rs => [...rs, reservation]);
-    this.persist();
-    return reservation;
-  }
-
-  update(id: string, patch: Partial<Reservation>): void {
-    this._reservations.update(rs =>
-      rs.map(r => (r.id === id ? { ...r, ...patch, updatedAt: Date.now() } : r)),
+    return this.http.get<ReservationListResponse>(this.base, { params: qp }).pipe(
+      tap(res => {
+        this._reservations.set(res.reservations);
+        this._total.set(res.total);
+        this._loading.set(false);
+      }),
+      catchError(() => {
+        this._loading.set(false);
+        return of({ reservations: [], total: 0, limit: 50, offset: 0 });
+      }),
     );
-    this.persist();
   }
 
-  setStatus(id: string, status: ReservationStatus): void {
-    this.update(id, { status });
+  confirm(id: string): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.base}/${id}/confirm`, {}).pipe(
+      tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),
+    );
   }
 
-  remove(id: string): void {
-    this._reservations.update(rs => rs.filter(r => r.id !== id));
-    this.persist();
+  markNoShow(id: string): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.base}/${id}/no-show`, {}).pipe(
+      tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),
+    );
   }
 
-  // Wenn ein Raum gelöscht wird, auch alle zugehörigen Reservierungen löschen
-  removeForRoom(roomId: string): void {
-    this._reservations.update(rs => rs.filter(r => r.roomId !== roomId));
-    this.persist();
+  update(id: string, payload: {
+    guest_name?: string;
+    party_size?: number;
+    starts_at?: string;
+    duration_minutes?: number;
+    guest_phone?: string;
+    notes?: string;
+  }): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.base}/${id}`, payload).pipe(
+      tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),
+    );
+  }
+
+  loadForVenue(venueId: string, date: string): Observable<Reservation[]> {
+    const qp = new HttpParams().set('date', date).set('limit', '200');
+    return this.http.get<ReservationListResponse>(this.base, { params: qp }).pipe(
+      map(res => res.reservations.filter(r => r.venue_id === venueId)),
+      catchError(() => of([])),
+    );
+  }
+
+  create(payload: {
+    venue_id: string;
+    guest_name: string;
+    guest_email?: string;
+    guest_phone?: string;
+    party_size: number;
+    starts_at: string;
+    notes?: string;
+  }): Observable<Reservation> {
+    return this.http.post<Reservation>(this.base, payload);
   }
 }

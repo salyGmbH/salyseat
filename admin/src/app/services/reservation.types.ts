@@ -1,30 +1,32 @@
-export type ReservationStatus =
-  | 'upcoming'   // geplant – Gast kommt noch
-  | 'seated'     // eingecheckt – sitzt am Tisch
-  | 'completed'  // beendet – Tisch wieder frei
-  | 'cancelled'  // storniert
-  | 'no-show';   // nicht erschienen
+export type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show';
 
 export interface Reservation {
   id: string;
-  roomId: string;
-  guestName: string;
-  partySize: number;
-  date: string;          // 'YYYY-MM-DD'
-  time: string;          // 'HH:mm'
-  durationMinutes: number;
-  tableId?: number;      // optional zugewiesener Tisch
+  token: string;
   status: ReservationStatus;
-  notes?: string;
-  phone?: string;
-  createdAt: number;
-  updatedAt: number;
+  venue_id: string;
+  venue_name: string;
+  guest_name: string;
+  guest_email: string;
+  guest_phone: string | null;
+  guest_notes: string | null;
+  party_size: number;
+  starts_at: string;
+  ends_at: string;
+  admin_notes: string | null;
+  created_at: string;
+}
+
+export interface ReservationListResponse {
+  reservations: Reservation[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export const STATUS_LABELS: Record<ReservationStatus, string> = {
-  upcoming:  'Geplant',
-  seated:    'Eingecheckt',
-  completed: 'Beendet',
+  pending:   'Ausstehend',
+  confirmed: 'Bestätigt',
   cancelled: 'Storniert',
-  'no-show': 'Nicht erschienen',
+  no_show:   'No-Show',
 };

@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\Widget;
 
+use App\Module\Reservation\Application\Command\CancelReservation\CancelReservationCommand;
+use App\Module\Reservation\Application\Command\CancelReservation\CancelReservationHandler;
+use App\Module\Reservation\Application\Command\CreateReservation\CreateReservationCommand;
+use App\Module\Reservation\Application\Command\CreateReservation\CreateReservationHandler;
+use App\Module\Reservation\Application\Dto\ReservationDto;
+use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenHandler;
+use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,19 +24,22 @@ class ReservationController extends AbstractController
 {
     public function __construct(
         private readonly ValidatorInterface $validator,
+        private readonly CreateReservationHandler $createHandler,
+        private readonly CancelReservationHandler $cancelHandler,
+        private readonly GetReservationByTokenHandler $statusHandler,
     ) {}
 
     /**
-     * Erstellt eine neue Reservierung (vom Widget aufgerufen).
      * POST /api/v1/widget/reservations
+     * Erstellt eine Reservierung. venue_id bestimmt welches Venue gebucht wird.
      */
     #[Route('', name: 'widget_reservation_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
-        // Validierung
         $constraints = new Assert\Collection([
+            'venue_id'    => [new Assert\NotBlank(), new Assert\Uuid()],
             'guest_name'  => [new Assert\NotBlank(), new Assert\Length(min: 2, max: 255)],
             'guest_email' => [new Assert\NotBlank(), new Assert\Email()],
             'guest_phone' => new Assert\Optional([new Assert\Length(max: 20)]),
@@ -48,39 +58,58 @@ class ReservationController extends AbstractController
             return $this->json(['errors' => $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // TODO: CreateReservationCommand via MessageBus dispatchen
-        // Vorerst Dummy-Response
-        return $this->json([
-            'reservation' => [
-                'token'      => bin2hex(random_bytes(16)),
-                'status'     => 'pending',
-                'starts_at'  => $data['starts_at'],
-                'party_size' => $data['party_size'],
-                'guest_name' => $data['guest_name'],
+        try {
+            $reservation = ($this->createHandler)(new CreateReservationCommand(
+                venueId:    $data['venue_id'],
+                guestName:  $data['guest_name'],
+                guestEmail: $data['guest_email'],
+                partySize:  (int) $data['party_size'],
+                startsAt:   new \DateTimeImmutable($data['starts_at']),
+                guestPhone: $data['guest_phone'] ?? null,
+                guestNotes: $data['notes'] ?? null,
+            ));
+        } catch (\DomainException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $this->json(
+            [
+                'reservation' => ReservationDto::fromEntity($reservation)->toArray(),
+                'message'     => 'Reservierung erfolgreich erstellt. Sie erhalten eine Bestätigungsmail.',
             ],
-            'message' => 'Reservierung erfolgreich erstellt. Sie erhalten eine Bestätigungsmail.',
-        ], Response::HTTP_CREATED);
+            Response::HTTP_CREATED,
+        );
     }
 
     /**
-     * Status einer Reservierung abfragen (für Gast-Links).
      * GET /api/v1/widget/reservations/{token}
+     * Gibt den Status einer Reservierung zurück (für Gast-Links).
      */
     #[Route('/{token}', name: 'widget_reservation_status', methods: ['GET'])]
     public function status(string $token): JsonResponse
     {
-        // TODO: ReservationRepository::findByToken() aufrufen
-        return $this->json(['token' => $token, 'status' => 'confirmed']);
+        try {
+            $dto = ($this->statusHandler)(new GetReservationByTokenQuery($token));
+        } catch (\DomainException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($dto->toArray());
     }
 
     /**
-     * Reservierung stornieren (durch den Gast).
      * DELETE /api/v1/widget/reservations/{token}
+     * Storniert eine Reservierung durch den Gast.
      */
     #[Route('/{token}', name: 'widget_reservation_cancel', methods: ['DELETE'])]
     public function cancel(string $token): JsonResponse
     {
-        // TODO: CancelReservationCommand dispatchen
-        return $this->json(['message' => 'Reservierung wurde storniert.']);
+        try {
+            ($this->cancelHandler)(new CancelReservationCommand($token));
+        } catch (\DomainException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $this->json(['message' => 'Reservierung wurde erfolgreich storniert.']);
     }
 }

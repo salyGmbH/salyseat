@@ -176,6 +176,34 @@ class Reservation
         $this->guest = $guest;
     }
 
+    public function updateDetails(
+        ?string $guestName,
+        ?int $partySize,
+        ?\DateTimeImmutable $startsAt,
+        ?\DateTimeImmutable $endsAt,
+        ?string $guestPhone,
+        ?string $guestNotes,
+    ): void {
+        if ($guestName !== null) {
+            $this->guestName = $guestName;
+        }
+        if ($partySize !== null) {
+            $this->partySize = $partySize;
+        }
+        if ($startsAt !== null) {
+            $this->startsAt = $startsAt;
+        }
+        if ($endsAt !== null) {
+            $this->endsAt = $endsAt;
+        }
+        if ($guestPhone !== null) {
+            $this->guestPhone = $guestPhone !== '' ? $guestPhone : null;
+        }
+        if ($guestNotes !== null) {
+            $this->guestNotes = $guestNotes !== '' ? $guestNotes : null;
+        }
+    }
+
     public function isPending(): bool
     {
         return $this->status === ReservationStatus::PENDING;

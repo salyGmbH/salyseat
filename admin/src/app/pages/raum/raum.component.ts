@@ -1,9 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { RoomsService } from '../../services/rooms.service';
-import { ReservationsService } from '../../services/reservations.service';
 import { SavedRoom } from '../../services/room.types';
 
 @Component({
@@ -13,30 +12,38 @@ import { SavedRoom } from '../../services/room.types';
   templateUrl: './raum.component.html',
   styleUrl: './raum.component.scss'
 })
-export class RaumComponent {
+export class RaumComponent implements OnInit {
   private readonly roomsService = inject(RoomsService);
-  private readonly reservationsService = inject(ReservationsService);
 
-  rooms = this.roomsService.rooms;
+  rooms           = this.roomsService.rooms;
   confirmDeleteId = '';
+  readonly loading = signal(false);
+  readonly error   = signal<string | null>(null);
 
-  askDelete(event: MouseEvent, id: string) {
+  ngOnInit(): void {
+    this.loading.set(true);
+    this.roomsService.load().subscribe({
+      next:  () => this.loading.set(false),
+      error: () => { this.loading.set(false); this.error.set('Räume konnten nicht geladen werden.'); },
+    });
+  }
+
+  askDelete(event: MouseEvent, id: string): void {
     event.stopPropagation();
     event.preventDefault();
     this.confirmDeleteId = id;
   }
 
-  cancelDelete(event: MouseEvent) {
+  cancelDelete(event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
     this.confirmDeleteId = '';
   }
 
-  confirmDelete(event: MouseEvent, id: string) {
+  confirmDelete(event: MouseEvent, id: string): void {
     event.stopPropagation();
     event.preventDefault();
-    this.roomsService.removeRoom(id);
-    this.reservationsService.removeForRoom(id);
+    this.roomsService.removeRoom(id).subscribe();
     this.confirmDeleteId = '';
   }
 

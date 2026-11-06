@@ -60,6 +60,10 @@ class Venue
     #[ORM\Column(options: ['default' => true])]
     private bool $active = true;
 
+    /** Restaurantplan: Tisch-Positionen, Wände etc. als JSON */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $layout = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -182,6 +186,16 @@ class Venue
     public function setTimezone(string $timezone): void
     {
         $this->timezone = $timezone;
+    }
+
+    public function getLayout(): ?array
+    {
+        return $this->layout;
+    }
+
+    public function setLayout(?array $layout): void
+    {
+        $this->layout = $layout;
     }
 
     public function activate(): void

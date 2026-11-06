@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { ReservierungslisteComponent } from './reservierungsliste.component';
 
@@ -8,7 +10,9 @@ describe('ReservierungslisteComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ReservierungslisteComponent]
+      imports: [ReservierungslisteComponent],
+      // ReservationsService lädt Daten per HttpClient – im Test ohne echtes Backend
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     })
     .compileComponents();
 

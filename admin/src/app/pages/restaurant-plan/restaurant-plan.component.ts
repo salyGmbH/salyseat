@@ -69,11 +69,15 @@ export class RestaurantPlanComponent implements OnInit {
     return room.tables.reduce((sum, t) => sum + t.seats, 0);
   }
 
+  readonly saving = signal(false);
+
   ngOnInit(): void {
-    const id = this.paramMap()?.get('id');
-    if (id) {
-      this.loadRoomForEditing(id);
-    }
+    this.roomsService.load().subscribe(() => {
+      const id = this.paramMap()?.get('id');
+      if (id) {
+        this.roomsService.loadRoomLayout(id).subscribe(() => this.loadRoomForEditing(id));
+      }
+    });
   }
 
   // ── Edit-Modus ─────────────────────────────────────────────────────────
@@ -170,24 +174,39 @@ export class RestaurantPlanComponent implements OnInit {
     }
 
     const existingId = this.editingRoomId();
+    this.saving.set(true);
+
     if (existingId) {
-      // Bestehenden Raum aktualisieren
       this.roomsService.updateRoom(existingId, {
         name,
         tables: this.placedTables(),
         walls:  this.placedWalls(),
+      }).subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.currentRoomName.set(name);
+          this.saveDialogOpen.set(false);
+          this.saveError.set(null);
+          this.showSaveFeedback(`"${name}" wurde aktualisiert.`);
+        },
+        error: () => {
+          this.saving.set(false);
+          this.saveError.set('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+        },
       });
-      this.currentRoomName.set(name);
-      this.saveDialogOpen.set(false);
-      this.saveError.set(null);
-      this.showSaveFeedback(`"${name}" wurde aktualisiert.`);
     } else {
-      // Neuen Raum anlegen
-      const room = this.roomsService.addRoom(name, this.placedTables(), this.placedWalls());
-      this.saveDialogOpen.set(false);
-      this.saveError.set(null);
-      // Nach dem Speichern zum neuen Raum navigieren
-      this.router.navigate(['/raum', room.id]);
+      this.roomsService.addRoom(name, this.placedTables(), this.placedWalls()).subscribe({
+        next: (room) => {
+          this.saving.set(false);
+          this.saveDialogOpen.set(false);
+          this.saveError.set(null);
+          this.router.navigate(['/raum', room.id]);
+        },
+        error: () => {
+          this.saving.set(false);
+          this.saveError.set('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+        },
+      });
     }
   }
 

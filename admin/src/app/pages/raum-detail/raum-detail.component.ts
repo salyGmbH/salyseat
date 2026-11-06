@@ -1,4 +1,4 @@
-import { Component, computed, HostListener, inject, signal } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, OnInit, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule, MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { MatInputModule } from '@angular/material/input';
@@ -7,11 +7,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RoomsService } from '../../services/rooms.service';
+import { FloorReservationsService } from '../../services/floor-reservations.service';
 import { ReservationsService } from '../../services/reservations.service';
 import { PlacedTable, TableType } from '../../services/room.types';
-import { Reservation, ReservationStatus, STATUS_LABELS } from '../../services/reservation.types';
+import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
+import { Reservation } from '../../services/reservation.types';
 
-type StatusFilter = 'all' | 'active' | ReservationStatus;
+type StatusFilter = 'all' | 'active' | FloorReservationStatus;
 
 @Component({
   selector: 'app-raum-detail',
@@ -27,13 +29,15 @@ type StatusFilter = 'all' | 'active' | ReservationStatus;
   templateUrl: './raum-detail.component.html',
   styleUrl: './raum-detail.component.scss'
 })
-export class RaumDetailComponent {
+export class RaumDetailComponent implements OnInit {
   private readonly roomsService        = inject(RoomsService);
-  private readonly reservationsService = inject(ReservationsService);
+  private readonly reservationsService = inject(FloorReservationsService);
+  private readonly apiReservations     = inject(ReservationsService);
   private readonly route               = inject(ActivatedRoute);
   private readonly router              = inject(Router);
 
   readonly STATUS_LABELS = STATUS_LABELS;
+  readonly layoutLoading = signal(false);
 
   private readonly paramMap = toSignal(this.route.paramMap);
 
@@ -42,24 +46,99 @@ export class RaumDetailComponent {
     return id ? this.roomsService.getRoom(id) : undefined;
   });
 
+  ngOnInit(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+    this.layoutLoading.set(true);
+    this.roomsService.loadRoomLayout(id).subscribe({
+      next:  () => {
+        this.layoutLoading.set(false);
+        this.syncFromBackend(id, this.selectedDate());
+      },
+      error: () => this.layoutLoading.set(false),
+    });
+
+    // Bei Datumswechsel Backend-Sync wiederholen
+    effect(() => {
+      const date = this.selectedDate();
+      const room = this.room();
+      if (room) this.syncFromBackend(room.id, date);
+    }, { allowSignalWrites: true });
+  }
+
+  private syncFromBackend(venueId: string, date: string): void {
+    this.apiReservations.loadForVenue(venueId, date).subscribe(backendList => {
+      for (const br of backendList) {
+        this.adoptBackendReservation(venueId, br);
+      }
+    });
+  }
+
+  private adoptBackendReservation(venueId: string, br: Reservation): void {
+    // Uhrzeit direkt aus dem ISO-String extrahieren (vermeidet Timezone-Probleme)
+    const time = br.starts_at.substring(11, 16);
+    const date = br.starts_at.substring(0, 10);
+    const startsMs = new Date(br.starts_at).getTime();
+    const endsMs   = new Date(br.ends_at).getTime();
+    const durationMinutes = Math.round((endsMs - startsMs) / 60000);
+
+    const existing = this.reservationsService.reservations()
+      .find(r => r.backendId === br.id);
+
+    if (existing) {
+      // Datenstände aktualisieren; operativen Status (seated/completed) behalten
+      this.reservationsService.update(existing.id, {
+        guestName: br.guest_name,
+        partySize: br.party_size,
+        time,
+        date,
+        durationMinutes,
+        phone:     br.guest_phone  ?? undefined,
+        notes:     br.guest_notes  ?? undefined,
+      });
+    } else {
+      // Noch nicht im localStorage → hinzufügen mit backendId
+      this.reservationsService.add({
+        backendId:       br.id,
+        roomId:          venueId,
+        guestName:       br.guest_name,
+        partySize:       br.party_size,
+        date,
+        time,
+        durationMinutes,
+        status:          this.mapBackendStatus(br.status),
+        phone:           br.guest_phone  ?? undefined,
+        notes:           br.guest_notes  ?? undefined,
+      });
+    }
+  }
+
+  private mapBackendStatus(status: string): FloorReservationStatus {
+    if (status === 'cancelled') return 'cancelled';
+    if (status === 'no_show')   return 'no-show';
+    return 'upcoming';
+  }
+
   // ── Reservierungs-State ────────────────────────────────────────────────
   selectedDate   = signal<string>(this.todayIso());
   statusFilter   = signal<StatusFilter>('active');
 
   // Dialoge
-  newDialogOpen    = signal(false);
-  editDialogOpen   = signal(false);
-  tablePickerFor   = signal<string | null>(null); // reservationId, für den Tisch-Auswahl-Dialog
-  editingId        = signal<string | null>(null);
-  formError        = signal<string | null>(null);
+  newDialogOpen       = signal(false);
+  editDialogOpen      = signal(false);
+  tablePickerFor      = signal<string | null>(null);
+  editingId           = signal<string | null>(null);
+  editingReservation  = signal<FloorReservation | null>(null);
+  formError           = signal<string | null>(null);
 
   // Formular für neue/bearbeitete Reservierung
   form = {
     guestName: '',
+    guestEmail: '',
     partySize: 2,
     time: '19:00',
     durationMinutes: 90,
-    tableId: 0 as number | 0, // 0 = kein Tisch
+    tableId: 0 as number | 0,
     phone: '',
     notes: '',
   };
@@ -82,7 +161,7 @@ export class RaumDetailComponent {
   });
 
   reservationsByTable = computed(() => {
-    const map = new Map<number, Reservation[]>();
+    const map = new Map<number, FloorReservation[]>();
     for (const r of this.allReservationsForDay()) {
       if (r.tableId && (r.status === 'upcoming' || r.status === 'seated')) {
         const existing = map.get(r.tableId) ?? [];
@@ -123,8 +202,8 @@ export class RaumDetailComponent {
   });
 
   // ── Gruppierung nach Stunde für die Liste ─────────────────────────────
-  timeGroups = computed<Array<{ hour: string; reservations: Reservation[] }>>(() => {
-    const groups = new Map<string, Reservation[]>();
+  timeGroups = computed<Array<{ hour: string; reservations: FloorReservation[] }>>(() => {
+    const groups = new Map<string, FloorReservation[]>();
     for (const r of this.filteredReservations()) {
       const hourKey = r.time.split(':')[0] + ':00';
       const list = groups.get(hourKey) ?? [];
@@ -202,6 +281,7 @@ export class RaumDetailComponent {
   openNewDialog(preset?: Partial<typeof this.form>) {
     this.form = {
       guestName: '',
+      guestEmail: '',
       partySize: 2,
       time: this.nextSlot(),
       durationMinutes: 90,
@@ -294,9 +374,10 @@ export class RaumDetailComponent {
   @HostListener('document:keyup.escape')
   onEscape(): void { if (this.reassignMode()) this.cancelReassign(); }
 
-  openEditDialog(res: Reservation) {
+  openEditDialog(res: FloorReservation) {
     this.form = {
       guestName: res.guestName,
+      guestEmail: '',
       partySize: res.partySize,
       time: res.time,
       durationMinutes: res.durationMinutes,
@@ -306,6 +387,7 @@ export class RaumDetailComponent {
     };
     this.formError.set(null);
     this.editingId.set(res.id);
+    this.editingReservation.set(res);
     this.editDialogOpen.set(true);
   }
 
@@ -313,6 +395,7 @@ export class RaumDetailComponent {
     this.newDialogOpen.set(false);
     this.editDialogOpen.set(false);
     this.editingId.set(null);
+    this.editingReservation.set(null);
     this.formError.set(null);
   }
 
@@ -334,8 +417,10 @@ export class RaumDetailComponent {
     if (this.form.partySize < 1) { this.formError.set('Personenanzahl muss mindestens 1 sein.'); return; }
     if (!/^\d{2}:\d{2}$/.test(this.form.time)) { this.formError.set('Bitte eine gültige Uhrzeit eingeben.'); return; }
 
-    const editId = this.editingId();
-    if (editId) {
+    const editId  = this.editingId();
+    const editing = this.editingReservation();
+    if (editId && editing) {
+      // Lokalen Floor-State aktualisieren
       this.reservationsService.update(editId, {
         guestName:       name,
         partySize:       this.form.partySize,
@@ -345,8 +430,26 @@ export class RaumDetailComponent {
         phone:           this.form.phone.trim() || undefined,
         notes:           this.form.notes.trim() || undefined,
       });
+
+      // Backend synchronisieren, falls eine Backend-ID verknüpft ist
+      if (editing.backendId) {
+        const startsAt = `${editing.date}T${this.form.time}:00`;
+        this.apiReservations.update(editing.backendId, {
+          guest_name:       name,
+          party_size:       this.form.partySize,
+          starts_at:        startsAt,
+          duration_minutes: this.form.durationMinutes,
+          guest_phone:      this.form.phone.trim() || undefined,
+          notes:            this.form.notes.trim() || undefined,
+        }).subscribe({
+          error: () => console.warn('Backend-Update fehlgeschlagen, lokale Änderung bleibt.'),
+        });
+      }
+
+      this.closeFormDialog();
     } else {
-      this.reservationsService.add({
+      // Lokalen Floor-State anlegen
+      const local = this.reservationsService.add({
         roomId:          room.id,
         guestName:       name,
         partySize:       this.form.partySize,
@@ -357,12 +460,28 @@ export class RaumDetailComponent {
         phone:           this.form.phone.trim() || undefined,
         notes:           this.form.notes.trim() || undefined,
       });
+
+      // Im Backend persistieren und Backend-ID zurückschreiben
+      const startsAt = `${this.selectedDate()}T${this.form.time}:00`;
+      this.apiReservations.create({
+        venue_id:    room.id,
+        guest_name:  name,
+        guest_email: this.form.guestEmail.trim() || undefined,
+        guest_phone: this.form.phone.trim() || undefined,
+        party_size:  this.form.partySize,
+        starts_at:   startsAt,
+        notes:       this.form.notes.trim() || undefined,
+      }).subscribe({
+        next: res => this.reservationsService.update(local.id, { backendId: res.id }),
+        error: () => console.warn('Reservierung lokal gespeichert, Backend-Sync fehlgeschlagen.'),
+      });
+
+      this.closeFormDialog();
     }
-    this.closeFormDialog();
   }
 
   // ── Status-Aktionen ───────────────────────────────────────────────────
-  checkIn(res: Reservation) {
+  checkIn(res: FloorReservation) {
     // Wenn kein Tisch zugewiesen, Tisch-Auswahl anstoßen
     if (!res.tableId) {
       this.tablePickerFor.set(res.id);
@@ -387,12 +506,12 @@ export class RaumDetailComponent {
 
   closeTablePicker() { this.tablePickerFor.set(null); }
 
-  markCompleted(res: Reservation) { this.reservationsService.setStatus(res.id, 'completed'); }
-  markNoShow(res: Reservation)    { this.reservationsService.setStatus(res.id, 'no-show'); }
-  cancel(res: Reservation)        { this.reservationsService.setStatus(res.id, 'cancelled'); }
-  remove(res: Reservation)        { this.reservationsService.remove(res.id); }
+  markCompleted(res: FloorReservation) { this.reservationsService.setStatus(res.id, 'completed'); }
+  markNoShow(res: FloorReservation)    { this.reservationsService.setStatus(res.id, 'no-show'); }
+  cancel(res: FloorReservation)        { this.reservationsService.setStatus(res.id, 'cancelled'); }
+  remove(res: FloorReservation)        { this.reservationsService.remove(res.id); }
 
-  reopen(res: Reservation) {
+  reopen(res: FloorReservation) {
     // Von completed/cancelled/no-show zurück zu upcoming
     this.reservationsService.setStatus(res.id, 'upcoming');
   }
@@ -461,7 +580,7 @@ export class RaumDetailComponent {
   }
 
   // ── Tisch-Status fürs Overlay ─────────────────────────────────────────
-  tableStatus(tableId: number): { status: ReservationStatus | null; reservation: Reservation | null } {
+  tableStatus(tableId: number): { status: FloorReservationStatus | null; reservation: FloorReservation | null } {
     const list = this.reservationsByTable().get(tableId) ?? [];
     // eingecheckt hat Vorrang
     const seated = list.find(r => r.status === 'seated');
@@ -495,5 +614,5 @@ export class RaumDetailComponent {
   }
 
   // ── Aktionslabels ─────────────────────────────────────────────────────
-  statusLabel(status: ReservationStatus): string { return STATUS_LABELS[status]; }
+  statusLabel(status: FloorReservationStatus): string { return STATUS_LABELS[status]; }
 }

@@ -1,1 +1,118 @@
-<p>reservierungsliste works!</p>
+<div class="reservations-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Reservierungen</h1>
+      @if (!loading()) {
+        <span class="total-badge">{{ total() }} gesamt</span>
+      }
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-bar__field">
+      <mat-icon>calendar_today</mat-icon>
+      <input
+        type="date"
+        class="filter-input"
+        [(ngModel)]="filterDate"
+        (change)="load()"
+      />
+    </div>
+
+    <div class="filter-bar__field">
+      <mat-icon>filter_list</mat-icon>
+      <select class="filter-select" [(ngModel)]="filterStatus" (change)="load()">
+        @for (opt of statusOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </div>
+
+    <button class="btn-reload" (click)="load()" [disabled]="loading()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <!-- Error -->
+  @if (actionError()) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      {{ actionError() }}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="state-box">
+      <div class="spinner"></div>
+      <span>Lade Reservierungen…</span>
+    </div>
+  }
+
+  <!-- Empty -->
+  @if (!loading() && reservations().length === 0) {
+    <div class="state-box">
+      <mat-icon class="state-box__icon">event_busy</mat-icon>
+      <span>Keine Reservierungen für diesen Filter.</span>
+    </div>
+  }
+
+  <!-- List -->
+  @if (!loading() && reservations().length > 0) {
+    <div class="reservation-list">
+      @for (r of reservations(); track r.id) {
+        <div class="reservation-card reservation-card--{{ r.status }}">
+
+          <div class="reservation-card__time">
+            <span class="time-main">{{ formatTime(r.starts_at) }}</span>
+            <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
+          </div>
+
+          <div class="reservation-card__info">
+            <div class="info-name">
+              <mat-icon>person</mat-icon>
+              {{ r.guest_name }}
+              <span class="party-size">
+                <mat-icon>group</mat-icon>{{ r.party_size }}
+              </span>
+            </div>
+            <div class="info-meta">{{ r.guest_email }}</div>
+            @if (r.guest_phone) {
+              <div class="info-meta">{{ r.guest_phone }}</div>
+            }
+            @if (r.guest_notes) {
+              <div class="info-notes">
+                <mat-icon>notes</mat-icon>{{ r.guest_notes }}
+              </div>
+            }
+          </div>
+
+          <div class="reservation-card__actions">
+            <span class="status-badge status-badge--{{ r.status }}">
+              {{ statusLabel(r.status) }}
+            </span>
+            <div class="action-buttons">
+              @if (canConfirm(r)) {
+                <button class="btn-action btn-action--confirm" (click)="confirm(r.id)">
+                  <mat-icon>check_circle</mat-icon>
+                  Bestätigen
+                </button>
+              }
+              @if (canMarkNoShow(r)) {
+                <button class="btn-action btn-action--noshow" (click)="markNoShow(r.id)">
+                  <mat-icon>person_off</mat-icon>
+                  No-Show
+                </button>
+              }
+            </div>
+          </div>
+
+        </div>
+      }
+    </div>
+  }
+
+</div>

@@ -49,7 +49,7 @@
           <input matInput [matDatepicker]="picker" class="date-card__hidden-input"
                  [value]="selectedDateAsDate()"
                  (dateChange)="onDateSelected($event)" />
-          <mat-datepicker #picker panelClass="salyseat-datepicker-panel"></mat-datepicker>
+          <mat-datepicker #picker panelClass="lyandro-datepicker-panel"></mat-datepicker>
 
           @if (selectedDate() !== todayIsoPublic()) {
             <button class="date-card__today-link" (click)="goToday()">
@@ -326,6 +326,13 @@
               }
             </select>
           </label>
+
+          @if (!editDialogOpen()) {
+            <label class="field">
+              <span class="field__label">E-Mail (optional)</span>
+              <input class="field__input" name="guestEmail" type="email" placeholder="gast@beispiel.de" [(ngModel)]="form.guestEmail">
+            </label>
+          }
 
           <label class="field">
             <span class="field__label">Telefon (optional)</span>
