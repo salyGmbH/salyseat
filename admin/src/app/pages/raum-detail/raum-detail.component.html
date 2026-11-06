@@ -49,7 +49,7 @@
           <input matInput [matDatepicker]="picker" class="date-card__hidden-input"
                  [value]="selectedDateAsDate()"
                  (dateChange)="onDateSelected($event)" />
-          <mat-datepicker #picker panelClass="lyandro-datepicker-panel"></mat-datepicker>
+          <mat-datepicker #picker panelClass="salyseat-datepicker-panel"></mat-datepicker>
 
           @if (selectedDate() !== todayIsoPublic()) {
             <button class="date-card__today-link" (click)="goToday()">
@@ -94,9 +94,28 @@
                 </div>
                 <div class="time-group__items">
                   @for (res of group.reservations; track res.id) {
-                    <div class="res-row" [class]="'res-row--' + res.status">
-                      <div class="res-row__dot"></div>
-                      <div class="res-row__time">{{ res.time }}</div>
+                    <div class="res-row"
+                         [class]="'res-row--' + res.status + ' res-row--mode-' + viewMode()"
+                         [style.--status-color]="colorFor(res.status)">
+                      @if (viewMode() === 'card') {
+                        <div class="res-row__time">{{ res.time }}</div>
+                      } @else {
+                        <div class="res-row__left-stack">
+                          <div class="res-row__time res-row__time--neutral">{{ res.time }}</div>
+                          @if (viewMode() === 'text') {
+                            <span class="res-row__status-badge"
+                                  [style.background]="colorFor(res.status)"
+                                  [style.color]="textColorFor(colorFor(res.status))">
+                              {{ labelFor(res.status) }}
+                            </span>
+                          } @else if (viewMode() === 'svg') {
+                            <span class="res-row__status-tile"
+                                  [title]="labelFor(res.status)">
+                              <app-status-icon [name]="iconFor(res.status)" [size]="18"></app-status-icon>
+                            </span>
+                          }
+                        </div>
+                      }
                       <div class="res-row__body">
                         <div class="res-row__top">
                           <span class="res-row__name">{{ res.guestName }}</span>
@@ -379,6 +398,11 @@
         </div>
       </div>
     }
+  </div>
+} @else if (!venuesLoaded()) {
+  <div class="raum-detail raum-detail--loading">
+    <mat-icon class="raum-detail__spinner">hourglass_top</mat-icon>
+    <p>Raum wird geladen…</p>
   </div>
 } @else {
   <div class="raum-detail raum-detail--missing">

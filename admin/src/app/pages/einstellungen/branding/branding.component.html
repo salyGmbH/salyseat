@@ -1,0 +1,22 @@
+<div class="settings-block">
+  <div class="page-hero">
+    <div class="page-hero__icon"><mat-icon>palette</mat-icon></div>
+    <div>
+      <h2 class="page-hero__title">Branding</h2>
+      <p class="page-hero__sub">
+        Das Erscheinungsbild deines Widgets, deiner E-Mails und Dokumente in
+        deinen Markenfarben. Logo, Farben, Typografie — alles an einer Stelle.
+      </p>
+    </div>
+    <span class="soon-pill">In Vorbereitung</span>
+  </div>
+
+  <div class="feature-list">
+    @for (f of features; track f.label) {
+      <div class="feature">
+        <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>
+        <span>{{ f.label }}</span>
+      </div>
+    }
+  </div>
+</div>

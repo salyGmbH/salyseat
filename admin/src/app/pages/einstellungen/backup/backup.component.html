@@ -1,0 +1,23 @@
+<div class="settings-block">
+  <div class="page-hero">
+    <div class="page-hero__icon"><mat-icon>backup</mat-icon></div>
+    <div>
+      <h2 class="page-hero__title">Backup & Export</h2>
+      <p class="page-hero__sub">
+        Sichere deine Daten regelmäßig ab und exportiere Reservierungen für
+        Buchhaltung, Reporting oder externe Tools — auf Knopfdruck oder
+        automatisiert.
+      </p>
+    </div>
+    <span class="soon-pill">In Vorbereitung</span>
+  </div>
+
+  <div class="feature-list">
+    @for (f of features; track f.label) {
+      <div class="feature">
+        <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>
+        <span>{{ f.label }}</span>
+      </div>
+    }
+  </div>
+</div>

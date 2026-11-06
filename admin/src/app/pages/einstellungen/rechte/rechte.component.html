@@ -1,0 +1,129 @@
+<!-- ===================== ROLLEN & BERECHTIGUNGEN ===================== -->
+<div class="settings-block">
+
+  <!-- Header -->
+  <div class="section-header">
+    <div class="section-header__left">
+      <h2 class="section-title">Rollen & Berechtigungen</h2>
+      @if (!isAdmin()) {
+        <span class="readonly-pill">
+          <mat-icon>lock</mat-icon>
+          Nur lesen
+        </span>
+      }
+    </div>
+
+    <div class="header-actions">
+      <button class="ghost-button"
+              [class.active]="infoOpen()"
+              (click)="toggleInfo()"
+              title="Info">
+        <mat-icon>info</mat-icon>
+      </button>
+
+      @if (isAdmin()) {
+        <button class="ghost-button danger" (click)="reset()" title="Auf Standard zurücksetzen">
+          <mat-icon>restart_alt</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-box" [class.open]="infoOpen()">
+    Steuere fein, was jede Rolle im System darf.
+    <strong>Admin</strong> hat grundsätzlich alle Rechte und kann als einziger
+    diese Einstellung ändern. Für <strong>Manager</strong> und <strong>Staff</strong>
+    lassen sich Rechte pro Bereich einzeln setzen.
+  </div>
+
+  <!-- Admin-Only-Warnung wenn kein Admin -->
+  @if (!isAdmin()) {
+    <div class="admin-only-warning">
+      <mat-icon>lock</mat-icon>
+      <div>
+        <div class="admin-only-warning__title">Nur Admins dürfen Berechtigungen ändern.</div>
+        <div class="admin-only-warning__sub">
+          Du siehst die aktuelle Konfiguration, kannst sie aber nicht bearbeiten.
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Matrix -->
+  <div class="matrix" [class.readonly]="!isAdmin()">
+
+    <!-- Header-Zeile: Rollen -->
+    <div class="matrix__header">
+      <div class="matrix__corner">
+        <mat-icon>tune</mat-icon>
+        <span>Berechtigung</span>
+      </div>
+
+      @for (r of roles; track r.key) {
+        <div class="role-head role-head--{{ r.key }}">
+          <div class="role-head__icon">
+            <mat-icon>{{ r.icon }}</mat-icon>
+          </div>
+          <div class="role-head__text">
+            <div class="role-head__label">{{ r.label }}</div>
+            <div class="role-head__tagline">{{ r.tagline }}</div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Gruppen -->
+    @for (group of categories(); track group.category) {
+      <div class="matrix__group">
+        <div class="group-header">
+          <div class="group-header__icon">
+            <mat-icon>{{ group.icon }}</mat-icon>
+          </div>
+          <span>{{ group.category }}</span>
+        </div>
+
+        @for (p of group.perms; track p.key) {
+          <div class="matrix__row">
+            <div class="perm-label">
+              <div class="perm-label__name">{{ p.label }}</div>
+              @if (p.description) {
+                <div class="perm-label__desc">{{ p.description }}</div>
+              }
+            </div>
+
+            @for (r of roles; track r.key) {
+              <div class="cell cell--{{ r.key }}"
+                   [class.checked]="isChecked(r.key, p.key)"
+                   [class.locked]="r.key === 'admin'"
+                   [class.disabled]="!isAdmin()"
+                   (click)="onToggle(r.key, p.key)"
+                   [attr.role]="'checkbox'"
+                   [attr.aria-checked]="isChecked(r.key, p.key)"
+                   [attr.aria-disabled]="r.key === 'admin' || !isAdmin()">
+                @if (isChecked(r.key, p.key)) {
+                  <mat-icon>check</mat-icon>
+                } @else {
+                  <mat-icon>close</mat-icon>
+                }
+                @if (r.key === 'admin') {
+                  <mat-icon class="cell__lock">lock</mat-icon>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Actions -->
+  @if (isAdmin()) {
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved()" (click)="save()">
+        {{ saved() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  }
+
+</div>

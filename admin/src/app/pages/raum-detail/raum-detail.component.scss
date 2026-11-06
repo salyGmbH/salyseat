@@ -1,5 +1,9 @@
 @use '../../../styles/variables' as *;
 
+@keyframes raum-detail-spin {
+  to { transform: rotate(360deg); }
+}
+
 // ── Root Layout ────────────────────────────────────────────────────────────
 .raum-detail {
   display: flex;
@@ -7,6 +11,24 @@
   height: calc(100vh - 64px);
   margin: -32px;
   background: $color-bg;
+
+  // Lade-Zustand (Räume werden noch vom Backend geholt)
+  &--loading {
+    align-items: center;
+    justify-content: center;
+    color: $color-text-muted;
+    gap: 12px;
+
+    p { margin: 0; font-size: 14px; }
+  }
+
+  &__spinner {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: $color-accent;
+    animation: raum-detail-spin 1.2s linear infinite;
+  }
 
   &__header {
     display: flex;
@@ -61,8 +83,8 @@
     position: relative;
     flex: 1;
     background:
-      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px) 0 0 / 20px 20px,
-      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px) 0 0 / 20px 20px,
+      linear-gradient(rgba(var(--color-text-rgb), 0.03) 1px, transparent 1px) 0 0 / 20px 20px,
+      linear-gradient(90deg, rgba(var(--color-text-rgb), 0.03) 1px, transparent 1px) 0 0 / 20px 20px,
       $color-surface;
     overflow: auto;
     min-height: 0;
@@ -89,14 +111,14 @@
   justify-content: center;
   width: 36px; height: 36px;
   border-radius: 8px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(var(--color-text-rgb), 0.05);
   color: $color-text-on-dark;
   text-decoration: none;
   border: none;
   cursor: pointer;
   transition: background 0.15s;
 
-  &:hover { background: rgba(255,255,255,0.1); }
+  &:hover { background: rgba(var(--color-text-rgb), 0.1); }
   mat-icon { font-size: 20px; width: 20px; height: 20px; }
 }
 
@@ -127,7 +149,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--color-text-rgb), 0.06);
   color: $color-text-on-dark;
   text-decoration: none;
   border: 1px solid $color-border;
@@ -136,7 +158,7 @@
   font-weight: 500;
   cursor: pointer;
 
-  &:hover { background: rgba(255,255,255,0.1); }
+  &:hover { background: rgba(var(--color-text-rgb), 0.1); }
   mat-icon { font-size: 16px; width: 16px; height: 16px; }
 }
 
@@ -152,14 +174,14 @@
 
 .btn-icon--ghost {
   background: transparent;
-  &:hover { background: rgba(255,255,255,0.06); }
+  &:hover { background: rgba(var(--color-text-rgb), 0.06); }
 }
 
 // ── Date Card ─────────────────────────────────────────────────────────────
 .date-card {
   margin: 14px 14px 12px;
   padding: 14px 12px 10px;
-  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08), rgba(255,255,255,0.02));
+  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08), rgba(var(--color-text-rgb), 0.02));
   border: 1px solid $color-border;
   border-radius: 12px;
 
@@ -186,7 +208,7 @@
     transition: background 0.15s, border-color 0.15s;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(var(--color-text-rgb), 0.04);
       border-color: rgba(var(--color-primary-rgb), 0.35);
     }
 
@@ -317,7 +339,7 @@
 
   &__hour {
     font-size: 9px;
-    color: rgba(255,255,255,0.45);
+    color: rgba(var(--color-text-rgb), 0.45);
     margin-top: 3px;
     font-variant-numeric: tabular-nums;
   }
@@ -360,14 +382,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.04);
+  background: rgba(var(--color-text-rgb), 0.04);
   border: 1px solid $color-border;
   border-radius: 8px;
   color: $color-text-on-dark;
   cursor: pointer;
   flex-shrink: 0;
 
-  &:hover { background: rgba(255,255,255,0.1); }
+  &:hover { background: rgba(var(--color-text-rgb), 0.1); }
   mat-icon { font-size: 18px; width: 18px; height: 18px; }
 }
 
@@ -469,7 +491,7 @@
   &__count {
     font-size: 10px;
     color: $color-text-muted;
-    background: rgba(255,255,255,0.05);
+    background: rgba(var(--color-text-rgb), 0.05);
     padding: 1px 6px;
     border-radius: 8px;
   }
@@ -482,40 +504,50 @@
 }
 
 .res-row {
+  // CSS-Variable kommt vom Template via [style.--status-color]
+  --status-color: #{$color-primary};
+
   display: grid;
-  grid-template-columns: 8px 44px 1fr auto;
-  align-items: center;
+  grid-template-columns: 56px 1fr auto;
+  align-items: stretch;
   gap: 10px;
-  padding: 10px;
-  background: rgba(255,255,255,0.02);
+  padding: 6px 10px 6px 6px;
+  background: rgba(var(--color-text-rgb), 0.02);
   border-radius: 10px;
-  transition: background 0.15s;
+  // Farbiger Border-Left zeigt den Status; rest der Border bleibt dezent.
+  border: 1px solid rgba(var(--color-text-rgb), 0.06);
+  border-left: 3px solid var(--status-color);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  position: relative;
 
-  &:hover { background: rgba(255,255,255,0.05); }
-
-  &__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: $color-primary;
-    align-self: center;
+  &:hover {
+    background: rgba(var(--color-text-rgb), 0.05);
+    border-color: rgba(var(--color-text-rgb), 0.12);
+    border-left-color: var(--status-color);
   }
 
-  &--seated &__dot    { background: #43a047; box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.2); }
-  &--upcoming &__dot  { background: $color-primary; }
-  &--completed &__dot { background: #607d8b; }
-  &--cancelled &__dot { background: #e53935; }
-  &--no-show &__dot   { background: #fb8c00; }
-
+  // „Tote" Status (Beendet/Storniert/No-Show) etwas zurücktreten lassen
   &--completed,
   &--cancelled,
-  &--no-show { opacity: 0.6; }
+  &--no-show { opacity: 0.65; }
 
+  // Farbiger Uhrzeit-Block links — wie bei OpenTable
   &__time {
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 6px 4px;
+    border-radius: 8px;
+    background: var(--status-color);
+    color: #fff;
+    font-size: 13px;
     font-weight: 700;
-    color: $color-text-on-dark;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+                0 1px 2px rgba(0, 0, 0, 0.15);
   }
 
   &__body {
@@ -563,7 +595,7 @@
     mat-icon { font-size: 12px; width: 12px; height: 12px; }
 
     .warn   { color: #fb8c00; }
-    .muted  { color: rgba(255,255,255,0.4); }
+    .muted  { color: rgba(var(--color-text-rgb), 0.4); }
   }
 
   &__notes {
@@ -571,7 +603,7 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(var(--color-text-rgb), 0.5);
     font-style: italic;
     margin-top: 2px;
 
@@ -583,6 +615,69 @@
     align-items: center;
     gap: 4px;
   }
+
+  // ── Modi: Text & Icon ─────────────────────────────────────────────────
+  // Im Text-/Icon-Modus rückt links ein vertikaler Stack: Uhrzeit oben,
+  // Status-Badge oder Icon-Kachel direkt drunter. Rechts bleiben die
+  // Aktions-Buttons, mittig die Reservierungs-Details.
+  &--mode-text,
+  &--mode-svg {
+    grid-template-columns: 84px 1fr auto;
+  }
+
+  &__left-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 84px;
+    flex-shrink: 0;
+  }
+
+  &__time--neutral {
+    background: rgba(var(--color-text-rgb), 0.06);
+    color: $color-text-on-dark;
+    text-shadow: none;
+    box-shadow: inset 0 0 0 1px rgba(var(--color-text-rgb), 0.08);
+    min-height: 22px;
+    padding: 2px 4px;
+    font-size: 11px;
+  }
+
+  &__status-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 5px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  }
+
+  &__status-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--status-color);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 1px 2px rgba(0, 0, 0, 0.2);
+
+    app-status-icon { line-height: 0; }
+  }
+
+  // Icon-Modus: Stack komplett kompakter & Icon kleiner
+  &--mode-svg &__left-stack { width: 64px; }
+  &--mode-svg &__status-tile { height: 26px; border-radius: 6px; }
+  &--mode-svg &__time--neutral { min-height: 20px; font-size: 10px; }
+  &--mode-svg { grid-template-columns: 64px 1fr auto; }
 }
 
 // ── Action Buttons & Kebab ──────────────────────────────────────────────
@@ -594,7 +689,7 @@
   height: 30px;
   border-radius: 8px;
   border: 1px solid $color-border;
-  background: rgba(255,255,255,0.04);
+  background: rgba(var(--color-text-rgb), 0.04);
   color: $color-text-muted;
   cursor: pointer;
   transition: all 0.15s;
@@ -602,7 +697,7 @@
   mat-icon { font-size: 15px; width: 15px; height: 15px; }
 
   &:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(var(--color-text-rgb), 0.1);
     color: $color-text-on-dark;
   }
 
@@ -660,7 +755,7 @@
     mat-icon { font-size: 16px; width: 16px; height: 16px; color: $color-text-muted; }
 
     &:hover {
-      background: rgba(255,255,255,0.06);
+      background: rgba(var(--color-text-rgb), 0.06);
       mat-icon { color: $color-text-on-dark; }
     }
 
@@ -708,8 +803,8 @@
     overflow: visible;
 
     &__body {
-      fill: #1a1f2e;
-      stroke: #2979ff;
+      fill: var(--color-surface);
+      stroke: var(--color-primary);
       stroke-width: 2;
       transition: fill 0.2s, stroke 0.2s, stroke-width 0.2s, filter 0.2s;
     }
@@ -844,14 +939,14 @@
     width: 28px;
     height: 28px;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(var(--color-text-rgb), 0.06);
     border: 1px solid $color-border;
     color: $color-text-muted;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(var(--color-text-rgb), 0.12);
       color: $color-text-on-dark;
     }
 
@@ -941,9 +1036,9 @@
     transition: background 0.15s;
 
     &--secondary {
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.75);
-      &:hover { background: rgba(255,255,255,0.12); }
+      background: rgba(var(--color-text-rgb), 0.08);
+      color: rgba(var(--color-text-rgb), 0.75);
+      &:hover { background: rgba(var(--color-text-rgb), 0.12); }
     }
 
     &--primary {
@@ -985,7 +1080,7 @@
     font-family: inherit;
 
     &:focus { outline: none; border-color: $color-primary; }
-    &::placeholder { color: rgba(255,255,255,0.3); }
+    &::placeholder { color: rgba(var(--color-text-rgb), 0.3); }
 
     &--area { resize: vertical; min-height: 44px; }
   }
@@ -1011,7 +1106,7 @@
     align-items: center;
     gap: 2px;
     padding: 12px 8px;
-    background: rgba(255,255,255,0.04);
+    background: rgba(var(--color-text-rgb), 0.04);
     border: 1px solid $color-border;
     border-radius: 8px;
     cursor: pointer;

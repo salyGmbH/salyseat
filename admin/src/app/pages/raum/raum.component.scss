@@ -172,7 +172,7 @@
     right: 12px;
     background: transparent;
     border: none;
-    color: rgba(255,255,255,0.4);
+    color: rgba(var(--color-text-rgb), 0.4);
     cursor: pointer;
     padding: 6px;
     border-radius: 6px;
@@ -211,7 +211,7 @@
   gap: 4px;
   font-size: 12px;
   color: $color-text-muted;
-  background: rgba(255,255,255,0.04);
+  background: rgba(var(--color-text-rgb), 0.04);
   padding: 4px 8px;
   border-radius: 6px;
 
@@ -231,9 +231,9 @@
   cursor: pointer;
 
   &--no {
-    background: rgba(255,255,255,0.1);
+    background: rgba(var(--color-text-rgb), 0.1);
     color: $color-text-on-dark;
-    &:hover { background: rgba(255,255,255,0.15); }
+    &:hover { background: rgba(var(--color-text-rgb), 0.15); }
   }
 
   &--yes {

@@ -1,0 +1,105 @@
+@use '../../../styles/variables' as *;
+
+.settings-block {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.page-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid $color-border;
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(var(--color-accent-rgb), 0.15);
+    color: $color-accent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 26px; width: 26px; height: 26px; }
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+
+  &__sub {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $color-text-muted;
+    max-width: 600px;
+  }
+}
+
+.soon-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: $color-primary;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.feature-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 14px;
+  border: 1px solid $color-border;
+  border-radius: 11px;
+  background: rgba(var(--color-text-rgb), 0.02);
+
+  font-size: 13px;
+  color: $color-text-on-dark;
+
+  transition: border-color 0.18s, background 0.18s, transform 0.15s;
+
+  &:hover {
+    border-color: rgba(var(--color-accent-rgb), 0.3);
+    transform: translateY(-1px);
+  }
+
+  &__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(var(--color-primary-rgb), 0.12);
+    color: $color-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+}

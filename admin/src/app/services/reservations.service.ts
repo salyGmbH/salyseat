@@ -50,6 +50,12 @@ export class ReservationsService {
     );
   }
 
+  cancel(id: string): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.base}/${id}/cancel`, {}).pipe(
+      tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),
+    );
+  }
+
   update(id: string, payload: {
     guest_name?: string;
     party_size?: number;

@@ -21,6 +21,9 @@ export class RoomsService {
     this.venueService.venues().map(v => this.venueToRoom(v)),
   );
 
+  /** True, sobald die Venue-Liste mindestens einmal vom Backend geholt wurde. */
+  readonly loaded = computed<boolean>(() => this.venueService.loaded());
+
   // ── Laden ────────────────────────────────────────────────────────────────
   load(): Observable<unknown> {
     return this.venueService.load();

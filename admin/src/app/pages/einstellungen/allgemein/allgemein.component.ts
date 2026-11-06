@@ -1,7 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-
-type ThemeMode = 'light' | 'dark' | 'system';
+import { ThemeMode, ThemeService } from '../../../services/theme.service';
 
 @Component({
   selector: 'app-allgemein',
@@ -11,48 +10,27 @@ type ThemeMode = 'light' | 'dark' | 'system';
   styleUrl: './allgemein.component.scss'
 })
 export class AllgemeinComponent {
+  private readonly themeService = inject(ThemeService);
 
-  theme: ThemeMode = 'system';
-  themeInfo = false;
-  themeSaved = false;
+  /** Vom User gewählter Modus: light | dark | system. */
+  readonly theme     = this.themeService.mode;
+  /** Was effektiv aktiv ist (bei „system" = aufgelöste OS-Einstellung). */
+  readonly effective = this.themeService.effective;
 
-  constructor() {
-    const saved = localStorage.getItem('theme') as ThemeMode | null;
-    if (saved) {
-      this.theme = saved;
-      this.applyTheme(saved);
-    } else {
-      this.applyTheme('system');
-    }
+  themeInfo  = signal(false);
+  themeSaved = signal(false);
+
+  setTheme(mode: ThemeMode): void {
+    this.themeService.setMode(mode);
   }
 
-  setTheme(mode: ThemeMode) {
-    this.theme = mode;
-    this.applyTheme(mode);
+  toggleThemeInfo(): void {
+    this.themeInfo.update(v => !v);
   }
 
-  toggleThemeInfo() {
-    this.themeInfo = !this.themeInfo;
-  }
-
-  saveTheme() {
-    localStorage.setItem('theme', this.theme);
-
-    this.themeSaved = true;
-    setTimeout(() => this.themeSaved = false, 2000);
-  }
-
-  applyTheme(mode: ThemeMode) {
-    const body = document.body;
-
-    if (mode === 'dark') {
-      body.classList.add('dark-theme');
-    } else if (mode === 'light') {
-      body.classList.remove('dark-theme');
-    } else {
-      // system
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      body.classList.toggle('dark-theme', prefersDark);
-    }
+  saveTheme(): void {
+    // ThemeService persistiert schon bei setMode — wir zeigen nur den Badge.
+    this.themeSaved.set(true);
+    setTimeout(() => this.themeSaved.set(false), 2000);
   }
 }

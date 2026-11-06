@@ -1,1 +1,378 @@
-<p>packages works!</p>
+<!-- ===================== PACKAGES ===================== -->
+<div class="settings-block">
+
+  <!-- Hero -->
+  <div class="page-hero">
+    <div class="page-hero__icon"><mat-icon>inventory_2</mat-icon></div>
+    <div class="page-hero__text">
+      <h2 class="page-hero__title">Packages</h2>
+      <p class="page-hero__sub">
+        Feste Angebote, die Gäste direkt bei der Reservierung mitbuchen können —
+        <strong>Menüs</strong>, <strong>Events</strong>, <strong>Feiern</strong> oder
+        andere Sonderaktionen. Du definierst Preis, Personenzahl und Inhalt,
+        Gäste sehen das im Buchungs-Widget.
+      </p>
+    </div>
+    <div class="page-hero__actions">
+      <button class="ghost-button"
+              [class.active]="infoOpen"
+              (click)="toggleInfo()"
+              title="Beispiele">
+        <mat-icon>info</mat-icon>
+      </button>
+      <button class="primary-button" (click)="openAdd()">
+        <mat-icon>add</mat-icon>
+        <span>Neues Package</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Info-Box -->
+  <div class="info-box" [class.open]="infoOpen">
+    <strong>Beispiele:</strong>
+    „Sommerabend-Menü" (89&nbsp;€&nbsp;p.P., 2–12&nbsp;Gäste, 2,5&nbsp;h),
+    „Silvester-Gala" (195&nbsp;€&nbsp;p.P., Event),
+    „Geburtstags-Feier" (65&nbsp;€&nbsp;p.P., ab 6&nbsp;Personen).
+    <br>
+    Inaktive Packages werden im Widget ausgeblendet — du kannst sie trotzdem
+    später wieder aktivieren.
+  </div>
+
+  <!-- Kategorie-Filter -->
+  @if (packages.length) {
+    <div class="filter-row">
+      <button type="button"
+              class="filter-chip"
+              [class.active]="filter === null"
+              (click)="setFilter(null)">
+        <mat-icon>apps</mat-icon>
+        <span>Alle</span>
+        <em>{{ packages.length }}</em>
+      </button>
+
+      @for (c of categories; track c.key) {
+        <button type="button"
+                class="filter-chip filter-chip--{{ c.key }}"
+                [class.active]="filter === c.key"
+                (click)="setFilter(c.key)">
+          <mat-icon>{{ c.icon }}</mat-icon>
+          <span>{{ c.label }}</span>
+          <em>{{ countByCategory(c.key) }}</em>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Grid -->
+  <div class="package-grid">
+    @for (pkg of visiblePackages; track pkg.id) {
+      <div class="package-card" [class.inactive]="!pkg.active">
+
+        <!-- Media / Kategorie-Header -->
+        <div class="package-card__media package-card__media--{{ pkg.category }}">
+          @if (pkg.image) {
+            <img [src]="pkg.image" [alt]="pkg.name">
+          } @else {
+            <div class="package-card__placeholder">
+              <mat-icon>{{ categoryMeta[pkg.category].icon }}</mat-icon>
+            </div>
+          }
+
+          <div class="package-card__category-chip">
+            <mat-icon>{{ categoryMeta[pkg.category].icon }}</mat-icon>
+            {{ categoryMeta[pkg.category].label }}
+          </div>
+
+          @if (!pkg.active) {
+            <div class="package-card__inactive-badge">
+              <mat-icon>visibility_off</mat-icon>
+              Inaktiv
+            </div>
+          }
+        </div>
+
+        <!-- Body -->
+        <div class="package-card__body">
+          <div class="package-card__title">{{ pkg.name }}</div>
+
+          @if (pkg.description) {
+            <div class="package-card__desc">{{ pkg.description }}</div>
+          }
+
+          <div class="package-card__meta">
+            <span class="meta-item meta-item--price">
+              {{ pkg.pricePerPerson }}&nbsp;€
+              <small>pro Person</small>
+            </span>
+            <span class="meta-item">
+              <mat-icon>group</mat-icon>
+              {{ pkg.minPeople }}–{{ pkg.maxPeople }}
+            </span>
+            @if (pkg.durationHours) {
+              <span class="meta-item">
+                <mat-icon>schedule</mat-icon>
+                {{ pkg.durationHours }}&nbsp;h
+              </span>
+            }
+          </div>
+
+          @if (pkg.includes.length) {
+            <ul class="package-card__includes">
+              @for (inc of pkg.includes.slice(0, 4); track $index) {
+                <li>
+                  <mat-icon>check</mat-icon>
+                  <span>{{ inc }}</span>
+                </li>
+              }
+              @if (pkg.includes.length > 4) {
+                <li class="more">+ {{ pkg.includes.length - 4 }} weitere</li>
+              }
+            </ul>
+          }
+        </div>
+
+        <!-- Footer -->
+        <div class="package-card__footer">
+          <label class="switch" title="Aktiv / Inaktiv">
+            <input type="checkbox"
+                   [checked]="pkg.active"
+                   (change)="toggleActive(pkg)">
+            <span class="slider"></span>
+          </label>
+
+          <div class="package-card__actions">
+            <button class="icon-button"
+                    (click)="duplicate(pkg)"
+                    title="Duplizieren">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+            <button class="icon-button"
+                    (click)="openEdit(pkg)"
+                    title="Bearbeiten">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button class="icon-button danger"
+                    (click)="removePackage(pkg)"
+                    title="Löschen">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (!packages.length) {
+      <div class="empty-state">
+        <div class="empty-state__icon"><mat-icon>inventory_2</mat-icon></div>
+        <div class="empty-state__title">Noch keine Packages</div>
+        <div class="empty-state__sub">
+          Lege dein erstes Angebot an — z. B. ein Mehrgang-Menü oder ein Event-Paket.
+        </div>
+        <button class="primary-button" (click)="openAdd()">
+          <mat-icon>add</mat-icon>
+          <span>Erstes Package erstellen</span>
+        </button>
+      </div>
+    } @else if (!visiblePackages.length) {
+      <div class="empty-state empty-state--filter">
+        <div class="empty-state__icon"><mat-icon>filter_alt_off</mat-icon></div>
+        <div class="empty-state__title">Keine Packages in dieser Kategorie</div>
+        <button class="btn-secondary" (click)="setFilter(null)">Filter zurücksetzen</button>
+      </div>
+    }
+  </div>
+
+  <!-- Save -->
+  @if (packages.length) {
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved" (click)="save()">
+        {{ saved ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  }
+
+</div>
+
+<!-- ===================== MODAL ===================== -->
+@if (modalOpen) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+
+      <div class="modal__header">
+        <h3>{{ editingId ? 'Package bearbeiten' : 'Neues Package erstellen' }}</h3>
+        <button class="icon-button" (click)="closeModal()" title="Schließen">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal__body">
+
+        <!-- 1. Kategorie -->
+        <div class="section">
+          <div class="section__title">
+            <span class="section__num">1</span>
+            Kategorie
+          </div>
+          <div class="category-picker">
+            @for (c of categories; track c.key) {
+              <button type="button"
+                      class="category-chip category-chip--{{ c.key }}"
+                      [class.active]="draft.category === c.key"
+                      (click)="setCategory(c.key)">
+                <div class="category-chip__icon">
+                  <mat-icon>{{ c.icon }}</mat-icon>
+                </div>
+                <div class="category-chip__text">
+                  <div class="category-chip__label">{{ c.label }}</div>
+                  <div class="category-chip__tagline">{{ c.tagline }}</div>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- 2. Grunddaten -->
+        <div class="section">
+          <div class="section__title">
+            <span class="section__num">2</span>
+            Grunddaten
+          </div>
+
+          <label class="field">
+            <span class="field__label">Name</span>
+            <input type="text"
+                   [(ngModel)]="draft.name"
+                   placeholder="z. B. Sommerabend-Menü">
+          </label>
+
+          <label class="field">
+            <span class="field__label">Beschreibung</span>
+            <textarea [(ngModel)]="draft.description"
+                      rows="3"
+                      placeholder="Kurz erklären, was Gäste erwartet…"></textarea>
+            <span class="field__hint">Sichtbar für Gäste im Buchungs-Widget.</span>
+          </label>
+        </div>
+
+        <!-- 3. Preis & Personen -->
+        <div class="section">
+          <div class="section__title">
+            <span class="section__num">3</span>
+            Preis & Personen
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Preis pro Person (€)</span>
+              <input type="number"
+                     [(ngModel)]="draft.pricePerPerson"
+                     min="0"
+                     step="1">
+            </label>
+            <label class="field">
+              <span class="field__label">Dauer (Stunden)</span>
+              <input type="number"
+                     [(ngModel)]="draft.durationHours"
+                     min="0"
+                     step="0.5"
+                     placeholder="optional">
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Min. Personen</span>
+              <input type="number" [(ngModel)]="draft.minPeople" min="1">
+            </label>
+            <label class="field">
+              <span class="field__label">Max. Personen</span>
+              <input type="number" [(ngModel)]="draft.maxPeople" min="1">
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Inkludiert -->
+        <div class="section">
+          <div class="section__title">
+            <span class="section__num">4</span>
+            Was ist inkludiert
+            <span class="section__optional">optional</span>
+          </div>
+
+          <div class="include-input">
+            <input type="text"
+                   [(ngModel)]="newIncludeItem"
+                   placeholder="z. B. Aperitif, Vorspeise, Weinbegleitung …"
+                   (keydown.enter)="addInclude(); $event.preventDefault()">
+            <button type="button" class="btn-secondary" (click)="addInclude()">
+              <mat-icon>add</mat-icon>
+              Hinzufügen
+            </button>
+          </div>
+
+          @if (draft.includes.length) {
+            <ul class="include-list">
+              @for (i of draft.includes; track $index) {
+                <li>
+                  <mat-icon>check</mat-icon>
+                  <span>{{ i }}</span>
+                  <button type="button"
+                          class="include-list__remove"
+                          (click)="removeInclude($index)"
+                          title="Entfernen">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="include-empty">
+              Noch nichts hinzugefügt. Tipp: Enter drücken, um einen Punkt hinzuzufügen.
+            </div>
+          }
+        </div>
+
+        <!-- 5. Bild -->
+        <div class="section">
+          <div class="section__title">
+            <span class="section__num">5</span>
+            Bild
+            <span class="section__optional">optional</span>
+          </div>
+
+          @if (draft.image) {
+            <div class="image-preview">
+              <img [src]="draft.image" alt="Vorschau">
+              <button type="button" class="image-preview__remove" (click)="clearImage()">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          } @else {
+            <label class="image-upload">
+              <input type="file"
+                     accept="image/*"
+                     (change)="onImageSelected($event)"
+                     hidden>
+              <mat-icon>add_photo_alternate</mat-icon>
+              <div class="image-upload__text">
+                <div class="image-upload__title">Bild hochladen</div>
+                <div class="image-upload__hint">PNG oder JPG — wird im Widget angezeigt</div>
+              </div>
+            </label>
+          }
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="closeModal()">Abbrechen</button>
+        <button class="btn-primary"
+                (click)="submitDraft()"
+                [disabled]="!draft.name.trim()">
+          {{ editingId ? 'Änderungen speichern' : 'Package erstellen' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

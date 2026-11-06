@@ -1,0 +1,23 @@
+<div class="settings-block">
+  <div class="page-hero">
+    <div class="page-hero__icon"><mat-icon>extension</mat-icon></div>
+    <div>
+      <h2 class="page-hero__title">Integrationen</h2>
+      <p class="page-hero__sub">
+        Verbinde dein System mit Zahlungsanbietern, Kalendern, Hotel-Systemen
+        und Messenger-Diensten — so fließen Daten automatisch dorthin, wo du
+        sie brauchst.
+      </p>
+    </div>
+    <span class="soon-pill">In Vorbereitung</span>
+  </div>
+
+  <div class="feature-list">
+    @for (f of features; track f.label) {
+      <div class="feature">
+        <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>
+        <span>{{ f.label }}</span>
+      </div>
+    }
+  </div>
+</div>

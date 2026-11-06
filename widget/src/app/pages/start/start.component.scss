@@ -1,0 +1,271 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+}
+
+// ─── Card ────────────────────────────────────────────────────────────────
+.card {
+  background: var(--w-color-surface);
+  border: 1px solid var(--w-color-border);
+  border-radius: var(--w-radius);
+  box-shadow: var(--w-shadow);
+  overflow: hidden;
+}
+
+.card__header {
+  padding: 28px 28px 16px;
+  border-bottom: 1px solid var(--w-color-border);
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .subtitle {
+    margin: 4px 0 0;
+    color: var(--w-color-text-muted);
+    font-size: 0.95rem;
+  }
+}
+
+.card__body {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card__footer {
+  padding: 0 28px 28px;
+}
+
+// ─── 3-Spalten-Grid ──────────────────────────────────────────────────────
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--w-color-border);
+  border-radius: var(--w-radius-sm);
+  overflow: hidden;
+  background: var(--w-color-surface);
+}
+
+.col {
+  padding: 18px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  & + .col {
+    border-left: 1px solid var(--w-color-border);
+  }
+}
+
+.col__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--w-color-text-muted);
+}
+
+// ─── Inputs ──────────────────────────────────────────────────────────────
+.field {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--w-color-text);
+  background: var(--w-color-surface);
+  border: 1px solid var(--w-color-border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    border-color: var(--w-color-primary);
+    box-shadow: 0 0 0 3px rgba(var(--w-color-primary-rgb), 0.15);
+  }
+
+  &--textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+  }
+}
+
+// ─── Personen-Stepper ────────────────────────────────────────────────────
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--w-color-border);
+  border-radius: 8px;
+  background: var(--w-color-surface);
+}
+
+.stepper__btn {
+  width: 36px;
+  height: 36px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--w-color-primary);
+  background: var(--w-color-surface-soft);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--w-color-primary-rgb), 0.12);
+  }
+
+  &:disabled {
+    color: var(--w-color-text-muted);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.stepper__value {
+  flex: 1;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--w-color-text);
+}
+
+// ─── Gastdaten ───────────────────────────────────────────────────────────
+.guest {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.guest__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guest__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--w-color-text);
+}
+
+.guest__optional {
+  font-weight: 400;
+  color: var(--w-color-text-muted);
+  font-size: 0.8rem;
+}
+
+// ─── Alert ───────────────────────────────────────────────────────────────
+.alert {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+
+  &--error {
+    background: rgba(229, 57, 53, 0.10);
+    color: #b71c1c;
+    border: 1px solid rgba(229, 57, 53, 0.25);
+  }
+}
+
+// ─── Buttons ─────────────────────────────────────────────────────────────
+.btn-primary {
+  width: 100%;
+  padding: 14px 18px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--w-color-primary);
+  border: none;
+  border-radius: var(--w-radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--w-color-primary-dark);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.btn-secondary {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--w-color-primary);
+  background: transparent;
+  border: 1px solid var(--w-color-primary);
+  border-radius: var(--w-radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(var(--w-color-primary-rgb), 0.08);
+  }
+}
+
+// ─── Erfolgs-Ansicht ─────────────────────────────────────────────────────
+.success {
+  text-align: center;
+  padding: 36px 28px;
+
+  h2 {
+    margin: 12px 0 8px;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  &__icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+    font-size: 28px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__lead {
+    color: var(--w-color-text);
+    line-height: 1.5;
+    margin: 0 0 6px;
+  }
+
+  &__hint {
+    color: var(--w-color-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+}
+
+// ─── Responsive: ab Mobile auf 1 Spalte umbrechen ────────────────────────
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .col + .col {
+    border-left: none;
+    border-top: 1px solid var(--w-color-border);
+  }
+}

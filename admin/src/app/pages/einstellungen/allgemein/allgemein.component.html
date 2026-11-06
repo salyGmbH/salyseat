@@ -1,3 +1,4 @@
+<!-- ===================== DARSTELLUNG ===================== -->
 <div class="settings-block">
 
   <div class="section-header">
@@ -5,35 +6,54 @@
 
     <div class="header-actions">
       <button class="info-button"
-              [class.active]="themeInfo"
+              [class.active]="themeInfo()"
               (click)="toggleThemeInfo()">
         <mat-icon>info</mat-icon>
       </button>
     </div>
   </div>
 
-  <div class="info-box" [class.open]="themeInfo">
-    Wähle, ob das System im hellen oder dunklen Modus angezeigt wird.
+  <div class="info-box" [class.open]="themeInfo()">
+    Wähle, ob das System im hellen, gedimmten oder dunklen Modus angezeigt wird.
+    „Gedimmt" ist ein warmer Mittelweg zwischen Hell und Dunkel — schont die Augen
+    und passt zur Abendstimmung. „System" übernimmt die Einstellung deines
+    Betriebssystems.
   </div>
 
+  <!-- 🔥 TOGGLE -->
   <div class="view-toggle">
-    <button [class.active]="theme === 'light'" (click)="setTheme('light')">
+    <button [class.active]="theme() === 'light'" (click)="setTheme('light')">
       ☀️ Hell
     </button>
 
-    <button [class.active]="theme === 'dark'" (click)="setTheme('dark')">
+    <button [class.active]="theme() === 'dim'" (click)="setTheme('dim')">
+      🌇 Gedimmt
+    </button>
+
+    <button [class.active]="theme() === 'dark'" (click)="setTheme('dark')">
       🌙 Dunkel
     </button>
 
-    <button [class.active]="theme === 'system'" (click)="setTheme('system')">
+    <button [class.active]="theme() === 'system'" (click)="setTheme('system')">
       💻 System
     </button>
   </div>
 
+  <!-- Effektiv aktiver Modus (wichtig bei „System") -->
+  @if (theme() === 'system') {
+    <div class="theme-effective">
+      <mat-icon>info_outline</mat-icon>
+      <span>
+        Aktuell folgt dein System der OS-Einstellung:
+        <strong>{{ effective() === 'dark' ? 'Dunkel 🌙' : 'Hell ☀️' }}</strong>
+      </span>
+    </div>
+  }
+
   <!-- SAVE -->
   <div class="actions">
-    <button class="save-button" [class.saved]="themeSaved" (click)="saveTheme()">
-      {{ themeSaved ? 'Gespeichert ✓' : 'Speichern' }}
+    <button class="save-button" [class.saved]="themeSaved()" (click)="saveTheme()">
+      {{ themeSaved() ? 'Gespeichert ✓' : 'Speichern' }}
     </button>
   </div>
 

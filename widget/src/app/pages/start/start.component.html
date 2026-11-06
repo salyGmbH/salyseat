@@ -1,0 +1,153 @@
+<section class="card">
+  <header class="card__header">
+    <h1>Tisch reservieren</h1>
+    <p class="subtitle">bei {{ restaurantName }}</p>
+  </header>
+
+  <!-- ─── Erfolgs-Ansicht ───────────────────────────────────────────────── -->
+  @if (state() === 'success' && successInfo(); as info) {
+    <div class="card__body success">
+      <div class="success__icon">✓</div>
+      <h2>Reservierung bestätigt</h2>
+      <p class="success__lead">
+        Danke {{ info.name }}! Deine Reservierung am
+        <strong>{{ formatDate(info.date) }}</strong> um
+        <strong>{{ info.time }} Uhr</strong> für
+        <strong>{{ info.people }} {{ info.people === 1 ? 'Person' : 'Personen' }}</strong>
+        wurde gespeichert.
+      </p>
+      <p class="success__hint">
+        Sie ist jetzt im Admin-Bereich sichtbar.
+      </p>
+      <button type="button" class="btn-secondary" (click)="reset()">
+        Neue Reservierung
+      </button>
+    </div>
+  } @else {
+    <!-- ─── Eingabe-Ansicht ────────────────────────────────────────────── -->
+    <div class="card__body">
+      <!-- 3-Spalten: Datum / Uhrzeit / Personen -->
+      <div class="grid">
+        <div class="col">
+          <label class="col__label" for="res-date">Datum</label>
+          <input
+            id="res-date"
+            type="date"
+            class="field"
+            [min]="today"
+            [ngModel]="date()"
+            (ngModelChange)="date.set($event)"
+            name="date"
+          />
+        </div>
+
+        <div class="col">
+          <label class="col__label" for="res-time">Uhrzeit</label>
+          <input
+            id="res-time"
+            type="time"
+            class="field"
+            step="900"
+            [ngModel]="time()"
+            (ngModelChange)="time.set($event)"
+            name="time"
+          />
+        </div>
+
+        <div class="col">
+          <label class="col__label">Personen</label>
+          <div class="stepper" role="group" aria-label="Personenanzahl">
+            <button
+              type="button"
+              class="stepper__btn"
+              (click)="decrement()"
+              [disabled]="people() <= minPeople"
+              aria-label="Weniger Personen"
+            >−</button>
+            <span class="stepper__value">{{ people() }}</span>
+            <button
+              type="button"
+              class="stepper__btn"
+              (click)="increment()"
+              [disabled]="people() >= maxPeople"
+              aria-label="Mehr Personen"
+            >+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gastdaten -->
+      <div class="guest">
+        <label class="guest__row">
+          <span class="guest__label">Name</span>
+          <input
+            type="text"
+            class="field"
+            [ngModel]="guestName()"
+            (ngModelChange)="guestName.set($event)"
+            name="guestName"
+            placeholder="Vor- und Nachname"
+            autocomplete="name"
+          />
+        </label>
+
+        <label class="guest__row">
+          <span class="guest__label">E-Mail</span>
+          <input
+            type="email"
+            class="field"
+            [ngModel]="guestEmail()"
+            (ngModelChange)="guestEmail.set($event)"
+            name="guestEmail"
+            placeholder="name@beispiel.de"
+            autocomplete="email"
+          />
+        </label>
+
+        <label class="guest__row">
+          <span class="guest__label">Telefon <span class="guest__optional">(optional)</span></span>
+          <input
+            type="tel"
+            class="field"
+            [ngModel]="guestPhone()"
+            (ngModelChange)="guestPhone.set($event)"
+            name="guestPhone"
+            placeholder="+49 …"
+            autocomplete="tel"
+          />
+        </label>
+
+        <label class="guest__row">
+          <span class="guest__label">Anmerkungen <span class="guest__optional">(optional)</span></span>
+          <textarea
+            class="field field--textarea"
+            [ngModel]="notes()"
+            (ngModelChange)="notes.set($event)"
+            name="notes"
+            rows="2"
+            placeholder="Besonderheiten, Allergien …"
+          ></textarea>
+        </label>
+      </div>
+
+      @if (state() === 'error') {
+        <div class="alert alert--error">{{ errorMessage() }}</div>
+      }
+    </div>
+
+    <footer class="card__footer">
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="!canSubmit()"
+        (click)="weiter()"
+      >
+        @if (state() === 'submitting') {
+          Wird gesendet …
+        } @else {
+          Reservierung absenden
+        }
+      </button>
+    </footer>
+  }
+</section>

@@ -6,6 +6,7 @@ import { AllgemeinComponent } from './allgemein/allgemein.component';
 import { WidgetComponent } from './widget/widget.component';
 import { RestaurantplanComponent } from './restaurantplan/restaurantplan.component';
 import { MitarbeiterComponent } from './mitarbeiter/mitarbeiter.component';
+
 import { StatusFarbenComponent } from './status-farben/status-farben.component';
 
 import { PackagesComponent } from './packages/packages.component';
@@ -20,6 +21,15 @@ import { SicherheitComponent } from './sicherheit/sicherheit.component';
 import { KreditkarteComponent } from './kreditkarte/kreditkarte.component';
 import { HotelAutomatischComponent } from './hotel-automatisch/hotel-automatisch.component';
 
+// 🔥 Neu
+import { RechteComponent } from './rechte/rechte.component';
+import { NotificationsComponent } from './notifications/notifications.component';
+import { OeffnungszeitenComponent } from './oeffnungszeiten/oeffnungszeiten.component';
+import { IntegrationenComponent } from './integrationen/integrationen.component';
+import { BackupComponent } from './backup/backup.component';
+import { BrandingComponent } from './branding/branding.component';
+import { KundenComponent } from './kunden/kunden.component';
+
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
     path: '',
@@ -27,25 +37,35 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
     children: [
       { path: '', component: OverviewComponent },
 
-      { path: 'allgemein', component: AllgemeinComponent },
-      { path: 'widget', component: WidgetComponent },
+      { path: 'allgemein',      component: AllgemeinComponent },
+      { path: 'widget',         component: WidgetComponent },
       { path: 'restaurantplan', component: RestaurantplanComponent },
-      { path: 'mitarbeiter', component: MitarbeiterComponent },
+      { path: 'mitarbeiter',    component: MitarbeiterComponent },
 
-      // 🔥 NEUER NAME
+      // Rollen & feingranulare Berechtigungen
+      { path: 'rechte',         component: RechteComponent },
+
       { path: 'status-kennzeichnungen', component: StatusFarbenComponent },
 
-      { path: 'packages', component: PackagesComponent },
-      { path: 'dokumente', component: DokumenteComponent },
-      { path: 'reservierungen', component: ReservierungenComponent },
-      { path: 'login', component: LoginComponent },
-      { path: 'statistiken', component: StatistikenComponent },
+      { path: 'packages',          component: PackagesComponent },
+      { path: 'dokumente',         component: DokumenteComponent },
+      { path: 'reservierungen',    component: ReservierungenComponent },
+      { path: 'login',             component: LoginComponent },
+      { path: 'statistiken',       component: StatistikenComponent },
       { path: 'reservierungsliste', component: ReservierungslisteComponent },
-      { path: 'sprachen', component: SprachenComponent },
-      { path: 'emails', component: EmailsComponent },
-      { path: 'sicherheit', component: SicherheitComponent },
-      { path: 'kreditkarte', component: KreditkarteComponent },
+      { path: 'sprachen',          component: SprachenComponent },
+      { path: 'emails',            component: EmailsComponent },
+      { path: 'sicherheit',        component: SicherheitComponent },
+      { path: 'kreditkarte',       component: KreditkarteComponent },
       { path: 'hotel-automatisch', component: HotelAutomatischComponent },
+
+      // Neue Bereiche
+      { path: 'notifications',   component: NotificationsComponent },
+      { path: 'oeffnungszeiten', component: OeffnungszeitenComponent },
+      { path: 'integrationen',   component: IntegrationenComponent },
+      { path: 'backup',          component: BackupComponent },
+      { path: 'branding',        component: BrandingComponent },
+      { path: 'kunden',          component: KundenComponent },
     ]
   }
 ];

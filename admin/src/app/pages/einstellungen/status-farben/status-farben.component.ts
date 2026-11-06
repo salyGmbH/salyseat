@@ -1,8 +1,19 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { StatusColorsService } from '../../../services/status-colors.service';
+import {
+  StatusIconComponent,
+  STATUS_ICON_IDS,
+  STATUS_ICONS_META,
+  SUGGESTED_ICONS_BY_STATUS,
+  StatusIconId,
+} from '../../../shared/status-icon/status-icon.component';
 
+// =========================
+// 🔥 TYPE (WICHTIG!)
+// =========================
 type ConfigItem = {
   label: string;
   key: string;
@@ -13,20 +24,29 @@ type ConfigItem = {
 @Component({
   selector: 'app-status-farben',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, StatusIconComponent],
   templateUrl: './status-farben.component.html',
   styleUrl: './status-farben.component.scss'
 })
 export class StatusFarbenComponent {
 
+  private readonly statusColorsService = inject(StatusColorsService);
 
-  statusView: 'text' | 'svg' = 'text';
+  // =========================
+  // 🔥 VIEW / MODES
+  // 'card' = farbiger Uhrzeit-Block (OpenTable-Style), 'text' = Pille, 'svg' = Icon
+  // Initial aus dem persistierten Service-Wert lesen, damit der Toggle nach
+  // Reload den tatsächlich aktiven Modus zeigt.
+  // =========================
+  statusView: 'card' | 'text' | 'svg' = this.statusColorsService.viewMode();
   hinweisView: 'text' | 'svg' = 'text';
   gastView: 'text' | 'svg' = 'text';
 
   sortMode: 'status' | 'time' | 'combined' = 'status';
 
-
+  // =========================
+  // 🔥 MODAL STATE
+  // =========================
   modalOpen = false;
   modalType: 'hinweis' | 'gast' | null = null;
 
@@ -37,7 +57,9 @@ export class StatusFarbenComponent {
     icon: 'default'
   };
 
-
+  // =========================
+  // 🔥 UI STATE
+  // =========================
   statusInfo = false;
   hinweisInfo = false;
   gastInfo = false;
@@ -48,15 +70,24 @@ export class StatusFarbenComponent {
   gastSaved = false;
   sortSaved = false;
 
-  defaultStatuses: ConfigItem[] = [
-    { key: 'waiting', label: 'Warteliste', color: '#f59e0b', icon: 'circle' },
-    { key: 'active', label: 'Aktiv', color: '#22c55e', icon: 'check' },
-    { key: 'late', label: 'Verspätet', color: '#eab308', icon: 'clock' },
-    { key: 'paid', label: 'Bezahlt', color: '#3b82f6', icon: 'money' },
-    { key: 'completed', label: 'Beendet', color: '#6b7280', icon: 'done' },
-    { key: 'no_show', label: 'No Show', color: '#991b1b', icon: 'close' },
-    { key: 'cancelled', label: 'Storniert', color: '#9ca3af', icon: 'minus' },
+  // =========================
+  // 🔥 BEISPIEL-RESERVIERUNGEN für die "Farbe"-Vorschau
+  // (eine pro Status, damit man alle Farben gleichzeitig sieht)
+  // =========================
+  sampleReservations = [
+    { key: 'waiting',   time: '12:00', name: 'Müller',  party: 4, table: 3 },
+    { key: 'active',    time: '12:30', name: 'Schmidt', party: 2, table: 7 },
+    { key: 'late',      time: '13:00', name: 'Kaiser',  party: 6, table: 12 },
+    { key: 'paid',      time: '13:30', name: 'Becker',  party: 3, table: 5 },
+    { key: 'completed', time: '14:00', name: 'Weber',   party: 2, table: 1 },
+    { key: 'no_show',   time: '14:30', name: 'Fischer', party: 4, table: 9 },
+    { key: 'cancelled', time: '15:00', name: 'Hofmann', party: 2, table: 4 },
   ];
+
+  // =========================
+  // 🔥 DEFAULTS
+  // =========================
+  defaultStatuses: ConfigItem[] = this.statusColorsService.defaults().map(s => ({ ...s }));
 
   defaultHinweise: ConfigItem[] = [
     { key: 'allergy', label: 'Allergie', color: '#ef4444', icon: 'alert' },
@@ -74,15 +105,56 @@ export class StatusFarbenComponent {
 
   // =========================
   // 🔥 AKTIVE DATEN
+  // Status kommt aus dem zentralen Service (persistiert + von Raumübersicht gelesen).
   // =========================
-  statuses: ConfigItem[] = JSON.parse(JSON.stringify(this.defaultStatuses));
+  statuses: ConfigItem[] = this.statusColorsService.statuses().map(s => ({ ...s }));
   hinweise: ConfigItem[] = JSON.parse(JSON.stringify(this.defaultHinweise));
   gasttypen: ConfigItem[] = JSON.parse(JSON.stringify(this.defaultGasttypen));
+
+  /** Hilfsmethode: Status für Beispiel-Karte holen. */
+  getStatusByKey(key: string): ConfigItem | undefined {
+    return this.statuses.find(s => s.key === key);
+  }
+
+  // =========================
+  // 🔥 ICON PICKER
+  // =========================
+  iconPickerOpenFor: string | null = null;
+  readonly allIconsMeta = STATUS_ICONS_META;
+
+  toggleIconPicker(statusKey: string): void {
+    this.iconPickerOpenFor = this.iconPickerOpenFor === statusKey ? null : statusKey;
+  }
+
+  closeIconPicker(): void { this.iconPickerOpenFor = null; }
+
+  getSuggestedIcons(statusKey: string): StatusIconId[] {
+    return SUGGESTED_ICONS_BY_STATUS[statusKey] ?? [];
+  }
+
+  getOtherIcons(statusKey: string): StatusIconId[] {
+    const suggested = new Set<string>(this.getSuggestedIcons(statusKey));
+    return STATUS_ICON_IDS.filter(id => !suggested.has(id));
+  }
+
+  selectIcon(statusKey: string, iconId: StatusIconId): void {
+    const status = this.statuses.find(s => s.key === statusKey);
+    if (!status) return;
+    status.icon = iconId;
+    this.closeIconPicker();
+  }
+
+  resolveIcon(status: ConfigItem): string {
+    const icon = status.icon ?? '';
+    if ((STATUS_ICON_IDS as readonly string[]).includes(icon)) return icon;
+    const suggested = this.getSuggestedIcons(status.key);
+    return suggested[0] ?? 'circle-dot';
+  }
 
   // =========================
   // 🔥 VIEW SETTER
   // =========================
-  setStatusView(mode: 'text' | 'svg') {
+  setStatusView(mode: 'card' | 'text' | 'svg') {
     this.statusView = mode;
   }
 
@@ -98,7 +170,9 @@ export class StatusFarbenComponent {
     this.sortMode = mode;
   }
 
-
+  // =========================
+  // 🔥 INFO TOGGLES
+  // =========================
   toggleStatusInfo() {
     this.statusInfo = !this.statusInfo;
     this.hinweisInfo = this.gastInfo = this.sortInfo = false;
@@ -133,9 +207,13 @@ export class StatusFarbenComponent {
     return brightness > 150 ? '#000' : '#fff';
   }
 
-
+  // =========================
+  // 🔥 SAVE
+  // =========================
   saveStatus() {
-    console.log('Status gespeichert:', this.statuses, this.statusView);
+    // In zentralen Service schreiben — wird sofort von der Raumübersicht abgegriffen.
+    this.statusColorsService.setAll(this.statuses as any);
+    this.statusColorsService.setViewMode(this.statusView);
     this.triggerSaved('status');
   }
 
@@ -168,9 +246,13 @@ export class StatusFarbenComponent {
     }, 2000);
   }
 
-
+  // =========================
+  // 🔥 RESET
+  // =========================
   resetStatusColors() {
-    this.statuses = JSON.parse(JSON.stringify(this.defaultStatuses));
+    this.statusColorsService.reset();
+    this.statuses = this.statusColorsService.statuses().map(s => ({ ...s }));
+    this.statusView = this.statusColorsService.viewMode();
   }
 
   resetHinweiseColors() {
@@ -181,6 +263,9 @@ export class StatusFarbenComponent {
     this.gasttypen = JSON.parse(JSON.stringify(this.defaultGasttypen));
   }
 
+  // =========================
+  // 🔥 MODAL
+  // =========================
   openModal(type: 'hinweis' | 'gast') {
     this.modalType = type;
     this.modalOpen = true;

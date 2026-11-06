@@ -1,12 +1,10 @@
 <div class="grid">
-  <a
-    class="item"
-    *ngFor="let item of items"
-    [routerLink]="item.route"
-    routerLinkActive="active"
-  >
+  <a class="item"
+     *ngFor="let item of items"
+     [routerLink]="item.route"
+     routerLinkActive="active">
     <div class="icon">
-      <mat-icon>settings</mat-icon>
+      <mat-icon>{{ item.icon || 'settings' }}</mat-icon>
     </div>
     <span>{{ item.label }}</span>
   </a>

@@ -137,6 +137,387 @@
   gap: 6px;
   align-items: center;
 }
+
+// ════════════════════════════════════════════════════════════════════
+//  ICON-PICKER: Pro Status ein passendes Icon wählen
+// ════════════════════════════════════════════════════════════════════
+
+.icon-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.icon-picker-row {
+  --status-color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  background: rgba(var(--color-text-rgb), 0.02);
+  border: 1px solid rgba(var(--color-text-rgb), 0.06);
+  border-left: 3px solid var(--status-color);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: background 0.15s, border-color 0.15s;
+  &:hover { background: rgba(var(--color-text-rgb), 0.05); }
+}
+
+.icon-picker-current {
+  display: grid;
+  grid-template-columns: 44px 1fr 22px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 10px 6px 6px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: $color-text-on-dark;
+  transition: background 0.15s;
+  &:hover { background: rgba(var(--color-text-rgb), 0.04); }
+  &.open { background: rgba(var(--color-text-rgb), 0.06); }
+}
+
+.icon-picker-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--status-color);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.icon-picker-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.icon-picker-chevron {
+  color: $color-text-muted;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+.icon-picker-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(var(--color-text-rgb), 0.08);
+  background: rgba(var(--color-text-rgb), 0.025);
+  animation: pickerIn 0.15s ease;
+}
+
+@keyframes pickerIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.icon-picker-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: $color-text-muted;
+  margin-top: 4px;
+}
+
+.icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+}
+
+.icon-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: rgba(var(--color-text-rgb), 0.03);
+  border: 1px solid rgba(var(--color-text-rgb), 0.08);
+  border-radius: 8px;
+  color: $color-text-on-dark;
+  cursor: pointer;
+  transition: 0.15s;
+  &:hover {
+    background: rgba(var(--color-text-rgb), 0.07);
+    border-color: var(--status-color);
+    color: var(--status-color);
+    transform: translateY(-1px);
+  }
+  &.selected {
+    background: var(--status-color);
+    border-color: var(--status-color);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  FARBE-VORSCHAU: Beispiel-Reservierungs-Karten
+//  Visualisiert wie der Status in der Raumübersicht aussieht
+// ════════════════════════════════════════════════════════════════════
+
+.preview-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: $color-text-muted;
+}
+
+.sample-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sample-row {
+  --status-color: #6b7280;
+
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  background: rgba(var(--color-text-rgb), 0.02);
+  border: 1px solid rgba(var(--color-text-rgb), 0.06);
+  border-left: 3px solid var(--status-color);
+  border-radius: 10px;
+  align-items: stretch;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: rgba(var(--color-text-rgb), 0.05);
+    border-color: rgba(var(--color-text-rgb), 0.12);
+    border-left-color: var(--status-color);
+  }
+
+  // Uhrzeit-Block links — Status-Farbe als Hintergrund (OpenTable-Style)
+  &__time-wrap {
+    position: relative;
+    display: block;
+    cursor: pointer;
+  }
+
+  &__time {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    height: 100%;
+    border-radius: 8px;
+    background: var(--status-color);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 1px 2px rgba(0, 0, 0, 0.15);
+    transition: filter 0.15s;
+  }
+
+  &__time-wrap:hover &__time {
+    filter: brightness(1.08);
+  }
+
+  &__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 0;
+  }
+
+  &__top {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  &__name {
+    font-size: 14px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+
+  &__party {
+    font-size: 12px;
+    color: $color-text-muted;
+  }
+
+  &__sub {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 11px;
+    color: $color-text-muted;
+
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+  }
+
+  &__status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    background: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+}
+
+// ── Sample-Row Varianten: Text & Icon ───────────────────────────────────
+// Status-Anzeige (Text/Icon) sitzt links UNTER der Uhrzeit als Stack —
+// die rechte Seite bleibt frei für Aktions-Buttons (Einchecken etc.).
+.sample-row--text,
+.sample-row--icon {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.sample-row__left-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 84px;
+  flex-shrink: 0;
+}
+
+.sample-row__time--neutral {
+  // Dezenter, neutraler Time-Block — die Status-Farbe sitzt im Element drunter
+  background: rgba(var(--color-text-rgb), 0.06);
+  color: $color-text-on-dark;
+  text-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(var(--color-text-rgb), 0.08);
+  min-height: 32px;
+  font-size: 12px;
+}
+
+// ── Text-Variante: farbiges Status-Label unter der Uhrzeit ─────────────
+.sample-row__badge-wrap {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+}
+
+.sample-row__status-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: transform 0.1s, filter 0.15s;
+
+  .sample-row__badge-wrap:hover & {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+  }
+}
+
+// ── Icon-Variante: farbige Icon-Kachel unter der Uhrzeit ───────────────
+.sample-row__status-name {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px solid var(--status-color);
+  color: var(--status-color);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.sample-row__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.15s;
+  width: 100%;
+
+  &:hover { transform: translateY(-1px); }
+  &:focus-visible {
+    outline: 2px solid var(--status-color);
+    outline-offset: 2px;
+  }
+}
+
+.sample-row__icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--status-color);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+              0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: filter 0.15s, box-shadow 0.15s;
+
+  .sample-row__icon-btn:hover & { filter: brightness(1.08); }
+  .sample-row__icon-btn.open & {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+                0 0 0 3px rgba(var(--color-text-rgb), 0.12),
+                0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// ── Picker-Panel direkt unter der Sample-Row ────────────────────────────
+.sample-row__picker {
+  --status-color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  margin-top: -2px;
+  background: rgba(var(--color-text-rgb), 0.04);
+  border: 1px solid rgba(var(--color-text-rgb), 0.08);
+  border-left: 3px solid var(--status-color);
+  border-radius: 0 10px 10px 10px;
+  animation: pickerIn 0.15s ease;
+}
+
+// Wenn der Picker offen ist, untere Ecken der Row gerade machen
+.sample-row.has-picker-open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+// Inline color-input über dem Uhrzeit-Block — full-overlay, unsichtbar
+.color-input--inline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
 .status-item {
   display: flex;
   align-items: center;
@@ -563,6 +944,7 @@
 }
 
 
+// ===================== LARGE DESKTOP =====================
 @media (min-width: 1200px) {
 
   .settings-block {

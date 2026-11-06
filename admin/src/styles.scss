@@ -54,6 +54,40 @@
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+//  THEME — GEDIMMT (body.dim-theme)
+//  Warmer Mittelweg — weder grell hell noch voll dunkel.
+//  Inspiriert von Abendlicht: gedämpftes Blaugrau mit warmem Beige-Ton,
+//  off-white Text. Passt zur Abendstimmung eines Restaurants.
+// ─────────────────────────────────────────────────────────────────────────
+body.dim-theme {
+  // Surfaces (gedimmt — weicher Blaugrau-Ton, minimal wärmer als dunkel)
+  --color-bg:                #232732;
+  --color-bg-rgb:            35, 39, 50;
+  --color-surface:           #2d3240;
+  --color-surface-rgb:       45, 50, 64;
+  --color-surface-soft:      #363c4d;
+  --color-surface-soft-rgb:  54, 60, 77;
+
+  // Navigation — etwas dunkler als die Surface, damit Sidebar sich absetzt
+  --color-dark:              #1d2029;
+  --color-dark-rgb:          29, 32, 41;
+  --color-dark-soft:         #2a2f3c;
+  --color-dark-soft-rgb:     42, 47, 60;
+
+  // Text — off-white mit warmem Unterton (kein grelles Pure-White)
+  --color-text:              #ebe6dc;
+  --color-text-rgb:          235, 230, 220;
+  --color-text-muted:        rgba(235, 230, 220, 0.62);
+  --color-text-muted-rgb:    235, 230, 220;
+  --color-text-on-dark:      #ebe6dc;
+  --color-text-on-dark-rgb:  235, 230, 220;
+
+  // Borders — sanft, nicht hart abgegrenzt
+  --color-border:            rgba(235, 230, 220, 0.10);
+  --color-border-rgb:        235, 230, 220;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  THEME — DUNKEL (body.dark-theme)
 // ─────────────────────────────────────────────────────────────────────────
 body.dark-theme {

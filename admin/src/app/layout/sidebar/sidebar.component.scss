@@ -85,7 +85,7 @@
 
   &:hover {
     background-color: $color-dark-soft;
-    color: $color-white;
+    color: $color-text-on-dark;
   }
 
   &.active {
@@ -137,7 +137,7 @@
       rgba(var(--color-accent-rgb), 0.35) 0%,
       rgba(var(--color-accent-rgb), 0.18) 100%
     );
-    color: $color-white;
+    color: $color-text-on-dark;
     border-left-color: $color-accent;
     box-shadow:
       0 6px 18px rgba(var(--color-accent-rgb), 0.20),
@@ -176,7 +176,7 @@
 
   &:hover {
     background-color: $color-dark-soft;
-    color: $color-white;
+    color: $color-text-on-dark;
   }
 
   mat-icon {
@@ -213,7 +213,7 @@
 
   &:hover {
     background-color: $color-dark-soft;
-    color: $color-white;
+    color: $color-text-on-dark;
   }
 }
 
@@ -230,7 +230,7 @@
 
 .sidebar__logout-email {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(var(--color-text-rgb), 0.4);
   text-overflow: ellipsis;
   overflow: hidden;
   max-width: 170px;
@@ -281,7 +281,7 @@
 
   &:hover {
     background-color: $color-dark-soft;
-    color: $color-white;
+    color: $color-text-on-dark;
   }
 
   mat-icon {

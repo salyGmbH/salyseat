@@ -1,54 +1,119 @@
 <div class="dashboard">
+
+  <!-- Header -->
   <div class="page-header">
-    <h1 class="page-title">Dashboard</h1>
-    <p class="page-subtitle">Willkommen zurück, hier ist deine Übersicht.</p>
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">{{ today }}</p>
+    </div>
+    @if (!loading()) {
+      <button class="btn-refresh" (click)="ngOnInit()" title="Aktualisieren">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    }
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-card__icon">
-        <mat-icon>event_available</mat-icon>
-      </div>
-      <div class="stat-card__content">
-        <span class="stat-card__label">Reservierungen heute</span>
-        <span class="stat-card__value">–</span>
-      </div>
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="state-loading">
+      <div class="spinner"></div>
+      <span>Lade Statistiken…</span>
     </div>
-    <div class="stat-card">
-      <div class="stat-card__icon">
-        <mat-icon>table_restaurant</mat-icon>
-      </div>
-      <div class="stat-card__content">
-        <span class="stat-card__label">Tische gesamt</span>
-        <span class="stat-card__value">–</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card__icon">
-        <mat-icon>people</mat-icon>
-      </div>
-      <div class="stat-card__content">
-        <span class="stat-card__label">Gäste heute</span>
-        <span class="stat-card__value">–</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card__icon">
-        <mat-icon>meeting_room</mat-icon>
-      </div>
-      <div class="stat-card__content">
-        <span class="stat-card__label">Räume</span>
-        <span class="stat-card__value">–</span>
-      </div>
-    </div>
-  </div>
+  }
 
+  <!-- Error -->
+  @if (error()) {
+    <div class="state-error">
+      <mat-icon>error_outline</mat-icon>
+      Statistiken konnten nicht geladen werden.
+    </div>
+  }
+
+  <!-- Stats -->
+  @if (stats(); as s) {
+
+    <!-- Heute -->
+    <div class="stats-section">
+      <h2 class="section-label">Heute</h2>
+      <div class="stats-grid">
+
+        <div class="stat-card stat-card--primary">
+          <div class="stat-card__icon"><mat-icon>event_available</mat-icon></div>
+          <div class="stat-card__content">
+            <span class="stat-card__label">Reservierungen</span>
+            <span class="stat-card__value">{{ s.today.total }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card--green">
+          <div class="stat-card__icon"><mat-icon>people</mat-icon></div>
+          <div class="stat-card__content">
+            <span class="stat-card__label">Gäste erwartet</span>
+            <span class="stat-card__value">{{ s.today.guests }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card" [class.stat-card--warn]="s.today.pending > 0">
+          <div class="stat-card__icon"><mat-icon>pending_actions</mat-icon></div>
+          <div class="stat-card__content">
+            <span class="stat-card__label">Ausstehend</span>
+            <span class="stat-card__value">{{ s.today.pending }}</span>
+            @if (s.today.pending > 0) {
+              <span class="stat-card__hint">Bestätigung nötig</span>
+            }
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card__icon"><mat-icon>meeting_room</mat-icon></div>
+          <div class="stat-card__content">
+            <span class="stat-card__label">Aktive Räume</span>
+            <span class="stat-card__value">{{ s.venues }}</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Morgen + Woche -->
+    <div class="stats-section">
+      <h2 class="section-label">Vorschau</h2>
+      <div class="stats-grid stats-grid--half">
+
+        <div class="stat-card stat-card--muted">
+          <div class="stat-card__icon"><mat-icon>event</mat-icon></div>
+          <div class="stat-card__content">
+            <span class="stat-card__label">Morgen</span>
+            <span class="stat-card__value">{{ s.tomorrow.total }}</span>
+            <span class="stat-card__hint">{{ s.tomorrow.guests }} Gäste</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card--muted">
+          <div class="stat-card__icon"><mat-icon>date_range</mat-icon></div>
+          <div class="stat-card__content">
+            <span class="stat-card__label">Diese Woche</span>
+            <span class="stat-card__value">{{ s.week.total }}</span>
+            <span class="stat-card__hint">{{ s.week.guests }} Gäste</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  }
+
+  <!-- Schnellzugriff -->
   <div class="quick-actions">
-    <h2 class="section-title">Schnellzugriff</h2>
+    <h2 class="section-label">Schnellzugriff</h2>
     <div class="quick-actions__grid">
-      <a routerLink="/restaurant-plan" class="quick-card">
+      <a routerLink="/raum" class="quick-card">
         <mat-icon>table_restaurant</mat-icon>
-        <span>Restaurantplan</span>
+        <span>Raumplan</span>
+      </a>
+      <a routerLink="/einstellungen/reservierungsliste" class="quick-card">
+        <mat-icon>list_alt</mat-icon>
+        <span>Reservierungen</span>
       </a>
       <a routerLink="/statistiken" class="quick-card">
         <mat-icon>bar_chart</mat-icon>
@@ -60,4 +125,5 @@
       </a>
     </div>
   </div>
+
 </div>

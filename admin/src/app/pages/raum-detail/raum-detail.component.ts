@@ -6,12 +6,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { of, switchMap } from 'rxjs';
 import { RoomsService } from '../../services/rooms.service';
 import { FloorReservationsService } from '../../services/floor-reservations.service';
 import { ReservationsService } from '../../services/reservations.service';
+import { StatusColorsService } from '../../services/status-colors.service';
 import { PlacedTable, TableType } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
+import { StatusIconComponent } from '../../shared/status-icon/status-icon.component';
 
 type StatusFilter = 'all' | 'active' | FloorReservationStatus;
 
@@ -25,6 +28,7 @@ type StatusFilter = 'all' | 'active' | FloorReservationStatus;
     MatFormFieldModule,
     RouterLink,
     FormsModule,
+    StatusIconComponent,
   ],
   templateUrl: './raum-detail.component.html',
   styleUrl: './raum-detail.component.scss'
@@ -33,6 +37,7 @@ export class RaumDetailComponent implements OnInit {
   private readonly roomsService        = inject(RoomsService);
   private readonly reservationsService = inject(FloorReservationsService);
   private readonly apiReservations     = inject(ReservationsService);
+  private readonly statusColors        = inject(StatusColorsService);
   private readonly route               = inject(ActivatedRoute);
   private readonly router              = inject(Router);
 
@@ -46,24 +51,72 @@ export class RaumDetailComponent implements OnInit {
     return id ? this.roomsService.getRoom(id) : undefined;
   });
 
-  ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return;
-    this.layoutLoading.set(true);
-    this.roomsService.loadRoomLayout(id).subscribe({
-      next:  () => {
-        this.layoutLoading.set(false);
-        this.syncFromBackend(id, this.selectedDate());
-      },
-      error: () => this.layoutLoading.set(false),
-    });
+  /** Farbe für eine Reservierung — kommt aus dem zentralen StatusColorsService. */
+  colorFor(status: FloorReservationStatus): string {
+    return this.statusColors.colorForReservation(status);
+  }
 
-    // Bei Datumswechsel Backend-Sync wiederholen
+  /** Icon-ID für eine Reservierung — wird im 'svg'-Anzeigemodus gerendert. */
+  iconFor(status: FloorReservationStatus): string {
+    return this.statusColors.iconForReservation(status);
+  }
+
+  /** Konfiguriertes Status-Label (statt des reinen Lifecycle-Strings). */
+  labelFor(status: FloorReservationStatus): string {
+    return this.statusColors.labelForReservation(status);
+  }
+
+  /**
+   * Anzeigemodus für Status (Farbe / Text / Icons).
+   * Wird zentral in der Status-Einstellungsseite gesetzt und hier nur gelesen.
+   */
+  readonly viewMode = this.statusColors.viewMode;
+
+  /** Schwarz/Weiß-Textfarbe je nach Hintergrundhelligkeit (für Text-Badges). */
+  textColorFor(hex: string): string {
+    if (!hex || !hex.startsWith('#')) return '#fff';
+    const c = hex.substring(1);
+    const rgb = parseInt(c.length === 3 ? c.split('').map(x => x + x).join('') : c, 16);
+    const r = (rgb >> 16) & 0xff;
+    const g = (rgb >> 8) & 0xff;
+    const b = rgb & 0xff;
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 150 ? '#000' : '#fff';
+  }
+
+  constructor() {
+    // Bei Datumswechsel Backend-Sync wiederholen.
+    // effect() muss im Konstruktor stehen (Injection-Context), nicht in ngOnInit.
     effect(() => {
       const date = this.selectedDate();
       const room = this.room();
       if (room) this.syncFromBackend(room.id, date);
     }, { allowSignalWrites: true });
+  }
+
+  /** True, sobald die Venue-Liste vom Backend bestätigt wurde. */
+  readonly venuesLoaded = this.roomsService.loaded;
+
+  ngOnInit(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+    this.layoutLoading.set(true);
+
+    // Bei Direktaufruf von /raum/:id ist die Venue-Liste evtl. noch leer,
+    // weil sonst nur /raum sie lädt. Erst Räume holen, dann das Layout.
+    const ensureRooms$ = this.roomsService.loaded()
+      ? of(null)
+      : this.roomsService.load();
+
+    ensureRooms$
+      .pipe(switchMap(() => this.roomsService.loadRoomLayout(id)))
+      .subscribe({
+        next:  () => {
+          this.layoutLoading.set(false);
+          this.syncFromBackend(id, this.selectedDate());
+        },
+        error: () => this.layoutLoading.set(false),
+      });
   }
 
   private syncFromBackend(venueId: string, date: string): void {

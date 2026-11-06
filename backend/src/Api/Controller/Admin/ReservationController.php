@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\Admin;
 
+use App\Module\Reservation\Application\Command\AdminCancelReservation\AdminCancelReservationCommand;
+use App\Module\Reservation\Application\Command\AdminCancelReservation\AdminCancelReservationHandler;
 use App\Module\Reservation\Application\Command\ConfirmReservation\ConfirmReservationCommand;
 use App\Module\Reservation\Application\Command\ConfirmReservation\ConfirmReservationHandler;
 use App\Module\Reservation\Application\Command\CreateReservation\CreateReservationCommand;
@@ -37,6 +39,7 @@ class ReservationController extends AbstractController
         private readonly MarkNoShowHandler $noShowHandler,
         private readonly CreateReservationHandler $createHandler,
         private readonly UpdateReservationHandler $updateHandler,
+        private readonly AdminCancelReservationHandler $cancelHandler,
         private readonly EntityManagerInterface $em,
     ) {}
 
@@ -105,7 +108,7 @@ class ReservationController extends AbstractController
 
     /**
      * GET /api/v1/admin/reservations
-     * Filter: ?date=2026-04-25 ?status=confirmed ?limit=50 ?offset=0
+     * Filter: ?date=2026-11-05 ?status=confirmed ?limit=50 ?offset=0
      */
     #[Route('', name: 'admin_reservation_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] User $user): JsonResponse
@@ -231,6 +234,29 @@ class ReservationController extends AbstractController
 
         try {
             $reservation = ($this->noShowHandler)(new MarkNoShowCommand(
+                reservationId: $id,
+                tenantId:      $tenant->getId()->toRfc4122(),
+            ));
+        } catch (\DomainException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $this->json(ReservationDto::fromEntity($reservation)->toArray());
+    }
+
+    /**
+     * PATCH /api/v1/admin/reservations/{id}/cancel
+     */
+    #[Route('/{id}/cancel', name: 'admin_reservation_cancel', methods: ['PATCH'])]
+    public function cancel(string $id, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant zugewiesen.'], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $reservation = ($this->cancelHandler)(new AdminCancelReservationCommand(
                 reservationId: $id,
                 tenantId:      $tenant->getId()->toRfc4122(),
             ));

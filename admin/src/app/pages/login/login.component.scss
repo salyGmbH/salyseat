@@ -1,5 +1,6 @@
 @use '../../../styles/variables' as *;
 
+// ─── Seiten-Container ────────────────────────────────────────────────────────
 .login-page {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg 0%, $color-dark 100%);
@@ -10,6 +11,7 @@
   position: relative;
   overflow: hidden;
 
+  // Leichter Gold-Schein im Hintergrund für den Marken-Touch
   &::before {
     content: '';
     position: absolute;
@@ -33,6 +35,7 @@
   }
 }
 
+// ─── Karte ───────────────────────────────────────────────────────────────────
 .login-card {
   position: relative;
   width: 100%;
@@ -76,7 +79,7 @@
   margin: 0 0 28px;
 }
 
-
+// ─── Formular ────────────────────────────────────────────────────────────────
 .login-form {
   display: flex;
   flex-direction: column;
@@ -132,7 +135,7 @@
   font-family: inherit;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(var(--color-text-rgb), 0.3);
   }
 
   &:disabled {
@@ -163,7 +166,7 @@
   }
 }
 
-
+// ─── Error ───────────────────────────────────────────────────────────────────
 .login-form__error {
   display: flex;
   align-items: center;
@@ -183,6 +186,7 @@
   }
 }
 
+// ─── Submit-Button ───────────────────────────────────────────────────────────
 .login-form__submit {
   margin-top: 6px;
   padding: 13px 20px;
@@ -227,10 +231,11 @@
   to { transform: rotate(360deg); }
 }
 
+// ─── Footer ──────────────────────────────────────────────────────────────────
 .login-card__footer {
   margin: 28px 0 0;
   text-align: center;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(var(--color-text-rgb), 0.35);
   letter-spacing: 0.05em;
 }

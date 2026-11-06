@@ -31,10 +31,66 @@
       </select>
     </div>
 
-    <button class="btn-reload" (click)="load()" [disabled]="loading()">
-      <mat-icon>refresh</mat-icon>
-    </button>
+    <div class="filter-bar__actions">
+      <button class="btn-reload" (click)="openPrintModal()" title="Drucken">
+        <mat-icon>print</mat-icon>
+      </button>
+
+      <button class="btn-reload" (click)="resetToToday()" [disabled]="loading()" title="Aktualisieren">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
   </div>
+
+  <!-- PRINT MODAL -->
+  @if (showPrintModal()) {
+    <div class="modal-backdrop" (click)="closePrintModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+
+        <h3>Druckoptionen</h3>
+
+        <!-- Tag / Zeitraum -->
+        <div class="modal-section">
+          <button (click)="printMode = 'day'; printFrom = filterDate; printTo = filterDate">
+            Tag drucken
+          </button>
+
+          <span>oder</span>
+
+          <div class="date-range">
+            <input type="date" [(ngModel)]="printFrom" />
+            <input type="date" [(ngModel)]="printTo" />
+          </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="modal-section">
+          <button (click)="selectedStatuses = []">
+            Alle Reservierungen
+          </button>
+
+          <div class="status-buttons">
+            @for (opt of statusOptions; track opt.value) {
+              @if (opt.value) {
+                <button
+                  (click)="toggleStatus(opt.value)"
+                  [class.active]="selectedStatuses.includes(opt.value)">
+                  {{ opt.label }}
+                </button>
+              }
+            }
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="modal-actions">
+          <button (click)="closePrintModal()">Abbrechen</button>
+          <button (click)="print()">Drucken</button>
+        </div>
+
+      </div>
+    </div>
+  }
 
   <!-- Error -->
   @if (actionError()) {
@@ -60,58 +116,91 @@
     </div>
   }
 
-  <!-- List -->
+  <!-- LIST + PRINT -->
   @if (!loading() && reservations().length > 0) {
-    <div class="reservation-list">
-      @for (r of reservations(); track r.id) {
-        <div class="reservation-card reservation-card--{{ r.status }}">
 
-          <div class="reservation-card__time">
-            <span class="time-main">{{ formatTime(r.starts_at) }}</span>
-            <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
-          </div>
+    <div class="print-area">
 
-          <div class="reservation-card__info">
-            <div class="info-name">
-              <mat-icon>person</mat-icon>
-              {{ r.guest_name }}
-              <span class="party-size">
-                <mat-icon>group</mat-icon>{{ r.party_size }}
-              </span>
+      <!-- Print Header -->
+      <div class="print-header">
+        <h2>Reservierungen</h2>
+        <span>
+          {{ printMode === 'day'
+            ? filterDate
+            : (printFrom + ' - ' + printTo) }}
+        </span>
+      </div>
+
+
+      <!-- Liste -->
+      <div class="reservation-list">
+
+        @for (r of (printReservations.length ? printReservations : reservations()); track r.id) {
+
+          <div class="reservation-card reservation-card--{{ r.status }} reservation-card--mode-{{ viewMode() }}"
+               [style.--status-color]="colorForBooking(r.status)">
+
+            <!-- Zeit + Status-Indikator (links, je nach ViewMode) -->
+            <div class="reservation-card__left">
+              @if (viewMode() === 'card') {
+                <div class="reservation-card__time reservation-card__time--colored">
+                  <span class="time-main">{{ formatTime(r.starts_at) }}</span>
+                  <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
+                </div>
+              } @else {
+                <div class="reservation-card__time reservation-card__time--neutral">
+                  <span class="time-main">{{ formatTime(r.starts_at) }}</span>
+                  <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
+                </div>
+                @if (viewMode() === 'text') {
+                  <span class="reservation-card__status-badge"
+                        [style.background]="colorForBooking(r.status)"
+                        [style.color]="textColorFor(colorForBooking(r.status))">
+                    {{ labelForBooking(r.status) }}
+                  </span>
+                } @else if (viewMode() === 'svg') {
+                  <span class="reservation-card__status-tile"
+                        [title]="labelForBooking(r.status)">
+                    <app-status-icon [name]="iconForBooking(r.status)" [size]="20"></app-status-icon>
+                  </span>
+                }
+              }
             </div>
-            <div class="info-meta">{{ r.guest_email }}</div>
-            @if (r.guest_phone) {
-              <div class="info-meta">{{ r.guest_phone }}</div>
-            }
-            @if (r.guest_notes) {
-              <div class="info-notes">
-                <mat-icon>notes</mat-icon>{{ r.guest_notes }}
+
+            <!-- Info -->
+            <div class="reservation-card__info">
+              <div class="info-name">
+                <mat-icon>person</mat-icon>
+                {{ r.guest_name }}
+                <span class="party-size">
+                  <mat-icon>group</mat-icon>{{ r.party_size }}
+                </span>
               </div>
-            }
-          </div>
 
-          <div class="reservation-card__actions">
-            <span class="status-badge status-badge--{{ r.status }}">
-              {{ statusLabel(r.status) }}
-            </span>
-            <div class="action-buttons">
-              @if (canConfirm(r)) {
-                <button class="btn-action btn-action--confirm" (click)="confirm(r.id)">
-                  <mat-icon>check_circle</mat-icon>
-                  Bestätigen
-                </button>
+              <div class="info-meta print-hide">{{ r.guest_email }}</div>
+
+              @if (r.guest_phone) {
+                <div class="info-meta">{{ r.guest_phone }}</div>
               }
-              @if (canMarkNoShow(r)) {
-                <button class="btn-action btn-action--noshow" (click)="markNoShow(r.id)">
-                  <mat-icon>person_off</mat-icon>
-                  No-Show
-                </button>
+
+              @if (r.guest_notes) {
+                <div class="info-notes">
+                  <mat-icon>notes</mat-icon>{{ r.guest_notes }}
+                </div>
               }
             </div>
+
+            <!-- Status-Label rechts (nur Anzeige, keine Aktionen — die laufen
+                 ausschließlich über die Raumübersicht) -->
+            <div class="reservation-card__status-label">
+              {{ labelForBooking(r.status) }}
+            </div>
+
           </div>
 
-        </div>
-      }
+        }
+
+      </div>
     </div>
   }
 
