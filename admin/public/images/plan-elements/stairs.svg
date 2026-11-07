@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" class="table-svg">
+  <!-- Treppe -->
+  <rect x="8" y="10" width="54" height="50" rx="4"
+        fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+  <!-- Stufen -->
+  <line x1="8"  y1="20" x2="62" y2="20" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.4"/>
+  <line x1="8"  y1="30" x2="62" y2="30" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.4"/>
+  <line x1="8"  y1="40" x2="62" y2="40" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.4"/>
+  <line x1="8"  y1="50" x2="62" y2="50" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.4"/>
+  <!-- Pfeil-Andeutung Richtung -->
+  <path d="M 35 56 L 35 14 M 30 19 L 35 14 L 40 19"
+        fill="none" stroke="#ffb700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

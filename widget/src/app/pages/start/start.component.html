@@ -1,25 +1,19 @@
-<section class="card">
-  <header class="card__header">
-    <h1>Tisch reservieren</h1>
-    @if (restaurantName()) {
-      <p class="subtitle">bei {{ restaurantName() }}</p>
-    }
-  </header>
+<div class="widget-root" [attr.data-layout]="layout()">
 
-  <!-- ─── Laden ────────────────────────────────────────────────────────── -->
+<!-- ─── Loading ─────────────────────────────────────────────────────────── -->
   @if (state() === 'loading') {
-    <div class="card__body state-loading">
+    <div class="loading-card">
       <span class="spinner"></span>
       <span>Wird geladen …</span>
     </div>
   }
 
-  <!-- ─── Erfolg ───────────────────────────────────────────────────────── -->
+  <!-- ─── Success ──────────────────────────────────────────────────────────── -->
   @else if (state() === 'success') {
-    <div class="card__body success">
-      <div class="success__icon">✓</div>
+    <div class="success-card">
+      <div class="success-icon">✓</div>
       <h2>Reservierung bestätigt</h2>
-      <p class="success__lead">
+      <p class="success-lead">
         Danke <strong>{{ successInfo()!.name }}</strong>! Deine Reservierung am
         <strong>{{ formatDate(successInfo()!.date) }}</strong> um
         <strong>{{ successInfo()!.time }} Uhr</strong> für
@@ -27,130 +21,1164 @@
         @if (venues().length > 1) { im <strong>{{ successInfo()!.venue }}</strong> }
         wurde gespeichert.
       </p>
-      <p class="success__hint">Du erhältst in Kürze eine Bestätigungsmail.</p>
-      <button type="button" class="btn-secondary" (click)="reset()">
-        Neue Reservierung
-      </button>
+      <p class="success-hint">Du erhältst in Kürze eine Bestätigungsmail.</p>
+      <button type="button" class="btn-secondary" (click)="reset()">Neue Reservierung</button>
     </div>
   }
 
-  <!-- ─── Formular ─────────────────────────────────────────────────────── -->
+  <!-- ─── Layouts ──────────────────────────────────────────────────────────── -->
   @else {
-    <div class="card__body">
 
-      <!-- Venue-Picker (nur wenn mehrere Venues vorhanden) -->
-      @if (venues().length > 1) {
-        <div class="venue-picker">
-          <p class="venue-picker__label">Bereich wählen</p>
-          <div class="venue-picker__list">
-            @for (v of venues(); track v.id) {
-              <button
-                type="button"
-                class="venue-btn"
-                [class.venue-btn--active]="selectedVenue()?.id === v.id"
-                (click)="selectVenue(v)">
-                {{ v.name }}
+    @if (hinweisOpen()) {
+      <div class="widget-menu-overlay" (click)="hinweisOpen.set(false)">
+        <div class="widget-menu-overlay__box widget-menu-overlay__box--hinweis" (click)="$event.stopPropagation()">
+          <div class="widget-menu-overlay__header">
+            <span>{{ hinweistextUeberschrift() || 'Hinweis' }}</span>
+            <button type="button" class="widget-menu-overlay__close" (click)="hinweisOpen.set(false)">✕</button>
+          </div>
+          @if (hinweistextInhalt()) {
+            <div class="widget-hinweis-content">{{ hinweistextInhalt() }}</div>
+          }
+          @if (hinweistextFooter()) {
+            <div class="widget-hinweis-footer">{{ hinweistextFooter() }}</div>
+          }
+          <div class="widget-hinweis-actions">
+            <button type="button" class="widget-hinweis-actions__btn" (click)="hinweisOpen.set(false)">
+              Verstanden
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @switch (layout()) {
+
+      <!-- ═══════════════════════════════════════════════
+           CARD LAYOUT
+      ════════════════════════════════════════════════ -->
+      @case ('card') {
+        <div class="preview-card">
+          <!-- Hero image area -->
+          <div class="preview-card__hero"
+               [class.has-image]="!!imageUrl()"
+               [style.background-image]="imageUrl() ? 'url(' + imageUrl() + ')' : null">
+            @if (!imageUrl()) {
+              <span class="preview-card__hero-hint">🍽 Restaurant</span>
+            }
+          </div>
+
+          @if (cardStep() === 1) {
+            <!-- Step 1: date / time / seats -->
+            <h4 class="preview-card__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+            @if (showSubtitle() && headingSubtitle()) {
+              <p class="preview-card__subtitle">{{ headingSubtitle() }}</p>
+            }
+
+            <!-- Seats picker -->
+            @if (cardOpenPicker() === 'seats') {
+              <div class="preview-card__picker preview-card__picker--seats">
+                <div class="preview-planner">
+                  <div class="preview-planner__chips preview-planner__chips--seats">
+                    @for (seat of seatOptions; track seat.count) {
+                      <button type="button"
+                              class="preview-planner__chip preview-planner__chip--seat"
+                              [class.is-selected]="seat.count === people()"
+                              (click)="cardSelectSeats(seat.count)">
+                        <span class="preview-planner__chip-icon">👤</span>
+                        <span class="preview-planner__chip-label">{{ seat.label }}</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Seats stepper -->
+            <div class="preview-card__group">
+              <div class="preview-card__label">Personen</div>
+              <div class="preview-card__stepper">
+                <button type="button" class="preview-card__stepper-btn" (click)="cardDecSeats()">−</button>
+                <button type="button"
+                        class="preview-card__stepper-num"
+                        [class.is-active]="cardOpenPicker() === 'seats'"
+                        (click)="cardTogglePicker('seats')">{{ people() }}</button>
+                <button type="button" class="preview-card__stepper-btn" (click)="cardIncSeats()">+</button>
+              </div>
+            </div>
+
+            <!-- Date picker -->
+            @if (cardOpenPicker() === 'date') {
+              <div class="preview-card__picker preview-card__picker--date">
+                <div class="preview-planner">
+                  <div class="preview-planner__cal-bar">
+                    <button class="preview-planner__cal-nav" type="button" (click)="prevMonth()">‹</button>
+                    <span class="preview-planner__cal-month">{{ calendarMonthLabel() }}</span>
+                    <button class="preview-planner__cal-nav" type="button" (click)="nextMonth()">›</button>
+                  </div>
+                  <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays">
+                    @for (wd of weekdays; track $index) {
+                      <span class="preview-planner__cal-weekday">{{ wd }}</span>
+                    }
+                  </div>
+                  <div class="preview-planner__cal-grid">
+                    @for (cell of calendarCells(); track $index) {
+                      @if (cell.day !== null) {
+                        <button type="button"
+                                class="preview-planner__cal-day"
+                                [class.is-today]="cell.isToday"
+                                [class.is-selected]="cell.isSelected"
+                                (click)="cardSelectDay(cell.day!)">
+                          {{ cell.day }}
+                        </button>
+                      } @else {
+                        <span class="preview-planner__cal-day preview-planner__cal-day--empty"></span>
+                      }
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Time picker -->
+            @if (cardOpenPicker() === 'time') {
+              <div class="preview-card__picker preview-card__picker--time">
+                <div class="preview-planner">
+                  <div class="preview-planner__chips preview-planner__chips--times">
+                    @for (slot of timeSlots(); track slot) {
+                      <button type="button"
+                              class="preview-planner__chip"
+                              [class.is-selected]="slot === validTime()"
+                              (click)="cardSelectTime(slot)">
+                        {{ slot }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Date & time fields -->
+            <div class="preview-card__group">
+              <div class="preview-card__label">Datum &amp; Uhrzeit</div>
+              <div class="preview-card__datetime">
+                <button class="preview-card__datetime-field"
+                        type="button"
+                        [class.is-active]="cardOpenPicker() === 'date'"
+                        (click)="cardTogglePicker('date')">
+                  <span class="preview-card__datetime-icon">📅</span>
+                  <span class="preview-card__datetime-meta">
+                    <span class="preview-card__datetime-hint">Datum</span>
+                    <span class="preview-card__datetime-text">{{ selectedDateLabel() }}</span>
+                  </span>
+                  <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'date'">⌄</span>
+                </button>
+                <button class="preview-card__datetime-field"
+                        type="button"
+                        [class.is-active]="cardOpenPicker() === 'time'"
+                        (click)="cardTogglePicker('time')">
+                  <span class="preview-card__datetime-icon">🕐</span>
+                  <span class="preview-card__datetime-meta">
+                    <span class="preview-card__datetime-hint">Uhrzeit</span>
+                    <span class="preview-card__datetime-text">{{ validTime() }} Uhr</span>
+                  </span>
+                  <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'time'">⌄</span>
+                </button>
+              </div>
+            </div>
+
+            @if (speisekarte()) {
+              <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
+                🍽 Speisekarte ansehen
               </button>
             }
+
+            @if (showMaxPersonenWarning()) {
+              <div class="widget-max-warning">
+                <p class="widget-max-warning__text">{{ maxPersonenText() }}</p>
+                @if (maxPersonenPhone()) {
+                  <a class="widget-max-warning__link" [href]="'tel:' + maxPersonenPhone()">
+                    📞 {{ maxPersonenPhone() }}
+                  </a>
+                }
+                @if (maxPersonenEmail()) {
+                  <a class="widget-max-warning__link" [href]="'mailto:' + maxPersonenEmail()">
+                    ✉ {{ maxPersonenEmail() }}
+                  </a>
+                }
+              </div>
+            } @else {
+              <button class="preview-card__cta" type="button" (click)="cardNextStep()">
+                {{ buttonLabel() || 'Reservieren' }}
+              </button>
+            }
+
+          } @else {
+            <!-- Step 2: guest data -->
+            <h4 class="preview-card__title">Deine Daten</h4>
+            <p class="preview-card__subtitle">
+              {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+              · {{ selectedDateLabel() }}
+              · {{ validTime() }}&nbsp;Uhr
+            </p>
+
+            <div class="preview-card__form">
+              @if (filteredVenues().length > 1) {
+                <div class="preview-card__field">
+                  <label class="preview-card__field-label">Bereich</label>
+                  <div class="preview-card__form-row preview-card__form-row--venue">
+                    @for (v of filteredVenues(); track v.id) {
+                      <button type="button"
+                              class="venue-chip"
+                              [class.is-active]="selectedVenue()?.id === v.id"
+                              (click)="selectVenue(v)">{{ v.name }}</button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="preview-card__form-row preview-card__form-row--split">
+                <div class="preview-card__field">
+                  <label class="preview-card__field-label" for="card-name">Name</label>
+                  <input id="card-name" type="text" class="preview-card__field-input preview-card__field-input--real"
+                         [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
+                         placeholder="Vor- und Nachname" autocomplete="name" name="cardName">
+                </div>
+                <div class="preview-card__field">
+                  <label class="preview-card__field-label" for="card-email">E-Mail</label>
+                  <input id="card-email" type="email" class="preview-card__field-input preview-card__field-input--real"
+                         [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                         placeholder="name@beispiel.de" autocomplete="email" name="cardEmail">
+                </div>
+              </div>
+
+              <div class="preview-card__field">
+                <label class="preview-card__field-label" for="card-phone">
+                  Telefon
+                  @if (isRequired('phone')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-card__field-optional">(optional)</span> }
+                </label>
+                <input id="card-phone" type="tel" class="preview-card__field-input preview-card__field-input--real"
+                       [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
+                       placeholder="+49 …" autocomplete="tel" name="cardPhone">
+              </div>
+
+              <div class="preview-card__field">
+                <label class="preview-card__field-label" for="card-notes">
+                  Notizen
+                  @if (isRequired('notes')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-card__field-optional">(optional)</span> }
+                </label>
+                <textarea id="card-notes" class="preview-card__field-input preview-card__field-input--real preview-card__field-input--area"
+                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                          placeholder="Allergien, Kinderstuhl, besondere Wünsche …"
+                          name="cardNotes" rows="2"></textarea>
+              </div>
+            </div>
+
+            @if (state() === 'error') {
+              <div class="widget-alert">{{ errorMessage() }}</div>
+            }
+
+            <label class="preview-card__consent" [class.is-checked]="cardConsent()">
+              <input type="checkbox" class="preview-card__consent-input"
+                     [checked]="cardConsent()" (change)="cardToggleConsent()">
+              <span class="preview-card__consent-box" aria-hidden="true">
+                @if (cardConsent()) { <span class="check-icon">✓</span> }
+              </span>
+              <span class="preview-card__consent-text">
+                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+              </span>
+            </label>
+
+            <div class="preview-card__nav">
+              <button class="preview-card__back" type="button" (click)="cardPrevStep()">
+                ‹ Zurück
+              </button>
+              <button class="preview-card__cta preview-card__cta--submit"
+                      type="button"
+                      [class.is-disabled]="!canSubmit()"
+                      [disabled]="!canSubmit()"
+                      (click)="weiter()">
+                @if (state() === 'submitting') { Wird gesendet … }
+                @else { Reservierung absenden }
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═══════════════════════════════════════════════
+           SIDEBAR LAYOUT
+      ════════════════════════════════════════════════ -->
+      @case ('sidebar') {
+        <div class="preview-sidebar"
+             [class.has-image]="!!imageUrl()"
+             [style.background-image]="imageUrl() ? 'url(' + imageUrl() + ')' : null">
+          @if (!imageUrl()) {
+            <div class="preview-sidebar__placeholder">
+              <span>🖼</span>
+              <span>Hintergrundbild</span>
+            </div>
+          }
+
+          <div class="preview-sidebar__card"
+               [class.is-picker-open]="sidebarOpenPicker() !== null"
+               [class.is-step-2]="sidebarStep() === 2">
+
+            @if (sidebarStep() === 1 && sidebarOpenPicker() === null) {
+              <!-- Step 1: overview -->
+              <h4 class="preview-sidebar__title">
+                @for (word of titleWords(); track $index) {
+                  <span>{{ word }}</span>
+                }
+              </h4>
+              @if (showSubtitle() && headingSubtitle()) {
+                <p class="preview-sidebar__subtitle">{{ headingSubtitle() }}</p>
+              }
+
+              <div class="preview-sidebar__row">
+                <button type="button"
+                        class="preview-sidebar__group preview-sidebar__group--button"
+                        (click)="sidebarTogglePicker('date')">
+                  <label class="preview-sidebar__label">Datum</label>
+                  <div class="preview-sidebar__value">{{ selectedDateLabel() }}</div>
+                  <span class="preview-sidebar__chevron">›</span>
+                </button>
+                <button type="button"
+                        class="preview-sidebar__group preview-sidebar__group--button"
+                        (click)="sidebarTogglePicker('time')">
+                  <label class="preview-sidebar__label">Uhrzeit</label>
+                  <div class="preview-sidebar__value">{{ validTime() }}&nbsp;Uhr</div>
+                  <span class="preview-sidebar__chevron">›</span>
+                </button>
+              </div>
+
+              <button type="button"
+                      class="preview-sidebar__group preview-sidebar__group--button"
+                      (click)="sidebarTogglePicker('seats')">
+                <label class="preview-sidebar__label">Personen</label>
+                <div class="preview-sidebar__value">
+                  {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+                </div>
+                <span class="preview-sidebar__chevron">›</span>
+              </button>
+
+              @if (speisekarte()) {
+                <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
+                  🍽 Speisekarte ansehen
+                </button>
+              }
+
+              @if (showMaxPersonenWarning()) {
+                <div class="widget-max-warning">
+                  <p class="widget-max-warning__text">{{ maxPersonenText() }}</p>
+                  @if (maxPersonenPhone()) {
+                    <a class="widget-max-warning__link" [href]="'tel:' + maxPersonenPhone()">
+                      📞 {{ maxPersonenPhone() }}
+                    </a>
+                  }
+                  @if (maxPersonenEmail()) {
+                    <a class="widget-max-warning__link" [href]="'mailto:' + maxPersonenEmail()">
+                      ✉ {{ maxPersonenEmail() }}
+                    </a>
+                  }
+                </div>
+              } @else {
+                <button class="preview-sidebar__cta" type="button" (click)="sidebarNextStep()">
+                  {{ buttonLabel() || 'Reservieren' }}
+                </button>
+              }
+
+            } @else if (sidebarStep() === 2) {
+              <!-- Step 2: guest data -->
+              <h4 class="preview-sidebar__title">
+                <span>Deine</span>
+                <span>Daten</span>
+              </h4>
+              <p class="preview-sidebar__subtitle">
+                {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+                · {{ selectedDateLabel() }}
+                · {{ validTime() }}&nbsp;Uhr
+              </p>
+
+              @if (filteredVenues().length > 1) {
+                <div class="preview-sidebar__group">
+                  <label class="preview-sidebar__label">Bereich</label>
+                  <div class="venue-chip-row">
+                    @for (v of filteredVenues(); track v.id) {
+                      <button type="button"
+                              class="venue-chip"
+                              [class.is-active]="selectedVenue()?.id === v.id"
+                              (click)="selectVenue(v)">{{ v.name }}</button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="preview-sidebar__row">
+                <div class="preview-sidebar__group">
+                  <label class="preview-sidebar__label" for="sb-name">Name</label>
+                  <input id="sb-name" type="text" class="preview-sidebar__input preview-sidebar__input--real"
+                         [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
+                         placeholder="Vor- und Nachname" autocomplete="name" name="sbName">
+                </div>
+                <div class="preview-sidebar__group">
+                  <label class="preview-sidebar__label" for="sb-email">E-Mail</label>
+                  <input id="sb-email" type="email" class="preview-sidebar__input preview-sidebar__input--real"
+                         [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                         placeholder="name@beispiel.de" autocomplete="email" name="sbEmail">
+                </div>
+              </div>
+
+              <div class="preview-sidebar__group">
+                <label class="preview-sidebar__label" for="sb-phone">
+                  Telefon
+                  @if (isRequired('phone')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-sidebar__optional">(optional)</span> }
+                </label>
+                <input id="sb-phone" type="tel" class="preview-sidebar__input preview-sidebar__input--real"
+                       [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
+                       placeholder="+49 …" autocomplete="tel" name="sbPhone">
+              </div>
+
+              <div class="preview-sidebar__group">
+                <label class="preview-sidebar__label" for="sb-notes">
+                  Notizen
+                  @if (isRequired('notes')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-sidebar__optional">(optional)</span> }
+                </label>
+                <textarea id="sb-notes" class="preview-sidebar__input preview-sidebar__input--real preview-sidebar__input--area"
+                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                          placeholder="Allergien, Kinderstuhl …"
+                          name="sbNotes" rows="2"></textarea>
+              </div>
+
+              @if (state() === 'error') {
+                <div class="widget-alert">{{ errorMessage() }}</div>
+              }
+
+              <label class="preview-sidebar__consent" [class.is-checked]="sidebarConsent()">
+                <input type="checkbox" class="preview-sidebar__consent-input"
+                       [checked]="sidebarConsent()" (change)="sidebarToggleConsent()">
+                <span class="preview-sidebar__consent-box" aria-hidden="true">
+                  @if (sidebarConsent()) { <span class="check-icon">✓</span> }
+                </span>
+                <span class="preview-sidebar__consent-text">
+                  Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+                </span>
+              </label>
+
+              <div class="preview-sidebar__nav">
+                <button class="preview-sidebar__back" type="button" (click)="sidebarPrevStep()">←</button>
+                <button class="preview-sidebar__cta preview-sidebar__cta--submit"
+                        type="button"
+                        [class.is-disabled]="!canSubmit()"
+                        [disabled]="!canSubmit()"
+                        (click)="weiter()">
+                  @if (state() === 'submitting') { Wird gesendet … }
+                  @else { Reservierung absenden }
+                </button>
+              </div>
+
+            } @else {
+              <!-- Picker overlay -->
+              <div class="preview-sidebar__picker">
+                <div class="preview-sidebar__picker-head">
+                  <button class="preview-sidebar__picker-back" type="button" (click)="sidebarClosePicker()">←</button>
+                  <span class="preview-sidebar__picker-title">
+                    @switch (sidebarOpenPicker()) {
+                      @case ('date')  { Datum wählen }
+                      @case ('time')  { Uhrzeit wählen }
+                      @case ('seats') { Personen wählen }
+                    }
+                  </span>
+                </div>
+                <span class="preview-sidebar__picker-accent" aria-hidden="true"></span>
+
+                @switch (sidebarOpenPicker()) {
+                  @case ('date') {
+                    <div class="preview-sidebar__cal">
+                      <div class="preview-sidebar__cal-bar">
+                        <button class="preview-sidebar__cal-nav" type="button" (click)="prevMonth()">‹</button>
+                        <span class="preview-sidebar__cal-month">{{ calendarMonthLabel() }}</span>
+                        <button class="preview-sidebar__cal-nav" type="button" (click)="nextMonth()">›</button>
+                      </div>
+                      <div class="preview-sidebar__cal-weekdays">
+                        @for (wd of weekdays; track $index) {
+                          <span>{{ wd }}</span>
+                        }
+                      </div>
+                      <div class="preview-sidebar__cal-grid">
+                        @for (cell of calendarCells(); track $index) {
+                          @if (cell.day !== null) {
+                            <button type="button"
+                                    class="preview-sidebar__cal-day"
+                                    [class.is-today]="cell.isToday"
+                                    [class.is-selected]="cell.isSelected"
+                                    (click)="sidebarSelectDay(cell.day!)">
+                              {{ cell.day }}
+                            </button>
+                          } @else {
+                            <span class="preview-sidebar__cal-day preview-sidebar__cal-day--empty"></span>
+                          }
+                        }
+                      </div>
+                    </div>
+                  }
+                  @case ('time') {
+                    <div class="preview-sidebar__times">
+                      @for (slot of timeSlots(); track slot) {
+                        <button type="button"
+                                class="preview-sidebar__time"
+                                [class.is-selected]="slot === validTime()"
+                                (click)="sidebarSelectTime(slot)">
+                          {{ slot }}
+                        </button>
+                      }
+                    </div>
+                  }
+                  @case ('seats') {
+                    <div class="preview-sidebar__seats">
+                      @for (seat of seatOptions; track seat.count) {
+                        <button type="button"
+                                class="preview-sidebar__seat"
+                                [class.is-selected]="seat.count === people()"
+                                (click)="sidebarSelectSeats(seat.count)">
+                          <span class="preview-sidebar__seat-icon">👤</span>
+                          <span class="preview-sidebar__seat-count">{{ seat.count }}</span>
+                          <span class="preview-sidebar__seat-label">{{ seat.count === 1 ? 'Gast' : (seat.count >= 8 ? 'Gäste +' : 'Gäste') }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
           </div>
         </div>
       }
 
-      <!-- 3-Spalten: Datum / Uhrzeit / Personen -->
-      <div class="grid">
-        <div class="col">
-          <label class="col__label" for="res-date">Datum</label>
-          <input
-            id="res-date"
-            type="date"
-            class="field"
-            [min]="today"
-            [ngModel]="date()"
-            (ngModelChange)="date.set($event)"
-            name="date" />
-        </div>
+      <!-- ═══════════════════════════════════════════════
+           STACKED LAYOUT
+      ════════════════════════════════════════════════ -->
+      @case ('stacked') {
+        <div class="preview-stacked" [class.is-step-2]="stackedStep() === 2">
 
-        <div class="col">
-          <label class="col__label" for="res-time">Uhrzeit</label>
-          <select
-            id="res-time"
-            class="field field--select"
-            [ngModel]="validTime()"
-            (ngModelChange)="onTimeChange($event)"
-            [disabled]="isClosedDay() || timeSlots().length === 0"
-            name="time">
-            @for (slot of timeSlots(); track slot) {
-              <option [value]="slot">{{ slot }} Uhr</option>
-            }
-            @if (isClosedDay()) {
-              <option value="">Geschlossen</option>
-            }
-          </select>
-        </div>
+          <div class="preview-stacked__statusbar">
+            <div class="preview-stacked__live">
+              <span class="preview-stacked__live-dot" aria-hidden="true"></span>
+              <span class="preview-stacked__live-label">Live · Tisch buchen</span>
+            </div>
+            <div class="preview-stacked__steps">
+              <span class="preview-stacked__step"
+                    [class.is-active]="stackedStep() === 1"
+                    [class.is-done]="stackedStep() > 1">1</span>
+              <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 1"></span>
+              <span class="preview-stacked__step" [class.is-active]="stackedStep() === 2">2</span>
+            </div>
+          </div>
 
-        <div class="col">
-          <label class="col__label">Personen</label>
-          <div class="stepper" role="group" aria-label="Personenanzahl">
-            <button type="button" class="stepper__btn"
-                    (click)="decrement()" [disabled]="people() <= minPeople">−</button>
-            <span class="stepper__value">{{ people() }}</span>
-            <button type="button" class="stepper__btn"
-                    (click)="increment()" [disabled]="people() >= maxPeople">+</button>
+          <div class="preview-stacked__accent" aria-hidden="true">
+            <span class="preview-stacked__accent-fill"
+                  [style.width.%]="stackedStep() === 1 ? 50 : 100"></span>
+          </div>
+
+          <header class="preview-stacked__header">
+            <h4 class="preview-stacked__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+            @if (showSubtitle() && headingSubtitle()) {
+              <p class="preview-stacked__subtitle">{{ headingSubtitle() }}</p>
+            }
+          </header>
+
+          @if (stackedStep() === 1) {
+            <div class="preview-stacked__tiles">
+              <button class="preview-stacked__tile"
+                      type="button"
+                      [class.is-active]="stackedOpenPicker() === 'date'"
+                      (click)="stackedTogglePicker('date')">
+                <span class="preview-stacked__tile-eyebrow">
+                  <span class="tile-icon">📅</span> Datum
+                </span>
+                <span class="preview-stacked__tile-value">{{ stackedShortDateLabel().day }}</span>
+                <span class="preview-stacked__tile-meta">{{ stackedShortDateLabel().month }} {{ calendarYear() }}</span>
+              </button>
+
+              <button class="preview-stacked__tile"
+                      type="button"
+                      [class.is-active]="stackedOpenPicker() === 'time'"
+                      (click)="stackedTogglePicker('time')">
+                <span class="preview-stacked__tile-eyebrow">
+                  <span class="tile-icon">🕐</span> Uhrzeit
+                </span>
+                <span class="preview-stacked__tile-value">{{ validTime() }}</span>
+                <span class="preview-stacked__tile-meta">Uhr</span>
+              </button>
+
+              <button class="preview-stacked__tile"
+                      type="button"
+                      [class.is-active]="stackedOpenPicker() === 'seats'"
+                      (click)="stackedTogglePicker('seats')">
+                <span class="preview-stacked__tile-eyebrow">
+                  <span class="tile-icon">👥</span> Personen
+                </span>
+                <span class="preview-stacked__tile-value">{{ people() }}</span>
+                <span class="preview-stacked__tile-meta">{{ people() === 1 ? 'Gast' : 'Gäste' }}</span>
+              </button>
+            </div>
+
+            @if (stackedOpenPicker() !== null) {
+              <div class="preview-stacked__picker">
+                @switch (stackedOpenPicker()) {
+                  @case ('date') {
+                    <div class="preview-stacked__cal">
+                      <div class="preview-stacked__cal-bar">
+                        <button class="preview-stacked__cal-nav" type="button" (click)="prevMonth()">‹</button>
+                        <span class="preview-stacked__cal-month">{{ calendarMonthLabel() }}</span>
+                        <button class="preview-stacked__cal-nav" type="button" (click)="nextMonth()">›</button>
+                      </div>
+                      <div class="preview-stacked__cal-weekdays">
+                        @for (wd of weekdays; track wd) {
+                          <span>{{ wd }}</span>
+                        }
+                      </div>
+                      <div class="preview-stacked__cal-grid">
+                        @for (cell of calendarCells(); track $index) {
+                          @if (cell.day === null) {
+                            <span class="preview-stacked__cal-day preview-stacked__cal-day--empty"></span>
+                          } @else {
+                            <button class="preview-stacked__cal-day"
+                                    type="button"
+                                    [class.is-today]="cell.isToday"
+                                    [class.is-selected]="cell.isSelected"
+                                    (click)="stackedSelectDay(cell.day!)">
+                              {{ cell.day }}
+                            </button>
+                          }
+                        }
+                      </div>
+                    </div>
+                  }
+                  @case ('time') {
+                    <div class="preview-stacked__times">
+                      @for (t of timeSlots(); track t) {
+                        <button class="preview-stacked__time"
+                                type="button"
+                                [class.is-selected]="validTime() === t"
+                                (click)="stackedSelectTime(t)">
+                          {{ t }}
+                        </button>
+                      }
+                    </div>
+                  }
+                  @case ('seats') {
+                    <div class="preview-stacked__seats">
+                      @for (s of seatOptions; track s.count) {
+                        <button class="preview-stacked__seat"
+                                type="button"
+                                [class.is-selected]="people() === s.count"
+                                (click)="stackedSelectSeats(s.count)">
+                          <span class="preview-stacked__seat-num">{{ s.count }}</span>
+                          <span class="preview-stacked__seat-label">{{ s.count === 1 ? 'Gast' : (s.count >= 8 ? 'Gäste +' : 'Gäste') }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
+
+            @if (speisekarte()) {
+              <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
+                🍽 Speisekarte ansehen
+              </button>
+            }
+
+            @if (showMaxPersonenWarning()) {
+              <div class="widget-max-warning">
+                <p class="widget-max-warning__text">{{ maxPersonenText() }}</p>
+                @if (maxPersonenPhone()) {
+                  <a class="widget-max-warning__link" [href]="'tel:' + maxPersonenPhone()">
+                    📞 {{ maxPersonenPhone() }}
+                  </a>
+                }
+                @if (maxPersonenEmail()) {
+                  <a class="widget-max-warning__link" [href]="'mailto:' + maxPersonenEmail()">
+                    ✉ {{ maxPersonenEmail() }}
+                  </a>
+                }
+              </div>
+            } @else {
+              <button class="preview-stacked__cta" type="button" (click)="stackedNextStep()">
+                <span>{{ buttonLabel() || 'Reservieren' }}</span>
+                <span>→</span>
+              </button>
+            }
+
+          } @else {
+            <!-- Step 2 -->
+            <p class="preview-stacked__summary">
+              {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+              · {{ selectedDateLabel() }}
+              · {{ validTime() }}&nbsp;Uhr
+            </p>
+
+            @if (filteredVenues().length > 1) {
+              <div class="preview-stacked__form">
+                <div class="preview-stacked__field">
+                  <label class="preview-stacked__field-label">Bereich</label>
+                  <div class="venue-chip-row">
+                    @for (v of filteredVenues(); track v.id) {
+                      <button type="button"
+                              class="venue-chip"
+                              [class.is-active]="selectedVenue()?.id === v.id"
+                              (click)="selectVenue(v)">{{ v.name }}</button>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <div class="preview-stacked__form">
+              <div class="preview-stacked__row">
+                <div class="preview-stacked__field">
+                  <label class="preview-stacked__field-label" for="st-name">Name</label>
+                  <input id="st-name" type="text" class="preview-stacked__field-input preview-stacked__field-input--real"
+                         [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
+                         placeholder="Vor- und Nachname" autocomplete="name" name="stName">
+                </div>
+                <div class="preview-stacked__field">
+                  <label class="preview-stacked__field-label" for="st-email">E-Mail</label>
+                  <input id="st-email" type="email" class="preview-stacked__field-input preview-stacked__field-input--real"
+                         [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                         placeholder="name@beispiel.de" autocomplete="email" name="stEmail">
+                </div>
+              </div>
+
+              <div class="preview-stacked__field">
+                <label class="preview-stacked__field-label" for="st-phone">
+                  Telefon
+                  @if (isRequired('phone')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-stacked__optional">(optional)</span> }
+                </label>
+                <input id="st-phone" type="tel" class="preview-stacked__field-input preview-stacked__field-input--real"
+                       [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
+                       placeholder="+49 …" autocomplete="tel" name="stPhone">
+              </div>
+
+              <div class="preview-stacked__field">
+                <label class="preview-stacked__field-label" for="st-notes">
+                  Anmerkungen
+                  @if (isRequired('notes')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-stacked__optional">(optional)</span> }
+                </label>
+                <textarea id="st-notes" class="preview-stacked__field-input preview-stacked__field-input--real preview-stacked__field-input--area"
+                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                          placeholder="Besonderheiten, Allergien …"
+                          name="stNotes" rows="2"></textarea>
+              </div>
+            </div>
+
+            @if (state() === 'error') {
+              <div class="widget-alert" style="margin: 0 20px;">{{ errorMessage() }}</div>
+            }
+
+            <label class="preview-stacked__consent"
+                   [class.is-checked]="stackedConsent()"
+                   (click)="stackedToggleConsent(); $event.preventDefault()">
+              <input type="checkbox" class="preview-stacked__consent-input"
+                     [checked]="stackedConsent()">
+              <span class="preview-stacked__consent-box" aria-hidden="true">
+                @if (stackedConsent()) { <span class="check-icon">✓</span> }
+              </span>
+              <span class="preview-stacked__consent-text">
+                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+              </span>
+            </label>
+
+            <div class="preview-stacked__nav">
+              <button class="preview-stacked__back" type="button" (click)="stackedPrevStep()">←</button>
+              <button class="preview-stacked__cta preview-stacked__cta--submit"
+                      type="button"
+                      [class.is-disabled]="!canSubmit()"
+                      [disabled]="!canSubmit()"
+                      (click)="weiter()">
+                <span>@if (state() === 'submitting') { Wird gesendet … } @else { Reservierung absenden }</span>
+                <span>✓</span>
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═══════════════════════════════════════════════
+           PLANNER LAYOUT
+      ════════════════════════════════════════════════ -->
+      @case ('planner') {
+        <div class="preview-planner-wrapper">
+          <header class="preview__header">
+            <h4 class="preview__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+            @if (showSubtitle() && headingSubtitle()) {
+              <p class="preview__subtitle">{{ headingSubtitle() }}</p>
+            }
+          </header>
+
+          <div class="preview-planner" [attr.data-step]="plannerStep()">
+
+            <!-- Step indicator -->
+            <div class="preview-planner__steps">
+              <button type="button"
+                      class="preview-planner__step"
+                      [class.is-active]="plannerStep() === 1"
+                      [class.is-done]="plannerStep() > 1"
+                      (click)="setPlannerStep(1)">
+                <span class="preview-planner__step-num">
+                  @if (plannerStep() > 1) { ✓ } @else { 1 }
+                </span>
+                <span class="preview-planner__step-label">Datum</span>
+              </button>
+
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 1"></span>
+
+              <button type="button"
+                      class="preview-planner__step"
+                      [class.is-active]="plannerStep() === 2"
+                      [class.is-done]="plannerStep() > 2"
+                      (click)="setPlannerStep(2)">
+                <span class="preview-planner__step-num">
+                  @if (plannerStep() > 2) { ✓ } @else { 2 }
+                </span>
+                <span class="preview-planner__step-label">Uhrzeit</span>
+              </button>
+
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 2"></span>
+
+              <button type="button"
+                      class="preview-planner__step"
+                      [class.is-active]="plannerStep() === 3"
+                      [class.is-done]="plannerStep() > 3"
+                      (click)="setPlannerStep(3)">
+                <span class="preview-planner__step-num">
+                  @if (plannerStep() > 3) { ✓ } @else { 3 }
+                </span>
+                <span class="preview-planner__step-label">Personen</span>
+              </button>
+
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 3"></span>
+
+              <button type="button"
+                      class="preview-planner__step"
+                      [class.is-active]="plannerStep() === 4"
+                      (click)="setPlannerStep(4)">
+                <span class="preview-planner__step-num">4</span>
+                <span class="preview-planner__step-label">Daten</span>
+              </button>
+            </div>
+
+            <!-- Panels -->
+            <div class="preview-planner__panels">
+
+              <!-- Panel 1: Date -->
+              <section class="preview-planner__panel" [class.is-active]="plannerStep() === 1">
+                <div class="preview-planner__panel-head">
+                  <span class="preview-planner__panel-icon">📅</span>
+                  <span class="preview-planner__panel-title">Datum</span>
+                </div>
+
+                <div class="preview-planner__cal">
+                  <div class="preview-planner__cal-bar">
+                    <button class="preview-planner__cal-nav" type="button" (click)="prevMonth()">‹</button>
+                    <span class="preview-planner__cal-month">{{ calendarMonthLabel() }}</span>
+                    <button class="preview-planner__cal-nav" type="button" (click)="nextMonth()">›</button>
+                  </div>
+
+                  <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays">
+                    @for (wd of weekdays; track wd) {
+                      <span class="preview-planner__cal-weekday">{{ wd }}</span>
+                    }
+                  </div>
+
+                  <div class="preview-planner__cal-grid">
+                    @for (cell of calendarCells(); track $index) {
+                      @if (cell.day === null) {
+                        <span class="preview-planner__cal-day preview-planner__cal-day--empty"></span>
+                      } @else {
+                        <button class="preview-planner__cal-day"
+                                type="button"
+                                [class.is-today]="cell.isToday"
+                                [class.is-selected]="cell.isSelected"
+                                (click)="selectPlannerDay(cell.day!)">
+                          {{ cell.day }}
+                        </button>
+                      }
+                    }
+                  </div>
+                </div>
+              </section>
+
+              <!-- Panel 2: Time (dial) -->
+              <section class="preview-planner__panel" [class.is-active]="plannerStep() === 2">
+                <div class="preview-planner__panel-head">
+                  <span class="preview-planner__panel-icon">🕐</span>
+                  <span class="preview-planner__panel-title">Uhrzeit</span>
+                </div>
+
+                <div class="preview-planner__dial">
+                  <svg class="preview-planner__dial-svg"
+                       viewBox="0 0 140 140"
+                       aria-hidden="true">
+                    <circle cx="70" cy="70" r="62" class="preview-planner__dial-ring"/>
+                    <path [attr.d]="dialOpenArc()" class="preview-planner__dial-arc"/>
+
+                    @for (h of dialHours(); track h.hour) {
+                      <text [attr.x]="h.x"
+                            [attr.y]="h.y"
+                            class="preview-planner__dial-hour"
+                            [class.is-open]="h.isOpen"
+                            [class.is-cardinal]="h.isCardinal"
+                            text-anchor="middle"
+                            dominant-baseline="central">{{ h.label }}</text>
+                    }
+
+                    @for (slot of dialSlots(); track slot.label) {
+                      <circle [attr.cx]="slot.x"
+                              [attr.cy]="slot.y"
+                              r="2.4"
+                              class="preview-planner__dial-slot-dot"
+                              [class.is-hour]="slot.isHour"
+                              [class.is-selected]="validTime() === slot.label"/>
+                    }
+
+                    <g class="preview-planner__dial-needle"
+                       [attr.transform]="'rotate(' + dialNeedleAngle() + ' 70 70)'">
+                      <line x1="70" y1="70" x2="70" y2="34"
+                            class="preview-planner__dial-needle-line"/>
+                      <circle cx="70" cy="34" r="2"
+                              class="preview-planner__dial-needle-tip"/>
+                    </g>
+
+                    <circle cx="70" cy="70" r="20" class="preview-planner__dial-hub"/>
+                  </svg>
+
+                  @for (slot of dialSlots(); track slot.label) {
+                    <button type="button"
+                            class="preview-planner__dial-slot"
+                            [class.is-selected]="validTime() === slot.label"
+                            [style.left.%]="(slot.x / 140) * 100"
+                            [style.top.%]="(slot.y / 140) * 100"
+                            (click)="selectPlannerTime(slot.label)"
+                            [attr.aria-label]="slot.label + ' Uhr'"></button>
+                  }
+
+                  <div class="preview-planner__dial-readout" aria-hidden="true">
+                    <span class="preview-planner__dial-time">{{ validTime() }}</span>
+                    <span class="preview-planner__dial-meta">Uhr</span>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Panel 3: Seats -->
+              <section class="preview-planner__panel" [class.is-active]="plannerStep() === 3">
+                <div class="preview-planner__panel-head">
+                  <span class="preview-planner__panel-icon">👥</span>
+                  <span class="preview-planner__panel-title">Personen</span>
+                </div>
+
+                <div class="preview-planner__chips preview-planner__chips--seats">
+                  @for (s of seatOptions; track s.count) {
+                    <button class="preview-planner__chip preview-planner__chip--seat"
+                            type="button"
+                            [class.is-selected]="people() === s.count"
+                            (click)="selectPlannerSeats(s.count)">
+                      <span class="preview-planner__chip-icon">👤</span>
+                      <span class="preview-planner__chip-label">{{ s.label }}</span>
+                    </button>
+                  }
+                </div>
+              </section>
+
+              <!-- Panel 4: Data -->
+              <section class="preview-planner__panel preview-planner__panel--data"
+                       [class.is-active]="plannerStep() === 4">
+                <div class="preview-planner__panel-head">
+                  <span class="preview-planner__panel-icon">👤</span>
+                  <span class="preview-planner__panel-title">Ihre Daten</span>
+                </div>
+
+                <div class="preview-planner__summary">
+                  <span class="preview-planner__summary-line">
+                    📅 {{ selectedDay() }}.
+                    @if (calendarMonth() === 0) { Januar }
+                    @else if (calendarMonth() === 1) { Februar }
+                    @else if (calendarMonth() === 2) { März }
+                    @else if (calendarMonth() === 3) { April }
+                    @else if (calendarMonth() === 4) { Mai }
+                    @else if (calendarMonth() === 5) { Juni }
+                    @else if (calendarMonth() === 6) { Juli }
+                    @else if (calendarMonth() === 7) { August }
+                    @else if (calendarMonth() === 8) { September }
+                    @else if (calendarMonth() === 9) { Oktober }
+                    @else if (calendarMonth() === 10) { November }
+                    @else { Dezember }
+                  </span>
+                  <span class="preview-planner__summary-divider">·</span>
+                  <span class="preview-planner__summary-line">🕐 {{ validTime() }}</span>
+                  <span class="preview-planner__summary-divider">·</span>
+                  <span class="preview-planner__summary-line">
+                    @if (people() === 1) { 👥 1 Gast } @else { 👥 {{ people() }} Gäste }
+                  </span>
+                </div>
+
+                @if (filteredVenues().length > 1) {
+                  <div class="preview-planner__form-group">
+                    <label class="preview-planner__form-label">Bereich</label>
+                    <div class="venue-chip-row">
+                      @for (v of filteredVenues(); track v.id) {
+                        <button type="button"
+                                class="venue-chip"
+                                [class.is-active]="selectedVenue()?.id === v.id"
+                                (click)="selectVenue(v)">{{ v.name }}</button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <div class="preview-planner__form">
+                  <div class="preview-planner__form-row">
+                    <div class="preview-planner__form-group">
+                      <label class="preview-planner__form-label" for="pl-name">Name</label>
+                      <input id="pl-name" type="text" class="preview-planner__form-input preview-planner__form-input--real"
+                             [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
+                             placeholder="Vor- und Nachname" autocomplete="name" name="plName">
+                    </div>
+                    <div class="preview-planner__form-group">
+                      <label class="preview-planner__form-label" for="pl-email">E-Mail</label>
+                      <input id="pl-email" type="email" class="preview-planner__form-input preview-planner__form-input--real"
+                             [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                             placeholder="name@beispiel.de" autocomplete="email" name="plEmail">
+                    </div>
+                  </div>
+
+                  <div class="preview-planner__form-row">
+                    <div class="preview-planner__form-group">
+                      <label class="preview-planner__form-label" for="pl-phone">
+                        Telefon
+                        @if (isRequired('phone')) { <span class="field-required">*</span> }
+                        @else { <span class="preview-planner__form-optional">(optional)</span> }
+                      </label>
+                      <input id="pl-phone" type="tel" class="preview-planner__form-input preview-planner__form-input--real"
+                             [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
+                             placeholder="+49 …" autocomplete="tel" name="plPhone">
+                    </div>
+                    <div class="preview-planner__form-group">
+                      <label class="preview-planner__form-label" for="pl-notes">
+                        Notizen
+                        @if (isRequired('notes')) { <span class="field-required">*</span> }
+                        @else { <span class="preview-planner__form-optional">(optional)</span> }
+                      </label>
+                      <textarea id="pl-notes" class="preview-planner__form-input preview-planner__form-input--real preview-planner__form-input--area"
+                                [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                                placeholder="Allergien, Kinderstuhl …"
+                                name="plNotes" rows="2"></textarea>
+                    </div>
+                  </div>
+
+                  @if (state() === 'error') {
+                    <div class="widget-alert">{{ errorMessage() }}</div>
+                  }
+
+                  <label class="preview-planner__consent" [class.is-checked]="plannerConsent()">
+                    <input type="checkbox" class="preview-planner__consent-input"
+                           [checked]="plannerConsent()" (change)="plannerToggleConsent()">
+                    <span class="preview-planner__consent-box" aria-hidden="true">
+                      @if (plannerConsent()) { <span class="check-icon">✓</span> }
+                    </span>
+                    <span class="preview-planner__consent-text">
+                      Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+                    </span>
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <!-- Footer nav -->
+            <div class="preview-planner__nav">
+              <button type="button" class="preview-planner__back" (click)="plannerPrev()">
+                ‹ Zurück
+              </button>
+
+              @if (speisekarte()) {
+                <button type="button" class="widget-menu-btn widget-menu-btn--planner" (click)="toggleMenu()">
+                  🍽 Speisekarte
+                </button>
+              }
+
+              @if (showMaxPersonenWarning() && plannerStep() >= 3) {
+                <div class="widget-max-warning widget-max-warning--inline">
+                  <p class="widget-max-warning__text">{{ maxPersonenText() }}</p>
+                  @if (maxPersonenPhone()) {
+                    <a class="widget-max-warning__link" [href]="'tel:' + maxPersonenPhone()">
+                      📞 {{ maxPersonenPhone() }}
+                    </a>
+                  }
+                  @if (maxPersonenEmail()) {
+                    <a class="widget-max-warning__link" [href]="'mailto:' + maxPersonenEmail()">
+                      ✉ {{ maxPersonenEmail() }}
+                    </a>
+                  }
+                </div>
+              } @else if (plannerStep() < 4) {
+                <button class="preview__cta preview-planner__cta"
+                        type="button"
+                        (click)="plannerNext()">
+                  Weiter
+                  <span class="preview-planner__cta-icon">›</span>
+                </button>
+              } @else {
+                <button class="preview__cta preview-planner__cta preview-planner__cta--submit"
+                        type="button"
+                        [class.is-disabled]="!canSubmit()"
+                        [disabled]="!canSubmit()"
+                        (click)="weiter()">
+                  @if (state() === 'submitting') { Wird gesendet … }
+                  @else { {{ buttonLabel() || 'Reservierung absenden' }} }
+                </button>
+              }
+            </div>
           </div>
         </div>
-      </div>
+      }
 
-      <!-- Gastdaten -->
-      <div class="guest">
-        <label class="guest__row">
-          <span class="guest__label">Name</span>
-          <input type="text" class="field"
-                 [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                 name="guestName" placeholder="Vor- und Nachname" autocomplete="name" />
-        </label>
+      <!-- Default fallback -->
+      @default {
+        <div class="widget-alert">Unbekanntes Layout: {{ layout() }}</div>
+      }
+    }
 
-        <label class="guest__row">
-          <span class="guest__label">E-Mail</span>
-          <input type="email" class="field"
-                 [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                 name="guestEmail" placeholder="name@beispiel.de" autocomplete="email" />
-        </label>
-
-        <label class="guest__row">
-          <span class="guest__label">Telefon <span class="guest__optional">(optional)</span></span>
-          <input type="tel" class="field"
-                 [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
-                 name="guestPhone" placeholder="+49 …" autocomplete="tel" />
-        </label>
-
-        <label class="guest__row">
-          <span class="guest__label">Anmerkungen <span class="guest__optional">(optional)</span></span>
-          <textarea class="field field--textarea"
-                    [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                    name="notes" rows="2"
-                    placeholder="Besonderheiten, Allergien …"></textarea>
-        </label>
-      </div>
-
-      <!-- Geschlossener Tag -->
-      @if (isClosedDay()) {
-        <div class="alert alert--closed">
-          <strong>An diesem Tag geschlossen</strong>
-          @if (availability()?.reason) { — {{ availability()!.reason }} }
+    @if (menuOpen()) {
+      <div class="widget-menu-overlay" (click)="menuOpen.set(false)">
+        <div class="widget-menu-overlay__box" (click)="$event.stopPropagation()">
+          <div class="widget-menu-overlay__header">
+            <span>🍽 Speisekarte</span>
+            <button type="button" class="widget-menu-overlay__close" (click)="menuOpen.set(false)">✕</button>
+          </div>
+          @if (speisekarteUrl()) {
+            <iframe class="widget-menu-overlay__frame"
+                    [src]="safeMenuUrl()"
+                    title="Speisekarte"
+                    frameborder="0"></iframe>
+          } @else {
+            <div class="widget-menu-overlay__empty">
+              @if (speisekartePdfName()) {
+                <span>„{{ speisekartePdfName() }}" — bitte die Datei im Admin-Bereich erneut hochladen und speichern.</span>
+              } @else {
+                <span>Keine Speisekarte hinterlegt. Bitte im Admin-Bereich eine PDF hochladen oder URL eintragen.</span>
+              }
+            </div>
+          }
         </div>
-      }
+      </div>
+    }
 
-      @if (state() === 'error') {
-        <div class="alert alert--error">{{ errorMessage() }}</div>
-      }
-    </div>
 
-    <footer class="card__footer">
-      <button type="button" class="btn-primary"
-              [disabled]="!canSubmit()" (click)="weiter()">
-        @if (state() === 'submitting') { Wird gesendet … }
-        @else { Reservierung absenden }
-      </button>
-    </footer>
   }
-</section>
+</div>

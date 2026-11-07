@@ -27,7 +27,11 @@ class TenantSettingsController extends AbstractController
             return $this->json([]);
         }
 
-        return $this->json($tenant->getUiSettings() ?? []);
+        $settings = $tenant->getUiSettings() ?? [];
+        // Public Key immer mitliefern — wird im Admin für den Embed-Code benötigt.
+        $settings['_publicKey'] = $tenant->getPublicKey();
+
+        return $this->json($settings);
     }
 
     #[Route('', name: 'admin_tenant_settings_put', methods: ['PUT'])]

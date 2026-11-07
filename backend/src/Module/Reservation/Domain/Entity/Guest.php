@@ -75,6 +75,14 @@ class Guest
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
+    /** Zugewiesene Gasttyp-Keys (z. B. ['vip', 'regular']) */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $gasttypen = null;
+
+    /** Zugewiesene Hinweis-Keys (z. B. ['allergy', 'birthday']) */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $hinweise = null;
+
     /** @var Collection<int, Reservation> */
     #[ORM\OneToMany(mappedBy: 'guest', targetEntity: Reservation::class)]
     private Collection $reservations;
@@ -166,6 +174,26 @@ class Guest
     public function setInternalNotes(?string $notes): void
     {
         $this->internalNotes = $notes;
+    }
+
+    public function getGasttypen(): array
+    {
+        return $this->gasttypen ?? [];
+    }
+
+    public function setGasttypen(array $keys): void
+    {
+        $this->gasttypen = array_values($keys);
+    }
+
+    public function getHinweise(): array
+    {
+        return $this->hinweise ?? [];
+    }
+
+    public function setHinweise(array $keys): void
+    {
+        $this->hinweise = array_values($keys);
     }
 
     public function block(string $reason): void

@@ -17,6 +17,7 @@ export interface Venue {
 export interface VenueLayout {
   tables: import('./room.types').PlacedTable[];
   walls:  import('./room.types').PlacedWall[];
+  decors?: import('./room.types').PlacedDecor[];
 }
 
 export interface CreateVenueDto {

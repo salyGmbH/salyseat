@@ -7,6 +7,8 @@ export type StatusKey =
   | 'waiting'
   | 'active'
   | 'late'
+  | 'expired'
+  | 'cleanup'
   | 'paid'
   | 'completed'
   | 'no_show'
@@ -22,13 +24,19 @@ export interface StatusColor {
 export type StatusViewMode = 'card' | 'text' | 'svg';
 
 export const DEFAULT_STATUSES: StatusColor[] = [
-  { key: 'waiting',   label: 'Warteliste', color: '#f59e0b', icon: 'circle' },
-  { key: 'active',    label: 'Aktiv',      color: '#22c55e', icon: 'check' },
-  { key: 'late',      label: 'Verspätet',  color: '#eab308', icon: 'clock' },
-  { key: 'paid',      label: 'Bezahlt',    color: '#3b82f6', icon: 'money' },
-  { key: 'completed', label: 'Beendet',    color: '#6b7280', icon: 'done' },
-  { key: 'no_show',   label: 'No Show',    color: '#991b1b', icon: 'close' },
-  { key: 'cancelled', label: 'Storniert',  color: '#9ca3af', icon: 'minus' },
+  { key: 'waiting',   label: 'Warteliste',  color: '#f59e0b', icon: 'circle' },
+  { key: 'active',    label: 'Aktiv',       color: '#22c55e', icon: 'check' },
+  { key: 'late',      label: 'Verspätet',   color: '#eab308', icon: 'clock' },
+  // 'expired' = Standard-Reservierungsdauer ist abgelaufen, der Tisch ist
+  // aber operativ noch belegt. Nutzer kann manuell beenden oder verlängern.
+  { key: 'expired',   label: 'Zeit abgelaufen', color: '#fb923c', icon: 'clock-alert' },
+  // 'cleanup' = Gäste sind weg, Tisch wird gerade gereinigt / vorbereitet.
+  // Tisch ist visuell belegt, aber nicht mehr durch Gäste.
+  { key: 'cleanup',   label: 'Wird gereinigt', color: '#06b6d4', icon: 'hourglass' },
+  { key: 'paid',      label: 'Bezahlt',     color: '#3b82f6', icon: 'money' },
+  { key: 'completed', label: 'Beendet',     color: '#6b7280', icon: 'done' },
+  { key: 'no_show',   label: 'No Show',     color: '#991b1b', icon: 'close' },
+  { key: 'cancelled', label: 'Storniert',   color: '#9ca3af', icon: 'minus' },
 ];
 
 const DEFAULT_VIEW_MODE: StatusViewMode = 'card';
@@ -36,6 +44,8 @@ const DEFAULT_VIEW_MODE: StatusViewMode = 'card';
 const LIFECYCLE_TO_OPERATIONAL: Record<FloorReservationStatus, StatusKey> = {
   upcoming:   'waiting',
   seated:     'active',
+  expired:    'expired',
+  cleanup:    'cleanup',
   completed:  'completed',
   cancelled:  'cancelled',
   'no-show':  'no_show',

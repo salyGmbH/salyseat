@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, tap, switchMap, of } from 'rxjs';
-import { PlacedTable, PlacedWall, SavedRoom } from './room.types';
+import { PlacedTable, PlacedWall, PlacedDecor, SavedRoom } from './room.types';
 import { VenueService } from './venue.service';
 import { Venue } from './venue.types';
 
@@ -15,7 +15,7 @@ import { Venue } from './venue.types';
 export class RoomsService {
   private readonly venueService = inject(VenueService);
 
-  private readonly _layoutCache = signal<Record<string, { tables: PlacedTable[]; walls: PlacedWall[] }>>({});
+  private readonly _layoutCache = signal<Record<string, { tables: PlacedTable[]; walls: PlacedWall[]; decors: PlacedDecor[] }>>({});
 
   readonly rooms = computed<SavedRoom[]>(() =>
     this.venueService.venues().map(v => this.venueToRoom(v)),
@@ -35,31 +35,37 @@ export class RoomsService {
   }
 
   // ── CRUD ────────────────────────────────────────────────────────────────
-  addRoom(name: string, tables: PlacedTable[], walls: PlacedWall[]): Observable<SavedRoom> {
+  addRoom(name: string, tables: PlacedTable[], walls: PlacedWall[], decors: PlacedDecor[] = []): Observable<SavedRoom> {
     return this.venueService.create({ name, category: 'restaurant' }).pipe(
       switchMap(venue =>
-        this.venueService.saveLayout(venue.id, tables, walls).pipe(
-          tap(res => this.cacheLayout(venue.id, res.layout?.tables ?? tables, res.layout?.walls ?? walls)),
-          switchMap(() => of(this.venueToRoom(venue, tables, walls))),
+        this.venueService.saveLayout(venue.id, tables, walls, decors).pipe(
+          tap(res => this.cacheLayout(
+            venue.id,
+            res.layout?.tables ?? tables,
+            res.layout?.walls  ?? walls,
+            res.layout?.decors ?? decors,
+          )),
+          switchMap(() => of(this.venueToRoom(venue, tables, walls, decors))),
         ),
       ),
     );
   }
 
-  updateRoom(id: string, patch: Partial<Pick<SavedRoom, 'name' | 'tables' | 'walls'>>): Observable<SavedRoom> {
+  updateRoom(id: string, patch: Partial<Pick<SavedRoom, 'name' | 'tables' | 'walls' | 'decors'>>): Observable<SavedRoom> {
     const updates$: Observable<unknown>[] = [];
 
     if (patch.name !== undefined) {
       updates$.push(this.venueService.update(id, { name: patch.name }));
     }
 
-    if (patch.tables !== undefined || patch.walls !== undefined) {
-      const cached = this._layoutCache()[id] ?? { tables: [], walls: [] };
+    if (patch.tables !== undefined || patch.walls !== undefined || patch.decors !== undefined) {
+      const cached = this._layoutCache()[id] ?? { tables: [], walls: [], decors: [] };
       const tables = patch.tables ?? cached.tables;
       const walls  = patch.walls  ?? cached.walls;
+      const decors = patch.decors ?? cached.decors;
       updates$.push(
-        this.venueService.saveLayout(id, tables, walls).pipe(
-          tap(() => this.cacheLayout(id, tables, walls)),
+        this.venueService.saveLayout(id, tables, walls, decors).pipe(
+          tap(() => this.cacheLayout(id, tables, walls, decors)),
         ),
       );
     }
@@ -79,19 +85,24 @@ export class RoomsService {
     );
   }
 
-  loadRoomLayout(id: string): Observable<{ tables: PlacedTable[]; walls: PlacedWall[] }> {
+  loadRoomLayout(id: string): Observable<{ tables: PlacedTable[]; walls: PlacedWall[]; decors: PlacedDecor[] }> {
     return this.venueService.loadLayout(id).pipe(
       tap(res => {
         const tables = res.layout?.tables ?? [];
         const walls  = res.layout?.walls  ?? [];
-        this.cacheLayout(id, tables, walls);
+        const decors = res.layout?.decors ?? [];
+        this.cacheLayout(id, tables, walls, decors);
       }),
-      switchMap(res => of({ tables: res.layout?.tables ?? [], walls: res.layout?.walls ?? [] })),
+      switchMap(res => of({
+        tables: res.layout?.tables ?? [],
+        walls:  res.layout?.walls  ?? [],
+        decors: res.layout?.decors ?? [],
+      })),
     );
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-  private venueToRoom(venue: Venue, tables?: PlacedTable[], walls?: PlacedWall[]): SavedRoom {
+  private venueToRoom(venue: Venue, tables?: PlacedTable[], walls?: PlacedWall[], decors?: PlacedDecor[]): SavedRoom {
     const cached = this._layoutCache()[venue.id];
     return {
       id:        venue.id,
@@ -100,10 +111,11 @@ export class RoomsService {
       updatedAt: 0,
       tables:    tables ?? cached?.tables ?? [],
       walls:     walls  ?? cached?.walls  ?? [],
+      decors:    decors ?? cached?.decors ?? [],
     };
   }
 
-  private cacheLayout(id: string, tables: PlacedTable[], walls: PlacedWall[]): void {
-    this._layoutCache.update(c => ({ ...c, [id]: { tables, walls } }));
+  private cacheLayout(id: string, tables: PlacedTable[], walls: PlacedWall[], decors: PlacedDecor[]): void {
+    this._layoutCache.update(c => ({ ...c, [id]: { tables, walls, decors } }));
   }
 }

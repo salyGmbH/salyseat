@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" fill="none">
+
+
+  <ellipse cx="120" cy="158" rx="86" ry="6" fill="#2979ff" fill-opacity="0.08"/>
+
+  <!-- Grundriss-Box (Raum-Plan) -->
+  <rect x="50" y="40" width="140" height="110" rx="6"
+        fill="#ffffff" fill-opacity="0.03"
+        stroke="#2979ff" stroke-opacity="0.55" stroke-width="2"/>
+
+  <!-- Tür-Aussparung (links) -->
+  <path d="M 50 80 L 50 100" stroke="#0f1117" stroke-opacity="0" stroke-width="3"/>
+  <path d="M 48 80 L 48 100" stroke="#2979ff" stroke-opacity="0.0" stroke-width="0"/>
+  <!-- Tür weiß-übermalen damit Lücke wirkt -->
+  <line x1="50" y1="80" x2="50" y2="100" stroke="#2979ff" stroke-opacity="1" stroke-width="3"
+        stroke-dasharray="0 0" />
+  <!-- Türschwung -->
+  <path d="M 50 80 Q 70 80 70 100" fill="none"
+        stroke="#2979ff" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+  <!-- Tische als kleine Kreise mit Stühlen -->
+  <g transform="translate(95,72)">
+    <circle r="10" fill="none" stroke="#ffb700" stroke-width="1.8"/>
+    <rect x="-2" y="-16" width="4" height="3" fill="#ffb700"/>
+    <rect x="-2" y="13"  width="4" height="3" fill="#ffb700"/>
+    <rect x="-16" y="-2" width="3" height="4" fill="#ffb700"/>
+    <rect x="13"  y="-2" width="3" height="4" fill="#ffb700"/>
+  </g>
+  <g transform="translate(150,98)">
+    <circle r="10" fill="none" stroke="#ffb700" stroke-width="1.8"/>
+    <rect x="-2" y="-16" width="4" height="3" fill="#ffb700"/>
+    <rect x="-2" y="13"  width="4" height="3" fill="#ffb700"/>
+    <rect x="-16" y="-2" width="3" height="4" fill="#ffb700"/>
+    <rect x="13"  y="-2" width="3" height="4" fill="#ffb700"/>
+  </g>
+  <g transform="translate(95,124)">
+    <circle r="10" fill="none" stroke="#ffb700" stroke-width="1.8" stroke-opacity="0.6"/>
+  </g>
+
+  <!-- Plus-Icon "neu" -->
+  <g transform="translate(170,52)">
+    <circle r="11" fill="#2979ff"/>
+    <line x1="-5" y1="0" x2="5" y2="0" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <line x1="0" y1="-5" x2="0" y2="5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>

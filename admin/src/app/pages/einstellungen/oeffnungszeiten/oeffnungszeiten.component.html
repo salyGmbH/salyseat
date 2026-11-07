@@ -143,12 +143,23 @@
         </div>
 
         <div class="form-group form-group--full">
-          <label class="form-label toggle-row">
-            <span>Komplett geschlossen</span>
-            <button class="toggle" [class.toggle--on]="newClosing.full_day" (click)="newClosing.full_day = !newClosing.full_day">
-              <span class="toggle__knob"></span>
+          <label class="form-label">Art</label>
+          <div class="type-selector">
+            <button
+              class="type-btn"
+              [class.type-btn--active]="newClosing.full_day"
+              (click)="newClosing.full_day = true">
+              <mat-icon>block</mat-icon>
+              Geschlossen
             </button>
-          </label>
+            <button
+              class="type-btn"
+              [class.type-btn--active]="!newClosing.full_day"
+              (click)="newClosing.full_day = false">
+              <mat-icon>schedule</mat-icon>
+              Sonderzeiten
+            </button>
+          </div>
         </div>
 
         @if (!newClosing.full_day) {

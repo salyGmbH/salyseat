@@ -1,0 +1,749 @@
+@use '../../../../styles/variables' as *;
+
+.reservations-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.total-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(var(--color-accent-rgb), 0.12);
+  color: $color-accent;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+// ─── Filter Bar ───────────────────────────────────────────────────────────────
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.filter-bar__field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: $color-text-muted;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.filter-input,
+.filter-select {
+  background: $color-surface-soft;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  color: $color-text-on-dark;
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  cursor: pointer;
+
+  &:focus {
+    border-color: $color-accent;
+  }
+}
+
+.filter-bar__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: $color-surface-soft;
+  color: $color-text-muted;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  span { line-height: 1; }
+
+  &:hover:not(:disabled) {
+    border-color: $color-accent;
+    color: $color-accent;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  // PDF — rötlicher Akzent
+  &--pdf:hover:not(:disabled) {
+    border-color: #e53935;
+    color: #e53935;
+    background: rgba(229, 57, 53, 0.07);
+  }
+
+  // Print — neutraler blauer Akzent
+  &--print:hover:not(:disabled) {
+    border-color: $color-accent;
+    color: $color-accent;
+    background: rgba(var(--color-accent-rgb), 0.07);
+  }
+
+  // Refresh — nur Icon, keine Beschriftung, quadratisch
+  &--refresh {
+    padding: 0;
+    width: 36px;
+    justify-content: center;
+
+    span { display: none; }
+  }
+}
+
+// ─── Error Banner ─────────────────────────────────────────────────────────────
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// ─── State Box (loading / empty) ──────────────────────────────────────────────
+
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  color: $color-text-muted;
+  font-size: 14px;
+
+  &__icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    opacity: 0.4;
+  }
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid $color-border;
+  border-top-color: $color-accent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ─── Reservation List ─────────────────────────────────────────────────────────
+
+.reservation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reservation-card {
+  --status-color: #{$color-border};
+
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 14px 16px;
+  // Border-Left in der konfigurierten Status-Farbe
+  border-left: 4px solid var(--status-color);
+}
+
+// ─── Linke Spalte: Zeit + Status-Indikator (Farbe / Text / Icon) ─────────────
+
+.reservation-card__left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.reservation-card__time--colored {
+  background: var(--status-color);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 4px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+              0 1px 2px rgba(0, 0, 0, 0.15);
+
+  .time-main { color: #fff; }
+  .time-end  { color: rgba(255, 255, 255, 0.85); }
+}
+
+.reservation-card__time--neutral {
+  background: rgba(var(--color-text-rgb), 0.06);
+  border-radius: 8px;
+  padding: 4px 4px;
+  box-shadow: inset 0 0 0 1px rgba(var(--color-text-rgb), 0.08);
+
+  .time-main { font-size: 15px; }
+  .time-end  { font-size: 10px; }
+}
+
+.reservation-card__status-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.reservation-card__status-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--status-color);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+              0 1px 2px rgba(0, 0, 0, 0.2);
+
+  app-status-icon { line-height: 0; }
+}
+
+// Rechte Spalte: nur Status-Label-Text (statt Action-Buttons)
+.reservation-card__status-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--status-color);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border: 1px solid var(--status-color);
+  border-radius: 999px;
+  background: transparent;
+}
+
+// ─── Time ────────────────────────────────────────────────────────────────────
+
+.reservation-card__time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.time-main {
+  font-size: 18px;
+  font-weight: 700;
+  color: $color-text-on-dark;
+}
+
+.time-end {
+  font-size: 11px;
+  color: $color-text-muted;
+}
+
+// ─── Info ─────────────────────────────────────────────────────────────────────
+
+.reservation-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.info-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: $color-text-muted;
+    flex-shrink: 0;
+  }
+}
+
+.party-size {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: $color-text-muted;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.info-meta {
+  font-size: 12px;
+  color: $color-text-muted;
+  padding-left: 22px;
+}
+
+.info-notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+  color: $color-text-muted;
+  padding-left: 22px;
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+
+.reservation-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+
+  &--pending   { background: rgba(245, 158, 11, 0.15);  color: #f59e0b; }
+  &--confirmed { background: rgba(34, 197, 94, 0.15);   color: #22c55e; }
+  &--cancelled { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+  &--no_show   { background: rgba(239, 68, 68, 0.15);   color: #ef4444; }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &--confirm {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+
+    &:hover { background: rgba(34, 197, 94, 0.2); }
+  }
+
+  &--noshow {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+
+    &:hover { background: rgba(239, 68, 68, 0.2); }
+  }
+
+  &--cancel {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.3);
+    color: #f97316;
+
+    &:hover { background: rgba(249, 115, 22, 0.2); }
+  }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+// ─── Export Modal ─────────────────────────────────────────────────────────────
+
+.export-modal {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 0;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 20px 16px;
+    border-bottom: 1px solid $color-border;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: $color-accent;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: $color-text-on-dark;
+      flex: 1;
+    }
+  }
+
+  &__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    color: $color-text-muted;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.15s;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    &:hover { background: $color-surface-soft; color: $color-text-on-dark; }
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid $color-border;
+  }
+}
+
+.export-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+
+  & + & {
+    border-top: 1px solid $color-border;
+    padding-top: 14px;
+  }
+}
+
+.export-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $color-text-muted;
+}
+
+.export-range-tabs {
+  display: flex;
+  gap: 6px;
+
+  button {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 8px;
+    border: 1px solid $color-border;
+    background: $color-surface-soft;
+    color: $color-text-muted;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.15s;
+
+    &.active {
+      border-color: $color-accent;
+      background: rgba(var(--color-accent-rgb), 0.1);
+      color: $color-accent;
+    }
+
+    &:not(.active):hover {
+      border-color: $color-accent;
+      color: $color-text-on-dark;
+    }
+  }
+}
+
+.export-date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .filter-input { flex: 1; }
+}
+
+.export-date-sep {
+  font-size: 14px;
+  color: $color-text-muted;
+}
+
+.export-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.export-chip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid $color-border;
+  background: $color-surface-soft;
+  color: $color-text-muted;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.15s;
+
+  &.active {
+    border-color: $color-accent;
+    background: rgba(var(--color-accent-rgb), 0.12);
+    color: $color-accent;
+  }
+
+  &:not(.active):hover {
+    border-color: $color-text-muted;
+    color: $color-text-on-dark;
+  }
+}
+
+.export-hint {
+  font-size: 11px;
+  color: $color-text-muted;
+  font-style: italic;
+}
+
+.btn-cancel {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: transparent;
+  color: $color-text-muted;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.15s;
+
+  &:hover {
+    border-color: $color-text-muted;
+    color: $color-text-on-dark;
+  }
+}
+
+.btn-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: $color-accent;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover { filter: brightness(1.1); }
+}
+
+@media print {
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    background: white;
+  }
+
+  /* Header schöner machen */
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    span {
+      font-size: 14px;
+      color: #666;
+    }
+  }
+
+  /* Karten vereinfachen */
+  .reservation-card {
+    border: 1px solid #ccc !important;
+    border-left: 4px solid #000 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  /* Buttons entfernen */
+  .reservation-card__actions {
+    display: none !important;
+  }
+
+  /* Farben neutralisieren */
+  .status-badge {
+    background: none !important;
+    color: black !important;
+    border: 1px solid #000;
+  }
+
+  /* Icons ausblenden */
+  mat-icon {
+    display: none !important;
+  }
+}
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+}
+
+// ─── Responsive ──────────────────────────────────────────────────────────────
+
+@media (max-width: 600px) {
+  .reservation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .reservation-card__time {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .reservation-card__actions {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

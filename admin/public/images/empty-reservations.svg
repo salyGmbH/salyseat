@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" fill="none">
+
+  <!-- Hintergrund-Schein (sehr dezent) -->
+  <ellipse cx="120" cy="150" rx="80" ry="8" fill="#2979ff" fill-opacity="0.08"/>
+
+  <!-- Klemmbrett / Reservierungsbuch -->
+  <rect x="62" y="36" width="116" height="120" rx="10"
+        fill="#ffffff" fill-opacity="0.04"
+        stroke="#2979ff" stroke-opacity="0.55" stroke-width="2"/>
+
+  <!-- Klemme oben -->
+  <rect x="100" y="28" width="40" height="14" rx="3"
+        fill="#ffb700" stroke="#2979ff" stroke-opacity="0.6" stroke-width="1.5"/>
+  <circle cx="120" cy="35" r="2" fill="#2979ff" fill-opacity="0.6"/>
+
+  <!-- Liniierte Zeilen (leer) -->
+  <line x1="78" y1="64"  x2="162" y2="64"  stroke="#2979ff" stroke-opacity="0.25" stroke-width="2" stroke-linecap="round"/>
+  <line x1="78" y1="80"  x2="148" y2="80"  stroke="#2979ff" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+  <line x1="78" y1="96"  x2="158" y2="96"  stroke="#2979ff" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+  <line x1="78" y1="112" x2="138" y2="112" stroke="#2979ff" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+  <line x1="78" y1="128" x2="152" y2="128" stroke="#2979ff" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Glas-Akzent (Restaurant-Bezug) -->
+  <g transform="translate(170,90)">
+    <path d="M -10 0 Q -10 14, 0 16 Q 10 14, 10 0 Z"
+          fill="#ffb700" fill-opacity="0.18" stroke="#ffb700" stroke-width="1.6"/>
+    <line x1="0" y1="16" x2="0" y2="26" stroke="#ffb700" stroke-width="1.6"/>
+    <line x1="-6" y1="26" x2="6" y2="26" stroke="#ffb700" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+
+  <!-- Sterne / kleine Sparkles für Eleganz -->
+  <g fill="#ffb700">
+    <circle cx="48" cy="50" r="2"/>
+    <circle cx="200" cy="40" r="1.6"/>
+    <circle cx="44" cy="120" r="1.4" fill-opacity="0.7"/>
+  </g>
+</svg>

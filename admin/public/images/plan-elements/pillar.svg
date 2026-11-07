@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" class="table-svg">
+  <!-- Säule / Pillar -->
+  <circle cx="35" cy="35" r="22"
+          fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+  <circle cx="35" cy="35" r="14"
+          fill="none" stroke="#2979ff" stroke-opacity="0.5" stroke-width="1.4"/>
+  <circle cx="35" cy="35" r="6"
+          fill="#2979ff" fill-opacity="0.35"/>
+</svg>

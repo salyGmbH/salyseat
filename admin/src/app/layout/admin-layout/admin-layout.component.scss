@@ -2,7 +2,11 @@
 
 .admin-layout {
   display: flex;
-  min-height: 100vh;
+  // Volle Viewport-Höhe als feste Höhe (nicht min-height!), damit der
+  // Content-Bereich darunter mit overflow-y: auto wirklich scrollt,
+  // statt das ganze Layout (inkl. Sidebar) wachsen zu lassen.
+  height: 100vh;
+  overflow: hidden;
 }
 
 .admin-layout__content {
@@ -11,6 +15,17 @@
   padding: 32px;
   overflow-y: auto;
   min-width: 0;
+  // Eigene volle Höhe innerhalb des flex-Parents, damit Inhalt
+  // bis zum unteren Rand scrollen kann.
+  height: 100%;
+
+  // Browser-Bug: padding-bottom wird in overflow+flex ignoriert.
+  // Pseudo-Element erzwingt tatsächlichen Scroll-Puffer.
+  &::after {
+    content: '';
+    display: block;
+    height: 80px;
+  }
 }
 
 // ─── Mobile Top Bar ───────────────────────────────────────────────────────────
@@ -83,7 +98,9 @@
   }
 
   .admin-layout__content {
-    padding: 80px 16px 24px;
+    padding: 80px 16px 0;
+
+    &::after { height: 60px; }
   }
 
   .mobile-header {

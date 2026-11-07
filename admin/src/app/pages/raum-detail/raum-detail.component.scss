@@ -82,6 +82,9 @@
   &__canvas {
     position: relative;
     flex: 1;
+    // Eigener Stacking-Context, damit die z-Reihenfolge von Wand/Tisch
+    // sauber gekapselt ist und nichts von außen mitspielt.
+    isolation: isolate;
     background:
       linear-gradient(rgba(var(--color-text-rgb), 0.03) 1px, transparent 1px) 0 0 / 20px 20px,
       linear-gradient(90deg, rgba(var(--color-text-rgb), 0.03) 1px, transparent 1px) 0 0 / 20px 20px,
@@ -345,6 +348,28 @@
   }
 }
 
+// ── Reihe für Neue-Reservierung + Walk-In (50/50) ───────────────────────
+// Beide Buttons nehmen je die Hälfte der Sidebar-Breite ein. Der äußere
+// Margin (14px) liegt am Reihen-Container, damit die Reihe bündig zu den
+// anderen Sidebar-Elementen sitzt.
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin: 0 14px 10px;
+
+  .btn-new {
+    flex: 1 1 0;
+    min-width: 0;          // verhindert Overflow bei knapper Breite
+    margin: 0;             // Margin liegt jetzt am Reihen-Container
+    justify-content: center;
+
+    span {
+      flex: 0 1 auto;
+      text-align: center;
+    }
+  }
+}
+
 // ── Neue-Reservierung-Button ────────────────────────────────────────────
 .btn-new {
   margin: 0 14px 10px;
@@ -365,6 +390,19 @@
     background: rgba(var(--color-primary-rgb), 0.2);
     border-color: $color-primary;
     border-style: solid;
+  }
+
+  // Walk-In-Variante: Gold/Akzent statt Blau – signalisiert "jetzt sofort".
+  &--walkin {
+    background: rgba(var(--color-accent-rgb), 0.12);
+    border-color: rgba(var(--color-accent-rgb), 0.4);
+    color: $color-accent;
+
+    &:hover {
+      background: rgba(var(--color-accent-rgb), 0.22);
+      border-color: $color-accent;
+      border-style: solid;
+    }
   }
 
   mat-icon {
@@ -509,9 +547,6 @@
 
   display: grid;
   grid-template-columns: 56px 1fr auto;
-  grid-template-areas:
-    "time body actions"
-    "notes notes notes";
   align-items: stretch;
   gap: 10px;
   padding: 6px 10px 6px 6px;
@@ -536,7 +571,6 @@
 
   // Farbiger Uhrzeit-Block links — wie bei OpenTable
   &__time {
-    grid-area: time;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -555,7 +589,6 @@
   }
 
   &__body {
-    grid-area: body;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -603,43 +636,19 @@
     .muted  { color: rgba(var(--color-text-rgb), 0.4); }
   }
 
-  // Notiz: eigene volle-Breite-Zeile unter Time/Body/Actions —
-  // wirkt wie ein abgesetztes Sticky-Note-Panel mit Status-Akzent.
   &__notes {
-    grid-area: notes;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: rgba(var(--color-text-rgb), 0.5);
+    font-style: italic;
     margin-top: 2px;
-    padding: 8px 10px;
-    background: color-mix(in srgb, var(--status-color) 7%, rgba(255, 255, 255, 0.02));
-    border: 1px solid rgba(var(--color-text-rgb), 0.06);
-    border-left: 2px solid var(--status-color);
-    border-radius: 8px;
-    font-size: 12px;
-    line-height: 1.4;
-    color: rgba(var(--color-text-rgb), 0.78);
 
-    mat-icon {
-      font-size: 15px;
-      width: 15px;
-      height: 15px;
-      color: var(--status-color);
-      opacity: 0.85;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    span {
-      flex: 1;
-      min-width: 0;
-      word-break: break-word;
-      white-space: pre-wrap;
-    }
+    mat-icon { font-size: 12px; width: 12px; height: 12px; }
   }
 
   &__actions {
-    grid-area: actions;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -651,15 +660,14 @@
   // Aktions-Buttons, mittig die Reservierungs-Details.
   &--mode-text,
   &--mode-svg {
-    grid-template-columns: 84px 1fr auto;
+    grid-template-columns: 72px 1fr auto;
   }
 
   &__left-stack {
-    grid-area: time;
     display: flex;
     flex-direction: column;
     gap: 3px;
-    width: 84px;
+    width: 72px;
     flex-shrink: 0;
   }
 
@@ -673,19 +681,27 @@
     font-size: 11px;
   }
 
+  // Status-Pille (Text-Modus) — exakt gleiche Maße wie die Time-Pille
+  // darüber, damit sich beide wie ein gepaartes Pill-Pärchen anfühlen.
   &__status-badge {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 5px 8px;
+    box-sizing: border-box;
+    min-height: 22px;
+    padding: 2px 6px;
     border-radius: 8px;
     font-size: 11px;
     font-weight: 600;
+    letter-spacing: 0.2px;
+    line-height: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+                0 1px 2px rgba(0, 0, 0, 0.15);
   }
 
   &__status-tile {
@@ -745,6 +761,16 @@
     border-color: rgba(67, 160, 71, 0.4);
 
     &:hover { background: rgba(67, 160, 71, 0.3); color: #43a047; }
+  }
+
+  // Cleanup-Action: cyan/teal — passt zur is-cleanup-Tisch-Färbung.
+  // "Tisch jetzt frei" wird so optisch klar von "Beenden" abgegrenzt.
+  &--cleanup {
+    background: rgba(6, 182, 212, 0.18);
+    color: #22d3ee;
+    border-color: rgba(6, 182, 212, 0.4);
+
+    &:hover { background: rgba(6, 182, 212, 0.3); color: #06b6d4; }
   }
 }
 
@@ -806,12 +832,15 @@
 }
 
 // ── Floor Plan Elements ──────────────────────────────────────────────────
+// Stacking: Wände gehören als „Architektur" in den Hintergrund (z-index 1),
+// Tische als interaktive Bedien-Elemente in den Vordergrund (z-index 5).
 .placed-wall {
   position: absolute;
   height: 16px;
   display: flex;
   align-items: center;
   transform-origin: center center;
+  z-index: 1;
 
   .wall-body {
     width: 100%;
@@ -824,6 +853,7 @@
 
 .placed-table {
   position: absolute;
+  z-index: 5;
   transform-origin: center center;
   cursor: pointer;
 
@@ -889,6 +919,27 @@
   &.is-seated   .table-svg__body { fill: rgba(67, 160, 71, 0.3);  stroke: #43a047; }
   &.is-seated   .placed-table__guest { border-color: rgba(67, 160, 71, 0.6); }
 
+  // "expired" = Reservierungszeit abgelaufen, Tisch noch belegt → Orange-Pulse
+  &.is-expired  .table-svg__body {
+    fill: rgba(251, 146, 60, 0.32);
+    stroke: #fb923c;
+    stroke-width: 2.5;
+    animation: expired-pulse 1.8s ease-in-out infinite;
+  }
+  &.is-expired  .placed-table__guest { border-color: rgba(251, 146, 60, 0.7); }
+
+  // "cleanup" = Gäste sind weg, Tisch wird gerade gereinigt → Cyan/Teal mit
+  // diagonalen Streifen (klar erkennbar als "in Arbeit"). Sanftes Pulsieren,
+  // damit Personal sieht: das hier ist gerade der „in Bereitstellung"-Tisch.
+  &.is-cleanup  .table-svg__body {
+    fill: rgba(6, 182, 212, 0.22);
+    stroke: #06b6d4;
+    stroke-width: 2.5;
+    stroke-dasharray: 6 4;
+    animation: cleanup-pulse 2.4s ease-in-out infinite;
+  }
+  &.is-cleanup  .placed-table__guest { border-color: rgba(6, 182, 212, 0.7); }
+
   // ── Umplatzier-Modus ────────────────────────────────────────────────
   &.is-reassign-source {
     .table-svg__body {
@@ -924,6 +975,20 @@
   50% {
     filter: drop-shadow(0 0 16px rgba(var(--color-accent-rgb), 1));
   }
+}
+
+// "expired"-Tisch zart pulsieren lassen — sanfter als der Reassign-Pulse,
+// damit es Aufmerksamkeit erzeugt, aber nicht aggressiv wirkt.
+@keyframes expired-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 146, 60, 0.45)); }
+  50%      { filter: drop-shadow(0 0 12px rgba(251, 146, 60, 0.85)); }
+}
+
+// "cleanup"-Tisch in einem ruhigen Cyan-Glow — signalisiert "Wartung"
+// statt "Achtung". Slowmotion-Pulse, damit es nicht stört.
+@keyframes cleanup-pulse {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(6, 182, 212, 0.40)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.80)); }
 }
 
 // ── Reassign-Hinweis-Banner ──────────────────────────────────────────────
@@ -1157,5 +1222,249 @@
   &__lbl {
     font-size: 11px;
     color: $color-text-muted;
+  }
+}
+
+// ── res-row__body klickbar ────────────────────────────────────────────────────
+.res-row__body--clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background .15s;
+  padding: 4px 6px;
+  margin: -4px -6px;
+
+  &:hover { background: rgba(var(--color-text-rgb), .06); }
+}
+
+// ── Kundenkarte-Modal ─────────────────────────────────────────────────────────
+.gc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid $color-border;
+}
+
+.gc-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: $color-primary;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gc-email {
+  font-size: 12px;
+  color: $color-text-muted;
+  margin-top: 2px;
+}
+
+.gc-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $color-text-muted;
+  display: flex;
+  padding: 4px;
+  border-radius: 6px;
+  &:hover { background: rgba(var(--color-text-rgb), .08); color: $color-text-on-dark; }
+  mat-icon { font-size: 20px; }
+}
+
+.gc-blocked-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gc-tag {
+  --tc: #3b82f6;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), .06);
+  color: $color-text-muted;
+  transition: background .15s, border-color .15s, color .15s;
+
+  &:hover { border-color: var(--tc); color: var(--tc); }
+
+  &--active {
+    background: color-mix(in srgb, var(--tc) 18%, transparent);
+    border-color: var(--tc);
+    color: var(--tc);
+    font-weight: 600;
+  }
+}
+
+.gc-switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 20px;
+
+  input { opacity: 0; width: 0; height: 0; }
+
+  .gc-slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--color-text-rgb), .2);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background .2s;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+  }
+
+  input:checked + .gc-slider {
+    background: $color-primary;
+    &::before { transform: translateX(18px); }
+  }
+}
+
+// ── Gast-Tags in der Reservierungskarte ────────────────────────────────────────
+.res-row__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.res-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+
+// ── Gast-Autocomplete ──────────────────────────────────────────────────────────
+.guest-autocomplete {
+  position: relative;
+}
+
+.guest-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  z-index: 50;
+  overflow: hidden;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.guest-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s;
+  border-bottom: 1px solid $color-border;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $color-surface-soft; }
+
+  &__avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: $color-primary;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 500;
+    color: $color-text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: $color-text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__count {
+    font-size: 11px;
+    font-weight: 600;
+    color: $color-text-muted;
+    flex-shrink: 0;
+    background: $color-surface-soft;
+    border: 1px solid $color-border;
+    border-radius: 20px;
+    padding: 1px 7px;
+  }
+}
+
+
+.placed-decor {
+  position: absolute;
+  transform-origin: center center;
+  z-index: 3;
+  pointer-events: none;
+
+  .decor-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 2px 8px rgba(41, 121, 255, 0.18));
   }
 }

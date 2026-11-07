@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" class="table-svg">
+  <!-- Eingang -->
+  <rect x="8" y="10" width="54" height="50" rx="4"
+        fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+  <!-- Pfeil rein -->
+  <path d="M 18 35 L 50 35 M 42 27 L 50 35 L 42 43"
+        fill="none" stroke="#ffb700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Eingangs-Linie rechts -->
+  <line x1="56" y1="14" x2="56" y2="56" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.6"/>
+</svg>

@@ -20,6 +20,8 @@ export const SUGGESTED_ICONS_BY_STATUS: Record<string, StatusIconId[]> = {
   waiting:   ['clock','hourglass','bell','users','door-front'],
   active:    ['play','utensils','chair','circle-dot','check'],
   late:      ['clock-alert','clock-fast','alert-triangle','bell'],
+  expired:   ['clock-alert','hourglass','clock-fast','alert-triangle'],
+  cleanup:   ['hourglass','clock','clock-fast','utensils'],
   paid:      ['euro','credit-card','wallet','cash'],
   completed: ['check-circle','flag','door-out','check','archive'],
   no_show:   ['ghost','user-x','phone-off','alert-triangle'],

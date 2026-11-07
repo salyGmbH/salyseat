@@ -307,3 +307,265 @@
     border: 1px solid $color-border;
   }
 }
+
+// ── Tag-Pills (Tabelle) ───────────────────────────────────────────────────────
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+// ── Tag-Picker (Modal) ────────────────────────────────────────────────────────
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-chip {
+  --chip-color: #3b82f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid $color-border;
+  background: $color-surface-soft;
+  color: $color-text-muted;
+  transition: background .15s, border-color .15s, color .15s;
+
+  &:hover {
+    border-color: var(--chip-color);
+    color: var(--chip-color);
+  }
+
+  &--active {
+    background: color-mix(in srgb, var(--chip-color) 15%, transparent);
+    border-color: var(--chip-color);
+    color: var(--chip-color);
+    font-weight: 600;
+  }
+}
+
+// ── Aktions-Spalte ────────────────────────────────────────────────────────────
+.col-actions {
+  width: 48px;
+  text-align: center;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $color-text-muted;
+  border-radius: 6px;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+
+  mat-icon { font-size: 18px; }
+
+  &:hover {
+    background: $color-surface-soft;
+    color: $color-primary;
+  }
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.2);
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid $color-border;
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+      color: $color-text;
+    }
+  }
+
+  &__body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+}
+
+.modal-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 20px;
+  padding: 10px 14px;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #991b1b;
+
+  mat-icon { font-size: 16px; flex-shrink: 0; }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid $color-border;
+}
+
+.btn-secondary {
+  background: $color-surface-soft;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: $color-text;
+  transition: background .15s;
+
+  &:hover { background: $color-border; }
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: $color-primary;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+
+  mat-icon { font-size: 16px; }
+
+  &:hover:not(:disabled) { opacity: .88; }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+// ── Felder im Modal ───────────────────────────────────────────────────────────
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 500;
+    color: $color-text-muted;
+  }
+
+  &__disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  &--toggle {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  input, textarea {
+    border: 1px solid $color-border;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: $color-text;
+    background: $color-surface;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color .15s;
+    font-family: inherit;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), .15);
+    }
+  }
+}
+
+// ── Toggle-Switch ─────────────────────────────────────────────────────────────
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+
+  input { opacity: 0; width: 0; height: 0; }
+
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: $color-border;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background .2s;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+  }
+
+  input:checked + .slider {
+    background: $color-primary;
+
+    &::before { transform: translateX(18px); }
+  }
+}

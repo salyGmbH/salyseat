@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 24" class="wall-svg">
+  <!-- Fenster (Wand-ähnliche Aspect-Ratio, 70x24 wie Raumtrenner) -->
+  <rect x="0" y="8" width="70" height="8" rx="2"
+        fill="#1a1f2e" stroke="#2979ff" stroke-width="1.5"/>
+  <!-- Glas-Striche -->
+  <line x1="10" y1="12" x2="60" y2="12" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.2"/>
+  <line x1="35" y1="8"  x2="35" y2="16" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.2"/>
+  <!-- Mauer-Stummel an den Seiten -->
+  <rect x="0"  y="6" width="6" height="12" fill="#546e7a" stroke="#78909c" stroke-width="0.8"/>
+  <rect x="64" y="6" width="6" height="12" fill="#546e7a" stroke="#78909c" stroke-width="0.8"/>
+</svg>

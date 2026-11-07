@@ -1,1 +1,295 @@
-<p>statistiken works!</p>
+<div class="stats-page">
+
+  <!-- ─── Header ──────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Statistiken</h1>
+      <p class="page-subtitle">Übersicht &amp; Auswertungen</p>
+    </div>
+  </div>
+
+  <!-- ─── KPI Cards ─────────────────────────────────────────────────────────── -->
+  <div class="stats-section">
+    <h2 class="section-label">Kennzahlen</h2>
+    <div class="stats-grid">
+
+      <div class="stat-card stat-card--primary">
+        <div class="stat-card__icon"><mat-icon>euro</mat-icon></div>
+        <div class="stat-card__content">
+          <span class="stat-card__label">Umsatz</span>
+          <span class="stat-card__value">€12.430</span>
+          <span class="stat-card__trend stat-card__trend--up">
+            <mat-icon>trending_up</mat-icon>+12 %
+          </span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--green">
+        <div class="stat-card__icon"><mat-icon>people</mat-icon></div>
+        <div class="stat-card__content">
+          <span class="stat-card__label">Gäste gesamt</span>
+          <span class="stat-card__value">1.245</span>
+          <span class="stat-card__trend stat-card__trend--down">
+            <mat-icon>trending_down</mat-icon>-3 %
+          </span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--warn">
+        <div class="stat-card__icon"><mat-icon>event_available</mat-icon></div>
+        <div class="stat-card__content">
+          <span class="stat-card__label">Reservierungen</span>
+          <span class="stat-card__value">320</span>
+          <span class="stat-card__trend stat-card__trend--up">
+            <mat-icon>trending_up</mat-icon>+8 %
+          </span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card__icon"><mat-icon>percent</mat-icon></div>
+        <div class="stat-card__content">
+          <span class="stat-card__label">Auslastung</span>
+          <span class="stat-card__value">4.2 %</span>
+          <span class="stat-card__trend stat-card__trend--up">
+            <mat-icon>trending_up</mat-icon>+1.1 %
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── Umsatz Verlauf (full width) ─────────────────────────────────────── -->
+  <div class="chart-card">
+    <div class="chart-card__header">
+      <h3 class="chart-card__title">Umsatz Verlauf</h3>
+      <span class="chart-card__badge">Jan – Jun 2025</span>
+    </div>
+    <div class="chart-card__body">
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ─── Anlässe & Quellen ────────────────────────────────────────────────── -->
+  <div class="stats-section">
+    <h2 class="section-label">Buchungsübersicht</h2>
+    <div class="donut-pair">
+
+      <!-- Anlässe -->
+      <div class="donut-card">
+        <h3 class="donut-card__title">Anlässe</h3>
+        <div class="donut-card__visual">
+          <div class="donut-wrap">
+            <canvas id="anlassChart"></canvas>
+            <div class="donut-center">
+              <span class="donut-center__num">{{ anlassTotal }}</span>
+              <span class="donut-center__lbl">gesamt</span>
+            </div>
+          </div>
+          <div class="donut-legend">
+            @for (item of anlassData; track item.label) {
+              <div class="donut-legend__row">
+                <span class="donut-legend__dot" [style.background]="item.color"></span>
+                <span class="donut-legend__name">{{ item.label }}</span>
+                <span class="donut-legend__val">{{ item.value }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Quellen -->
+      <div class="donut-card">
+        <h3 class="donut-card__title">Quellen</h3>
+        <div class="donut-card__visual">
+          <div class="donut-wrap">
+            <canvas id="quellenChart"></canvas>
+            <div class="donut-center">
+              <span class="donut-center__num">{{ quellenTotal }}</span>
+              <span class="donut-center__lbl">gesamt</span>
+            </div>
+          </div>
+          <div class="donut-legend">
+            @for (item of quellenData; track item.label) {
+              <div class="donut-legend__row">
+                <span class="donut-legend__dot" [style.background]="item.color"></span>
+                <span class="donut-legend__name">{{ item.label }}</span>
+                <span class="donut-legend__val">{{ item.value }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Geräte-Verteilung -->
+      <div class="donut-card">
+        <h3 class="donut-card__title">Geräte</h3>
+        <div class="donut-card__visual">
+          <div class="donut-wrap">
+            <canvas id="doughnutChart"></canvas>
+            <div class="donut-center">
+              <span class="donut-center__num">100</span>
+              <span class="donut-center__lbl">gesamt</span>
+            </div>
+          </div>
+          <div class="donut-legend">
+            @for (item of geraeteData; track item.label) {
+              <div class="donut-legend__row">
+                <span class="donut-legend__dot" [style.background]="item.color"></span>
+                <span class="donut-legend__name">{{ item.label }}</span>
+                <span class="donut-legend__val">{{ item.value }} %</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── Auslastung nach Zeit ─────────────────────────────────────────────── -->
+  <div class="stats-section">
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <div>
+          <h3 class="chart-card__title">Auslastung nach Zeit</h3>
+          <p class="chart-card__hint">Anzahl Gäste pro Zeitslot</p>
+        </div>
+        <div class="filter-pill-group">
+          @for (opt of timeOptions; track opt.value) {
+            <button
+              class="filter-pill"
+              [class.filter-pill--active]="auslastungFilter === opt.value"
+              (click)="setAuslastungFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+      <div class="chart-card__body chart-card__body--tall">
+        <canvas id="auslastungChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Gruppen-Heatmap ──────────────────────────────────────────────────── -->
+  <div class="stats-section">
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <div>
+          <h3 class="chart-card__title">Gruppen per Intervall
+            <span class="chart-card__badge chart-card__badge--inline">15 Min</span>
+          </h3>
+          <p class="chart-card__hint">Gleichzeitig anwesende Gruppen nach Intervall</p>
+        </div>
+        <div class="filter-pill-group">
+          @for (opt of timeOptions; track opt.value) {
+            <button
+              class="filter-pill"
+              [class.filter-pill--active]="gruppenFilter === opt.value"
+              (click)="gruppenFilter = opt.value">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="heatmap-scroll">
+        <div class="heatmap">
+          <!-- Zeitachse -->
+          <div class="heatmap__time-row">
+            @for (lbl of gruppenLabels; track $index) {
+              <div class="heatmap__time-cell" [class.heatmap__time-cell--major]="!lbl.startsWith(':')">
+                {{ lbl }}
+              </div>
+            }
+          </div>
+          <!-- Daten-Zeilen -->
+          @for (row of gruppenRows; track $index) {
+            <div class="heatmap__row">
+              @for (val of row; track $index) {
+                <div
+                  class="heatmap__cell"
+                  [class.heatmap__cell--empty]="val === 0"
+                  [style.background]="heatBg(val)"
+                  [style.color]="heatFg(val)"
+                  [title]="val ? val + ' Gruppen' : ''">
+                  {{ val || '' }}
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Legende -->
+      <div class="heatmap-legend">
+        <span class="heatmap-legend__label">Wenig</span>
+        <div class="heatmap-legend__scale">
+          @for (step of [0.18, 0.35, 0.52, 0.68, 0.85, 0.95]; track $index) {
+            <div class="heatmap-legend__swatch" [style.background]="'rgba(41,121,255,' + step + ')'"></div>
+          }
+        </div>
+        <span class="heatmap-legend__label">Viel</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── Performance + Top Nutzer ─────────────────────────────────────────── -->
+  <div class="bottom-section">
+
+    <div class="metrics-card">
+      <h2 class="section-label">Performance</h2>
+      <div class="metrics-list">
+        @for (m of metrics; track m.name) {
+          <div class="metric-row">
+            <div class="metric-row__top">
+              <span class="metric-row__name">{{ m.name }}</span>
+              <span class="metric-row__value">{{ m.value }} %</span>
+            </div>
+            <div class="metric-row__bar">
+              <div class="metric-row__fill" [style.width.%]="m.value"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="table-card">
+      <h2 class="section-label">Top Nutzer</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Aktionen</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of topUsers; track user.name) {
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar">{{ user.name[0] }}</div>
+                  <span>{{ user.name }}</span>
+                </div>
+              </td>
+              <td>{{ user.actions }}</td>
+              <td>
+                <span class="status-badge"
+                  [class.status-badge--active]="user.active"
+                  [class.status-badge--inactive]="!user.active">
+                  {{ user.active ? 'Aktiv' : 'Inaktiv' }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>

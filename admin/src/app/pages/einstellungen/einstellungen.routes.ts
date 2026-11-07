@@ -4,13 +4,14 @@ import { OverviewComponent } from './overview/overview.component';
 
 import { AllgemeinComponent } from './allgemein/allgemein.component';
 import { WidgetComponent } from './widget/widget.component';
+import { WidgetEinstellungenComponent } from './widget-einstellungen/widget-einstellungen.component';
 import { RestaurantplanComponent } from './restaurantplan/restaurantplan.component';
 import { MitarbeiterComponent } from './mitarbeiter/mitarbeiter.component';
 
 import { StatusFarbenComponent } from './status-farben/status-farben.component';
 
 import { PackagesComponent } from './packages/packages.component';
-import { DokumenteComponent } from './allgemein/dokumente/dokumente.component';
+import { DokumenteComponent } from './dokumente/dokumente.component';
 import { ReservierungenComponent } from './reservierungen/reservierungen.component';
 import { LoginComponent } from './login/login.component';
 import { StatistikenComponent } from './statistiken/statistiken.component';
@@ -39,6 +40,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
 
       { path: 'allgemein',      component: AllgemeinComponent },
       { path: 'widget',         component: WidgetComponent },
+      { path: 'widget-einstellungen', component: WidgetEinstellungenComponent },
       { path: 'restaurantplan', component: RestaurantplanComponent },
       { path: 'mitarbeiter',    component: MitarbeiterComponent },
 

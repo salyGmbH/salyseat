@@ -1,0 +1,899 @@
+<div class="settings-container">
+
+  <!-- ══════════════════════════════════════════════════════════
+       1. RESERVIERUNGSINTERVALL
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">schedule</mat-icon>
+        Reservierungsintervall
+      </h2>
+      <button class="info-button" [class.active]="info1()" (click)="info1.set(!info1())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info1()">
+      Legt den Zeitraster fest, in dem Gäste im Widget buchen können.
+      15 Minuten = sehr feingranular (z. B. 18:00, 18:15, 18:30 …),
+      60 Minuten = stündliche Slots. Empfohlen für die meisten Restaurants: <strong>30 Minuten</strong>.
+    </div>
+
+    <div class="view-toggle view-toggle--wrap">
+      <button [class.active]="settings.intervall === 15"  (click)="settings.intervall = 15">15 Min</button>
+      <button [class.active]="settings.intervall === 30"  (click)="settings.intervall = 30">30 Min</button>
+      <button [class.active]="settings.intervall === 45"  (click)="settings.intervall = 45">45 Min</button>
+      <button [class.active]="settings.intervall === 60"  (click)="settings.intervall = 60">1 Std</button>
+      <button [class.active]="settings.intervall === 75"  (click)="settings.intervall = 75">1:15 Std</button>
+      <button [class.active]="settings.intervall === 90"  (click)="settings.intervall = 90">1:30 Std</button>
+      <button [class.active]="settings.intervall === 105" (click)="settings.intervall = 105">1:45 Std</button>
+      <button [class.active]="settings.intervall === 120" (click)="settings.intervall = 120">2 Std</button>
+      <button [class.active]="settings.intervall === 135" (click)="settings.intervall = 135">2:15 Std</button>
+      <button [class.active]="settings.intervall === 150" (click)="settings.intervall = 150">2:30 Std</button>
+      <button [class.active]="settings.intervall === 165" (click)="settings.intervall = 165">2:45 Std</button>
+      <button [class.active]="settings.intervall === 180" (click)="settings.intervall = 180">3 Std</button>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved1()" (click)="saveBlock(1)">
+        {{ saved1() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       2. SPEISEKARTE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">menu_book</mat-icon>
+        Speisekarte anzeigen
+      </h2>
+      <button class="info-button" [class.active]="info2()" (click)="info2.set(!info2())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info2()">
+      Zeigt im Widget einen Link zur Speisekarte an, damit Gäste sich vor der Buchung
+      informieren können. Du kannst eine direkte URL oder eine PDF-Datei hinterlegen.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Speisekarte aktivieren</span>
+        <small>Link zur Speisekarte im Widget einblenden</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.speisekarte">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- Typ-Toggle: URL vs. PDF -->
+    <div class="type-toggle">
+      <button [class.active]="settings.speisekarteType === 'url'"
+              (click)="settings.speisekarteType = 'url'">
+        <mat-icon>link</mat-icon> URL
+      </button>
+      <button [class.active]="settings.speisekarteType === 'pdf'"
+              (click)="settings.speisekarteType = 'pdf'">
+        <mat-icon>picture_as_pdf</mat-icon> PDF hochladen
+      </button>
+    </div>
+
+    @if (settings.speisekarteType === 'url') {
+      <div class="sub-field">
+        <label class="sub-field__label">URL zur Speisekarte</label>
+        <input class="we-input" type="url" placeholder="https://…" [(ngModel)]="settings.speisekarteUrl">
+      </div>
+    }
+
+    @if (settings.speisekarteType === 'pdf') {
+      <div class="sub-field">
+        <label class="sub-field__label">PDF-Datei</label>
+        @if (!settings.speisekartePdfName) {
+          <label class="pdf-drop">
+            <input type="file" accept=".pdf" (change)="onPdfSelected($event)" hidden>
+            <mat-icon class="pdf-drop__icon">upload_file</mat-icon>
+            <span class="pdf-drop__text">PDF hier ablegen oder <strong>klicken zum Auswählen</strong></span>
+            <span class="pdf-drop__hint">Nur .pdf-Dateien, max. 10 MB</span>
+          </label>
+        } @else {
+          <div class="pdf-file">
+            <mat-icon class="pdf-file__icon">picture_as_pdf</mat-icon>
+            <span class="pdf-file__name">{{ settings.speisekartePdfName }}</span>
+            <button class="pdf-file__remove" (click)="removePdf()" type="button">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved2()" (click)="saveBlock(2)">
+        {{ saved2() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       3. PACKAGE-BUCHUNG
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">inventory_2</mat-icon>
+        Direkte Package-Buchung
+      </h2>
+      <button class="info-button" [class.active]="info3()" (click)="info3.set(!info3())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info3()">
+      Ermöglicht es Gästen, beim Buchen direkt ein Package (z. B. „Geburtstagsmenü",
+      „Business Lunch") auszuwählen und zu buchen. Packages müssen vorher unter
+      <strong>Einstellungen → Packages</strong> angelegt sein.
+    </div>
+
+    <div class="toggle-row toggle-row--no-border">
+      <div class="toggle-row__label">
+        <span>Package-Buchung aktivieren</span>
+        <small>Gäste können beim Buchen ein Package wählen</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.packageBuchung">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved3()" (click)="saveBlock(3)">
+        {{ saved3() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       4. AUSSTEHENDE BESTÄTIGUNG
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">pending_actions</mat-icon>
+        Buchung mit ausstehender Bestätigung
+      </h2>
+      <button class="info-button" [class.active]="info4()" (click)="info4.set(!info4())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info4()">
+      Ist diese Option aktiv, werden Buchungen nicht sofort bestätigt — der Gast erhält
+      zunächst eine Nachricht, dass seine Anfrage geprüft wird. Das Restaurant muss die
+      Buchung dann manuell bestätigen oder ablehnen. Gut geeignet für stark frequentierte
+      Tage oder besondere Veranstaltungen.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Ausstehende Bestätigung nutzen</span>
+        <small>Buchungen müssen manuell bestätigt werden</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.ausstehendBestaetigung">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    @if (settings.ausstehendBestaetigung) {
+      <div class="info-hint info-hint--warn">
+        <mat-icon>warning_amber</mat-icon>
+        Alle eingehenden Buchungen landen unter <strong>Ausstehend</strong> und müssen
+        aktiv bestätigt werden — achte darauf, zeitnah zu reagieren.
+      </div>
+    }
+
+    <!-- ── Geltungsbereich ── -->
+    <div class="scope-section">
+      <p class="scope-section__label">Wann gilt die Bestätigung?</p>
+      <div class="type-toggle">
+        <button [class.active]="settings.ausstehendScope === 'immer'"
+                (click)="settings.ausstehendScope = 'immer'">
+          <mat-icon>all_inclusive</mat-icon> Immer
+        </button>
+        <button [class.active]="settings.ausstehendScope === 'tage'"
+                (click)="settings.ausstehendScope = 'tage'">
+          <mat-icon>event</mat-icon> Nur an bestimmten Tagen
+        </button>
+      </div>
+
+      @if (settings.ausstehendScope === 'tage') {
+        <!-- Datumseingabe -->
+        <div class="datum-input-row">
+          <input
+            class="we-input datum-input"
+            type="date"
+            [(ngModel)]="newDatum"
+            (keydown.enter)="addDatum()">
+          <button class="datum-add-btn" (click)="addDatum()" [disabled]="!newDatum">
+            <mat-icon>add</mat-icon> Hinzufügen
+          </button>
+        </div>
+
+        @if (settings.ausstehendDaten.length > 0) {
+          <div class="datum-chips">
+            @for (d of settings.ausstehendDaten; track d) {
+              <span class="datum-chip">
+                <mat-icon>event</mat-icon>
+                {{ formatDatum(d) }}
+                <button class="datum-chip__remove" (click)="removeDatum(d)" type="button">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </span>
+            }
+          </div>
+        } @else {
+          <p class="datum-empty">Noch keine Tage ausgewählt.</p>
+        }
+      }
+    </div>
+
+    <!-- ── Uhrzeitfenster ── -->
+    <div class="uhrzeit-section">
+      <div class="toggle-row toggle-row--no-border toggle-row--compact">
+        <div class="toggle-row__label">
+          <span>Nur in bestimmten Uhrzeiten</span>
+          <small>Mehrere Zeitfenster möglich</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" [(ngModel)]="settings.ausstehendUhrzeitAktiv">
+          <span class="toggle__track"><span class="toggle__thumb"></span></span>
+        </label>
+      </div>
+
+      <!-- Eingabezeile -->
+      <div class="uhrzeit-row">
+        <div class="uhrzeit-field">
+          <label class="uhrzeit-field__label">Von</label>
+          <input class="we-input uhrzeit-input" type="time" [(ngModel)]="newUhrzeitVon"
+                 [disabled]="!settings.ausstehendUhrzeitAktiv">
+        </div>
+        <mat-icon class="uhrzeit-arrow">arrow_forward</mat-icon>
+        <div class="uhrzeit-field">
+          <label class="uhrzeit-field__label">Bis</label>
+          <input class="we-input uhrzeit-input" type="time" [(ngModel)]="newUhrzeitBis"
+                 [disabled]="!settings.ausstehendUhrzeitAktiv">
+        </div>
+        <button class="datum-add-btn uhrzeit-add-btn"
+                (click)="addUhrzeit()"
+                [disabled]="!settings.ausstehendUhrzeitAktiv || !newUhrzeitVon || !newUhrzeitBis">
+          <mat-icon>add</mat-icon> Hinzufügen
+        </button>
+      </div>
+
+      <!-- Gespeicherte Zeitfenster -->
+      @if (settings.ausstehendUhrzeiten.length > 0) {
+        <div class="datum-chips">
+          @for (z of settings.ausstehendUhrzeiten; track $index) {
+            <span class="datum-chip">
+              <mat-icon>schedule</mat-icon>
+              {{ z.von }} – {{ z.bis }} Uhr
+              <button class="datum-chip__remove" (click)="removeUhrzeit($index)" type="button">
+                <mat-icon>close</mat-icon>
+              </button>
+            </span>
+          }
+        </div>
+      } @else if (settings.ausstehendUhrzeitAktiv) {
+        <p class="datum-empty">Noch keine Zeitfenster definiert.</p>
+      }
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved4()" (click)="saveBlock(4)">
+        {{ saved4() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       5. RAUMAUSWAHL
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">meeting_room</mat-icon>
+        Raumauswahl
+      </h2>
+      <button class="info-button" [class.active]="info5()" (click)="info5.set(!info5())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info5()">
+      Wenn aktiviert, können Gäste beim Buchen ihren bevorzugten Bereich oder Raum
+      auswählen (z. B. Terrasse, Innenraum, Bar). Die verfügbaren Räume werden aus
+      deinen angelegten Venues gezogen.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Raumauswahl abfragen</span>
+        <small>Gäste können einen Bereich / Raum wählen</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.raumauswahl">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- Raumliste -->
+    @if (venues().length > 0) {
+      <div class="raum-section">
+        <p class="scope-section__label">
+          Räume im Widget verfügbar
+          <span class="raum-count">{{ aktiveRaumCount }} / {{ venues().length }} aktiv</span>
+        </p>
+
+        <div class="raum-grid">
+          @for (venue of venues(); track venue.id) {
+            <button
+              class="raum-card"
+              [class.raum-card--active]="isRaumAktiv(venue.id)"
+              [disabled]="!settings.raumauswahl"
+              (click)="toggleRaum(venue.id)">
+              <div class="raum-card__top">
+                <mat-icon class="raum-card__icon">meeting_room</mat-icon>
+                <mat-icon class="raum-card__check">
+                  {{ isRaumAktiv(venue.id) ? 'check_circle' : 'radio_button_unchecked' }}
+                </mat-icon>
+              </div>
+              <span class="raum-card__name">{{ venue.name }}</span>
+              @if (venue.category) {
+                <span class="raum-card__cat">{{ venue.category }}</span>
+              }
+            </button>
+          }
+        </div>
+
+        @if (!settings.raumauswahl) {
+          <p class="datum-empty">Aktiviere die Raumauswahl um Räume zu konfigurieren.</p>
+        }
+      </div>
+    } @else {
+      <div class="info-hint" style="margin-top: 12px">
+        <mat-icon>info</mat-icon>
+        Noch keine Räume angelegt. Erstelle zuerst Räume unter
+        <strong>Einstellungen → Räume</strong>.
+      </div>
+    }
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved5()" (click)="saveBlock(5)">
+        {{ saved5() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       6. HINWEISTEXT
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">announcement</mat-icon>
+        Hinweistext am Anfang
+      </h2>
+      <button class="info-button" [class.active]="info6()" (click)="info6.set(!info6())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info6()">
+      Zeigt ganz am Anfang des Widgets einen frei definierbaren Hinweistext an —
+      z. B. Öffnungszeiten-Ausnahmen, Hinweise zu Feiertagen oder besondere
+      Buchungsbedingungen. Der Text wird prominent vor dem Buchungsformular angezeigt.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Hinweistext aktivieren</span>
+        <small>Einen Info-Text vor dem Buchungsformular einblenden</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.hinweistext">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="sub-field">
+      <label class="sub-field__label">Überschrift</label>
+      <input
+        class="we-input"
+        type="text"
+        placeholder="z. B. Wichtiger Hinweis"
+        [(ngModel)]="settings.hinweistextUeberschrift">
+    </div>
+
+    <div class="sub-field">
+      <label class="sub-field__label">Text</label>
+      <textarea
+        class="we-textarea"
+        rows="3"
+        placeholder="z. B. Bitte beachte unsere geänderten Öffnungszeiten an Feiertagen …"
+        [(ngModel)]="settings.hinweistextInhalt">
+      </textarea>
+    </div>
+
+    <div class="sub-field">
+      <label class="sub-field__label">Footer-Text</label>
+      <input
+        class="we-input"
+        type="text"
+        placeholder="z. B. Bei Fragen erreichst du uns unter info@restaurant.de"
+        [(ngModel)]="settings.hinweistextFooter">
+    </div>
+
+    @if (settings.hinweistextUeberschrift || settings.hinweistextInhalt || settings.hinweistextFooter) {
+      <div class="hinweis-preview">
+        <div class="hinweis-preview__bar"></div>
+        <div class="hinweis-preview__content">
+          @if (settings.hinweistextUeberschrift) {
+            <p class="hinweis-preview__title">{{ settings.hinweistextUeberschrift }}</p>
+          }
+          @if (settings.hinweistextInhalt) {
+            <p class="hinweis-preview__text">{{ settings.hinweistextInhalt }}</p>
+          }
+          @if (settings.hinweistextFooter) {
+            <p class="hinweis-preview__footer">{{ settings.hinweistextFooter }}</p>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved6()" (click)="saveBlock(6)">
+        {{ saved6() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       7. PFLICHTFELDER
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">checklist</mat-icon>
+        Pflichtfelder
+      </h2>
+      <button class="info-button" [class.active]="info7()" (click)="info7.set(!info7())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info7()">
+      Lege fest, welche Felder Gäste beim Buchen zwingend ausfüllen müssen.
+      Felder die aktiviert sind, sind im Widget als Pflichtfeld markiert —
+      ohne Ausfüllen kann die Buchung nicht abgeschickt werden.
+    </div>
+
+    <div class="pflicht-grid">
+      @for (feld of alleFelder; track feld.key) {
+        <button
+          class="pflicht-chip"
+          [class.pflicht-chip--active]="isPflichtfeld(feld.key)"
+          (click)="togglePflichtfeld(feld.key)">
+          <mat-icon>{{ feld.icon }}</mat-icon>
+          <span>{{ feld.label }}</span>
+          <mat-icon class="pflicht-chip__check">
+            {{ isPflichtfeld(feld.key) ? 'check_circle' : 'radio_button_unchecked' }}
+          </mat-icon>
+        </button>
+      }
+    </div>
+
+    @if (settings.pflichtfelder.length > 0) {
+      <div class="info-hint">
+        <mat-icon>info</mat-icon>
+        {{ settings.pflichtfelder.length }} Pflichtfeld{{ settings.pflichtfelder.length !== 1 ? 'er' : '' }} aktiv
+      </div>
+    }
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved7()" (click)="saveBlock(7)">
+        {{ saved7() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       8. MAX. PERSONENANZAHL
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">groups</mat-icon>
+        Maximale Personenanzahl
+      </h2>
+      <button class="info-button" [class.active]="info8()" (click)="info8.set(!info8())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info8()">
+      Legt fest, bis zu welcher Personenzahl Gäste direkt online buchen können.
+      Wählt ein Gast mehr Personen, wird statt des Buchungsformulars ein Hinweis
+      mit deinen Kontaktdaten (Telefon &amp; E-Mail) eingeblendet.
+    </div>
+
+    <div class="toggle-row toggle-row--no-border">
+      <div class="toggle-row__label">
+        <span>Maximale Personenanzahl</span>
+        <small>Ab dieser Zahl wird kein Formular mehr angezeigt</small>
+      </div>
+      <div class="we-number">
+        <button (click)="settings.maxPersonen = settings.maxPersonen > 1 ? settings.maxPersonen - 1 : 1">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <span>{{ settings.maxPersonen }} Pers.</span>
+        <button (click)="settings.maxPersonen = settings.maxPersonen + 1">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="sub-field">
+      <label class="sub-field__label">Hinweistext für Gruppen</label>
+      <textarea
+        class="we-textarea"
+        rows="2"
+        placeholder="z. B. Für Gruppen ab dieser Personenzahl bitten wir um Kontaktaufnahme."
+        [(ngModel)]="settings.maxPersonenText">
+      </textarea>
+    </div>
+
+    <div class="contact-row">
+      <div class="contact-field">
+        <mat-icon>call</mat-icon>
+        <input class="we-input" type="tel" placeholder="Telefonnummer" [(ngModel)]="settings.maxPersonenPhone">
+      </div>
+      <div class="contact-field">
+        <mat-icon>mail</mat-icon>
+        <input class="we-input" type="email" placeholder="E-Mail-Adresse" [(ngModel)]="settings.maxPersonenEmail">
+      </div>
+    </div>
+
+    <!-- Vorschau -->
+    <div class="maxpers-preview">
+      <p class="maxpers-preview__hint">Vorschau im Widget</p>
+      <div class="maxpers-preview__card">
+        <mat-icon class="maxpers-preview__icon">groups</mat-icon>
+        <p class="maxpers-preview__text">{{ settings.maxPersonenText }}</p>
+        <div class="maxpers-preview__contacts">
+          @if (settings.maxPersonenPhone) {
+            <a class="maxpers-preview__btn" href="tel:{{ settings.maxPersonenPhone }}">
+              <mat-icon>call</mat-icon>
+              {{ settings.maxPersonenPhone }}
+            </a>
+          }
+          @if (settings.maxPersonenEmail) {
+            <a class="maxpers-preview__btn" href="mailto:{{ settings.maxPersonenEmail }}">
+              <mat-icon>mail</mat-icon>
+              {{ settings.maxPersonenEmail }}
+            </a>
+          }
+          @if (!settings.maxPersonenPhone && !settings.maxPersonenEmail) {
+            <span class="maxpers-preview__placeholder">
+              <mat-icon>call</mat-icon> Telefon &nbsp;·&nbsp; <mat-icon>mail</mat-icon> E-Mail
+            </span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved8()" (click)="saveBlock(8)">
+        {{ saved8() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       9. KINDERSTÜHLE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">child_care</mat-icon>
+        Kinderstühle
+      </h2>
+      <button class="info-button" [class.active]="info9()" (click)="info9.set(!info9())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info9()">
+      Lege fest, wie viele Kinderstühle das Restaurant insgesamt hat und wie viele
+      davon Gäste online reservieren können.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Kinderstühle aktivieren</span>
+        <small>Kinderstühle im Widget zur Reservierung anbieten</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.kinderStuehleAktiv">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="stepper-grid" [class.stepper-grid--disabled]="!settings.kinderStuehleAktiv">
+      <div class="stepper-card">
+        <span class="stepper-card__label">Vorhanden im Restaurant</span>
+        <div class="we-number">
+          <button (click)="stepDown('kinderStuehleGesamt', 1, 0)" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>remove</mat-icon></button>
+          <span>{{ settings.kinderStuehleGesamt }}</span>
+          <button (click)="stepUp('kinderStuehleGesamt')" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>add</mat-icon></button>
+        </div>
+      </div>
+      <div class="stepper-card">
+        <span class="stepper-card__label">Davon online buchbar</span>
+        <div class="we-number">
+          <button (click)="stepDown('kinderStuehleOnline', 1, 0)" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>remove</mat-icon></button>
+          <span>{{ settings.kinderStuehleOnline }}</span>
+          <button (click)="stepUp('kinderStuehleOnline')" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>add</mat-icon></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved9()" (click)="saveBlock(9)">
+        {{ saved9() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       10. VORAUSBUCHUNG
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">date_range</mat-icon>
+        Vorausbuchungszeitraum
+      </h2>
+      <button class="info-button" [class.active]="info10()" (click)="info10.set(!info10())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info10()">
+      Wie weit im Voraus dürfen Gäste online reservieren? Buchungsanfragen
+      außerhalb dieses Zeitraums werden im Widget nicht angeboten.
+    </div>
+
+    <div class="voraus-row">
+      <div class="we-number">
+        <button (click)="stepDown('vorausbuchungWert', 1, 1)"><mat-icon>remove</mat-icon></button>
+        <span>{{ settings.vorausbuchungWert }}</span>
+        <button (click)="stepUp('vorausbuchungWert')"><mat-icon>add</mat-icon></button>
+      </div>
+      <div class="type-toggle type-toggle--small">
+        <button [class.active]="settings.vorausbuchungEinheit === 'tage'"
+                (click)="settings.vorausbuchungEinheit = 'tage'">Tage</button>
+        <button [class.active]="settings.vorausbuchungEinheit === 'monate'"
+                (click)="settings.vorausbuchungEinheit = 'monate'">Monate</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved10()" (click)="saveBlock(10)">
+        {{ saved10() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       11. MINDESTVORLAUFZEIT
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">hourglass_top</mat-icon>
+        Mindestvorlaufzeit
+      </h2>
+      <button class="info-button" [class.active]="info11()" (click)="info11.set(!info11())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info11()">
+      Wie viele Minuten muss eine Buchung mindestens vor dem Reservierungszeitpunkt
+      eingehen? Verhindert Buchungen auf letzten Drücker.
+    </div>
+
+    <div class="vorlauf-row">
+      <div class="we-number">
+        <button (click)="stepDown('mindestvorlaufMinuten', 15, 0)"><mat-icon>remove</mat-icon></button>
+        <span class="vorlauf-value">{{ formatMinuten(settings.mindestvorlaufMinuten) }}</span>
+        <button (click)="stepUp('mindestvorlaufMinuten', 15)"><mat-icon>add</mat-icon></button>
+      </div>
+      <span class="vorlauf-hint">vor Reservierungsbeginn</span>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved11()" (click)="saveBlock(11)">
+        {{ saved11() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       12. TISCHARTEN
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">table_restaurant</mat-icon>
+        Tischarten auswählbar
+      </h2>
+      <button class="info-button" [class.active]="info12()" (click)="info12.set(!info12())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info12()">
+      Wenn aktiviert, können Gäste beim Buchen eine bevorzugte Tischart wählen.
+      Wähle welche Tischarten im Widget angeboten werden.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Tischart-Auswahl aktivieren</span>
+        <small>Gäste können eine Tischart bevorzugen</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.tischartenAktiv">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="tischart-grid">
+      @for (t of alleTischarten; track t.key) {
+        <button
+          class="tischart-card"
+          [class.tischart-card--active]="isTischartenAktiv(t.key)"
+          [disabled]="!settings.tischartenAktiv"
+          (click)="toggleTischart(t.key)">
+          <div class="tischart-card__visual tischart-card__visual--{{ t.shape }}"></div>
+          <span class="tischart-card__label">{{ t.label }}</span>
+          <mat-icon class="tischart-card__check">
+            {{ isTischartenAktiv(t.key) ? 'check_circle' : 'radio_button_unchecked' }}
+          </mat-icon>
+        </button>
+      }
+    </div>
+
+    @if (!settings.tischartenAktiv) {
+      <p class="datum-empty">Aktiviere die Tischart-Auswahl um Tischarten zu konfigurieren.</p>
+    }
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved12()" (click)="saveBlock(12)">
+        {{ saved12() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       13. ONLINE ÄNDERUNGEN
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">edit_calendar</mat-icon>
+        Online Änderungen
+      </h2>
+      <button class="info-button" [class.active]="info13()" (click)="info13.set(!info13())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info13()">
+      Erlaubt Gästen, ihre Buchung nachträglich online zu ändern (Datum, Uhrzeit,
+      Personenzahl). Lege fest, wie viele Minuten vor der Buchung eine Änderung
+      noch möglich ist.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Online Änderungen zulassen</span>
+        <small>Gäste können ihre Buchung selbst anpassen</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.onlineAenderungen">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="vorlauf-row">
+      <div class="we-number">
+        <button (click)="stepDown('onlineAenderungenMinuten', 15, 0)" [disabled]="!settings.onlineAenderungen">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <span class="vorlauf-value" [class.muted]="!settings.onlineAenderungen">
+          {{ formatMinuten(settings.onlineAenderungenMinuten) }}
+        </span>
+        <button (click)="stepUp('onlineAenderungenMinuten', 15)" [disabled]="!settings.onlineAenderungen">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+      <span class="vorlauf-hint">Mindestvorlaufzeit für Änderungen</span>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved13()" (click)="saveBlock(13)">
+        {{ saved13() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       14. ONLINE STORNIERUNG
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">event_busy</mat-icon>
+        Online Stornierung
+      </h2>
+      <button class="info-button" [class.active]="info14()" (click)="info14.set(!info14())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info14()">
+      Erlaubt Gästen, ihre Buchung online zu stornieren. Lege fest, wie viele
+      Minuten vor der Buchung eine Stornierung noch möglich ist.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Online Stornierung zulassen</span>
+        <small>Gäste können ihre Buchung selbst absagen</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.onlineStornierung">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="vorlauf-row">
+      <div class="we-number">
+        <button (click)="stepDown('onlineStornierungMinuten', 15, 0)" [disabled]="!settings.onlineStornierung">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <span class="vorlauf-value" [class.muted]="!settings.onlineStornierung">
+          {{ formatMinuten(settings.onlineStornierungMinuten) }}
+        </span>
+        <button (click)="stepUp('onlineStornierungMinuten', 15)" [disabled]="!settings.onlineStornierung">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+      <span class="vorlauf-hint">Mindestvorlaufzeit für Stornierung</span>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved14()" (click)="saveBlock(14)">
+        {{ saved14() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+</div>

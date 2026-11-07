@@ -1,1 +1,1726 @@
-<p>widget works!</p>
+<div class="settings-container">
+
+  <!-- =====================================================================
+    KOPFBEREICH
+  ===================================================================== -->
+  <div class="page-intro">
+    <div class="page-intro__title">
+      <mat-icon>dashboard_customize</mat-icon>
+      <div>
+        <h2>Widget-Designer</h2>
+        <p>Stelle dein Buchungs-Widget so zusammen, wie es zu deinem Restaurant passt.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================== 01  LAYOUT ===================== -->
+  <div class="settings-block">
+
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index">01</span>
+        Layout
+      </h3>
+      <span class="section-title__hint">Welche optische Stilrichtung soll das Widget haben?</span>
+    </div>
+
+    <div class="layout-grid">
+      @for (opt of layoutOptions; track opt.key) {
+        <button type="button"
+                class="layout-card"
+                [class.is-active]="selectedLayout() === opt.key"
+                (click)="setLayout(opt.key)">
+
+          <div class="layout-card__sketch">
+            @switch (opt.key) {
+              @case ('card') {
+                <!-- Karten-Stil: Hero-Foto, zentrierter Titel, Stepper, Datum/Zeit, outlined CTA -->
+                <svg viewBox="0 0 120 84" aria-hidden="true">
+                  <rect class="sketch-block" x="32" y="6"  width="56" height="22" rx="4"/>
+                  <rect class="sketch-row"   x="40" y="34" width="40" height="5"  rx="2"/>
+                  <rect class="sketch-row"   x="46" y="44" width="28" height="4"  rx="2"/>
+                  <rect class="sketch-row"   x="36" y="51" width="48" height="6"  rx="2"/>
+                  <rect class="sketch-row"   x="22" y="62" width="34" height="5"  rx="2"/>
+                  <rect class="sketch-row"   x="64" y="62" width="34" height="5"  rx="2"/>
+                  <rect class="sketch-cta-outline" x="22" y="72" width="76" height="8" rx="3"/>
+                </svg>
+              }
+              @case ('sidebar') {
+                <!-- Hotel-Stil: Hintergrundfeld, schmale Sidebar mit gestackter Headline + Linien-Inputs + CTA -->
+                <svg viewBox="0 0 120 84" aria-hidden="true">
+                  <rect class="sketch-bg"    x="0"  y="0"  width="120" height="84"/>
+                  <rect class="sketch-card"  x="68" y="8"  width="46"  height="68" rx="3"/>
+                  <rect class="sketch-block" x="72" y="14" width="22"  height="4"  rx="1"/>
+                  <rect class="sketch-block" x="72" y="20" width="30"  height="4"  rx="1"/>
+                  <rect class="sketch-row"   x="72" y="32" width="14"  height="2"  rx="1"/>
+                  <rect class="sketch-row"   x="72" y="36" width="34"  height="2"  rx="1"/>
+                  <rect class="sketch-line"  x="72" y="40" width="36"  height="0.6" rx="0"/>
+                  <rect class="sketch-row"   x="72" y="44" width="14"  height="2"  rx="1"/>
+                  <rect class="sketch-row"   x="72" y="48" width="34"  height="2"  rx="1"/>
+                  <rect class="sketch-line"  x="72" y="52" width="36"  height="0.6" rx="0"/>
+                  <rect class="sketch-row"   x="72" y="56" width="14"  height="2"  rx="1"/>
+                  <rect class="sketch-row"   x="72" y="60" width="22"  height="2"  rx="1"/>
+                  <rect class="sketch-row sketch-row--cta" x="72" y="68" width="22" height="6" rx="1.5"/>
+                </svg>
+              }
+              @case ('stacked') {
+                <!-- Klassisch: Header oben, mehrere Felder untereinander, filled CTA unten -->
+                <svg viewBox="0 0 120 84" aria-hidden="true">
+                  <rect class="sketch-block" x="10" y="8"  width="100" height="14" rx="3"/>
+                  <rect class="sketch-row"   x="10" y="28" width="100" height="6"  rx="2"/>
+                  <rect class="sketch-row"   x="10" y="38" width="100" height="6"  rx="2"/>
+                  <rect class="sketch-row"   x="10" y="48" width="100" height="6"  rx="2"/>
+                  <rect class="sketch-row"   x="10" y="58" width="100" height="6"  rx="2"/>
+                  <rect class="sketch-row sketch-row--cta" x="10" y="72" width="100" height="6" rx="2"/>
+                </svg>
+              }
+              @case ('planner') {
+                <!-- Planer-Stil: 3-Stufen-Wizard — Step-Indicator oben, Panel mittig, CTA unten -->
+                <svg viewBox="0 0 120 84" aria-hidden="true">
+                  <!-- Step-Indicator (Kreise mit Verbindungslinien) -->
+                  <line class="sketch-cta-outline" x1="32" y1="14" x2="60" y2="14" stroke-width="1"/>
+                  <line class="sketch-cta-outline" x1="60" y1="14" x2="88" y2="14" stroke-width="1"/>
+                  <circle class="sketch-block" cx="32" cy="14" r="4"/>
+                  <circle class="sketch-row"   cx="60" cy="14" r="4"/>
+                  <circle class="sketch-row"   cx="88" cy="14" r="4"/>
+                  <!-- Panel mit Inhalt (Kalender als aktiver Step) -->
+                  <rect class="sketch-card" x="10" y="26" width="100" height="40" rx="3"/>
+                  <rect class="sketch-row"  x="14" y="30" width="40" height="3" rx="1"/>
+                  <rect class="sketch-line" x="14" y="38" width="14" height="6" rx="1"/>
+                  <rect class="sketch-block" x="32" y="38" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="50" y="38" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="68" y="38" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="86" y="38" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="14" y="48" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="32" y="48" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="50" y="48" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="68" y="48" width="14" height="6" rx="1"/>
+                  <rect class="sketch-line" x="86" y="48" width="14" height="6" rx="1"/>
+                  <!-- Footer: Zurück + CTA -->
+                  <rect class="sketch-cta-outline" x="10" y="72" width="22" height="6" rx="1.5"/>
+                  <rect class="sketch-row sketch-row--cta" x="76" y="72" width="34" height="6" rx="1.5"/>
+                </svg>
+              }
+            }
+          </div>
+
+          <div class="layout-card__body">
+            <div class="layout-card__head">
+              <span class="layout-card__label">{{ opt.label }}</span>
+              @if (selectedLayout() === opt.key) {
+                <mat-icon class="layout-card__check">check_circle</mat-icon>
+              }
+            </div>
+            <div class="layout-card__tagline">{{ opt.tagline }}</div>
+            <div class="layout-card__description">{{ opt.description }}</div>
+          </div>
+        </button>
+      }
+    </div>
+  </div>
+
+
+  <!-- ===================== 02  BILD (Card- & Hotel-Stil) ===================== -->
+  @if (needsImage()) {
+    <div class="settings-block">
+
+      <div class="section-header">
+        <h3 class="section-title">
+          <span class="section-title__index">02</span>
+          Bild
+        </h3>
+        <span class="section-title__hint">
+          @if (selectedLayout() === 'card') {
+            Hero-Foto, das groß im Karten-Stil oben angezeigt wird.
+          } @else {
+            Hintergrundbild, über dem die schmale Buchungs-Karte schwebt.
+          }
+        </span>
+      </div>
+
+      <div class="image-upload">
+        @if (imageUrl()) {
+          <div class="image-upload__preview">
+            <img [src]="imageUrl()!" alt="Vorschau">
+            <button type="button" class="image-upload__remove" (click)="clearImage()">
+              <mat-icon>close</mat-icon>
+              Entfernen
+            </button>
+          </div>
+        } @else {
+          <label class="image-upload__dropzone">
+            <input type="file"
+                   accept="image/*"
+                   (change)="onImageSelected($event)">
+            <mat-icon class="image-upload__dropzone-icon">add_photo_alternate</mat-icon>
+            <span class="image-upload__dropzone-title">Bild auswählen</span>
+            <span class="image-upload__dropzone-hint">JPG, PNG oder WebP — bis 5&nbsp;MB</span>
+          </label>
+        }
+        <p class="image-upload__note">
+          Wird aktuell nur lokal in der Vorschau gespeichert. Sobald die Persistenz
+          steht, wird das Bild auf den Server hochgeladen.
+        </p>
+      </div>
+    </div>
+  }
+
+
+  <!-- ===================== 03  ÜBERSCHRIFT / TEXTE ===================== -->
+  <div class="settings-block">
+
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index">03</span>
+        Überschrift &amp; Texte
+      </h3>
+      <span class="section-title__hint">Was steht oben im Widget?</span>
+    </div>
+
+    <div class="form-grid">
+
+      <!-- Titel -->
+      <div class="form-row">
+        <label class="form-row__label">Titel</label>
+        <input type="text"
+               class="form-row__input"
+               [ngModel]="headingTitle()"
+               (ngModelChange)="headingTitle.set($event)"
+               placeholder="z.B. Tisch reservieren"
+               maxlength="60">
+        <span class="form-row__hint">Erscheint groß als Überschrift im Widget.</span>
+      </div>
+
+      <!-- Untertitel -->
+      <div class="form-row">
+        <label class="form-row__label">
+          Untertitel
+          <label class="toggle">
+            <input type="checkbox"
+                   [checked]="showSubtitle()"
+                   (change)="showSubtitle.set(!showSubtitle())">
+            <span class="toggle__track"><span class="toggle__thumb"></span></span>
+            <span class="toggle__label">{{ showSubtitle() ? 'sichtbar' : 'ausgeblendet' }}</span>
+          </label>
+        </label>
+        <input type="text"
+               class="form-row__input"
+               [disabled]="!showSubtitle()"
+               [ngModel]="headingSubtitle()"
+               (ngModelChange)="headingSubtitle.set($event)"
+               placeholder="z.B. bei Restaurant Bella Vista"
+               maxlength="80">
+        <span class="form-row__hint">Steht kleiner unter dem Titel.</span>
+      </div>
+
+      <!-- Ausrichtung -->
+      <div class="form-row form-row--full">
+        <label class="form-row__label">Ausrichtung</label>
+        <div class="align-toggle">
+          @for (a of alignmentOptions; track a.key) {
+            <button type="button"
+                    class="align-toggle__btn"
+                    [class.is-active]="headingAlignment() === a.key"
+                    (click)="setHeadingAlignment(a.key)">
+              <mat-icon>{{ a.icon }}</mat-icon>
+              <span>{{ a.label }}</span>
+            </button>
+          }
+        </div>
+        <span class="form-row__hint">Bestimmt, wo Titel und Untertitel im Widget stehen.</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================== 04  TYPOGRAFIE ===================== -->
+  <div class="settings-block">
+
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index">04</span>
+        Typografie
+      </h3>
+      <span class="section-title__hint">Welche Schrift und welche Größe?</span>
+    </div>
+
+    <!-- Font-Familie als visuelle Karten -->
+    <div class="sub-section-title">Schriftart</div>
+    <div class="font-grid">
+      @for (f of fontFamilyOptions; track f.key) {
+        <button type="button"
+                class="font-card"
+                [class.is-active]="selectedFontFamily() === f.key"
+                [style.font-family]="f.stack"
+                (click)="setFontFamily(f.key)">
+          <div class="font-card__sample">Aa</div>
+          <div class="font-card__body">
+            <div class="font-card__head">
+              <span class="font-card__label">{{ f.label }}</span>
+              @if (selectedFontFamily() === f.key) {
+                <mat-icon class="font-card__check">check_circle</mat-icon>
+              }
+            </div>
+            <div class="font-card__hint">{{ f.hint }}</div>
+            <div class="font-card__preview">Tisch reservieren</div>
+          </div>
+        </button>
+      }
+    </div>
+
+    <!-- Schriftgröße als Pillen -->
+    <div class="sub-section-title sub-section-title--spaced">Schriftgröße</div>
+    <div class="pill-row">
+      @for (s of fontSizeOptions; track s.key) {
+        <button type="button"
+                class="pill"
+                [class.is-active]="selectedFontSize() === s.key"
+                (click)="setFontSize(s.key)">
+          <span class="pill__label">{{ s.label }}</span>
+          <span class="pill__hint">{{ s.hint }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+
+  <!-- ===================== 05  FARBEN ===================== -->
+  <div class="settings-block">
+
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index">05</span>
+        Farben
+      </h3>
+      <span class="section-title__hint">Markenfarbe, Text und Hintergrund.</span>
+    </div>
+
+    <div class="color-grid">
+
+      <!-- Primärfarbe -->
+      <div class="color-row">
+        <div class="color-row__head">
+          <span class="color-row__label">Markenfarbe</span>
+          <span class="color-row__hint">Wird für den Buchen-Button verwendet.</span>
+        </div>
+        <div class="color-row__controls">
+          <label class="color-input">
+            <input type="color"
+                   [value]="colorPrimary()"
+                   (input)="setColorPrimary($any($event.target).value)">
+            <span class="color-input__swatch" [style.background]="colorPrimary()"></span>
+            <span class="color-input__hex">{{ colorPrimary() }}</span>
+          </label>
+          <div class="color-presets">
+            @for (c of primaryPresets; track c) {
+              <button type="button"
+                      class="color-presets__swatch"
+                      [class.is-active]="colorPrimary().toLowerCase() === c.toLowerCase()"
+                      [style.background]="c"
+                      [attr.aria-label]="c"
+                      (click)="setColorPrimary(c)"></button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Textfarbe -->
+      <div class="color-row">
+        <div class="color-row__head">
+          <span class="color-row__label">Textfarbe</span>
+          <span class="color-row__hint">Haupt-Schriftfarbe im Widget.</span>
+        </div>
+        <div class="color-row__controls">
+          <label class="color-input">
+            <input type="color"
+                   [value]="colorText()"
+                   (input)="setColorText($any($event.target).value)">
+            <span class="color-input__swatch" [style.background]="colorText()"></span>
+            <span class="color-input__hex">{{ colorText() }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Hintergrund -->
+      <div class="color-row">
+        <div class="color-row__head">
+          <span class="color-row__label">Hintergrund</span>
+          <span class="color-row__hint">Karten-Farbe des Widgets. Dunkle Farben = Dark Mode.</span>
+        </div>
+        <div class="color-row__controls">
+          <label class="color-input">
+            <input type="color"
+                   [value]="colorBackground()"
+                   (input)="setColorBackground($any($event.target).value)">
+            <span class="color-input__swatch" [style.background]="colorBackground()"></span>
+            <span class="color-input__hex">{{ colorBackground() }}</span>
+          </label>
+          <div class="color-presets">
+            @for (c of backgroundPresets; track c) {
+              <button type="button"
+                      class="color-presets__swatch"
+                      [class.is-active]="colorBackground().toLowerCase() === c.toLowerCase()"
+                      [style.background]="c"
+                      [attr.aria-label]="c"
+                      (click)="setColorBackground(c)"></button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================== 06  BUTTON ===================== -->
+  <div class="settings-block">
+
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index">06</span>
+        Button
+      </h3>
+      <span class="section-title__hint">Beschriftung und Form des Buchen-Buttons.</span>
+    </div>
+
+    <div class="form-grid">
+
+      <!-- Button-Text -->
+      <div class="form-row form-row--full">
+        <label class="form-row__label">Button-Text</label>
+        <input type="text"
+               class="form-row__input"
+               [ngModel]="buttonLabel()"
+               (ngModelChange)="buttonLabel.set($event)"
+               placeholder="z.B. Reservieren"
+               maxlength="40">
+        <span class="form-row__hint">Was soll auf dem grossen Button unten im Widget stehen?</span>
+      </div>
+
+      <!-- Eckenradius -->
+      <div class="form-row form-row--full">
+        <label class="form-row__label">Ecken-Stil</label>
+        <div class="radius-row">
+          @for (r of radiusOptions; track r.key) {
+            <button type="button"
+                    class="radius-card"
+                    [class.is-active]="selectedRadius() === r.key"
+                    (click)="setRadius(r.key)">
+              <span class="radius-card__sketch"
+                    [style.border-radius.px]="r.px > 30 ? 30 : r.px"></span>
+              <span class="radius-card__label">{{ r.label }}</span>
+            </button>
+          }
+        </div>
+        <span class="form-row__hint">Bestimmt die Rundung von Karten, Inputs und Button.</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================== 07  LIVE-VORSCHAU ===================== -->
+  <div class="settings-block">
+
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index">07</span>
+        Live-Vorschau
+      </h3>
+      <span class="section-title__hint">So sieht dein Widget gerade aus.</span>
+    </div>
+
+    <div class="preview-stage">
+
+      <!--
+        Zwei Geräte-Vorschauen nebeneinander: Desktop-Browser-Frame links,
+        Phone-Mockup rechts. Beide rendern dasselbe ng-template "previewBody"
+        und reagieren live auf alle Designer-Settings.
+      -->
+
+      <!-- ── Desktop ─────────────────────────────────────────────────── -->
+      <div class="preview-device preview-device--desktop">
+        <div class="preview-device__head">
+          <mat-icon>desktop_windows</mat-icon>
+          <span>Desktop</span>
+        </div>
+
+        <div class="preview-frame">
+          <div class="preview-frame__bar">
+            <span class="preview-frame__dot"></span>
+            <span class="preview-frame__dot"></span>
+            <span class="preview-frame__dot"></span>
+            <span class="preview-frame__url">restaurant.de/reservieren</span>
+          </div>
+
+          <div class="preview"
+               [class]="previewClass()"
+               [class.preview--align-left]="headingAlignment() === 'left'"
+               [class.preview--align-center]="headingAlignment() === 'center'"
+               [class.preview--align-right]="headingAlignment() === 'right'"
+               [ngStyle]="previewStyle()">
+            <ng-container *ngTemplateOutlet="previewBody"></ng-container>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Mobile ──────────────────────────────────────────────────── -->
+      <div class="preview-device preview-device--mobile">
+        <div class="preview-device__head">
+          <mat-icon>smartphone</mat-icon>
+          <span>Mobil</span>
+        </div>
+
+        <div class="preview-phone">
+          <div class="preview-phone__notch"></div>
+          <div class="preview-phone__screen">
+            <div class="preview-phone__statusbar">
+              <span class="preview-phone__time">9:41</span>
+              <span class="preview-phone__icons">
+                <mat-icon>signal_cellular_alt</mat-icon>
+                <mat-icon>wifi</mat-icon>
+                <mat-icon>battery_full</mat-icon>
+              </span>
+            </div>
+
+            <div class="preview-phone__scroll">
+              <div class="preview preview--mobile"
+                   [class]="previewClass()"
+                   [class.preview--align-left]="headingAlignment() === 'left'"
+                   [class.preview--align-center]="headingAlignment() === 'center'"
+                   [class.preview--align-right]="headingAlignment() === 'right'"
+                   [ngStyle]="previewStyle()">
+                <ng-container *ngTemplateOutlet="previewBody"></ng-container>
+              </div>
+            </div>
+          </div>
+          <div class="preview-phone__home"></div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!--
+      Geteiltes Vorschau-Markup. Beide Geräte (Desktop + Mobile) rendern
+      diesen Block via *ngTemplateOutlet — so haben wir nur eine Stelle,
+      an der das eigentliche Widget-Markup gepflegt wird.
+    -->
+    <ng-template #previewBody>
+      @switch (selectedLayout()) {
+
+            <!-- ─────────── KARTEN-STIL (Bild 1) — 2-Schritt-Flow ─────────── -->
+            @case ('card') {
+              <div class="preview-card">
+                <div class="preview-card__hero"
+                     [class.has-image]="!!imageUrl()"
+                     [style.background-image]="imageUrl() ? 'url(' + imageUrl() + ')' : null">
+                  @if (!imageUrl()) {
+                    <mat-icon>restaurant</mat-icon>
+                    <span class="preview-card__hero-hint">Bild hier oben einfügen</span>
+                  }
+                </div>
+
+                @if (cardStep() === 1) {
+                  <!-- ─── Schritt 1: Personen + Datum + Uhrzeit ─── -->
+                  <h4 class="preview-card__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+                  @if (showSubtitle() && headingSubtitle()) {
+                    <p class="preview-card__subtitle">{{ headingSubtitle() }}</p>
+                  }
+
+                  <!-- Inline-Picker: Personen (öffnet OBEN, vor dem Stepper) -->
+                  @if (cardOpenPicker() === 'seats') {
+                    <div class="preview-card__picker preview-card__picker--seats">
+                      <div class="preview-planner">
+                        <div class="preview-planner__chips preview-planner__chips--seats">
+                          @for (seat of plannerSeats; track seat.count) {
+                            <button type="button"
+                                    class="preview-planner__chip preview-planner__chip--seat"
+                                    [class.is-selected]="seat.count === plannerSelectedSeats()"
+                                    (click)="cardSelectSeats(seat.count)"
+                                    tabindex="-1">
+                              <mat-icon class="preview-planner__chip-icon">person</mat-icon>
+                              <span class="preview-planner__chip-label">{{ seat.label }}</span>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Personen: Stepper (−/+) + Klick auf Zahl öffnet Chips-Picker -->
+                  <div class="preview-card__group">
+                    <div class="preview-card__label">Personen</div>
+                    <div class="preview-card__stepper">
+                      <button type="button"
+                              class="preview-card__stepper-btn"
+                              (click)="cardDecSeats()"
+                              tabindex="-1">−</button>
+                      <button type="button"
+                              class="preview-card__stepper-num"
+                              [class.is-active]="cardOpenPicker() === 'seats'"
+                              (click)="cardTogglePicker('seats')"
+                              tabindex="-1">{{ plannerSelectedSeats() }}</button>
+                      <button type="button"
+                              class="preview-card__stepper-btn"
+                              (click)="cardIncSeats()"
+                              tabindex="-1">+</button>
+                    </div>
+                  </div>
+
+                  <!-- Inline-Picker: Datum (öffnet OBEN, mit Monats-Pfeilen) -->
+                  @if (cardOpenPicker() === 'date') {
+                    <div class="preview-card__picker preview-card__picker--date">
+                      <div class="preview-planner">
+                        <div class="preview-planner__cal-bar">
+                          <button class="preview-planner__cal-nav"
+                                  type="button"
+                                  (click)="plannerPrevMonth()"
+                                  tabindex="-1">
+                            <mat-icon>chevron_left</mat-icon>
+                          </button>
+                          <span class="preview-planner__cal-month">{{ plannerCalendarMonthLabel() }}</span>
+                          <button class="preview-planner__cal-nav"
+                                  type="button"
+                                  (click)="plannerNextMonth()"
+                                  tabindex="-1">
+                            <mat-icon>chevron_right</mat-icon>
+                          </button>
+                        </div>
+                        <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays">
+                          @for (wd of plannerWeekdays; track $index) {
+                            <span class="preview-planner__cal-weekday">{{ wd }}</span>
+                          }
+                        </div>
+                        <div class="preview-planner__cal-grid">
+                          @for (cell of plannerCalendarCells(); track $index) {
+                            @if (cell.day !== null) {
+                              <button type="button"
+                                      class="preview-planner__cal-day"
+                                      [class.is-today]="cell.isToday"
+                                      [class.is-selected]="cell.isSelected"
+                                      (click)="cardSelectDay(cell.day!)"
+                                      tabindex="-1">
+                                {{ cell.day }}
+                              </button>
+                            } @else {
+                              <span class="preview-planner__cal-day preview-planner__cal-day--empty"></span>
+                            }
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Inline-Picker: Uhrzeit (öffnet OBEN, vor dem Datum/Uhrzeit-Feld) -->
+                  @if (cardOpenPicker() === 'time') {
+                    <div class="preview-card__picker preview-card__picker--time">
+                      <div class="preview-planner">
+                        <div class="preview-planner__chips preview-planner__chips--times">
+                          @for (slot of plannerTimes; track slot.label) {
+                            <button type="button"
+                                    class="preview-planner__chip"
+                                    [class.is-selected]="slot.label === plannerSelectedTime()"
+                                    (click)="cardSelectTime(slot.label)"
+                                    tabindex="-1">
+                              {{ slot.label }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Datum & Uhrzeit: zwei klickbare Felder -->
+                  <div class="preview-card__group">
+                    <div class="preview-card__label">Datum &amp; Uhrzeit</div>
+                    <div class="preview-card__datetime">
+                      <button class="preview-card__datetime-field"
+                              type="button"
+                              [class.is-active]="cardOpenPicker() === 'date'"
+                              (click)="cardTogglePicker('date')"
+                              tabindex="-1">
+                        <mat-icon class="preview-card__datetime-icon">calendar_month</mat-icon>
+                        <span class="preview-card__datetime-meta">
+                          <span class="preview-card__datetime-hint">Datum</span>
+                          <span class="preview-card__datetime-text">{{ plannerSelectedDateLabel() }}</span>
+                        </span>
+                        <mat-icon class="preview-card__datetime-chevron">expand_more</mat-icon>
+                      </button>
+                      <button class="preview-card__datetime-field"
+                              type="button"
+                              [class.is-active]="cardOpenPicker() === 'time'"
+                              (click)="cardTogglePicker('time')"
+                              tabindex="-1">
+                        <mat-icon class="preview-card__datetime-icon">schedule</mat-icon>
+                        <span class="preview-card__datetime-meta">
+                          <span class="preview-card__datetime-hint">Uhrzeit</span>
+                          <span class="preview-card__datetime-text">{{ plannerSelectedTime() }} Uhr</span>
+                        </span>
+                        <mat-icon class="preview-card__datetime-chevron">expand_more</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- CTA Schritt 1: navigiert zu Schritt 2 (Daten-Formular) -->
+                  <button class="preview-card__cta"
+                          type="button"
+                          (click)="cardNextStep()"
+                          tabindex="-1">
+                    {{ buttonLabel() || 'Reservieren' }}
+                  </button>
+
+                } @else {
+                  <!-- ─── Schritt 2: Vorname / Nachname / Telefon / E-Mail / Notizen ─── -->
+                  <h4 class="preview-card__title">Deine Daten</h4>
+                  <p class="preview-card__subtitle">
+                    {{ plannerSelectedSeats() }}&nbsp;{{ plannerSelectedSeats() === 1 ? 'Gast' : 'Gäste' }}
+                    · {{ plannerSelectedDateLabel() }}
+                    · {{ plannerSelectedTime() }}&nbsp;Uhr
+                  </p>
+
+                  <div class="preview-card__form">
+                    <div class="preview-card__form-row preview-card__form-row--split">
+                      <div class="preview-card__field">
+                        <label class="preview-card__field-label">Vorname</label>
+                        <div class="preview-card__field-input">Max</div>
+                      </div>
+                      <div class="preview-card__field">
+                        <label class="preview-card__field-label">Nachname</label>
+                        <div class="preview-card__field-input">Mustermann</div>
+                      </div>
+                    </div>
+
+                    <div class="preview-card__field">
+                      <label class="preview-card__field-label">Telefon</label>
+                      <div class="preview-card__field-input">+49 …</div>
+                    </div>
+
+                    <div class="preview-card__field">
+                      <label class="preview-card__field-label">E-Mail</label>
+                      <div class="preview-card__field-input">name&#64;beispiel.de</div>
+                    </div>
+
+                    <div class="preview-card__field">
+                      <label class="preview-card__field-label">
+                        Notizen <span class="preview-card__field-optional">(optional)</span>
+                      </label>
+                      <div class="preview-card__field-input preview-card__field-input--area">
+                        Allergien, Kinderstuhl, besondere Wünsche …
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- DSGVO-Einwilligung: Pflicht-Checkbox vor dem Senden -->
+                  <label class="preview-card__consent"
+                         [class.is-checked]="cardConsent()">
+                    <input type="checkbox"
+                           class="preview-card__consent-input"
+                           [checked]="cardConsent()"
+                           (change)="cardToggleConsent()"
+                           tabindex="-1">
+                    <span class="preview-card__consent-box" aria-hidden="true">
+                      @if (cardConsent()) {
+                        <mat-icon>check</mat-icon>
+                      }
+                    </span>
+                    <span class="preview-card__consent-text">
+                      Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung
+                      gespeichert werden.
+                      <a class="preview-card__consent-link"
+                         href="javascript:void(0)"
+                         (click)="$event.preventDefault()">Datenschutzerklärung</a>
+                    </span>
+                  </label>
+
+                  <!-- Footer: Zurück + Senden (Senden bleibt visuell „disabled", solange keine Einwilligung) -->
+                  <div class="preview-card__nav">
+                    <button class="preview-card__back"
+                            type="button"
+                            (click)="cardPrevStep()"
+                            tabindex="-1">
+                      <mat-icon>chevron_left</mat-icon>
+                      Zurück
+                    </button>
+                    <button class="preview-card__cta preview-card__cta--submit"
+                            type="button"
+                            [class.is-disabled]="!cardConsent()"
+                            tabindex="-1">
+                      Reservierung absenden
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- ─────────── HOTEL-STIL (Bild 2) — „Concierge"-Picker ─────────── -->
+            @case ('sidebar') {
+              <div class="preview-sidebar"
+                   [class.has-image]="!!imageUrl()"
+                   [style.background-image]="imageUrl() ? 'url(' + imageUrl() + ')' : null">
+                @if (!imageUrl()) {
+                  <div class="preview-sidebar__placeholder">
+                    <mat-icon>image</mat-icon>
+                    <span>Hintergrundbild hochladen</span>
+                  </div>
+                }
+
+                <!--
+                  Card hat zwei Modi:
+                  • Übersicht (sidebarOpenPicker() === null)
+                  • Picker — schiebt sich von rechts rein und ersetzt die Übersicht
+                  Beides sitzt im selben .preview-sidebar__card-Wrapper, damit
+                  Größe und Position stabil bleiben.
+                -->
+                <div class="preview-sidebar__card"
+                     [class.is-picker-open]="sidebarOpenPicker() !== null"
+                     [class.is-step-2]="sidebarStep() === 2">
+
+                  @if (sidebarStep() === 1 && sidebarOpenPicker() === null) {
+                    <!-- ── Schritt 1: Übersicht ────────────────────────────── -->
+                    <h4 class="preview-sidebar__title">
+                      @for (word of titleWords(); track $index) {
+                        <span>{{ word }}</span>
+                      }
+                    </h4>
+                    @if (showSubtitle() && headingSubtitle()) {
+                      <p class="preview-sidebar__subtitle">{{ headingSubtitle() }}</p>
+                    }
+
+                    <!-- Datum + Uhrzeit als zwei klickbare Felder -->
+                    <div class="preview-sidebar__row">
+                      <button type="button"
+                              class="preview-sidebar__group preview-sidebar__group--button"
+                              (click)="sidebarTogglePicker('date')"
+                              tabindex="-1">
+                        <label class="preview-sidebar__label">Datum</label>
+                        <div class="preview-sidebar__value">{{ plannerSelectedDateLabel() }}</div>
+                        <mat-icon class="preview-sidebar__chevron">chevron_right</mat-icon>
+                      </button>
+                      <button type="button"
+                              class="preview-sidebar__group preview-sidebar__group--button"
+                              (click)="sidebarTogglePicker('time')"
+                              tabindex="-1">
+                        <label class="preview-sidebar__label">Uhrzeit</label>
+                        <div class="preview-sidebar__value">{{ plannerSelectedTime() }}&nbsp;Uhr</div>
+                        <mat-icon class="preview-sidebar__chevron">chevron_right</mat-icon>
+                      </button>
+                    </div>
+
+                    <!-- Personen klickbar -->
+                    <button type="button"
+                            class="preview-sidebar__group preview-sidebar__group--button"
+                            (click)="sidebarTogglePicker('seats')"
+                            tabindex="-1">
+                      <label class="preview-sidebar__label">Personen</label>
+                      <div class="preview-sidebar__value">
+                        {{ plannerSelectedSeats() }}&nbsp;{{ plannerSelectedSeats() === 1 ? 'Gast' : 'Gäste' }}
+                      </div>
+                      <mat-icon class="preview-sidebar__chevron">chevron_right</mat-icon>
+                    </button>
+
+                    <button class="preview-sidebar__cta"
+                            type="button"
+                            (click)="sidebarNextStep()"
+                            tabindex="-1">
+                      {{ buttonLabel() || 'Reservieren' }}
+                    </button>
+
+                  } @else if (sidebarStep() === 2) {
+                    <!-- ── Schritt 2: Daten-Formular ───────────────────────── -->
+                    <h4 class="preview-sidebar__title">
+                      <span>Deine</span>
+                      <span>Daten</span>
+                    </h4>
+                    <p class="preview-sidebar__subtitle">
+                      {{ plannerSelectedSeats() }}&nbsp;{{ plannerSelectedSeats() === 1 ? 'Gast' : 'Gäste' }}
+                      · {{ plannerSelectedDateLabel() }}
+                      · {{ plannerSelectedTime() }}&nbsp;Uhr
+                    </p>
+
+                    <!-- Vorname + Nachname nebeneinander (matches Datum/Uhrzeit-Reihe) -->
+                    <div class="preview-sidebar__row">
+                      <div class="preview-sidebar__group">
+                        <label class="preview-sidebar__label">Vorname</label>
+                        <div class="preview-sidebar__input">Max</div>
+                      </div>
+                      <div class="preview-sidebar__group">
+                        <label class="preview-sidebar__label">Nachname</label>
+                        <div class="preview-sidebar__input">Mustermann</div>
+                      </div>
+                    </div>
+
+                    <div class="preview-sidebar__group">
+                      <label class="preview-sidebar__label">Telefon</label>
+                      <div class="preview-sidebar__input">+49 …</div>
+                    </div>
+
+                    <div class="preview-sidebar__group">
+                      <label class="preview-sidebar__label">E-Mail</label>
+                      <div class="preview-sidebar__input">name&#64;beispiel.de</div>
+                    </div>
+
+                    <div class="preview-sidebar__group">
+                      <label class="preview-sidebar__label">
+                        Notizen <span class="preview-sidebar__optional">(optional)</span>
+                      </label>
+                      <div class="preview-sidebar__input preview-sidebar__input--area">
+                        Allergien, Kinderstuhl, besondere Wünsche …
+                      </div>
+                    </div>
+
+                    <!-- DSGVO-Einwilligung -->
+                    <label class="preview-sidebar__consent"
+                           [class.is-checked]="sidebarConsent()">
+                      <input type="checkbox"
+                             class="preview-sidebar__consent-input"
+                             [checked]="sidebarConsent()"
+                             (change)="sidebarToggleConsent()"
+                             tabindex="-1">
+                      <span class="preview-sidebar__consent-box" aria-hidden="true">
+                        @if (sidebarConsent()) {
+                          <mat-icon>check</mat-icon>
+                        }
+                      </span>
+                      <span class="preview-sidebar__consent-text">
+                        Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung
+                        gespeichert werden.
+                        <a class="preview-sidebar__consent-link"
+                           href="javascript:void(0)"
+                           (click)="$event.preventDefault()">Datenschutzerklärung</a>
+                      </span>
+                    </label>
+
+                    <!-- Footer: Zurück + Senden -->
+                    <div class="preview-sidebar__nav">
+                      <button class="preview-sidebar__back"
+                              type="button"
+                              (click)="sidebarPrevStep()"
+                              tabindex="-1">
+                        <mat-icon>arrow_back</mat-icon>
+                      </button>
+                      <button class="preview-sidebar__cta preview-sidebar__cta--submit"
+                              type="button"
+                              [class.is-disabled]="!sidebarConsent()"
+                              tabindex="-1">
+                        Reservierung absenden
+                      </button>
+                    </div>
+
+                  } @else {
+                    <!-- ── Picker-Overlay ──────────────────────────────────── -->
+                    <div class="preview-sidebar__picker">
+                      <div class="preview-sidebar__picker-head">
+                        <button class="preview-sidebar__picker-back"
+                                type="button"
+                                (click)="sidebarClosePicker()"
+                                tabindex="-1">
+                          <mat-icon>arrow_back</mat-icon>
+                        </button>
+                        <span class="preview-sidebar__picker-title">
+                          @switch (sidebarOpenPicker()) {
+                            @case ('date')  { Datum wählen }
+                            @case ('time')  { Uhrzeit wählen }
+                            @case ('seats') { Personen wählen }
+                          }
+                        </span>
+                      </div>
+                      <span class="preview-sidebar__picker-accent" aria-hidden="true"></span>
+
+                      @switch (sidebarOpenPicker()) {
+
+                        <!-- Datums-Picker: Mini-Kalender im Hotel-Look -->
+                        @case ('date') {
+                          <div class="preview-sidebar__cal">
+                            <div class="preview-sidebar__cal-bar">
+                              <button class="preview-sidebar__cal-nav"
+                                      type="button"
+                                      (click)="plannerPrevMonth()"
+                                      tabindex="-1">
+                                <mat-icon>chevron_left</mat-icon>
+                              </button>
+                              <span class="preview-sidebar__cal-month">{{ plannerCalendarMonthLabel() }}</span>
+                              <button class="preview-sidebar__cal-nav"
+                                      type="button"
+                                      (click)="plannerNextMonth()"
+                                      tabindex="-1">
+                                <mat-icon>chevron_right</mat-icon>
+                              </button>
+                            </div>
+                            <div class="preview-sidebar__cal-weekdays">
+                              @for (wd of plannerWeekdays; track $index) {
+                                <span>{{ wd }}</span>
+                              }
+                            </div>
+                            <div class="preview-sidebar__cal-grid">
+                              @for (cell of plannerCalendarCells(); track $index) {
+                                @if (cell.day !== null) {
+                                  <button type="button"
+                                          class="preview-sidebar__cal-day"
+                                          [class.is-today]="cell.isToday"
+                                          [class.is-selected]="cell.isSelected"
+                                          (click)="sidebarSelectDay(cell.day!)"
+                                          tabindex="-1">
+                                    {{ cell.day }}
+                                  </button>
+                                } @else {
+                                  <span class="preview-sidebar__cal-day preview-sidebar__cal-day--empty"></span>
+                                }
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        <!-- Uhrzeit-Picker: 3-spaltige Chips -->
+                        @case ('time') {
+                          <div class="preview-sidebar__times">
+                            @for (slot of plannerTimes; track slot.label) {
+                              <button type="button"
+                                      class="preview-sidebar__time"
+                                      [class.is-selected]="slot.label === plannerSelectedTime()"
+                                      (click)="sidebarSelectTime(slot.label)"
+                                      tabindex="-1">
+                                {{ slot.label }}
+                              </button>
+                            }
+                          </div>
+                        }
+
+                        <!-- Personen-Picker: 2-spaltige Chips mit Icon -->
+                        @case ('seats') {
+                          <div class="preview-sidebar__seats">
+                            @for (seat of plannerSeats; track seat.count) {
+                              <button type="button"
+                                      class="preview-sidebar__seat"
+                                      [class.is-selected]="seat.count === plannerSelectedSeats()"
+                                      (click)="sidebarSelectSeats(seat.count)"
+                                      tabindex="-1">
+                                <mat-icon class="preview-sidebar__seat-icon">person</mat-icon>
+                                <span class="preview-sidebar__seat-count">{{ seat.count }}</span>
+                                <span class="preview-sidebar__seat-label">{{ seat.count === 1 ? 'Gast' : (seat.count >= 8 ? 'Gäste +' : 'Gäste') }}</span>
+                              </button>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- ─────────── KLASSISCH / „COCKPIT-STIL" (interaktiv) ───────────
+                 Eigenständige Optik mit „Live"-Statusleiste oben, drei großen
+                 Cockpit-Tiles (DATUM / UHRZEIT / PERSONEN) und einem Slide-
+                 Down-Picker, der unter den Tiles ausfährt. 2-Schritt-Flow:
+                 Step 1 = Auswahl + Reservieren-CTA, Step 2 = Daten-Formular
+                 mit DSGVO-Checkbox.
+            -->
+            @case ('stacked') {
+              <div class="preview-stacked"
+                   [class.is-step-2]="stackedStep() === 2">
+
+                <!-- ── „Live"-Statusleiste oben ─────────────────────────────
+                     Pulsierender Dot links + Schritt-Indikator rechts. Sehr
+                     cleane „Tech"-Optik, die sich klar von Layout 1, 2 und 4
+                     abhebt.
+                -->
+                <div class="preview-stacked__statusbar">
+                  <div class="preview-stacked__live">
+                    <span class="preview-stacked__live-dot" aria-hidden="true"></span>
+                    <span class="preview-stacked__live-label">Live · Tisch buchen</span>
+                  </div>
+
+                  <div class="preview-stacked__steps">
+                    <span class="preview-stacked__step"
+                          [class.is-active]="stackedStep() === 1"
+                          [class.is-done]="stackedStep() > 1">1</span>
+                    <span class="preview-stacked__step-bar"
+                          [class.is-done]="stackedStep() > 1"></span>
+                    <span class="preview-stacked__step"
+                          [class.is-active]="stackedStep() === 2">2</span>
+                  </div>
+                </div>
+
+                <!-- Markenfarben-Akzentlinie unter der Status-Leiste -->
+                <div class="preview-stacked__accent" aria-hidden="true">
+                  <span class="preview-stacked__accent-fill"
+                        [style.width.%]="stackedStep() === 1 ? 50 : 100"></span>
+                </div>
+
+                <!-- ── Header (Titel + Untertitel) ─────────────────────── -->
+                <header class="preview-stacked__header">
+                  <h4 class="preview-stacked__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+                  @if (showSubtitle() && headingSubtitle()) {
+                    <p class="preview-stacked__subtitle">{{ headingSubtitle() }}</p>
+                  }
+                </header>
+
+                @if (stackedStep() === 1) {
+                  <!-- ── Schritt 1: Cockpit-Tiles für Datum/Uhrzeit/Personen ── -->
+                  <div class="preview-stacked__tiles">
+
+                    <!-- Datum -->
+                    <button class="preview-stacked__tile"
+                            type="button"
+                            [class.is-active]="stackedOpenPicker() === 'date'"
+                            (click)="stackedTogglePicker('date')"
+                            tabindex="-1">
+                      <span class="preview-stacked__tile-eyebrow">
+                        <mat-icon>event</mat-icon>
+                        Datum
+                      </span>
+                      <span class="preview-stacked__tile-value">{{ stackedShortDateLabel().day }}</span>
+                      <span class="preview-stacked__tile-meta">{{ stackedShortDateLabel().month }} {{ plannerCalendarYear() }}</span>
+                    </button>
+
+                    <!-- Uhrzeit -->
+                    <button class="preview-stacked__tile"
+                            type="button"
+                            [class.is-active]="stackedOpenPicker() === 'time'"
+                            (click)="stackedTogglePicker('time')"
+                            tabindex="-1">
+                      <span class="preview-stacked__tile-eyebrow">
+                        <mat-icon>schedule</mat-icon>
+                        Uhrzeit
+                      </span>
+                      <span class="preview-stacked__tile-value">{{ plannerSelectedTime() }}</span>
+                      <span class="preview-stacked__tile-meta">Uhr</span>
+                    </button>
+
+                    <!-- Personen -->
+                    <button class="preview-stacked__tile"
+                            type="button"
+                            [class.is-active]="stackedOpenPicker() === 'seats'"
+                            (click)="stackedTogglePicker('seats')"
+                            tabindex="-1">
+                      <span class="preview-stacked__tile-eyebrow">
+                        <mat-icon>group</mat-icon>
+                        Personen
+                      </span>
+                      <span class="preview-stacked__tile-value">{{ plannerSelectedSeats() }}</span>
+                      <span class="preview-stacked__tile-meta">{{ plannerSelectedSeats() === 1 ? 'Gast' : 'Gäste' }}</span>
+                    </button>
+                  </div>
+
+                  <!-- ── Slide-Down-Picker (unter den Tiles) ────────────── -->
+                  @if (stackedOpenPicker() !== null) {
+                    <div class="preview-stacked__picker">
+
+                      @switch (stackedOpenPicker()) {
+
+                        @case ('date') {
+                          <!-- Mini-Kalender — gleiche Logik wie Layout 1 & 4 -->
+                          <div class="preview-stacked__cal">
+                            <div class="preview-stacked__cal-bar">
+                              <button class="preview-stacked__cal-nav"
+                                      type="button"
+                                      (click)="plannerPrevMonth()"
+                                      tabindex="-1">
+                                <mat-icon>chevron_left</mat-icon>
+                              </button>
+                              <span class="preview-stacked__cal-month">{{ plannerCalendarMonthLabel() }}</span>
+                              <button class="preview-stacked__cal-nav"
+                                      type="button"
+                                      (click)="plannerNextMonth()"
+                                      tabindex="-1">
+                                <mat-icon>chevron_right</mat-icon>
+                              </button>
+                            </div>
+
+                            <div class="preview-stacked__cal-weekdays">
+                              @for (wd of plannerWeekdays; track wd) {
+                                <span>{{ wd }}</span>
+                              }
+                            </div>
+
+                            <div class="preview-stacked__cal-grid">
+                              @for (cell of plannerCalendarCells(); track $index) {
+                                @if (cell.day === null) {
+                                  <span class="preview-stacked__cal-day preview-stacked__cal-day--empty"></span>
+                                } @else {
+                                  <button class="preview-stacked__cal-day"
+                                          type="button"
+                                          [class.is-today]="cell.isToday"
+                                          [class.is-selected]="cell.isSelected"
+                                          (click)="stackedSelectDay(cell.day!)"
+                                          tabindex="-1">
+                                    {{ cell.day }}
+                                  </button>
+                                }
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        @case ('time') {
+                          <div class="preview-stacked__times">
+                            @for (t of plannerTimes; track t.label) {
+                              <button class="preview-stacked__time"
+                                      type="button"
+                                      [class.is-selected]="plannerSelectedTime() === t.label"
+                                      (click)="stackedSelectTime(t.label)"
+                                      tabindex="-1">
+                                {{ t.label }}
+                              </button>
+                            }
+                          </div>
+                        }
+
+                        @case ('seats') {
+                          <div class="preview-stacked__seats">
+                            @for (s of plannerSeats; track s.count) {
+                              <button class="preview-stacked__seat"
+                                      type="button"
+                                      [class.is-selected]="plannerSelectedSeats() === s.count"
+                                      (click)="stackedSelectSeats(s.count)"
+                                      tabindex="-1">
+                                <span class="preview-stacked__seat-num">{{ s.count }}</span>
+                                <span class="preview-stacked__seat-label">{{ s.count === 1 ? 'Gast' : (s.count >= 8 ? 'Gäste +' : 'Gäste') }}</span>
+                              </button>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+
+                  <!-- ── CTA: Reservieren → Schritt 2 ────────────────────── -->
+                  <button class="preview-stacked__cta"
+                          type="button"
+                          (click)="stackedNextStep()"
+                          tabindex="-1">
+                    <span>{{ buttonLabel() || 'Reservieren' }}</span>
+                    <mat-icon>arrow_forward</mat-icon>
+                  </button>
+
+                } @else {
+                  <!-- ── Schritt 2: Daten-Formular + DSGVO ─────────────── -->
+                  <p class="preview-stacked__summary">
+                    {{ plannerSelectedSeats() }}&nbsp;{{ plannerSelectedSeats() === 1 ? 'Gast' : 'Gäste' }}
+                    · {{ plannerSelectedDateLabel() }}
+                    · {{ plannerSelectedTime() }}&nbsp;Uhr
+                  </p>
+
+                  <div class="preview-stacked__form">
+
+                    <div class="preview-stacked__row">
+                      <div class="preview-stacked__field">
+                        <label class="preview-stacked__field-label">Vorname</label>
+                        <div class="preview-stacked__field-input">Max</div>
+                      </div>
+                      <div class="preview-stacked__field">
+                        <label class="preview-stacked__field-label">Nachname</label>
+                        <div class="preview-stacked__field-input">Mustermann</div>
+                      </div>
+                    </div>
+
+                    <div class="preview-stacked__field">
+                      <label class="preview-stacked__field-label">E-Mail</label>
+                      <div class="preview-stacked__field-input">name&#64;beispiel.de</div>
+                    </div>
+
+                    <div class="preview-stacked__field">
+                      <label class="preview-stacked__field-label">Telefon</label>
+                      <div class="preview-stacked__field-input">+49 …</div>
+                    </div>
+
+                    <div class="preview-stacked__field">
+                      <label class="preview-stacked__field-label">
+                        Anmerkungen <span class="preview-stacked__optional">(optional)</span>
+                      </label>
+                      <div class="preview-stacked__field-input preview-stacked__field-input--area">
+                        Besonderheiten, Allergien …
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- DSGVO-Einwilligung -->
+                  <label class="preview-stacked__consent"
+                         [class.is-checked]="stackedConsent()"
+                         (click)="stackedToggleConsent(); $event.preventDefault()">
+                    <input type="checkbox"
+                           class="preview-stacked__consent-input"
+                           [checked]="stackedConsent()"
+                           tabindex="-1" />
+                    <span class="preview-stacked__consent-box" aria-hidden="true">
+                      @if (stackedConsent()) {
+                        <mat-icon>check</mat-icon>
+                      }
+                    </span>
+                    <span class="preview-stacked__consent-text">
+                      Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung
+                      gespeichert werden.
+                      <a class="preview-stacked__consent-link"
+                         (click)="$event.preventDefault(); $event.stopPropagation()">Datenschutzerklärung</a>
+                    </span>
+                  </label>
+
+                  <!-- Footer mit Zurück + Submit -->
+                  <div class="preview-stacked__nav">
+                    <button class="preview-stacked__back"
+                            type="button"
+                            (click)="stackedPrevStep()"
+                            tabindex="-1">
+                      <mat-icon>arrow_back</mat-icon>
+                    </button>
+                    <button class="preview-stacked__cta preview-stacked__cta--submit"
+                            type="button"
+                            [class.is-disabled]="!stackedConsent()"
+                            tabindex="-1">
+                      <span>Reservierung absenden</span>
+                      <mat-icon>check</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- ─────────── PLANER-STIL (3-Stufen-Wizard) ─────────── -->
+            @case ('planner') {
+              <header class="preview__header">
+                <h4 class="preview__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+                @if (showSubtitle() && headingSubtitle()) {
+                  <p class="preview__subtitle">{{ headingSubtitle() }}</p>
+                }
+              </header>
+
+              <!--
+                Planer-Layout:
+                  • Desktop: Step-Header oben, alle 3 Panels nebeneinander, CTA unten.
+                  • Mobile : Step-Header oben, nur das aktive Panel, Footer mit
+                            "Zurück" (ab Stufe 2) und CTA (auf Stufe 3).
+                Alle Panels werden immer ins DOM gerendert, die Sichtbarkeit
+                regelt CSS abhängig von [attr.data-step] und der `.preview--mobile`-Klasse.
+              -->
+              <div class="preview-planner" [attr.data-step]="plannerStep()">
+
+                <!-- Step-Indicator: 1 → 2 → 3, klickbar zum Vor- und Zurückspringen -->
+                <div class="preview-planner__steps">
+                  <button type="button"
+                          class="preview-planner__step"
+                          [class.is-active]="plannerStep() === 1"
+                          [class.is-done]="plannerStep() > 1"
+                          (click)="setPlannerStep(1)">
+                    <span class="preview-planner__step-num">
+                      @if (plannerStep() > 1) {
+                        <mat-icon>check</mat-icon>
+                      } @else {
+                        1
+                      }
+                    </span>
+                    <span class="preview-planner__step-label">Datum</span>
+                  </button>
+
+                  <span class="preview-planner__step-bar"
+                        [class.is-done]="plannerStep() > 1"></span>
+
+                  <button type="button"
+                          class="preview-planner__step"
+                          [class.is-active]="plannerStep() === 2"
+                          [class.is-done]="plannerStep() > 2"
+                          (click)="setPlannerStep(2)">
+                    <span class="preview-planner__step-num">
+                      @if (plannerStep() > 2) {
+                        <mat-icon>check</mat-icon>
+                      } @else {
+                        2
+                      }
+                    </span>
+                    <span class="preview-planner__step-label">Uhrzeit</span>
+                  </button>
+
+                  <span class="preview-planner__step-bar"
+                        [class.is-done]="plannerStep() > 2"></span>
+
+                  <button type="button"
+                          class="preview-planner__step"
+                          [class.is-active]="plannerStep() === 3"
+                          [class.is-done]="plannerStep() > 3"
+                          (click)="setPlannerStep(3)">
+                    <span class="preview-planner__step-num">
+                      @if (plannerStep() > 3) {
+                        <mat-icon>check</mat-icon>
+                      } @else {
+                        3
+                      }
+                    </span>
+                    <span class="preview-planner__step-label">Personen</span>
+                  </button>
+
+                  <span class="preview-planner__step-bar"
+                        [class.is-done]="plannerStep() > 3"></span>
+
+                  <button type="button"
+                          class="preview-planner__step"
+                          [class.is-active]="plannerStep() === 4"
+                          (click)="setPlannerStep(4)">
+                    <span class="preview-planner__step-num">4</span>
+                    <span class="preview-planner__step-label">Daten</span>
+                  </button>
+                </div>
+
+                <!-- Panels: auf Desktop 3-spaltig, auf Mobile nur das aktive -->
+                <div class="preview-planner__panels">
+
+                  <!-- Stufe 1: Datum -->
+                  <section class="preview-planner__panel"
+                           [class.is-active]="plannerStep() === 1">
+                    <div class="preview-planner__panel-head">
+                      <mat-icon class="preview-planner__panel-icon">event</mat-icon>
+                      <span class="preview-planner__panel-title">Datum</span>
+                    </div>
+
+                    <div class="preview-planner__cal">
+                      <div class="preview-planner__cal-bar">
+                        <button class="preview-planner__cal-nav"
+                                type="button"
+                                (click)="plannerPrevMonth()"
+                                tabindex="-1">
+                          <mat-icon>chevron_left</mat-icon>
+                        </button>
+                        <span class="preview-planner__cal-month">{{ plannerCalendarMonthLabel() }}</span>
+                        <button class="preview-planner__cal-nav"
+                                type="button"
+                                (click)="plannerNextMonth()"
+                                tabindex="-1">
+                          <mat-icon>chevron_right</mat-icon>
+                        </button>
+                      </div>
+
+                      <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays">
+                        @for (wd of plannerWeekdays; track wd) {
+                          <span class="preview-planner__cal-weekday">{{ wd }}</span>
+                        }
+                      </div>
+
+                      <div class="preview-planner__cal-grid">
+                        @for (cell of plannerCalendarCells(); track $index) {
+                          @if (cell.day === null) {
+                            <span class="preview-planner__cal-day preview-planner__cal-day--empty"></span>
+                          } @else {
+                            <button class="preview-planner__cal-day"
+                                    type="button"
+                                    [class.is-today]="cell.isToday"
+                                    [class.is-selected]="cell.isSelected"
+                                    (click)="selectPlannerDay(cell.day!)">
+                              {{ cell.day }}
+                            </button>
+                          }
+                        }
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Stufe 2: Uhrzeit — „Watch-Face"-Dial mit rotierender Nadel -->
+                  <section class="preview-planner__panel"
+                           [class.is-active]="plannerStep() === 2">
+                    <div class="preview-planner__panel-head">
+                      <mat-icon class="preview-planner__panel-icon">schedule</mat-icon>
+                      <span class="preview-planner__panel-title">Uhrzeit</span>
+                    </div>
+
+                    <!--
+                      24h-Watch-Face-Dial (Layout 4 Uhrzeit). Das Zifferblatt
+                      zeigt alle 24 Stunden gleichmäßig verteilt; die geöffneten
+                      Stunden sind farblich kräftig, der Rest abgedimmt. Ein
+                      Primary-tinted Arc entlang des Außenrings markiert den
+                      Buchungs-Bereich. Verfügbare Slots sind klickbare Punkte
+                      auf dem Zifferblatt — die Nadel rotiert minutengenau zum
+                      ausgewählten Slot. Visuelles Konzept ist klar anders als
+                      RESERVISON's verschachtelte 24h-Doppelringe.
+                    -->
+                    <div class="preview-planner__dial">
+                      <svg class="preview-planner__dial-svg"
+                           viewBox="0 0 140 140"
+                           aria-hidden="true">
+                        <!-- Außenring (komplett, dezent) — Basislinie -->
+                        <circle cx="70" cy="70" r="62"
+                                class="preview-planner__dial-ring"/>
+
+                        <!-- Öffnungszeiten-Arc — leuchtender Bogen entlang
+                             des Außenrings, spannt nur über die geöffneten
+                             Stunden. Macht visuell sofort klar, in welchem
+                             Bereich Reservierungen möglich sind. -->
+                        <path [attr.d]="plannerDialOpenArc()"
+                              class="preview-planner__dial-arc"/>
+
+                        <!-- 24 Stunden-Labels — kräftig im offenen Bereich,
+                             gedimmt außerhalb. Kardinal-Stunden (0/6/12/18)
+                             leicht hervorgehoben für Orientierung. -->
+                        @for (h of plannerDialHours(); track h.hour) {
+                          <text [attr.x]="h.x"
+                                [attr.y]="h.y"
+                                class="preview-planner__dial-hour"
+                                [class.is-open]="h.isOpen"
+                                [class.is-cardinal]="h.isCardinal"
+                                text-anchor="middle"
+                                dominant-baseline="central">{{ h.label }}</text>
+                        }
+
+                        <!-- Verfügbare Slot-Dots — kleine farbige Punkte für
+                             jede buchbare Uhrzeit (jede halbe oder volle Stunde
+                             im Öffnungsfenster). Volle Stunden sind kräftiger. -->
+                        @for (slot of plannerDialSlots(); track slot.label) {
+                          <circle [attr.cx]="slot.x"
+                                  [attr.cy]="slot.y"
+                                  r="2.4"
+                                  class="preview-planner__dial-slot-dot"
+                                  [class.is-hour]="slot.isHour"
+                                  [class.is-selected]="plannerSelectedTime() === slot.label"/>
+                        }
+
+                        <!-- Nadel — SVG-transform-Attribut rotiert um (70,70) -->
+                        <g class="preview-planner__dial-needle"
+                           [attr.transform]="'rotate(' + plannerDialNeedleAngle() + ' 70 70)'">
+                          <line x1="70" y1="70" x2="70" y2="34"
+                                class="preview-planner__dial-needle-line"/>
+                          <circle cx="70" cy="34" r="2"
+                                  class="preview-planner__dial-needle-tip"/>
+                        </g>
+
+                        <!-- Zentrum-Hub (Hintergrund-Kreis fürs Readout) -->
+                        <circle cx="70" cy="70" r="20"
+                                class="preview-planner__dial-hub"/>
+                      </svg>
+
+                      <!-- Klickbare Hit-Areas über den SVG-Slot-Dots.
+                           Reine HTML-Buttons mit Transparent-Hintergrund;
+                           der visuelle Punkt liegt darunter im SVG. -->
+                      @for (slot of plannerDialSlots(); track slot.label) {
+                        <button type="button"
+                                class="preview-planner__dial-slot"
+                                [class.is-selected]="plannerSelectedTime() === slot.label"
+                                [style.left.%]="(slot.x / 140) * 100"
+                                [style.top.%]="(slot.y / 140) * 100"
+                                (click)="selectPlannerTime(slot.label)"
+                                tabindex="-1"
+                                [attr.aria-label]="slot.label + ' Uhr'"></button>
+                      }
+
+                      <!-- Zentrales Digital-Readout über dem Hub-Kreis -->
+                      <div class="preview-planner__dial-readout" aria-hidden="true">
+                        <span class="preview-planner__dial-time">{{ plannerSelectedTime() }}</span>
+                        <span class="preview-planner__dial-meta">Uhr</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Stufe 3: Personen -->
+                  <section class="preview-planner__panel"
+                           [class.is-active]="plannerStep() === 3">
+                    <div class="preview-planner__panel-head">
+                      <mat-icon class="preview-planner__panel-icon">group</mat-icon>
+                      <span class="preview-planner__panel-title">Personen</span>
+                    </div>
+
+                    <div class="preview-planner__chips preview-planner__chips--seats">
+                      @for (s of plannerSeats; track s.count) {
+                        <button class="preview-planner__chip preview-planner__chip--seat"
+                                type="button"
+                                [class.is-selected]="plannerSelectedSeats() === s.count"
+                                (click)="selectPlannerSeats(s.count)">
+                          <mat-icon class="preview-planner__chip-icon">person</mat-icon>
+                          <span class="preview-planner__chip-label">{{ s.label }}</span>
+                        </button>
+                      }
+                    </div>
+                  </section>
+
+                  <!--
+                    Stufe 4: Daten-Formular + DSGVO. Nimmt Vorname/Nachname,
+                    Telefon, E-Mail, optionale Notizen und die Pflicht-DSGVO-
+                    Checkbox auf. Auf Desktop spannt sich dieses Panel über
+                    die volle Breite des Panels-Containers (siehe SCSS), damit
+                    es nicht in der schmalen 3-Spalten-Grid-Zelle hängt. Inputs
+                    sind hier reine Vorschau-Divs (kein echter Eingabe-State —
+                    das ist eine Demo-Vorschau, kein produktives Formular).
+                  -->
+                  <section class="preview-planner__panel preview-planner__panel--data"
+                           [class.is-active]="plannerStep() === 4">
+                    <div class="preview-planner__panel-head">
+                      <mat-icon class="preview-planner__panel-icon">person</mat-icon>
+                      <span class="preview-planner__panel-title">Ihre Daten</span>
+                    </div>
+
+                    <div class="preview-planner__summary">
+                      <span class="preview-planner__summary-line">
+                        <mat-icon>event</mat-icon>
+                        {{ plannerSelectedDay() }}.
+                        @if (plannerCalendarMonth() === 0) { Januar }
+                        @else if (plannerCalendarMonth() === 1) { Februar }
+                        @else if (plannerCalendarMonth() === 2) { März }
+                        @else if (plannerCalendarMonth() === 3) { April }
+                        @else if (plannerCalendarMonth() === 4) { Mai }
+                        @else if (plannerCalendarMonth() === 5) { Juni }
+                        @else if (plannerCalendarMonth() === 6) { Juli }
+                        @else if (plannerCalendarMonth() === 7) { August }
+                        @else if (plannerCalendarMonth() === 8) { September }
+                        @else if (plannerCalendarMonth() === 9) { Oktober }
+                        @else if (plannerCalendarMonth() === 10) { November }
+                        @else { Dezember }
+                      </span>
+                      <span class="preview-planner__summary-divider">·</span>
+                      <span class="preview-planner__summary-line">
+                        <mat-icon>schedule</mat-icon>
+                        {{ plannerSelectedTime() }}
+                      </span>
+                      <span class="preview-planner__summary-divider">·</span>
+                      <span class="preview-planner__summary-line">
+                        <mat-icon>group</mat-icon>
+                        @if (plannerSelectedSeats() === 1) {
+                          1 Gast
+                        } @else {
+                          {{ plannerSelectedSeats() }} Gäste
+                        }
+                      </span>
+                    </div>
+
+                    <div class="preview-planner__form">
+                      <div class="preview-planner__form-row">
+                        <div class="preview-planner__form-group">
+                          <label class="preview-planner__form-label">Vorname</label>
+                          <div class="preview-planner__form-input">Max</div>
+                        </div>
+                        <div class="preview-planner__form-group">
+                          <label class="preview-planner__form-label">Nachname</label>
+                          <div class="preview-planner__form-input">Mustermann</div>
+                        </div>
+                      </div>
+
+                      <div class="preview-planner__form-row">
+                        <div class="preview-planner__form-group">
+                          <label class="preview-planner__form-label">Telefon</label>
+                          <div class="preview-planner__form-input">+49 …</div>
+                        </div>
+                        <div class="preview-planner__form-group">
+                          <label class="preview-planner__form-label">E-Mail</label>
+                          <div class="preview-planner__form-input">name&#64;beispiel.de</div>
+                        </div>
+                      </div>
+
+                      <div class="preview-planner__form-group">
+                        <label class="preview-planner__form-label">
+                          Notizen
+                          <span class="preview-planner__form-optional">(optional)</span>
+                        </label>
+                        <div class="preview-planner__form-input preview-planner__form-input--area">
+                          Allergien, Kinderstuhl, besondere Wünsche …
+                        </div>
+                      </div>
+
+                      <!-- DSGVO-Einwilligung — Pflichtfeld vor Submit -->
+                      <label class="preview-planner__consent"
+                             [class.is-checked]="plannerConsent()">
+                        <input type="checkbox"
+                               class="preview-planner__consent-input"
+                               [checked]="plannerConsent()"
+                               (change)="plannerToggleConsent()"
+                               tabindex="-1">
+                        <span class="preview-planner__consent-box" aria-hidden="true">
+                          @if (plannerConsent()) {
+                            <mat-icon>check</mat-icon>
+                          }
+                        </span>
+                        <span class="preview-planner__consent-text">
+                          Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung
+                          gespeichert werden.
+                          <!--
+                            Datenschutz-Link: kein href (sonst triggert „javascript:void(0)"
+                            in manchen Browser/Angular-Setups eine Navigation/Re-Render-Kaskade).
+                            stopPropagation verhindert, dass das Klicken auf den Link das
+                            umgebende <label> triggert und die Consent-Checkbox toggelt.
+                          -->
+                          <span class="preview-planner__consent-link"
+                                role="link"
+                                tabindex="0"
+                                (click)="$event.stopPropagation()">Datenschutzerklärung</span>
+                        </span>
+                      </label>
+                    </div>
+                  </section>
+                </div>
+
+                <!-- Fuß: Zurück (Mobile, ab Stufe 2) + CTA.
+                     Auf Stufen 1–3 ist der CTA ein "Weiter"-Button, der
+                     automatisch zum nächsten Step springt. Auf Stufe 4 wird
+                     er zum echten Submit-Button — und ist disabled, solange
+                     die DSGVO-Checkbox nicht gesetzt ist. -->
+                <div class="preview-planner__nav">
+                  <button type="button"
+                          class="preview-planner__back"
+                          (click)="plannerPrev()">
+                    <mat-icon>chevron_left</mat-icon>
+                    Zurück
+                  </button>
+
+                  @if (plannerStep() < 4) {
+                    <button class="preview__cta preview-planner__cta"
+                            type="button"
+                            (click)="plannerNext()"
+                            tabindex="-1">
+                      Weiter
+                      <mat-icon class="preview-planner__cta-icon">chevron_right</mat-icon>
+                    </button>
+                  } @else {
+                    <button class="preview__cta preview-planner__cta preview-planner__cta--submit"
+                            type="button"
+                            [class.is-disabled]="!plannerConsent()"
+                            tabindex="-1">
+                      {{ buttonLabel() || 'Reservierung absenden' }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          }
+    </ng-template>
+
+  </div>
+
+
+  <!-- ===================== EMBED CODE ===================== -->
+  <div class="settings-block embed-section">
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index"><mat-icon>code</mat-icon></span>
+        Widget einbinden
+      </h3>
+      <span class="section-title__hint">Kopiere diesen Code auf deine Website — jeder Kunde hat seinen eigenen Link.</span>
+    </div>
+    <div class="embed-block">
+      <pre class="embed-code">{{ embedCode() }}</pre>
+      <button class="embed-copy" type="button" (click)="copyEmbed()">
+        <mat-icon>{{ embedCopied ? 'check' : 'content_copy' }}</mat-icon>
+      </button>
+    </div>
+    @if (publicKey()) {
+      <p class="embed-key-hint">
+        <mat-icon>vpn_key</mat-icon>
+        Dein Public Key: <code>{{ publicKey() }}</code>
+      </p>
+    }
+  </div>
+
+  <!-- ===================== ACTIONS ===================== -->
+  <div class="settings-actions">
+    <span class="settings-actions__hint">
+      Einstellungen werden in deinem Restaurant-Konto gespeichert.
+    </span>
+    <div class="settings-actions__buttons">
+      <button type="button" class="reset-button" (click)="resetAll()">
+        <mat-icon>restart_alt</mat-icon> Zurücksetzen
+      </button>
+      <button type="button"
+              class="save-button"
+              [class.saved]="savedFlash()"
+              (click)="save()">
+        @if (savedFlash()) {
+          <mat-icon>check</mat-icon> Gespeichert
+        } @else {
+          <mat-icon>save</mat-icon> Speichern
+        }
+      </button>
+    </div>
+  </div>
+
+</div>

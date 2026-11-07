@@ -1,0 +1,515 @@
+@use '../../../styles/variables' as *;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Statistiken — komplett ans Design-System gebunden
+//  Alle Farben via CSS-Variablen → reagiert auf Hell / Dim / Dunkel
+// ─────────────────────────────────────────────────────────────────────────────
+
+.stats-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+// ─── Page Header ─────────────────────────────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.page-title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: $color-text-muted;
+}
+
+// ─── Section Label ────────────────────────────────────────────────────────────
+.section-label {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $color-text-muted;
+}
+
+.stats-section {
+  display: flex;
+  flex-direction: column;
+}
+
+// ─── Stats Grid ───────────────────────────────────────────────────────────────
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  @media (max-width: 1024px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 480px)  { grid-template-columns: 1fr; }
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+.stat-card {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  &:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+
+  &__icon {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    background-color: rgba(var(--color-primary-rgb), 0.10);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    mat-icon { color: $color-primary; font-size: 22px; width: 22px; height: 22px; }
+  }
+
+  &__content { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  &__label   { font-size: 12px; color: $color-text-muted; }
+  &__value   { font-size: 26px; font-weight: 700; color: $color-text-on-dark; line-height: 1.1; }
+
+  &__trend {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 12px; font-weight: 600; margin-top: 4px;
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    &--up   { color: $color-success; }
+    &--down { color: $color-danger; }
+  }
+
+  &--primary .stat-card__icon { background-color: rgba(var(--color-primary-rgb), 0.12); mat-icon { color: $color-primary; } }
+  &--green   .stat-card__icon { background-color: rgba(var(--color-success-rgb),  0.12); mat-icon { color: $color-success; } }
+  &--warn {
+    border-color: rgba(var(--color-warn-rgb), 0.30);
+    .stat-card__icon { background-color: rgba(var(--color-warn-rgb), 0.12); mat-icon { color: $color-warn; } }
+  }
+}
+
+// ─── Charts (Umsatz + Donut) ──────────────────────────────────────────────────
+.charts-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__hint {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: $color-text-muted;
+  }
+
+  &__badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: $color-text-muted;
+    background: rgba(var(--color-text-rgb), 0.06);
+    padding: 3px 10px;
+    border-radius: 20px;
+
+    &--inline {
+      font-size: 10px;
+      padding: 2px 8px;
+      vertical-align: middle;
+    }
+  }
+
+  &__body {
+    position: relative;
+    height: 220px;
+
+    canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+
+    &--doughnut { display: flex; align-items: center; justify-content: center; }
+
+    &--tall { height: 260px; }
+  }
+}
+
+// ─── Filter Pill Group ────────────────────────────────────────────────────────
+.filter-pill-group {
+  display: flex;
+  gap: 4px;
+  background: rgba(var(--color-text-rgb), 0.05);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.filter-pill {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+
+  &:hover { color: $color-text-on-dark; }
+
+  &--active {
+    background: $color-surface;
+    color: $color-text-on-dark;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+}
+
+// ─── Anlässe & Quellen ────────────────────────────────────────────────────────
+.donut-pair {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+
+  @media (max-width: 1024px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 640px)  { grid-template-columns: 1fr; }
+}
+
+.donut-card {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+
+  &__visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+}
+
+.donut-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+
+  // Leuchtender Hintergrund-Glow — wie beim stat-card__icon
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -16px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(var(--color-primary-rgb), 0.14) 0%,
+      rgba(var(--color-accent-rgb),  0.06) 50%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+    filter:
+      drop-shadow(0 0 10px rgba(var(--color-primary-rgb), 0.40))
+      drop-shadow(0 0  5px rgba(var(--color-accent-rgb),  0.25));
+  }
+}
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  &__num {
+    font-size: 24px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    line-height: 1;
+  }
+
+  &__lbl {
+    font-size: 10px;
+    font-weight: 600;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 3px;
+  }
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    font-size: 13px;
+    color: $color-text-muted;
+    flex: 1;
+  }
+
+  &__val {
+    font-size: 13px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+}
+
+// ─── Heatmap ──────────────────────────────────────────────────────────────────
+.heatmap-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+
+  // Scrollbar styling
+  &::-webkit-scrollbar { height: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: rgba(var(--color-text-rgb), 0.15); border-radius: 99px; }
+}
+
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 680px;
+}
+
+.heatmap__time-row {
+  display: grid;
+  grid-template-columns: repeat(17, 1fr);
+  gap: 3px;
+}
+
+.heatmap__time-cell {
+  font-size: 10px;
+  color: $color-text-muted;
+  text-align: center;
+  padding: 0 2px 4px;
+
+  &--major {
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+}
+
+.heatmap__row {
+  display: grid;
+  grid-template-columns: repeat(17, 1fr);
+  gap: 3px;
+}
+
+.heatmap__cell {
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.12s, box-shadow 0.12s;
+  cursor: default;
+
+  &:not(.heatmap__cell--empty):hover {
+    transform: scale(1.12);
+    box-shadow: 0 2px 12px rgba(41,121,255,0.40);
+    z-index: 1;
+    position: relative;
+  }
+
+  &--empty {
+    background: rgba(var(--color-text-rgb), 0.03) !important;
+    border: 1px dashed rgba(var(--color-text-rgb), 0.06);
+  }
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+
+  &__label {
+    font-size: 11px;
+    color: $color-text-muted;
+    white-space: nowrap;
+  }
+
+  &__scale {
+    display: flex;
+    gap: 3px;
+    flex: 1;
+    max-width: 160px;
+  }
+
+  &__swatch {
+    flex: 1;
+    height: 10px;
+    border-radius: 3px;
+  }
+}
+
+// ─── Bottom Section ───────────────────────────────────────────────────────────
+.bottom-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+
+// ─── Metrics Card ─────────────────────────────────────────────────────────────
+.metrics-card {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.metrics-list { display: flex; flex-direction: column; gap: 18px; }
+
+.metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  &__top { display: flex; justify-content: space-between; align-items: center; }
+  &__name  { font-size: 13px; font-weight: 500; color: $color-text-on-dark; }
+  &__value { font-size: 13px; font-weight: 700; color: $color-primary; }
+
+  &__bar {
+    height: 6px;
+    background: rgba(var(--color-text-rgb), 0.07);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    background: linear-gradient(90deg, $color-primary 0%, rgba(var(--color-primary-rgb), 0.60) 100%);
+    border-radius: 99px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+}
+
+// ─── Table Card ───────────────────────────────────────────────────────────────
+.table-card {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $color-text-muted;
+    border-bottom: 1px solid $color-border;
+  }
+
+  td {
+    padding: 12px;
+    font-size: 13px;
+    color: $color-text-on-dark;
+    border-bottom: 1px solid $color-border;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.15s; }
+  tbody tr:hover td { background: rgba(var(--color-text-rgb), 0.03); }
+}
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+
+.user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: $color-primary;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+
+  &--active   { background: rgba(var(--color-success-rgb), 0.12); color: $color-success; }
+  &--inactive { background: rgba(var(--color-danger-rgb),  0.10); color: $color-danger;  }
+}

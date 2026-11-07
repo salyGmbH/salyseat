@@ -18,10 +18,10 @@
       width: 0;
     }
 
-    .sidebar__restaurant {
-      justify-content: center;
-      padding: 10px 0;
-    }
+    // Im eingeklappten Modus rendert die Vorlage den Restaurant-Bereich
+    // direkt als <button class="sidebar__restaurant sidebar__restaurant--trigger">,
+    // der seine Optik komplett über `--trigger` mitbringt. Daher braucht's
+    // hier kein zusätzliches Override mehr.
   }
 }
 
@@ -44,14 +44,13 @@
 }
 
 .sidebar__logo {
-  padding: 16px 12px;
   border-bottom: 1px solid $color-border;
   display: flex;
   align-items: center;
   justify-content: center;
 
   img {
-    width: 180px;
+    width: 100px;
     transition: opacity 0.2s, width 0.25s;
   }
 }
@@ -95,8 +94,7 @@
   }
 }
 
-// ─── Featured Nav-Item (Raum Übersicht) ──────────────────────────────────────
-// Größer, immer hervorgehoben, weil das der Haupt-Arbeitsbereich ist.
+// ─── Featured Nav-Item (Raum Übersicht) — blau wie der Speichern-Button ──────
 .nav-item--featured {
   padding: 22px 20px;
   margin: 6px 10px 14px;
@@ -104,16 +102,16 @@
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  color: $color-accent;
+  color: $color-primary;
   background: linear-gradient(
     135deg,
-    rgba(var(--color-accent-rgb), 0.18) 0%,
-    rgba(var(--color-accent-rgb), 0.08) 100%
+    rgba(var(--color-primary-rgb), 0.18) 0%,
+    rgba(var(--color-primary-rgb), 0.08) 100%
   );
-  border-left: 3px solid $color-accent;
+  border-left: 3px solid $color-primary;
   box-shadow:
-    0 4px 12px rgba(var(--color-accent-rgb), 0.10),
-    inset 0 0 0 1px rgba(var(--color-accent-rgb), 0.22);
+    0 4px 12px rgba(var(--color-primary-rgb), 0.12),
+    inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.22);
   position: relative;
 
   mat-icon {
@@ -125,26 +123,26 @@
   &:hover {
     background: linear-gradient(
       135deg,
-      rgba(var(--color-accent-rgb), 0.28) 0%,
-      rgba(var(--color-accent-rgb), 0.14) 100%
+      rgba(var(--color-primary-rgb), 0.28) 0%,
+      rgba(var(--color-primary-rgb), 0.14) 100%
     );
-    color: $color-accent;
+    color: $color-primary;
   }
 
   &.active {
     background: linear-gradient(
       135deg,
-      rgba(var(--color-accent-rgb), 0.35) 0%,
-      rgba(var(--color-accent-rgb), 0.18) 100%
+      rgba(var(--color-primary-rgb), 0.35) 0%,
+      rgba(var(--color-primary-rgb), 0.18) 100%
     );
     color: $color-text-on-dark;
-    border-left-color: $color-accent;
+    border-left-color: $color-primary;
     box-shadow:
-      0 6px 18px rgba(var(--color-accent-rgb), 0.20),
-      inset 0 0 0 1px rgba(var(--color-accent-rgb), 0.40);
+      0 6px 18px rgba(var(--color-primary-rgb), 0.22),
+      inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.40);
 
     mat-icon {
-      color: $color-accent;
+      color: $color-primary;
     }
   }
 }
@@ -186,61 +184,6 @@
   }
 }
 
-// ─── Logout ──────────────────────────────────────────────────────────────────
-.sidebar__logout {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 12px 20px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid $color-border;
-  color: $color-text-muted;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-  white-space: nowrap;
-  transition: background 0.2s, color 0.2s;
-
-  mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-  }
-
-  &:hover {
-    background-color: $color-dark-soft;
-    color: $color-text-on-dark;
-  }
-}
-
-.sidebar__logout-label {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-  overflow: hidden;
-}
-
-.sidebar__logout-text {
-  font-size: 14px;
-}
-
-.sidebar__logout-email {
-  font-size: 11px;
-  color: rgba(var(--color-text-rgb), 0.4);
-  text-overflow: ellipsis;
-  overflow: hidden;
-  max-width: 170px;
-}
-
-.sidebar.collapsed .sidebar__logout {
-  justify-content: center;
-  padding: 12px 0;
-}
-
 .sidebar__restaurant {
   display: flex;
   align-items: center;
@@ -260,10 +203,82 @@
   }
 }
 
+// ─── Restaurant-Trigger im eingeklappten Zustand ─────────────────────────────
+// Wenn die Sidebar eingeklappt ist, ist das Storefront-Icon selbst der
+// Menü-Trigger (statt zusätzlich noch ein Drei-Punkte-Button daneben).
+// So bleiben Restaurant-Wechsel + Abmelden auch im schmalen Modus
+// mit einem Klick erreichbar. Reset diverser Defaults vom Element-Wechsel
+// div → button und Override des Paddings vom .sidebar__restaurant darüber.
+.sidebar__restaurant.sidebar__restaurant--trigger {
+  appearance: none;
+  font: inherit;
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid $color-border;
+  cursor: pointer;
+  justify-content: center;
+  gap: 0;
+  padding: 12px 0;
+  transition: color 0.2s, background 0.2s;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: $color-accent;
+  }
+
+  &:hover {
+    background-color: $color-dark-soft;
+    color: $color-text-on-dark;
+  }
+}
+
 .sidebar__restaurant-name {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+// ─── Live-Uhr ─────────────────────────────────────────────────────────────────
+.sidebar__clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid $color-border;
+  gap: 2px;
+
+  &--collapsed {
+    padding: 12px 0;
+    flex-direction: row;
+
+    .sidebar__clock-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: $color-primary;
+    }
+  }
+}
+
+.sidebar__clock-time {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: $color-text-on-dark;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.sidebar__clock-date {
+  font-size: 11px;
+  font-weight: 400;
+  color: $color-text-muted;
+  letter-spacing: 0.5px;
+  text-transform: capitalize;
 }
 
 .sidebar__restaurant-dots {

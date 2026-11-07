@@ -1,6 +1,8 @@
 export type FloorReservationStatus =
   | 'upcoming'
   | 'seated'
+  | 'expired'
+  | 'cleanup'
   | 'completed'
   | 'cancelled'
   | 'no-show';
@@ -18,6 +20,13 @@ export interface FloorReservation {
   status: FloorReservationStatus;
   notes?: string;
   phone?: string;
+  gasttypen?: string[];
+  hinweise?: string[];
+  guestId?: string;
+  guestEmail?: string;
+  guestInternalNotes?: string;
+  guestBlocked?: boolean;
+  guestBlockedReason?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -25,6 +34,8 @@ export interface FloorReservation {
 export const STATUS_LABELS: Record<FloorReservationStatus, string> = {
   upcoming:  'Geplant',
   seated:    'Eingecheckt',
+  expired:   'Reservierungszeit abgelaufen',
+  cleanup:   'Wird gereinigt',
   completed: 'Beendet',
   cancelled: 'Storniert',
   'no-show': 'Nicht erschienen',

@@ -208,3 +208,73 @@ body {
     background: rgba(var(--color-primary-rgb), 0.25);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Sidebar-Menü (Restaurant-Wechsel + Abmelden)
+//  Lebt im CDK-Overlay außerhalb der Sidebar-Komponente — daher hier global
+//  via panelClass="sidebar-menu-panel" gestylt. Der Logout-Eintrag bekommt
+//  zwei Zeilen: "Abmelden" + Email als kleiner muted-Subtext.
+// ─────────────────────────────────────────────────────────────────────────
+.sidebar-menu-panel.mat-mdc-menu-panel,
+.sidebar-menu-panel .mat-mdc-menu-panel {
+  background: $color-surface;
+  color: $color-text-on-dark;
+  border: 1px solid $color-border;
+  border-radius: 10px;
+  min-width: 220px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+.sidebar-menu-panel {
+  .mat-mdc-menu-content { padding: 6px 0; }
+
+  .mat-mdc-menu-item {
+    color: $color-text-on-dark;
+    min-height: 40px;
+
+    .mat-icon { color: $color-text-muted; }
+
+    &:hover:not([disabled]) { background-color: rgba(var(--color-text-rgb), 0.06); }
+  }
+
+  .mat-divider {
+    margin: 4px 0;
+    border-top-color: $color-border;
+  }
+
+  // Abmelden-Eintrag: Icon links, Label + Email rechts in 2 Zeilen
+  .sidebar-menu__logout {
+    height: auto;
+    min-height: 56px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+
+    .mat-icon { color: $color-danger; }
+
+    &:hover {
+      background-color: rgba(var(--color-danger-rgb), 0.08);
+    }
+  }
+
+  .sidebar-menu__logout-label {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    overflow: hidden;
+  }
+
+  .sidebar-menu__logout-text {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .sidebar-menu__logout-email {
+    font-size: 11px;
+    color: $color-text-muted;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+    margin-top: 1px;
+  }
+}

@@ -13,6 +13,8 @@ export interface Guest {
   blocked: boolean;
   blocked_reason: string | null;
   internal_notes: string | null;
+  gasttypen: string[];
+  hinweise: string[];
   created_at: string;
 }
 
@@ -21,6 +23,16 @@ export interface GuestListResponse {
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface UpdateGuestDto {
+  name?: string;
+  phone?: string | null;
+  internal_notes?: string | null;
+  blocked?: boolean;
+  blocked_reason?: string;
+  gasttypen?: string[];
+  hinweise?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,5 +49,9 @@ export class GuestsService {
     return this.http.get<GuestListResponse>(this.base, { params: qp }).pipe(
       catchError(() => of({ guests: [], total: 0, limit: 100, offset: 0 }))
     );
+  }
+
+  update(id: string, dto: UpdateGuestDto): Observable<Guest> {
+    return this.http.patch<Guest>(`${this.base}/${id}`, dto);
   }
 }

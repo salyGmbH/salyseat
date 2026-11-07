@@ -19,7 +19,8 @@ interface SettingsItem {
 export class OverviewComponent {
   items: SettingsItem[] = [
     { label: 'Allgemeine Einstellungen',        route: 'allgemein',              icon: 'tune' },
-    { label: 'Widget Einstellungen',            route: 'widget',                 icon: 'widgets' },
+    { label: 'Widget-Designer',                 route: 'widget',                 icon: 'palette' },
+    { label: 'Widget Einstellungen',            route: 'widget-einstellungen',   icon: 'widgets' },
    // { label: 'Restaurantplan',                  route: 'restaurantplan',         icon: 'table_restaurant' },
     { label: 'Mitarbeiterverwaltung',           route: 'mitarbeiter',            icon: 'group' },
     { label: 'Berechtigungen',                  route: 'rechte',                 icon: 'admin_panel_settings' },

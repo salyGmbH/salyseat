@@ -11,7 +11,10 @@ import { RoomsService } from '../../services/rooms.service';
 import { FloorReservationsService } from '../../services/floor-reservations.service';
 import { ReservationsService } from '../../services/reservations.service';
 import { StatusColorsService } from '../../services/status-colors.service';
-import { PlacedTable, TableType } from '../../services/room.types';
+import { ReservationTimingService } from '../../services/reservation-timing.service';
+import { GuestsService, Guest } from '../../services/guests.service';
+import { TenantSettingsService, ConfigItem } from '../../services/tenant-settings.service';
+import { PlacedTable, TableType, DecorType } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
 import { StatusIconComponent } from '../../shared/status-icon/status-icon.component';
@@ -38,8 +41,14 @@ export class RaumDetailComponent implements OnInit {
   private readonly reservationsService = inject(FloorReservationsService);
   private readonly apiReservations     = inject(ReservationsService);
   private readonly statusColors        = inject(StatusColorsService);
+  private readonly timing              = inject(ReservationTimingService);
+  private readonly guestsService       = inject(GuestsService);
+  private readonly tenantSettings      = inject(TenantSettingsService);
   private readonly route               = inject(ActivatedRoute);
   private readonly router              = inject(Router);
+
+  availableGasttypen = signal<ConfigItem[]>([]);
+  availableHinweise  = signal<ConfigItem[]>([]);
 
   readonly STATUS_LABELS = STATUS_LABELS;
   readonly layoutLoading = signal(false);
@@ -98,6 +107,11 @@ export class RaumDetailComponent implements OnInit {
   readonly venuesLoaded = this.roomsService.loaded;
 
   ngOnInit(): void {
+    this.tenantSettings.load().subscribe(s => {
+      if (s.gasttypen?.length) this.availableGasttypen.set(s.gasttypen);
+      if (s.hinweise?.length)  this.availableHinweise.set(s.hinweise);
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
     this.layoutLoading.set(true);
@@ -138,30 +152,31 @@ export class RaumDetailComponent implements OnInit {
     const existing = this.reservationsService.reservations()
       .find(r => r.backendId === br.id);
 
+    const guestPatch = {
+      guestName:          br.guest_name,
+      partySize:          br.party_size,
+      time,
+      date,
+      durationMinutes,
+      phone:              br.guest_phone          ?? undefined,
+      notes:              br.guest_notes          ?? undefined,
+      gasttypen:          br.guest_gasttypen      ?? [],
+      hinweise:           br.guest_hinweise       ?? [],
+      guestId:            br.guest_id             ?? undefined,
+      guestEmail:         br.guest_email          ?? undefined,
+      guestInternalNotes: br.guest_internal_notes ?? undefined,
+      guestBlocked:       br.guest_blocked        ?? false,
+      guestBlockedReason: br.guest_blocked_reason ?? undefined,
+    };
+
     if (existing) {
-      // Datenstände aktualisieren; operativen Status (seated/completed) behalten
-      this.reservationsService.update(existing.id, {
-        guestName: br.guest_name,
-        partySize: br.party_size,
-        time,
-        date,
-        durationMinutes,
-        phone:     br.guest_phone  ?? undefined,
-        notes:     br.guest_notes  ?? undefined,
-      });
+      this.reservationsService.update(existing.id, guestPatch);
     } else {
-      // Noch nicht im localStorage → hinzufügen mit backendId
       this.reservationsService.add({
-        backendId:       br.id,
-        roomId:          venueId,
-        guestName:       br.guest_name,
-        partySize:       br.party_size,
-        date,
-        time,
-        durationMinutes,
-        status:          this.mapBackendStatus(br.status),
-        phone:           br.guest_phone  ?? undefined,
-        notes:           br.guest_notes  ?? undefined,
+        backendId: br.id,
+        roomId:    venueId,
+        status:    this.mapBackendStatus(br.status),
+        ...guestPatch,
       });
     }
   }
@@ -186,6 +201,83 @@ export class RaumDetailComponent implements OnInit {
   editingReservation  = signal<FloorReservation | null>(null);
   formError           = signal<string | null>(null);
 
+  // Kundenkarte-Modal (Klick auf res-row__body)
+  guestCardOpen    = signal(false);
+  guestCardRes     = signal<FloorReservation | null>(null);
+  gcName           = signal('');
+  gcPhone          = signal('');
+  gcNotes          = signal('');
+  gcBlocked        = signal(false);
+  gcReason         = signal('');
+  gcGasttypen      = signal<string[]>([]);
+  gcHinweise       = signal<string[]>([]);
+  gcSaving         = signal(false);
+  gcError          = signal<string | null>(null);
+
+  openGuestCard(res: FloorReservation): void {
+    if (!res.guestId) return;
+    this.guestCardRes.set(res);
+    this.gcName.set(res.guestName);
+    this.gcPhone.set(res.phone ?? '');
+    this.gcNotes.set(res.guestInternalNotes ?? '');
+    this.gcBlocked.set(res.guestBlocked ?? false);
+    this.gcReason.set(res.guestBlockedReason ?? '');
+    this.gcGasttypen.set([...(res.gasttypen ?? [])]);
+    this.gcHinweise.set([...(res.hinweise ?? [])]);
+    this.gcError.set(null);
+    this.guestCardOpen.set(true);
+  }
+
+  closeGuestCard(): void { this.guestCardOpen.set(false); }
+
+  toggleGcGasttyp(key: string): void {
+    this.gcGasttypen.update(l => l.includes(key) ? l.filter(k => k !== key) : [...l, key]);
+  }
+
+  toggleGcHinweis(key: string): void {
+    this.gcHinweise.update(l => l.includes(key) ? l.filter(k => k !== key) : [...l, key]);
+  }
+
+  saveGuestCard(): void {
+    const res = this.guestCardRes();
+    if (!res?.guestId || !this.gcName().trim()) return;
+    this.gcSaving.set(true);
+    this.gcError.set(null);
+    this.guestsService.update(res.guestId, {
+      name:           this.gcName().trim(),
+      phone:          this.gcPhone().trim() || null,
+      internal_notes: this.gcNotes().trim() || null,
+      blocked:        this.gcBlocked(),
+      blocked_reason: this.gcBlocked() ? this.gcReason().trim() : '',
+      gasttypen:      this.gcGasttypen(),
+      hinweise:       this.gcHinweise(),
+    }).subscribe({
+      next: updated => {
+        // FloorReservation sofort aktualisieren
+        this.reservationsService.update(res.id, {
+          guestName:          updated.name,
+          phone:              updated.phone ?? undefined,
+          guestInternalNotes: updated.internal_notes ?? undefined,
+          guestBlocked:       updated.blocked,
+          guestBlockedReason: updated.blocked_reason ?? undefined,
+          gasttypen:          updated.gasttypen,
+          hinweise:           updated.hinweise,
+        });
+        this.gcSaving.set(false);
+        this.closeGuestCard();
+      },
+      error: err => {
+        this.gcSaving.set(false);
+        this.gcError.set(err?.error?.error ?? 'Fehler beim Speichern.');
+      },
+    });
+  }
+
+  // Gast-Autocomplete
+  guestSuggestions  = signal<Guest[]>([]);
+  showSuggestions   = signal(false);
+  private searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
   // Formular für neue/bearbeitete Reservierung
   form = {
     guestName: '',
@@ -196,6 +288,10 @@ export class RaumDetailComponent implements OnInit {
     tableId: 0 as number | 0,
     phone: '',
     notes: '',
+    /** True, wenn der Dialog über den Walk-In-Button geöffnet wurde —
+     *  in diesem Fall wird die Reservierung beim Speichern direkt auf
+     *  Status "seated" gesetzt (statt "upcoming"). */
+    isWalkIn: false,
   };
 
   // ── Abgeleitete Listen ────────────────────────────────────────────────
@@ -211,14 +307,26 @@ export class RaumDetailComponent implements OnInit {
     const list = this.allReservationsForDay();
     const f = this.statusFilter();
     if (f === 'all') return list;
-    if (f === 'active') return list.filter(r => r.status === 'upcoming' || r.status === 'seated');
+    // 'active' = alles, was operativ noch im Restaurant ist:
+    // Geplant, eingecheckt, Standard-Dauer überschritten ("expired"),
+    // oder Tisch wird gerade gereinigt ("cleanup").
+    if (f === 'active') return list.filter(r =>
+      r.status === 'upcoming' || r.status === 'seated'
+        || r.status === 'expired' || r.status === 'cleanup'
+    );
     return list.filter(r => r.status === f);
   });
 
   reservationsByTable = computed(() => {
     const map = new Map<number, FloorReservation[]>();
     for (const r of this.allReservationsForDay()) {
-      if (r.tableId && (r.status === 'upcoming' || r.status === 'seated')) {
+      // expired/cleanup: Tisch ist nominell belegt (Cleanup-Phase = noch nicht
+      // wirklich frei, weil aufgeräumt wird).
+      if (r.tableId && (
+            r.status === 'upcoming'
+         || r.status === 'seated'
+         || r.status === 'expired'
+         || r.status === 'cleanup')) {
         const existing = map.get(r.tableId) ?? [];
         existing.push(r);
         map.set(r.tableId, existing);
@@ -230,11 +338,13 @@ export class RaumDetailComponent implements OnInit {
   stats = computed(() => {
     const list = this.allReservationsForDay();
     return {
-      total:   list.length,
+      total:    list.length,
       upcoming: list.filter(r => r.status === 'upcoming').length,
       seated:   list.filter(r => r.status === 'seated').length,
+      expired:  list.filter(r => r.status === 'expired').length,
+      cleanup:  list.filter(r => r.status === 'cleanup').length,
       guests:   list
-        .filter(r => r.status === 'upcoming' || r.status === 'seated')
+        .filter(r => r.status === 'upcoming' || r.status === 'seated' || r.status === 'expired')
         .reduce((sum, r) => sum + r.partySize, 0),
     };
   });
@@ -339,10 +449,11 @@ export class RaumDetailComponent implements OnInit {
       guestEmail: '',
       partySize: 2,
       time: this.nextSlot(),
-      durationMinutes: 90,
+      durationMinutes: this.timing.defaultDurationMinutes(),
       tableId: 0,
       phone: '',
       notes: '',
+      isWalkIn: false,
       ...preset,
     };
     this.formError.set(null);
@@ -351,6 +462,26 @@ export class RaumDetailComponent implements OnInit {
     setTimeout(() => {
       (document.querySelector('.reservation-form__name-input') as HTMLInputElement | null)?.focus();
     }, 0);
+  }
+
+  /**
+   * Walk-In-Dialog: Variante des Neue-Reservierung-Dialogs für Gäste, die
+   * spontan ohne Reservierung kommen. Vorbelegung:
+   *   • Uhrzeit = aktuelle Uhrzeit (nicht das nächste 30-Min-Slot)
+   *   • isWalkIn = true → beim Speichern wird Status sofort "seated" gesetzt
+   * Tisch und Gästezahl werden vom Mitarbeiter im Dialog gewählt.
+   */
+  openWalkInDialog() {
+    this.openNewDialog({
+      time: this.currentTime(),
+      isWalkIn: true,
+    });
+  }
+
+  /** Aktuelle Uhrzeit als "HH:MM" — für Walk-Ins, die jetzt sofort sitzen. */
+  private currentTime(): string {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
   // ── Tisch-Umplatzierung per Long-Press ────────────────────────────────
@@ -439,6 +570,7 @@ export class RaumDetailComponent implements OnInit {
       tableId: res.tableId ?? 0,
       phone: res.phone ?? '',
       notes: res.notes ?? '',
+      isWalkIn: false,
     };
     this.formError.set(null);
     this.editingId.set(res.id);
@@ -452,6 +584,43 @@ export class RaumDetailComponent implements OnInit {
     this.editingId.set(null);
     this.editingReservation.set(null);
     this.formError.set(null);
+    this.guestSuggestions.set([]);
+    this.showSuggestions.set(false);
+  }
+
+  onGuestNameInput(value: string): void {
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    if (value.trim().length < 2) {
+      this.guestSuggestions.set([]);
+      this.showSuggestions.set(false);
+      return;
+    }
+    this.searchTimeout = setTimeout(() => {
+      this.guestsService.load({ search: value.trim(), limit: 6 }).subscribe(res => {
+        this.guestSuggestions.set(res.guests);
+        this.showSuggestions.set(res.guests.length > 0);
+      });
+    }, 200);
+  }
+
+  selectGuest(guest: Guest): void {
+    this.form.guestName  = guest.name;
+    this.form.guestEmail = guest.email;
+    this.form.phone      = guest.phone ?? '';
+    this.guestSuggestions.set([]);
+    this.showSuggestions.set(false);
+  }
+
+  guestInitials(name: string): string {
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  resolveGasttypen(keys: string[] = []): ConfigItem[] {
+    return this.availableGasttypen().filter(g => keys.includes(g.key));
+  }
+
+  resolveHinweise(keys: string[] = []): ConfigItem[] {
+    return this.availableHinweise().filter(h => keys.includes(h.key));
   }
 
   private nextSlot(): string {
@@ -503,7 +672,10 @@ export class RaumDetailComponent implements OnInit {
 
       this.closeFormDialog();
     } else {
-      // Lokalen Floor-State anlegen
+      // Lokalen Floor-State anlegen.
+      // Walk-Ins starten direkt mit Status "seated" (Gast sitzt schon),
+      // alle anderen Reservierungen mit dem Default ("upcoming").
+      const isWalkIn = this.form.isWalkIn;
       const local = this.reservationsService.add({
         roomId:          room.id,
         guestName:       name,
@@ -514,9 +686,12 @@ export class RaumDetailComponent implements OnInit {
         tableId:         this.form.tableId || undefined,
         phone:           this.form.phone.trim() || undefined,
         notes:           this.form.notes.trim() || undefined,
+        status:          isWalkIn ? 'seated' : undefined,
       });
 
-      // Im Backend persistieren und Backend-ID zurückschreiben
+      // Im Backend persistieren und Backend-ID zurückschreiben.
+      // Bei Walk-In zusätzlich direkt confirmen, damit der Backend-Status
+      // ebenfalls auf "seated/confirmed" springt.
       const startsAt = `${this.selectedDate()}T${this.form.time}:00`;
       this.apiReservations.create({
         venue_id:    room.id,
@@ -527,7 +702,14 @@ export class RaumDetailComponent implements OnInit {
         starts_at:   startsAt,
         notes:       this.form.notes.trim() || undefined,
       }).subscribe({
-        next: res => this.reservationsService.update(local.id, { backendId: res.id }),
+        next: res => {
+          this.reservationsService.update(local.id, { backendId: res.id });
+          if (isWalkIn) {
+            this.apiReservations.confirm(res.id).subscribe({
+              error: () => console.warn('Walk-In: Backend-Confirm fehlgeschlagen.'),
+            });
+          }
+        },
         error: () => console.warn('Reservierung lokal gespeichert, Backend-Sync fehlgeschlagen.'),
       });
 
@@ -577,7 +759,32 @@ export class RaumDetailComponent implements OnInit {
 
   closeTablePicker() { this.tablePickerFor.set(null); }
 
+  /**
+   * Reservierung beenden:
+   *   • Cleanup AN  → Status → 'cleanup' (Tisch bleibt visuell belegt,
+   *     Heartbeat schaltet ihn nach Ablauf der Cleanup-Zeit auf 'completed').
+   *     Der Backend-Complete-Call wird erst beim Cleanup-Ende ausgelöst.
+   *   • Cleanup AUS → Status sofort auf 'completed' und Backend syncen.
+   */
   markCompleted(res: FloorReservation) {
+    if (this.timing.cleanupEnabled()) {
+      this.reservationsService.setStatus(res.id, 'cleanup');
+      return;
+    }
+    this.reservationsService.setStatus(res.id, 'completed');
+    if (res.backendId) {
+      this.apiReservations.complete(res.backendId).subscribe({
+        error: () => console.warn('Complete Backend-Sync fehlgeschlagen'),
+      });
+    }
+  }
+
+  /**
+   * Cleanup abbrechen / Tisch sofort als frei markieren — auch dann nutzbar,
+   * wenn der Service noch in der Cleanup-Phase steht aber der Tisch real
+   * schon wieder bereit ist.
+   */
+  markCleanupDone(res: FloorReservation) {
     this.reservationsService.setStatus(res.id, 'completed');
     if (res.backendId) {
       this.apiReservations.complete(res.backendId).subscribe({
@@ -615,10 +822,30 @@ export class RaumDetailComponent implements OnInit {
     }
   }
 
+  /**
+   * Verlängert eine "Zeit abgelaufen"-Reservierung um 30 Minuten und
+   * setzt sie zurück auf "seated". Der Auto-Expire-Heartbeat wird sie
+   * dann nach Ablauf der zusätzlichen 30 Minuten erneut auf "expired"
+   * setzen.
+   */
+  extendReservation(res: FloorReservation, addMinutes: number = 30) {
+    const newDuration = (res.durationMinutes ?? 0) + addMinutes;
+    this.reservationsService.update(res.id, {
+      durationMinutes: newDuration,
+      status: 'seated',
+    });
+  }
+
   // ── Rendering-Helfer (aus restaurant-plan übernommen) ─────────────────
 
   getTableSize(type: TableType): { w: number; h: number } {
     return type === 'long' ? { w: 140, h: 70 } : { w: 70, h: 70 };
+  }
+
+  getDecorSize(type: DecorType): { w: number; h: number } {
+    if (type === 'bar' || type === 'stage' || type === 'sofa') return { w: 140, h: 70 };
+    if (type === 'window') return { w: 140, h: 32 };
+    return { w: 70, h: 70 };
   }
 
   getTableCenter(t: PlacedTable): { x: number; y: number } {
@@ -681,9 +908,17 @@ export class RaumDetailComponent implements OnInit {
   // ── Tisch-Status fürs Overlay ─────────────────────────────────────────
   tableStatus(tableId: number): { status: FloorReservationStatus | null; reservation: FloorReservation | null } {
     const list = this.reservationsByTable().get(tableId) ?? [];
-    // eingecheckt hat Vorrang
+    // Priorität: expired > seated > cleanup > upcoming.
+    //   • expired = Standard-Dauer ist überzogen (höchste Aufmerksamkeit nötig).
+    //   • seated  = Gäste sitzen am Tisch.
+    //   • cleanup = Gäste sind weg, aber der Tisch ist noch nicht frei.
+    //   • upcoming = Reservierung steht bevor.
+    const expired = list.find(r => r.status === 'expired');
+    if (expired) return { status: 'expired', reservation: expired };
     const seated = list.find(r => r.status === 'seated');
     if (seated) return { status: 'seated', reservation: seated };
+    const cleanup = list.find(r => r.status === 'cleanup');
+    if (cleanup) return { status: 'cleanup', reservation: cleanup };
     const upcoming = list.find(r => r.status === 'upcoming');
     if (upcoming) return { status: 'upcoming', reservation: upcoming };
     return { status: null, reservation: null };
@@ -691,7 +926,9 @@ export class RaumDetailComponent implements OnInit {
 
   tableStatusClass(tableId: number): string {
     const s = this.tableStatus(tableId).status;
+    if (s === 'expired')  return 'is-expired';
     if (s === 'seated')   return 'is-seated';
+    if (s === 'cleanup')  return 'is-cleanup';
     if (s === 'upcoming') return 'is-upcoming';
     return '';
   }

@@ -58,13 +58,15 @@ class ReservationController extends AbstractController
             ->getResult();
 
         return $this->json([
-            'name'   => $tenant->getName(),
-            'venues' => array_map(fn ($v) => [
+            'name'         => $tenant->getName(),
+            'venues'       => array_map(fn ($v) => [
                 'id'       => $v->getId()->toRfc4122(),
                 'name'     => $v->getName(),
                 'category' => $v->getCategory(),
                 'address'  => $v->getAddress(),
             ], $venueList),
+            'widgetDesign'      => $tenant->getUiSettings()['widgetDesign']      ?? null,
+            'widgetFunctional'  => $tenant->getUiSettings()['widgetFunctional']  ?? null,
         ]);
     }
 

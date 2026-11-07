@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, of } from 'rxjs';
 import { Venue, VenueLayout, CreateVenueDto, UpdateVenueDto } from './venue.types';
-import { PlacedTable, PlacedWall } from './room.types';
+import { PlacedTable, PlacedWall, PlacedDecor } from './room.types';
 
 @Injectable({ providedIn: 'root' })
 export class VenueService {
@@ -57,9 +57,14 @@ export class VenueService {
     return this.http.get<{ layout: VenueLayout | null }>(`${this.base}/${venueId}/layout`);
   }
 
-  saveLayout(venueId: string, tables: PlacedTable[], walls: PlacedWall[]): Observable<{ layout: VenueLayout }> {
+  saveLayout(
+    venueId: string,
+    tables: PlacedTable[],
+    walls: PlacedWall[],
+    decors: PlacedDecor[] = [],
+  ): Observable<{ layout: VenueLayout }> {
     return this.http.put<{ layout: VenueLayout }>(`${this.base}/${venueId}/layout`, {
-      layout: { tables, walls },
+      layout: { tables, walls, decors },
     });
   }
 }

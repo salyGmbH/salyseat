@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" class="table-svg">
+  <!-- WC-Marker -->
+  <rect x="10" y="10" width="50" height="50" rx="6"
+        fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+  <!-- Stilisierte Person-Silhouette -->
+  <circle cx="35" cy="26" r="6" fill="#2979ff" opacity="0.85"/>
+  <path d="M 25 50 Q 25 36, 35 36 Q 45 36, 45 50 Z"
+        fill="#2979ff" opacity="0.85"/>
+  <!-- "WC" Mini-Beschriftung -->
+  <text x="35" y="58" text-anchor="middle"
+        font-family="Roboto, sans-serif" font-size="8" font-weight="700"
+        fill="#ffb700">WC</text>
+</svg>

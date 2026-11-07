@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Api\Controller\Widget;
 
 use App\Module\Availability\Infrastructure\Persistence\DoctrineOpeningHoursRepository;
-use App\Module\Availability\Infrastructure\Persistence\DoctrineSpecialClosingRepository;
 use App\Module\Venue\Domain\Entity\Venue;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,18 +24,12 @@ class AvailabilityController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly DoctrineOpeningHoursRepository $ohRepo,
-        private readonly DoctrineSpecialClosingRepository $scRepo,
+        private readonly Connection $dbal,
     ) {}
 
     /**
      * Gibt Öffnungsinformationen für ein Venue an einem bestimmten Datum zurück.
      * GET /api/v1/widget/availability?venue_id=X&date=YYYY-MM-DD
-     *
-     * Response:
-     *   { open: bool, open_time: string|null, close_time: string|null, reason: string|null }
-     *
-     * Wenn keine Öffnungszeiten konfiguriert: open=true, Zeiten=null (immer buchbar)
-     * Bei Sonderöffnungen überschreibt diese die regulären Zeiten.
      */
     #[Route('', name: 'widget_availability_slots', methods: ['GET'])]
     public function getSlots(Request $request): JsonResponse
@@ -59,24 +53,35 @@ class AvailabilityController extends AbstractController
         }
 
         // 1. Sondertage prüfen — überschreiben reguläre Zeiten
-        $specials = $this->scRepo->findAffectingDate($venue, $date);
+        $specials = $this->dbal->fetchAllAssociative(
+            'SELECT full_day, open_time, close_time, reason
+               FROM special_closings
+              WHERE venue_id = UNHEX(REPLACE(?, \'-\', \'\'))
+                AND date_from <= ?
+                AND date_to   >= ?
+              ORDER BY date_from ASC',
+            [$venueId, $dateStr, $dateStr],
+        );
+
         if (count($specials) > 0) {
             $sc = $specials[0];
 
-            if ($sc->isFullDay()) {
+            if ((bool) $sc['full_day']) {
                 return $this->json([
                     'open'       => false,
                     'open_time'  => null,
                     'close_time' => null,
-                    'reason'     => $sc->getReason(),
+                    'breaks'     => [],
+                    'reason'     => $sc['reason'],
                 ]);
             }
 
             return $this->json([
                 'open'       => true,
-                'open_time'  => $sc->getOpenTime(),
-                'close_time' => $sc->getCloseTime(),
-                'reason'     => $sc->getReason(),
+                'open_time'  => $sc['open_time'],
+                'close_time' => $sc['close_time'],
+                'breaks'     => [],
+                'reason'     => $sc['reason'],
             ]);
         }
 
@@ -87,8 +92,7 @@ class AvailabilityController extends AbstractController
         $oh = $this->ohRepo->findByVenueAndWeekday($venue, $weekday);
 
         if ($oh === null) {
-            // Keine Konfiguration → immer buchbar
-            return $this->json(['open' => true, 'open_time' => null, 'close_time' => null, 'reason' => null]);
+            return $this->json(['open' => true, 'open_time' => null, 'close_time' => null, 'breaks' => [], 'reason' => null]);
         }
 
         return $this->json([

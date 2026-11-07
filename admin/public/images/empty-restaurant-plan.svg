@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 180" fill="none">
+
+
+  <ellipse cx="130" cy="160" rx="100" ry="6" fill="#2979ff" fill-opacity="0.08"/>
+
+  <!-- Blueprint-Raster (Hintergrund) -->
+  <g stroke="#2979ff" stroke-opacity="0.12" stroke-width="1">
+    <line x1="40"  y1="30" x2="40"  y2="150"/>
+    <line x1="80"  y1="30" x2="80"  y2="150"/>
+    <line x1="120" y1="30" x2="120" y2="150"/>
+    <line x1="160" y1="30" x2="160" y2="150"/>
+    <line x1="200" y1="30" x2="200" y2="150"/>
+    <line x1="220" y1="30" x2="220" y2="150"/>
+    <line x1="40" y1="50"  x2="220" y2="50"/>
+    <line x1="40" y1="80"  x2="220" y2="80"/>
+    <line x1="40" y1="110" x2="220" y2="110"/>
+    <line x1="40" y1="140" x2="220" y2="140"/>
+  </g>
+
+  <!-- Außenrahmen Restaurant -->
+  <path d="M 40 30 L 220 30 L 220 150 L 40 150 Z"
+        fill="none" stroke="#2979ff" stroke-opacity="0.7" stroke-width="2.2"/>
+
+  <!-- Innenwand -->
+  <line x1="130" y1="30" x2="130" y2="95"
+        stroke="#2979ff" stroke-opacity="0.5" stroke-width="2"/>
+
+  <!-- Tisch + Stühle (klein, dezent) -->
+  <g transform="translate(80,70)">
+    <rect x="-12" y="-8" width="24" height="16" rx="2"
+          fill="none" stroke="#ffb700" stroke-width="1.6"/>
+    <circle cx="-16" cy="0" r="2.5" fill="#ffb700"/>
+    <circle cx="16"  cy="0" r="2.5" fill="#ffb700"/>
+  </g>
+
+  <!-- Großer Plus / Hinweis -->
+  <g transform="translate(180,120)">
+    <circle r="18" fill="#ffb700"/>
+    <line x1="-8" y1="0" x2="8" y2="0" stroke="#0f1117" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="0" y1="-8" x2="0" y2="8" stroke="#0f1117" stroke-width="2.6" stroke-linecap="round"/>
+  </g>
+
+  <!-- Maßlinie als Hint auf Plan -->
+  <g stroke="#2979ff" stroke-opacity="0.6">
+    <line x1="40"  y1="22" x2="220" y2="22" stroke-width="1"/>
+    <line x1="40"  y1="18" x2="40"  y2="26" stroke-width="1.2"/>
+    <line x1="220" y1="18" x2="220" y2="26" stroke-width="1.2"/>
+  </g>
+</svg>

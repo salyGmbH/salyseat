@@ -102,6 +102,129 @@
   }
 }
 
+// KLEINER GELBER FUSS-HINWEIS unter jedem Icon-Grid:
+// "Klick auf ein Icon ändert die Hintergrundfarbe"
+// Wird in allen vier Sektionen (Status, Hinweise, Gäste-Typen, Allergene)
+// direkt unter dem Icon-Grid angezeigt — füllt den Platz oberhalb des
+// Speichern-Buttons sinnvoll aus.
+.icon-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  background: rgba(var(--color-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 14px;
+
+  font-size: 12px;
+  line-height: 1.4;
+  color: $color-text-muted;
+
+  mat-icon {
+    color: $color-accent;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+}
+
+// HINWEIS-KARTE: zeigt die aktuell konfigurierten Reservierungs-Zeiten und
+// verlinkt auf die Reservierungs-Settings, wo die Werte gepflegt werden.
+// Visuell ist sie eine kleine Mini-Card, kein blockendes Banner.
+.status-time-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  background: rgba(var(--color-accent-rgb), 0.06);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+
+  &__icon {
+    color: $color-accent;
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    flex: 1;
+    font-size: 12px;
+    color: $color-text-muted;
+    line-height: 1.5;
+
+    strong {
+      color: $color-text-on-dark;
+      font-weight: 600;
+    }
+  }
+
+  // Kleine Pille mit dem aktuellen Wert
+  &__pill {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(var(--color-accent-rgb), 0.18);
+    color: $color-accent;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.2px;
+
+    &.is-off {
+      background: rgba(var(--color-text-rgb), 0.08);
+      color: $color-text-muted;
+      font-weight: 500;
+    }
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: $color-accent;
+    color: $color-dark;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: 0.15s;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    &:hover {
+      background: $color-accent-dark;
+      transform: translateX(1px);
+    }
+  }
+
+  // Mobile: Stack vertikal, damit der Link nicht abgeschnitten wird
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    &__link {
+      align-self: stretch;
+      justify-content: center;
+    }
+  }
+}
+
 // TOGGLE
 .view-toggle {
   display: flex;

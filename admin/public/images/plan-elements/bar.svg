@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 70" class="table-svg table-svg--wide">
+
+  <circle cx="20"  cy="60" r="5" fill="#2979ff" opacity="0.8"/>
+  <circle cx="50"  cy="60" r="5" fill="#2979ff" opacity="0.8"/>
+  <circle cx="80"  cy="60" r="5" fill="#2979ff" opacity="0.8"/>
+  <circle cx="110" cy="60" r="5" fill="#2979ff" opacity="0.8"/>
+  <!-- Theke -->
+  <rect x="6" y="14" width="128" height="32" rx="4"
+        fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
+  <!-- Arbeitsfläche-Linie -->
+  <line x1="6" y1="22" x2="134" y2="22" stroke="#2979ff" stroke-opacity="0.5" stroke-width="1.4"/>
+  <!-- Gold-Akzent für Bar-Charakter -->
+  <rect x="60" y="28" width="20" height="3" fill="#ffb700" opacity="0.85"/>
+</svg>

@@ -118,8 +118,7 @@ class StaffController extends AbstractController
 
     private function isAdmin(User $user): bool
     {
-        return $user->isSuperAdmin()
-            || in_array('ROLE_TENANT_ADMIN', $user->getRoles(), true);
+        return $user->isSuperAdmin();
     }
 
     private function resolveStaff(string $id, User $user): ?Staff

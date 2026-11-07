@@ -11,9 +11,47 @@ export interface WidgetVenue {
   address: string | null;
 }
 
+export interface WidgetDesignConfig {
+  layout:           string;
+  imageUrl:         string | null;
+  headingTitle:     string;
+  headingSubtitle:  string;
+  headingAlignment: string;
+  showSubtitle:     boolean;
+  fontFamily:       string;
+  fontSize:         string;
+  colorPrimary:     string;
+  colorText:        string;
+  colorBackground:  string;
+  buttonLabel:      string;
+  cornerRadius:     string;
+}
+
+export interface WidgetFunctionalConfig {
+  intervall:               number;
+  speisekarte:             boolean;
+  speisekarteType:         string;
+  speisekarteUrl:          string;
+  speisekartePdfName:      string;
+  ausstehendBestaetigung:  boolean;
+  raumauswahl:             boolean;
+  raumauswahlAktiveIds:    string[];
+  hinweistext:             boolean;
+  hinweistextUeberschrift: string;
+  hinweistextInhalt:       string;
+  hinweistextFooter:       string;
+  pflichtfelder:           string[];
+  maxPersonen:             number;
+  maxPersonenText:         string;
+  maxPersonenPhone:        string;
+  maxPersonenEmail:        string;
+}
+
 export interface WidgetConfig {
-  name: string;
-  venues: WidgetVenue[];
+  name:              string;
+  venues:            WidgetVenue[];
+  widgetDesign:      WidgetDesignConfig      | null;
+  widgetFunctional:  WidgetFunctionalConfig  | null;
 }
 
 export interface CreateReservationPayload {
@@ -61,7 +99,7 @@ export class ReservationsService {
 
   loadConfig(publicKey: string): Observable<WidgetConfig> {
     return this.http.get<WidgetConfig>(`${this.base}/config/${publicKey}`).pipe(
-      catchError(() => of({ name: 'Restaurant', venues: [] }))
+      catchError(() => of({ name: 'Restaurant', venues: [], widgetDesign: null, widgetFunctional: null }))
     );
   }
 

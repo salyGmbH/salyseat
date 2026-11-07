@@ -21,6 +21,32 @@
     Definiere hier die Farben und Darstellung der Reservierungsstatus.
   </div>
 
+  <!--
+    Hinweis-Karte: erklärt, wo die zugehörigen Zeiten (Standard-Dauer + Clean-up)
+    konfiguriert werden. Status-Aussehen wird HIER festgelegt, die Dauer-Logik
+    läuft über die Reservierungs-Settings.
+  -->
+  <div class="status-time-hint">
+    <mat-icon class="status-time-hint__icon">schedule</mat-icon>
+    <div class="status-time-hint__text">
+      <strong>„Zeit abgelaufen" und „Wird gereinigt"</strong> sind zeitgesteuerte
+      Status. Aktuell:
+      <span class="status-time-hint__pill">Reservierung {{ timing.defaultDurationMinutes() }} min</span>
+      <span class="status-time-hint__pill"
+            [class.is-off]="!timing.cleanupEnabled()">
+        Clean-up
+        @if (timing.cleanupEnabled()) {
+          {{ timing.cleanupMinutes() }} min
+        } @else {
+          aus
+        }
+      </span>
+    </div>
+    <a class="status-time-hint__link" routerLink="/einstellungen/reservierungen">
+      Zeiten anpassen <mat-icon>arrow_forward</mat-icon>
+    </a>
+  </div>
+
   <div class="view-toggle">
     <button [class.active]="statusView === 'card'" (click)="statusView = 'card'">Farbe</button>
     <button [class.active]="statusView === 'text'" (click)="statusView = 'text'">Text</button>
@@ -165,6 +191,11 @@
     </div>
   </ng-container>
 
+  <div class="icon-hint">
+    <mat-icon>palette</mat-icon>
+    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
+  </div>
+
   <div class="actions">
     <button class="save-button" [class.saved]="statusSaved" (click)="saveStatus()">
       {{ statusSaved ? 'Gespeichert ✓' : 'Speichern' }}
@@ -216,10 +247,48 @@
 
         <ng-container *ngIf="hinweisView === 'svg'">
           <div class="svg-box">
+            <!--
+              Pro Hinweis ein eigenes, lizenzfreies Pictogramm.
+              Hintergrund = runder Kreis in der gewählten Farbe (hint.color).
+            -->
             <svg viewBox="0 0 24 24" class="status-svg">
-              <rect x="4" y="4" width="16" height="16" rx="4" [attr.fill]="hint.color"></rect>
-              <path d="M12 7v5" stroke="white" stroke-width="2"/>
-              <circle cx="12" cy="15" r="1" fill="white"/>
+              <circle cx="12" cy="12" r="11" [attr.fill]="hint.color"/>
+
+              @switch (hint.key) {
+
+                <!-- Unverträglichkeit – Warndreieck mit Ausrufezeichen -->
+                @case ('intolerance') {
+                  <path d="M12 5 L 20 19 L 4 19 Z" fill="white"/>
+                  <rect x="11.2" y="9.5" width="1.6" height="5.5" rx="0.7" [attr.fill]="hint.color"/>
+                  <circle cx="12" cy="17" r="0.9" [attr.fill]="hint.color"/>
+                }
+
+                <!-- Geburtstag – Törtchen mit Kerze -->
+                @case ('birthday') {
+                  <circle cx="12" cy="4.5" r="0.9" fill="white"/>
+                  <line x1="12" y1="5.5" x2="12" y2="8" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+                  <path d="M6 11 Q 12 8 18 11 L 17 13 L 7 13 Z" fill="white"/>
+                  <rect x="6" y="13" width="12" height="7" rx="1" fill="white"/>
+                  <line x1="9"  y1="15" x2="9"  y2="18" [attr.stroke]="hint.color" stroke-width="1.2"/>
+                  <line x1="12" y1="15" x2="12" y2="18" [attr.stroke]="hint.color" stroke-width="1.2"/>
+                  <line x1="15" y1="15" x2="15" y2="18" [attr.stroke]="hint.color" stroke-width="1.2"/>
+                }
+
+                <!-- Notiz vorhanden – Notizzettel mit Zeilen -->
+                @case ('note') {
+                  <path d="M7 4 L 15 4 L 17 6 L 17 20 L 7 20 Z" fill="white"/>
+                  <path d="M15 4 L 15 6 L 17 6 Z" [attr.fill]="hint.color"/>
+                  <line x1="9" y1="10" x2="15" y2="10" [attr.stroke]="hint.color" stroke-width="1"/>
+                  <line x1="9" y1="13" x2="15" y2="13" [attr.stroke]="hint.color" stroke-width="1"/>
+                  <line x1="9" y1="16" x2="13" y2="16" [attr.stroke]="hint.color" stroke-width="1"/>
+                }
+
+                <!-- Default für selbst angelegte Hinweise: Info-Symbol -->
+                @default {
+                  <circle cx="12" cy="7.5" r="1.4" fill="white"/>
+                  <rect x="11" y="10" width="2" height="8.5" rx="0.7" fill="white"/>
+                }
+              }
             </svg>
             <span class="svg-label">{{ hint.label }}</span>
           </div>
@@ -232,6 +301,11 @@
       <mat-icon>add</mat-icon>
     </div>
 
+  </div>
+
+  <div class="icon-hint">
+    <mat-icon>palette</mat-icon>
+    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
   </div>
 
   <!-- ✅ NEU: SAVE BUTTON -->
@@ -286,10 +360,65 @@
 
         <ng-container *ngIf="gastView === 'svg'">
           <div class="svg-box">
+            <!--
+              Pro Gäste-Typ ein eigenes, lizenzfreies Pictogramm.
+              Hintergrund = runder Kreis in der gewählten Farbe (guest.color).
+            -->
             <svg viewBox="0 0 24 24" class="status-svg">
-              <circle cx="12" cy="8" r="4" [attr.fill]="guest.color"></circle>
-              <path d="M4 20c1.5-4 6-6 8-6s6.5 2 8 6"
-                    [attr.fill]="guest.color"></path>
+              <circle cx="12" cy="12" r="11" [attr.fill]="guest.color"/>
+
+              @switch (guest.key) {
+
+                <!-- VIP Gast – Stern -->
+                @case ('vip') {
+                  <path d="M12 4
+                           L 14.2 9.4
+                           L 20 9.9
+                           L 15.6 13.6
+                           L 17 19.3
+                           L 12 16.2
+                           L 7 19.3
+                           L 8.4 13.6
+                           L 4 9.9
+                           L 9.8 9.4 Z" fill="white"/>
+                }
+
+                <!-- Stammgast – Person mit Häkchen-Badge -->
+                @case ('regular') {
+                  <circle cx="11" cy="9" r="3" fill="white"/>
+                  <path d="M4 19 Q 4 13 11 13 Q 16 13 17 16 L 17 19 Z" fill="white"/>
+                  <circle cx="17.5" cy="17" r="3.5" fill="white"/>
+                  <path d="M15.7 17 L 17 18.4 L 19.3 15.7"
+                        fill="none" [attr.stroke]="guest.color"
+                        stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                }
+
+                <!-- Neukunde – Person mit Plus -->
+                @case ('new') {
+                  <circle cx="10.5" cy="9" r="3" fill="white"/>
+                  <path d="M4 19 Q 4 13 10.5 13 Q 14.5 13 15.5 15 L 15.5 19 Z" fill="white"/>
+                  <circle cx="17.5" cy="16.5" r="3.5" fill="white"/>
+                  <line x1="17.5" y1="14.5" x2="17.5" y2="18.5"
+                        [attr.stroke]="guest.color" stroke-width="1.4" stroke-linecap="round"/>
+                  <line x1="15.5" y1="16.5" x2="19.5" y2="16.5"
+                        [attr.stroke]="guest.color" stroke-width="1.4" stroke-linecap="round"/>
+                }
+
+                <!-- Blacklist – Person mit Verbotszeichen -->
+                @case ('blacklist') {
+                  <circle cx="10.5" cy="9" r="3" fill="white"/>
+                  <path d="M4 19 Q 4 13 10.5 13 Q 14.5 13 15.5 15 L 15.5 19 Z" fill="white"/>
+                  <circle cx="17.5" cy="16.5" r="3.6" fill="none" stroke="white" stroke-width="1.6"/>
+                  <line x1="15"   y1="14"   x2="20"   y2="19"
+                        stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+                }
+
+                <!-- Default für selbst angelegte Gäste-Typen: Person-Silhouette -->
+                @default {
+                  <circle cx="12" cy="9" r="3.2" fill="white"/>
+                  <path d="M5 19 Q 5 13 12 13 Q 19 13 19 19 Z" fill="white"/>
+                }
+              }
             </svg>
             <span class="svg-label">{{ guest.label }}</span>
           </div>
@@ -304,10 +433,226 @@
 
   </div>
 
+  <div class="icon-hint">
+    <mat-icon>palette</mat-icon>
+    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
+  </div>
+
   <!-- ✅ NEU: SAVE BUTTON -->
   <div class="actions">
     <button class="save-button" [class.saved]="gastSaved" (click)="saveGasttypen()">
       {{ gastSaved ? 'Gespeichert ✓' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>
+
+
+<!-- ===================== ALLERGENE ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Allergene</h2>
+
+    <div class="header-actions">
+      <button class="reset-button" (click)="resetAllergeneColors()">Standard</button>
+
+      <button class="info-button"
+              [class.active]="allergenInfo"
+              (click)="toggleAllergenInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-box" [class.open]="allergenInfo">
+    Lege fest, welche Allergene erfasst werden können und wie sie dargestellt werden.
+    Reservierungen mit Allergie-Hinweis können dann konkret markiert werden
+    (z. B. „Gluten" oder „Nüsse" statt nur „Allergie").
+  </div>
+
+  <div class="view-toggle">
+    <button [class.active]="allergenView === 'text'" (click)="allergenView = 'text'">Text</button>
+    <button [class.active]="allergenView === 'svg'" (click)="allergenView = 'svg'">Icons</button>
+  </div>
+
+  <div class="status-grid icon-grid">
+
+    <div class="status-item" *ngFor="let allergen of allergene">
+      <label class="status-label-wrapper">
+        <input type="color" [(ngModel)]="allergen.color" class="color-input" />
+
+        <ng-container *ngIf="allergenView === 'text'">
+          <span class="status-label"
+                [style.background]="allergen.color"
+                [style.color]="getTextColor(allergen.color)">
+            {{ allergen.label }}
+          </span>
+        </ng-container>
+
+        <ng-container *ngIf="allergenView === 'svg'">
+          <div class="svg-box">
+            <!--
+              Pro Allergen ein individuelles, lizenzfreies (selbst gezeichnetes)
+              Pictogramm. Hintergrund = runder Kreis in der vom Restaurant
+              gewählten Farbe (allergen.color). Symbol darüber in Weiß.
+            -->
+            <svg viewBox="0 0 24 24" class="status-svg">
+              <!-- Runder Hintergrund, Farbe vom Nutzer wählbar -->
+              <circle cx="12" cy="12" r="11" [attr.fill]="allergen.color"/>
+
+              @switch (allergen.key) {
+
+                <!-- 1. Gluten – Weizenähre -->
+                @case ('gluten') {
+                  <line x1="12" y1="5" x2="12" y2="19" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+                  <ellipse cx="9.6"  cy="8.5"  rx="1.2" ry="1.8" fill="white" transform="rotate(-25 9.6 8.5)"/>
+                  <ellipse cx="14.4" cy="8.5"  rx="1.2" ry="1.8" fill="white" transform="rotate(25 14.4 8.5)"/>
+                  <ellipse cx="9.6"  cy="12"   rx="1.2" ry="1.8" fill="white" transform="rotate(-25 9.6 12)"/>
+                  <ellipse cx="14.4" cy="12"   rx="1.2" ry="1.8" fill="white" transform="rotate(25 14.4 12)"/>
+                  <ellipse cx="9.6"  cy="15.5" rx="1.2" ry="1.8" fill="white" transform="rotate(-25 9.6 15.5)"/>
+                  <ellipse cx="14.4" cy="15.5" rx="1.2" ry="1.8" fill="white" transform="rotate(25 14.4 15.5)"/>
+                }
+
+                <!-- 2. Krebstiere – Garnele -->
+                @case ('crustaceans') {
+                  <path d="M6.5 12 Q 9 7 14 7 Q 18 9 17.5 12 Q 17 15 14 16 Q 10 16 8 14 Z" fill="white"/>
+                  <path d="M14 16 L 17.5 18.5 L 16 15.5 Z" fill="white"/>
+                  <line x1="7.5" y1="9.5" x2="5"   y2="6"   stroke="white" stroke-width="1" stroke-linecap="round"/>
+                  <line x1="9"   y1="8.5" x2="8"   y2="4.5" stroke="white" stroke-width="1" stroke-linecap="round"/>
+                  <circle cx="14.5" cy="10" r="0.7" [attr.fill]="allergen.color"/>
+                }
+
+                <!-- 3. Eier – Ei -->
+                @case ('eggs') {
+                  <path d="M12 5 C 7 5 6.5 19 12 19 C 17.5 19 17 5 12 5 Z" fill="white"/>
+                }
+
+                <!-- 4. Fisch -->
+                @case ('fish') {
+                  <path d="M4 12 Q 8 7 14 7 Q 18 9 18 12 Q 18 15 14 17 Q 8 17 4 12 Z" fill="white"/>
+                  <path d="M4 12 L 1.5 8.5 L 1.5 15.5 Z" fill="white"/>
+                  <circle cx="15" cy="11" r="0.9" [attr.fill]="allergen.color"/>
+                }
+
+                <!-- 5. Erdnüsse – zwei verbundene Kerne -->
+                @case ('peanuts') {
+                  <path d="M12 4
+                           C 8 4 8 10 12 10
+                           C 16 10 16 4 12 4 Z
+                           M12 10
+                           C 7.5 10 7.5 20 12 20
+                           C 16.5 20 16.5 10 12 10 Z" fill="white"/>
+                }
+
+                <!-- 6. Soja – Schote mit Bohnen -->
+                @case ('soy') {
+                  <path d="M5 17 Q 7 6 18 9 Q 17.5 18 7 18 Z" fill="white"/>
+                  <circle cx="9.5" cy="13.5" r="1.3" [attr.fill]="allergen.color"/>
+                  <circle cx="12.5" cy="12.5" r="1.3" [attr.fill]="allergen.color"/>
+                  <circle cx="15.5" cy="11.5" r="1.3" [attr.fill]="allergen.color"/>
+                }
+
+                <!-- 7. Milch – Milchtropfen -->
+                @case ('milk') {
+                  <path d="M12 4
+                           C 8 10 7 14 7 15.5
+                           A 5 5 0 0 0 17 15.5
+                           C 17 14 16 10 12 4 Z" fill="white"/>
+                }
+
+                <!-- 8. Nüsse – Eichel -->
+                @case ('nuts') {
+                  <line x1="12" y1="3" x2="12" y2="5" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+                  <path d="M7 10 Q 12 5 17 10 L 16 12 L 8 12 Z" fill="white"/>
+                  <path d="M8 12 L 16 12 Q 15 19 12 19 Q 9 19 8 12 Z" fill="white"/>
+                  <line x1="9" y1="11" x2="15" y2="11" [attr.stroke]="allergen.color" stroke-width="0.8"/>
+                }
+
+                <!-- 9. Sellerie – Stange mit Blatt -->
+                @case ('celery') {
+                  <path d="M9.5 7 L 9 19 L 11 19 L 11.5 8 Z" fill="white"/>
+                  <path d="M12.5 8 L 13 19 L 15 19 L 14.5 7 Z" fill="white"/>
+                  <path d="M10 7 Q 7 4 5.5 6 Q 7 8 10 7 Z" fill="white"/>
+                  <path d="M14 7 Q 17 4 18.5 6 Q 17 8 14 7 Z" fill="white"/>
+                  <path d="M12 5 Q 11 3 12 2 Q 13 3 12 5 Z" fill="white"/>
+                }
+
+                <!-- 10. Senf – Senfflasche -->
+                @case ('mustard') {
+                  <rect x="10.5" y="4" width="3" height="2" fill="white"/>
+                  <path d="M9.5 6.5 L 14.5 6.5 L 15.5 10 L 15.5 19 Q 12 20 8.5 19 L 8.5 10 Z" fill="white"/>
+                  <rect x="10" y="12" width="4" height="3" rx="0.5" [attr.fill]="allergen.color"/>
+                }
+
+                <!-- 11. Sesam – fünf Samen -->
+                @case ('sesame') {
+                  <ellipse cx="9"  cy="8"   rx="1.2" ry="2" fill="white" transform="rotate(-25 9 8)"/>
+                  <ellipse cx="15" cy="8"   rx="1.2" ry="2" fill="white" transform="rotate(25 15 8)"/>
+                  <ellipse cx="12" cy="12"  rx="1.2" ry="2" fill="white"/>
+                  <ellipse cx="8.5" cy="16" rx="1.2" ry="2" fill="white" transform="rotate(25 8.5 16)"/>
+                  <ellipse cx="15.5" cy="16" rx="1.2" ry="2" fill="white" transform="rotate(-25 15.5 16)"/>
+                }
+
+                <!-- 12. Sulfite – Erlenmeyerkolben -->
+                @case ('sulphites') {
+                  <rect x="10" y="4" width="4" height="1.6" fill="white"/>
+                  <path d="M10 5.5 L 14 5.5 L 14 11 L 17.5 17.5 Q 12 19.5 6.5 17.5 L 10 11 Z" fill="white"/>
+                  <path d="M8 16 L 16 16 L 17 17.5 Q 12 19.5 7 17.5 Z" [attr.fill]="allergen.color"/>
+                  <circle cx="10" cy="17" r="0.6" fill="white"/>
+                  <circle cx="13" cy="17.5" r="0.6" fill="white"/>
+                }
+
+                <!-- 13. Lupinen – Blütenstand -->
+                @case ('lupin') {
+                  <line x1="12" y1="4" x2="12" y2="20" stroke="white" stroke-width="1" stroke-linecap="round"/>
+                  <circle cx="10"   cy="6"  r="1.1" fill="white"/>
+                  <circle cx="14"   cy="7"  r="1.2" fill="white"/>
+                  <circle cx="10"   cy="9.5" r="1.3" fill="white"/>
+                  <circle cx="14"   cy="11" r="1.4" fill="white"/>
+                  <circle cx="10"   cy="13" r="1.5" fill="white"/>
+                  <circle cx="14"   cy="14.5" r="1.5" fill="white"/>
+                  <circle cx="10.5" cy="17" r="1.4" fill="white"/>
+                }
+
+                <!-- 14. Weichtiere – Schneckenhaus / Spiralmuschel -->
+                @case ('molluscs') {
+                  <circle cx="12" cy="12" r="6.5" fill="white"/>
+                  <circle cx="12" cy="12" r="5"   fill="none" [attr.stroke]="allergen.color" stroke-width="0.9"/>
+                  <circle cx="12.5" cy="12" r="3.4" fill="none" [attr.stroke]="allergen.color" stroke-width="0.9"/>
+                  <circle cx="13"   cy="12" r="1.8" fill="none" [attr.stroke]="allergen.color" stroke-width="0.9"/>
+                  <circle cx="13.4" cy="12" r="0.6" [attr.fill]="allergen.color"/>
+                }
+
+                <!-- Default für selbst angelegte Einträge: Warn-/Allergiesymbol -->
+                @default {
+                  <path d="M12 5.5 L 19 18 L 5 18 Z" fill="white"/>
+                  <rect x="11.3" y="9.5" width="1.4" height="5" rx="0.6" [attr.fill]="allergen.color"/>
+                  <circle cx="12" cy="16.3" r="0.8" [attr.fill]="allergen.color"/>
+                }
+              }
+            </svg>
+            <span class="svg-label">{{ allergen.label }}</span>
+          </div>
+        </ng-container>
+      </label>
+    </div>
+
+    <!-- ➕ ADD -->
+    <div class="status-item add-item" (click)="openModal('allergen')">
+      <mat-icon>add</mat-icon>
+    </div>
+
+  </div>
+
+  <div class="icon-hint">
+    <mat-icon>palette</mat-icon>
+    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
+  </div>
+
+  <div class="actions">
+    <button class="save-button" [class.saved]="allergenSaved" (click)="saveAllergene()">
+      {{ allergenSaved ? 'Gespeichert ✓' : 'Speichern' }}
     </button>
   </div>
 
@@ -358,9 +703,7 @@
 <div class="modal-backdrop" *ngIf="modalOpen" (click)="closeModal()">
   <div class="modal" (click)="$event.stopPropagation()">
 
-    <h3>
-      {{ modalType === 'hinweis' ? 'Hinweis hinzufügen' : 'Gasttyp hinzufügen' }}
-    </h3>
+    <h3>{{ modalTitle }}</h3>
 
     <input type="text" placeholder="Bezeichnung" [(ngModel)]="newItem.label" />
     <input type="color" [(ngModel)]="newItem.color" />

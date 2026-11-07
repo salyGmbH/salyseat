@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" fill="none">
+
+  <!-- Bodenlinie -->
+  <ellipse cx="160" cy="180" rx="130" ry="6" fill="#2979ff" fill-opacity="0.08"/>
+
+  <!-- Tisch -->
+  <rect x="50" y="120" width="220" height="10" rx="3" fill="#2979ff" fill-opacity="0.85"/>
+  <rect x="68" y="130" width="6" height="40" fill="#2979ff" fill-opacity="0.7"/>
+  <rect x="246" y="130" width="6" height="40" fill="#2979ff" fill-opacity="0.7"/>
+
+  <!-- Teller (linker) -->
+  <ellipse cx="105" cy="120" rx="32" ry="7" fill="#ffb700" fill-opacity="0.25"/>
+  <ellipse cx="105" cy="116" rx="32" ry="7" fill="#fff" fill-opacity="0.95"
+           stroke="#2979ff" stroke-opacity="0.6" stroke-width="1.4"/>
+  <ellipse cx="105" cy="116" rx="22" ry="4.5" fill="none"
+           stroke="#ffb700" stroke-width="1"/>
+
+  <!-- Teller (rechter) -->
+  <ellipse cx="215" cy="120" rx="28" ry="6" fill="#ffb700" fill-opacity="0.25"/>
+  <ellipse cx="215" cy="116" rx="28" ry="6" fill="#fff" fill-opacity="0.95"
+           stroke="#2979ff" stroke-opacity="0.6" stroke-width="1.4"/>
+  <ellipse cx="215" cy="116" rx="19" ry="4" fill="none"
+           stroke="#ffb700" stroke-width="1"/>
+
+  <!-- Weinglas (Mitte) -->
+  <g transform="translate(160,80)">
+    <path d="M -14 0 Q -14 22, 0 26 Q 14 22, 14 0 Z"
+          fill="#ffb700" fill-opacity="0.35"
+          stroke="#ffb700" stroke-width="1.6"/>
+    <path d="M -14 0 Q -14 6, 0 10 Q 14 6, 14 0"
+          fill="#ffb700" fill-opacity="0.6"/>
+    <line x1="0" y1="26" x2="0" y2="42" stroke="#ffb700" stroke-width="1.8"/>
+    <line x1="-9" y1="42" x2="9" y2="42" stroke="#ffb700" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Besteck -->
+  <g stroke="#2979ff" stroke-width="1.6" stroke-linecap="round" stroke-opacity="0.65">
+    <!-- Gabel -->
+    <line x1="60" y1="100" x2="60" y2="116"/>
+    <line x1="56" y1="92" x2="56" y2="100"/>
+    <line x1="60" y1="92" x2="60" y2="100"/>
+    <line x1="64" y1="92" x2="64" y2="100"/>
+    <!-- Messer -->
+    <line x1="262" y1="100" x2="262" y2="116"/>
+    <path d="M 258 92 Q 262 84, 266 92 L 266 100 L 258 100 Z" fill="#2979ff" fill-opacity="0.4"/>
+  </g>
+
+  <!-- Sterne / Sparkle -->
+  <g fill="#ffb700">
+    <circle cx="40"  cy="40"  r="2"/>
+    <circle cx="285" cy="35"  r="2.5"/>
+    <circle cx="300" cy="80"  r="1.6"/>
+    <circle cx="25"  cy="80"  r="1.6"/>
+  </g>
+
+  <!-- Kerzen-Schein über Glas -->
+  <circle cx="160" cy="60" r="12" fill="#ffb700" fill-opacity="0.18"/>
+  <circle cx="160" cy="60" r="5" fill="#ffb700" fill-opacity="0.55"/>
+</svg>

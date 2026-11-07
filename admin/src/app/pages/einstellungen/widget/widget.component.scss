@@ -1,0 +1,4107 @@
+@use '../../../../styles/variables' as *;
+
+// ─────────────────────────────────────────────────────────────────────────
+//  LAYOUT-RAHMEN — gleiche Sprache wie die anderen Einstellungs-Seiten
+// ─────────────────────────────────────────────────────────────────────────
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1100px;
+}
+
+.settings-block {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  KOPFBEREICH der Seite — der „Was bin ich"-Hinweis ganz oben
+// ─────────────────────────────────────────────────────────────────────────
+.page-intro {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-accent-rgb), 0.12),
+    rgba(var(--color-primary-rgb), 0.08)
+  );
+  border: 1px solid rgba(var(--color-accent-rgb), 0.3);
+  border-radius: 14px;
+  padding: 18px 20px;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    mat-icon {
+      width: 32px;
+      height: 32px;
+      font-size: 30px;
+      color: $color-accent;
+      flex-shrink: 0;
+    }
+
+    h2 {
+      margin: 0 0 2px;
+      font-size: 17px;
+      font-weight: 700;
+      color: $color-text-on-dark;
+    }
+    p {
+      margin: 0;
+      font-size: 12px;
+      color: $color-text-muted;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  SECTION-HEADER innerhalb eines settings-blocks
+// ─────────────────────────────────────────────────────────────────────────
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: $color-text-on-dark;
+
+  &__index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgba(var(--color-accent-rgb), 0.18);
+    color: $color-accent;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+  }
+
+  &__hint {
+    color: $color-text-muted;
+    font-size: 12px;
+    font-weight: 400;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  LAYOUT-PICKER (3 Karten nebeneinander)
+// ─────────────────────────────────────────────────────────────────────────
+.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.layout-card {
+  // Reset für button-Element
+  appearance: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  background: $color-surface-soft;
+  border: 1.5px solid $color-border;
+  border-radius: 12px;
+  padding: 14px;
+  transition: all 0.18s ease;
+  position: relative;
+
+  &:hover {
+    border-color: rgba(var(--color-accent-rgb), 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+
+  &.is-active {
+    border-color: $color-accent;
+    background: rgba(var(--color-accent-rgb), 0.08);
+    box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.18);
+  }
+
+  // Mini-SVG-Skizze des Layouts
+  &__sketch {
+    background: rgba(var(--color-text-rgb), 0.04);
+    border: 1px dashed rgba(var(--color-text-rgb), 0.18);
+    border-radius: 8px;
+    padding: 10px;
+    aspect-ratio: 120 / 84;
+
+    svg { width: 100%; height: 100%; display: block; }
+
+    .sketch-block {
+      fill: rgba(var(--color-text-rgb), 0.32);
+      transition: fill 0.18s ease;
+    }
+    .sketch-row {
+      fill: rgba(var(--color-text-rgb), 0.18);
+      transition: fill 0.18s ease;
+    }
+    .sketch-row--cta {
+      fill: rgba(var(--color-text-rgb), 0.32);
+    }
+    .sketch-cta-outline {
+      fill: none;
+      stroke: rgba(var(--color-text-rgb), 0.32);
+      stroke-width: 1.5;
+      transition: stroke 0.18s ease;
+    }
+    .sketch-bg {
+      fill: rgba(var(--color-text-rgb), 0.06);
+    }
+    .sketch-card {
+      fill: rgba(var(--color-text-rgb), 0.02);
+      stroke: rgba(var(--color-text-rgb), 0.12);
+      stroke-width: 0.6;
+    }
+    .sketch-line {
+      fill: rgba(var(--color-text-rgb), 0.18);
+    }
+  }
+
+  &.is-active &__sketch {
+    background: rgba(var(--color-accent-rgb), 0.08);
+    border-style: solid;
+    border-color: rgba(var(--color-accent-rgb), 0.3);
+
+    .sketch-block      { fill: $color-accent; }
+    .sketch-row        { fill: rgba(var(--color-accent-rgb), 0.5); }
+    .sketch-row--cta   { fill: $color-accent; }
+    .sketch-cta-outline { stroke: $color-accent; }
+    .sketch-bg         { fill: rgba(var(--color-accent-rgb), 0.08); }
+    .sketch-card       { fill: rgba(255,255,255,0.6); stroke: rgba(var(--color-accent-rgb), 0.3); }
+    .sketch-line       { fill: rgba(var(--color-accent-rgb), 0.5); }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__label {
+    font-weight: 700;
+    font-size: 14px;
+    color: $color-text-on-dark;
+  }
+
+  &__check {
+    color: $color-accent;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &__tagline {
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-accent;
+    letter-spacing: 0.2px;
+  }
+
+  &__description {
+    font-size: 12px;
+    line-height: 1.5;
+    color: $color-text-muted;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  LIVE-VORSCHAU
+//  Zwei Geräte nebeneinander (Desktop-Browser + Phone-Mockup), die beide
+//  dasselbe Widget-Markup zeigen und live auf alle Designer-Settings
+//  reagieren.
+// ─────────────────────────────────────────────────────────────────────────
+.preview-stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 22px;
+
+  // Damit Layout-4 (hohe Calendar-Spalte) oder ein langer Stacked-Stil
+  // die Seitennavigation nicht aus dem Viewport schieben, kapseln wir
+  // den ganzen Vorschau-Bereich in einen eigenen Scroll-Container.
+  // Höhe ist viewport-relativ, sodass die Vorschau immer entspannt in
+  // den sichtbaren Bereich passt.
+  max-height: calc(100vh - 220px);
+  min-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 12px 12px 4px;
+
+  // Sanftes Scroll-Feedback und stabile Scrollbar
+  scrollbar-gutter: stable both-edges;
+  scroll-behavior: smooth;
+
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+
+  // Custom Scrollbar (WebKit) — passt zur Admin-Optik
+  &::-webkit-scrollbar { width: 10px; }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+
+    &:hover { background-color: rgba(0, 0, 0, 0.32); background-clip: padding-box; }
+  }
+}
+
+// Wrapper pro Gerät — Label oben, Frame darunter
+.preview-device {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+
+  &--desktop {
+    flex: 1 1 480px;
+    max-width: 600px;
+    min-width: 360px;
+  }
+
+  &--mobile {
+    flex: 0 0 auto;
+    width: 270px;
+  }
+
+  &__head {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: $color-text-muted;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+
+    mat-icon {
+      width: 16px;
+      height: 16px;
+      font-size: 16px;
+      color: $color-accent;
+    }
+  }
+}
+
+// "Browser-Frame" — gibt der Desktop-Vorschau Kontext, dass das Widget
+// irgendwo auf einer Restaurant-Seite eingebettet ist
+.preview-frame {
+  width: 100%;
+
+  background: #f6f7f9;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #e7e9ee;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 8px 12px;
+  }
+
+  &__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.18);
+
+    &:nth-child(1) { background: #ff5f57; }
+    &:nth-child(2) { background: #febc2e; }
+    &:nth-child(3) { background: #28c840; }
+  }
+
+  &__url {
+    margin-left: 8px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #555;
+    font-size: 11px;
+    letter-spacing: 0.2px;
+  }
+}
+
+// "Phone-Mockup" — schmaler Smartphone-Rahmen mit Notch + Status-Bar
+.preview-phone {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 19;
+  background: #1c1d22;
+  border-radius: 36px;
+  padding: 10px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32),
+              inset 0 0 0 1.5px rgba(255, 255, 255, 0.08);
+
+  &__notch {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 18px;
+    background: #000;
+    border-radius: 999px;
+    z-index: 2;
+  }
+
+  &__home {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.45);
+  }
+
+  &__screen {
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    border-radius: 28px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__statusbar {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 18px 0 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #1f2937;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  &__time { font-variant-numeric: tabular-nums; }
+  &__icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #1f2937;
+
+    mat-icon {
+      width: 12px;
+      height: 12px;
+      font-size: 12px;
+    }
+  }
+
+  &__scroll {
+    flex: 1;
+    overflow: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+
+    // Damit Layouts wie der Hotel-Stil ihren Hintergrund über den ganzen
+    // sichtbaren Phone-Bereich ziehen können, lässt der Scroll-Container
+    // sein einziges Kind (.preview--mobile) auf volle Höhe wachsen.
+    > .preview { min-height: 100%; }
+
+    // Schlanker Scrollbalken — wirkt nicht wie ein Desktop-Element
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.18);
+      border-radius: 999px;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Das eigentliche Widget-Mockup (visuell, ohne Funktion).
+//
+//  Drei optisch komplett unterschiedliche Layouts:
+//   • .preview-card    — Karten-Stil mit Hero-Foto (Bild 1)
+//   • .preview-sidebar — Hotel-Stil mit Hintergrundbild (Bild 2)
+//   • .preview__*      — klassisches Formular (stacked)
+//
+//  Alle drei Varianten greifen auf dieselben CSS-Custom-Properties
+//  (--preview-text/--preview-bg/--preview-primary/...), die durch
+//  [ngStyle]="previewStyle()" gesetzt werden. So beeinflussen Farb-,
+//  Schrift- und Radius-Settings jede Variante gleichermaßen.
+// ─────────────────────────────────────────────────────────────────────────
+.preview {
+  // Defaults — werden durch [ngStyle]="previewStyle()" zur Laufzeit
+  // überschrieben. So funktioniert die Vorschau auch ohne Bindings.
+  --preview-text:        #1f2937;
+  --preview-muted:       #6b7280;
+  --preview-border:      #e5e7eb;
+  --preview-bg:          #ffffff;
+  --preview-soft:        #f9fafb;
+  --preview-primary:     #2563eb;
+  --preview-base:        14px;
+  --preview-radius:      10px;
+  --preview-radius-cta:  10px;
+
+  // Default-Aussehen: Klassischer Stil — die Variablen schlagen direkt durch.
+  // Karten- und Hotel-Layouts überschreiben diese Werte weiter unten und
+  // bauen ihre eigene Container-Optik.
+  background: var(--preview-bg);
+  color: var(--preview-text);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  // Karten-, Hotel- & Cockpit-Stil bauen ihre Optik selbst — Wrapper bleibt neutral.
+  &.preview--card,
+  &.preview--sidebar,
+  &.preview--stacked {
+    background: transparent;
+    color: var(--preview-text);
+    padding: 0;
+    gap: 0;
+  }
+
+  &__header {
+    border-bottom: 1px solid var(--preview-border);
+    padding-bottom: 12px;
+  }
+  &__title {
+    margin: 0 0 2px;
+    font-size: 1.4em;   // skaliert mit --preview-base
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  &__subtitle {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--preview-muted);
+  }
+
+  // ── Header-Ausrichtung ──────────────────────────────────────────────
+  &.preview--align-left   .preview__header { text-align: left;   }
+  &.preview--align-center .preview__header { text-align: center; }
+  &.preview--align-right  .preview__header { text-align: right;  }
+
+  // ── Form-Grid: enthält alle Felder ──────────────────────────────────
+  &__form {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+
+  // ── Einzelnes Feld (Label + Input/Wert) ─────────────────────────────
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    &--full { grid-column: 1 / -1; }
+  }
+
+  &__field-label {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--preview-text);
+    line-height: 1.2;
+  }
+
+  // Slot-Variante: Datum / Uhrzeit / Personen
+  &__field--slot {
+    background: var(--preview-soft);
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    padding: 10px 12px;
+    gap: 4px;
+
+    .preview__field-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      color: var(--preview-muted);
+      text-transform: uppercase;
+    }
+  }
+
+  &__field-value {
+    font-weight: 700;
+    font-size: 1.15em;
+    color: var(--preview-text);
+
+    &--stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+
+      span:first-child,
+      span:last-child {
+        width: 1.7em;
+        height: 1.7em;
+        border-radius: calc(var(--preview-radius) * 0.6);
+        background: color-mix(in srgb, var(--preview-primary) 14%, transparent);
+        color: var(--preview-primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.95em;
+      }
+    }
+  }
+
+  &__field-num {
+    font-size: 1em;
+    font-weight: 700;
+  }
+
+  &__optional {
+    color: var(--preview-muted);
+    font-weight: 400;
+  }
+
+  // Reguläre Input-Felder
+  &__input {
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    padding: 10px 12px;
+    background: var(--preview-bg);
+    color: var(--preview-muted);
+    font-size: 0.95em;
+
+    &--area { min-height: 56px; }
+  }
+
+  // ── CTA ──────────────────────────────────────────────────────────────
+  &__cta {
+    appearance: none;
+    border: none;
+    cursor: default;
+    background: var(--preview-primary);
+    color: #fff;
+    border-radius: var(--preview-radius-cta);
+    padding: 14px 16px;
+    font-size: 1em;
+    font-weight: 600;
+    font-family: inherit;
+  }
+
+  // (Hinweis: Stacked benutzt jetzt eine eigene `.preview-stacked` Container-
+  //  Optik mit Live-Statusleiste + Cockpit-Tiles — siehe weiter unten.)
+
+  // Planer (3-Spalten-Picker): Header oben + 3 Spalten + CTA unten
+  &.preview--planner {
+    gap: 16px;
+    padding: 22px;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  KARTEN-STIL — Hero-Foto, zentrierter Titel, Stepper, Datum/Zeit, CTA
+// ─────────────────────────────────────────────────────────────────────────
+.preview-card {
+  background: var(--preview-bg);
+  color: var(--preview-text);
+  padding: 28px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+
+  &__hero {
+    width: 78%;
+    max-width: 360px;
+    aspect-ratio: 4 / 3;
+    border-radius: calc(var(--preview-radius) * 1.6);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--preview-primary) 18%, var(--preview-soft)),
+      color-mix(in srgb, var(--preview-primary) 6%, var(--preview-soft))
+    );
+    background-size: cover;
+    background-position: center;
+    border: 2px solid color-mix(in srgb, var(--preview-text) 12%, transparent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--preview-muted);
+
+    mat-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      opacity: 0.6;
+    }
+
+    &.has-image {
+      background-color: var(--preview-soft);
+      mat-icon { display: none; }
+    }
+  }
+
+  &__hero-hint {
+    font-size: 0.75em;
+    letter-spacing: 0.4px;
+  }
+
+  &__title {
+    margin: 8px 0 0;
+    font-size: 1.45em;
+    font-weight: 500;
+    color: var(--preview-text);
+    line-height: 1.2;
+  }
+  &__subtitle {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--preview-muted);
+  }
+
+  &__group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  &__label {
+    font-size: 1em;
+    color: var(--preview-text);
+    font-weight: 400;
+  }
+
+  &__stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+  }
+
+  // Stepper-Buttons (− / +) — interaktiv, mit Hover-Highlight in Markenfarbe.
+  &__stepper-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+
+    width: 1.6em;
+    height: 1.6em;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 1.6em;
+    line-height: 1;
+    color: var(--preview-text);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 14%, transparent);
+      color: var(--preview-primary);
+    }
+  }
+
+  // Klickbare Personenzahl in der Mitte — öffnet/schließt den Chips-Picker.
+  &__stepper-num {
+    appearance: none;
+    background: transparent;
+    border: 1.5px solid transparent;
+    padding: 4px 14px;
+    font-family: inherit;
+
+    font-size: 2.3em;
+    font-weight: 500;
+    color: var(--preview-text);
+    min-width: 1.5em;
+    text-align: center;
+    border-radius: var(--preview-radius);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 8%, transparent);
+    }
+    &.is-active {
+      background: color-mix(in srgb, var(--preview-primary) 12%, transparent);
+      border-color: color-mix(in srgb, var(--preview-primary) 45%, transparent);
+    }
+  }
+
+  // Datum/Uhrzeit als zwei „Chip-Buttons" in der Markenfarbe getintet —
+  // wirken klickbar (Picker-Hinweis durch Chevron rechts), bleiben aber
+  // im rein visuellen Mockup ohne Funktion.
+  &__datetime {
+    width: 86%;
+    max-width: 360px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__datetime-field {
+    appearance: none;
+    cursor: pointer;            // jetzt anklickbar — öffnet Inline-Picker
+    font-family: inherit;
+    text-align: left;
+
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+
+    background: color-mix(in srgb, var(--preview-primary) 10%, var(--preview-bg));
+    border: 1px solid color-mix(in srgb, var(--preview-primary) 28%, transparent);
+    border-radius: var(--preview-radius);
+    color: var(--preview-text);
+
+    transition: 0.15s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 16%, var(--preview-bg));
+      border-color: color-mix(in srgb, var(--preview-primary) 45%, transparent);
+    }
+    // Aktiver Zustand, wenn das passende Picker-Panel offen ist
+    &.is-active {
+      background: color-mix(in srgb, var(--preview-primary) 18%, var(--preview-bg));
+      border-color: var(--preview-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--preview-primary) 18%, transparent);
+
+      .preview-card__datetime-chevron {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  // ── Inline-Picker-Panel (Datum / Uhrzeit / Personen) ──────────────────
+  // Klappt OBEN über dem geklickten Feld auf, mittig zentriert, ohne Modal.
+  // Margin-bottom negativ, damit das Panel optisch nah am Trigger-Feld sitzt.
+  // Visuell harmoniert es mit dem Planer-Stil-Picker (gleicher Border-Look).
+  &__picker {
+    width: 86%;
+    max-width: 360px;
+    align-self: center;       // Picker mittig zentrieren (Eltern ist column-flex)
+    margin-bottom: -6px;
+    padding: 12px;
+
+    background: var(--preview-bg);
+    border: 1px solid color-mix(in srgb, var(--preview-primary) 35%, transparent);
+    border-radius: var(--preview-radius);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+
+    animation: preview-card-picker-in 0.18s ease;
+  }
+
+  // Animation: Panel wächst von unten (vom Trigger) nach oben heraus.
+  @keyframes preview-card-picker-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);  }
+  }
+
+  // Seats-Picker im Card-Stil hat 360px Platz → 2 Spalten auch auf Desktop.
+  // (Layout 4 bleibt 1-spaltig, da dort jedes Panel nur 1/3-Breite hat.)
+  &__picker--seats .preview-planner__chips--seats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  // Chevron-Animation Vorbereitung (wird im aktiven Feld gedreht)
+  &__datetime-chevron {
+    transition: transform 0.18s ease;
+  }
+
+  &__datetime-icon {
+    font-size: 1.15em;
+    width: 1.15em;
+    height: 1.15em;
+    color: var(--preview-primary);
+  }
+
+  &__datetime-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__datetime-hint {
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+  }
+
+  &__datetime-text {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--preview-text);
+    line-height: 1.2;
+  }
+
+  &__datetime-chevron {
+    font-size: 1em;
+    width: 1em;
+    height: 1em;
+    color: var(--preview-muted);
+    opacity: 0.7;
+  }
+
+  // Outlined CTA — typischer Look für den Karten-Stil
+  &__cta {
+    appearance: none;
+    cursor: pointer;
+    margin-top: 8px;
+    width: 86%;
+    max-width: 320px;
+    padding: 14px 20px;
+    background: transparent;
+    color: var(--preview-text);
+    border: 1.5px solid var(--preview-text);
+    border-radius: var(--preview-radius-cta);
+    font-family: inherit;
+    font-size: 1.1em;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-text) 6%, transparent);
+    }
+
+    // Schritt-2-Variante: gefüllt in Markenfarbe (visuell „final action")
+    &--submit {
+      background: var(--preview-primary);
+      color: #fff;
+      border-color: var(--preview-primary);
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+      flex: 1 1 0;
+      margin-top: 0;
+      max-width: none;
+      width: auto;
+
+      &:hover {
+        background: color-mix(in srgb, var(--preview-primary) 88%, black);
+      }
+
+      // Solange die DSGVO-Einwilligung fehlt, sieht der Button „disabled" aus
+      &.is-disabled {
+        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
+        border-color: color-mix(in srgb, var(--preview-primary) 25%, transparent);
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.85;
+
+        &:hover { background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg)); }
+      }
+    }
+  }
+
+  // ── DSGVO-Einwilligung — Checkbox + kurzer Text mit Datenschutz-Link ──
+  &__consent {
+    width: 86%;
+    max-width: 360px;
+    margin-top: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    text-align: left;
+    user-select: none;
+
+    // Native Checkbox visuell ausblenden, aber für Screenreader & Tastatur erreichbar lassen
+    &-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    &-box {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      border: 1.5px solid var(--preview-border);
+      border-radius: 4px;
+      background: var(--preview-bg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s ease;
+
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: #fff;
+      }
+    }
+
+    &.is-checked &-box {
+      background: var(--preview-primary);
+      border-color: var(--preview-primary);
+    }
+
+    &:hover:not(.is-checked) &-box {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+    }
+
+    &-text {
+      flex: 1;
+      font-size: 0.78em;
+      line-height: 1.4;
+      color: color-mix(in srgb, var(--preview-text) 78%, transparent);
+    }
+
+    &-link {
+      color: var(--preview-primary);
+      text-decoration: underline;
+      font-weight: 500;
+
+      &:hover { text-decoration: none; }
+    }
+  }
+
+  // ── Schritt 2: Daten-Formular ─────────────────────────────────────────
+  // Das Formular sitzt in der gleichen Card-Spalte wie die Step-1-Felder,
+  // mit Labels darüber und „input-look" Pseudo-Feldern.
+  &__form {
+    width: 86%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+  }
+
+  &__form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    &--split {
+      flex-direction: row;
+      gap: 10px;
+      .preview-card__field { flex: 1 1 0; min-width: 0; }
+    }
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__field-label {
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+  }
+
+  &__field-optional {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.7;
+  }
+
+  &__field-input {
+    padding: 10px 12px;
+    background: var(--preview-bg);
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    font-size: 0.95em;
+    color: color-mix(in srgb, var(--preview-text) 55%, transparent);
+    line-height: 1.3;
+    min-height: 1.3em;
+
+    &--area {
+      min-height: 4.4em;
+      white-space: pre-wrap;
+    }
+  }
+
+  // ── Schritt-2-Footer: Zurück + Senden ────────────────────────────────
+  &__nav {
+    margin-top: 8px;
+    width: 86%;
+    max-width: 360px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__back {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius-cta);
+    color: var(--preview-text);
+    font-family: inherit;
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 12px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+
+    mat-icon {
+      font-size: 1.1em;
+      width: 1.1em;
+      height: 1.1em;
+      margin-left: -4px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-text) 6%, transparent);
+      border-color: color-mix(in srgb, var(--preview-text) 30%, transparent);
+    }
+  }
+
+  // Header-Ausrichtung respektieren (Standard ist zentriert)
+  .preview--align-left   & { align-items: flex-start; text-align: left;   }
+  .preview--align-right  & { align-items: flex-end;   text-align: right;  }
+  .preview--align-center & { align-items: center;     text-align: center; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  HOTEL-STIL — großes Hintergrundbild, schmale Sidebar mit Linien-Inputs
+// ─────────────────────────────────────────────────────────────────────────
+.preview-sidebar {
+  position: relative;
+  min-height: 420px;
+  background-color: var(--preview-soft);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 32px;
+
+  // Dunkler Schleier auf dem Hintergrundbild — bessere Lesbarkeit der Karte
+  &.has-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.18),
+      rgba(0, 0, 0, 0.05)
+    );
+    pointer-events: none;
+  }
+
+  // Hinweis-Box wenn noch kein Bild gewählt wurde
+  &__placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--preview-muted);
+    font-size: 0.85em;
+    letter-spacing: 0.4px;
+
+    mat-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+      opacity: 0.5;
+    }
+  }
+
+  // Die eigentliche Buchungs-Karte (rechts)
+  &__card {
+    position: relative;
+    z-index: 1;
+    width: min(340px, 100%);
+    background: color-mix(in srgb, var(--preview-bg) 92%, transparent);
+    backdrop-filter: blur(8px);
+    color: var(--preview-text);
+    padding: 24px 26px 22px;
+    border-radius: calc(var(--preview-radius) * 1.4);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  // Gestackte Headline (Wort pro Zeile, uppercase, fett)
+  &__title {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.6px;
+    color: var(--preview-primary);
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    span {
+      display: block;
+      // Wenn nur EIN Wort kommt, soll es nicht zu winzig wirken — daher
+      // breit gesperrt und groß gesetzt, statt eine zweite Zeile zu erfinden.
+    }
+  }
+
+  &__subtitle {
+    margin: -8px 0 0;
+    font-size: 0.8em;
+    color: var(--preview-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid color-mix(in srgb, var(--preview-text) 16%, transparent);
+
+    &:last-of-type { border-bottom: none; padding-bottom: 0; }
+
+    // Klickbare Variante (Datum/Uhrzeit/Personen) — wirkt wie ein „Tile",
+    // bekommt Hover-Highlight und einen kleinen Chevron-Hinweis rechts.
+    &--button {
+      appearance: none;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid color-mix(in srgb, var(--preview-text) 16%, transparent);
+      position: relative;
+      padding-right: 22px;       // Platz für Chevron
+      transition: background 0.15s ease, padding 0.15s ease;
+
+      &:hover {
+        background: color-mix(in srgb, var(--preview-primary) 6%, transparent);
+        padding-left: 8px;
+        padding-right: 30px;
+      }
+    }
+  }
+
+  // Mini-Chevron rechts in den klickbaren Feldern — hotel-ähnliche Affordanz
+  &__chevron {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: color-mix(in srgb, var(--preview-primary) 75%, transparent);
+    opacity: 0.7;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+
+  &__group--button:hover &__chevron {
+    transform: translate(3px, -50%);
+    opacity: 1;
+  }
+
+  // Datum + Uhrzeit nebeneinander — gleiche Linien-Optik, aber als 2-Spalten-
+  // Reihe mit vertikalem Trenner zwischen den Werten.
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid color-mix(in srgb, var(--preview-text) 16%, transparent);
+
+    .preview-sidebar__group {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .preview-sidebar__group + .preview-sidebar__group {
+      padding-left: 14px;
+      border-left: 1px solid color-mix(in srgb, var(--preview-text) 16%, transparent);
+    }
+  }
+
+  &__label {
+    font-size: 0.7em;
+    font-weight: 700;
+    color: var(--preview-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  &__value {
+    font-size: 1em;
+    color: var(--preview-text);
+    line-height: 1.3;
+  }
+
+  &__cta {
+    appearance: none;
+    cursor: default;
+    margin-top: 4px;
+    width: 100%;
+    padding: 12px 18px;
+    border: none;
+    background: var(--preview-primary);
+    color: #fff;
+    border-radius: var(--preview-radius-cta);
+    font-family: inherit;
+    font-size: 0.95em;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  // ── „Concierge"-Picker ──────────────────────────────────────────────
+  // Ersetzt die ganze Übersicht — wirkt wie eine Schublade, die in die
+  // Card hineingezogen wird. Markenfarben-Akzentstrich oben + uppercase
+  // Titel passen zum Hotel-Headline-Stil.
+  &.is-picker-open {
+    // Card wächst etwas, damit Kalender/Chips bequem reinpassen
+    min-height: 380px;
+    gap: 10px;
+  }
+
+  &__picker {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: preview-sidebar-picker-in 0.22s cubic-bezier(0.16, 0.84, 0.44, 1);
+  }
+
+  @keyframes preview-sidebar-picker-in {
+    from { opacity: 0; transform: translateX(14px); }
+    to   { opacity: 1; transform: translateX(0);    }
+  }
+
+  &__picker-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: -4px;
+  }
+
+  &__picker-back {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--preview-text) 18%, transparent);
+    border-radius: 999px;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--preview-text);
+    transition: 0.15s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 12%, transparent);
+      border-color: var(--preview-primary);
+      color: var(--preview-primary);
+    }
+  }
+
+  &__picker-title {
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--preview-primary);
+  }
+
+  // Markenfarben-Akzentstrich unter dem Header — verleiht der Schublade
+  // eine elegante Trennung zur Headline. Asymmetrisch (links startend).
+  &__picker-accent {
+    display: block;
+    height: 2px;
+    width: 38px;
+    background: var(--preview-primary);
+    border-radius: 2px;
+    margin: 0 0 4px 40px;     // gleiche Einrückung wie Titel (nach Back-Btn)
+    box-shadow: 0 0 12px color-mix(in srgb, var(--preview-primary) 45%, transparent);
+  }
+
+  // ── Kalender im Hotel-Look ─────────────────────────────────────────
+  &__cal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__cal-bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__cal-month {
+    text-align: center;
+    font-size: 0.85em;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: var(--preview-text);
+  }
+
+  &__cal-nav {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--preview-muted);
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 12%, transparent);
+      color: var(--preview-primary);
+    }
+  }
+
+  &__cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0;
+    margin-bottom: 2px;
+
+    span {
+      text-align: center;
+      font-size: 0.6em;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: color-mix(in srgb, var(--preview-primary) 75%, var(--preview-muted));
+      padding: 2px 0;
+    }
+  }
+
+  &__cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  &__cal-day {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 0.78em;
+    font-weight: 500;
+    color: var(--preview-text);
+    transition: 0.15s ease;
+    min-width: 0;
+    padding: 0;
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--preview-primary) 12%, transparent);
+      color: var(--preview-primary);
+    }
+
+    &.is-today {
+      border-color: color-mix(in srgb, var(--preview-primary) 55%, transparent);
+      color: var(--preview-primary);
+      font-weight: 700;
+    }
+
+    &.is-selected {
+      background: var(--preview-primary);
+      color: #fff;
+      border-color: var(--preview-primary);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+      font-weight: 700;
+    }
+
+    &--empty { pointer-events: none; }
+  }
+
+  // ── Uhrzeiten ───────────────────────────────────────────────────────
+  &__times {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  &__time {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--preview-text);
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--preview-text) 18%, transparent);
+    border-radius: var(--preview-radius);
+    padding: 10px 4px;
+    text-align: center;
+    transition: 0.15s ease;
+    position: relative;
+    overflow: hidden;
+
+    // Markenfarben-Akzent links unten — Hotel-Charakter
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 0;
+      height: 2px;
+      background: var(--preview-primary);
+      transition: width 0.2s ease;
+    }
+
+    &:hover:not(.is-selected) {
+      border-color: color-mix(in srgb, var(--preview-primary) 55%, transparent);
+      color: var(--preview-primary);
+      &::before { width: 38%; }
+    }
+
+    &.is-selected {
+      background: var(--preview-primary);
+      color: #fff;
+      border-color: var(--preview-primary);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+      &::before { width: 100%; background: #fff; opacity: 0.55; }
+    }
+  }
+
+  // ── Personen ────────────────────────────────────────────────────────
+  &__seats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  &__seat {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--preview-text) 18%, transparent);
+    border-radius: var(--preview-radius);
+    padding: 10px 12px;
+    text-align: left;
+    color: var(--preview-text);
+    transition: 0.15s ease;
+
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 6px;
+
+    &-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--preview-primary);
+      transition: 0.15s ease;
+    }
+
+    &-count {
+      font-size: 1.05em;
+      font-weight: 700;
+      color: var(--preview-text);
+      transition: color 0.15s ease;
+    }
+
+    &-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: var(--preview-muted);
+      transition: color 0.15s ease;
+    }
+
+    &:hover:not(.is-selected) {
+      border-color: color-mix(in srgb, var(--preview-primary) 55%, transparent);
+      background: color-mix(in srgb, var(--preview-primary) 4%, transparent);
+    }
+
+    &.is-selected {
+      background: var(--preview-primary);
+      border-color: var(--preview-primary);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+
+      .preview-sidebar__seat-icon,
+      .preview-sidebar__seat-count { color: #fff; }
+      .preview-sidebar__seat-label { color: rgba(255, 255, 255, 0.85); }
+    }
+  }
+
+  // ── Schritt 2: „Daten"-Formular ─────────────────────────────────────
+  // Pseudo-Inputs, die optisch in den Hotel-Stil passen: Werte wirken wie
+  // Platzhalter (gedimmt), Labels stehen darüber in Markenfarbe-Caps. Die
+  // Linie unter jedem Feld kommt bereits aus `&__group` / `&__row`.
+  &__input {
+    font-size: 0.95em;
+    line-height: 1.3;
+    color: color-mix(in srgb, var(--preview-text) 50%, transparent);
+    min-height: 1.3em;
+    padding: 2px 0 2px;
+    letter-spacing: 0.2px;
+
+    // Mehrzeilige Variante (Notizen) — optisch ein wenig „Texturraum"
+    &--area {
+      min-height: 3.4em;
+      white-space: pre-wrap;
+    }
+  }
+
+  // Kleines „(optional)"-Suffix neben Label
+  &__optional {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.75;
+    color: var(--preview-muted);
+  }
+
+  // ── DSGVO-Einwilligung — minimalistisch, hotel-tauglich ─────────────
+  &__consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 0 2px;
+    border-top: 1px solid color-mix(in srgb, var(--preview-text) 12%, transparent);
+    margin-top: 2px;
+
+    // Native Checkbox unsichtbar, aber für Tastatur/Screenreader erreichbar
+    &-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    &-box {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      border: 1.5px solid color-mix(in srgb, var(--preview-text) 30%, transparent);
+      border-radius: 3px;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s ease;
+
+      mat-icon {
+        font-size: 12px;
+        width: 12px;
+        height: 12px;
+        color: #fff;
+      }
+    }
+
+    &.is-checked &-box {
+      background: var(--preview-primary);
+      border-color: var(--preview-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--preview-primary) 18%, transparent);
+    }
+
+    &:hover:not(.is-checked) &-box {
+      border-color: color-mix(in srgb, var(--preview-primary) 60%, transparent);
+    }
+
+    &-text {
+      flex: 1;
+      font-size: 0.72em;
+      line-height: 1.45;
+      letter-spacing: 0.2px;
+      color: color-mix(in srgb, var(--preview-text) 72%, transparent);
+    }
+
+    &-link {
+      color: var(--preview-primary);
+      text-decoration: underline;
+      font-weight: 600;
+
+      &:hover { text-decoration: none; }
+    }
+  }
+
+  // ── Footer in Schritt 2: runder Zurück-Button + Submit-CTA ──────────
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  &__back {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--preview-text) 22%, transparent);
+    border-radius: 999px;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--preview-text);
+    transition: 0.15s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 10%, transparent);
+      border-color: var(--preview-primary);
+      color: var(--preview-primary);
+    }
+  }
+
+  // Submit-Variante des CTA — gleiche Markenfüllung, aber „flex: 1" damit
+  // er neben dem runden Back-Button die volle Restbreite einnimmt.
+  &__cta--submit {
+    flex: 1 1 0;
+    margin-top: 0;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+    transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    cursor: pointer;
+
+    &:hover { background: color-mix(in srgb, var(--preview-primary) 88%, black); }
+
+    // Solange die DSGVO-Einwilligung fehlt, sieht der Submit „disabled" aus
+    &.is-disabled {
+      background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.85;
+
+      &:hover {
+        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
+      }
+    }
+  }
+
+  // Header-Ausrichtung respektieren — verschiebt die Sidebar selbst
+  .preview--align-left   & { justify-content: flex-start; }
+  .preview--align-center & { justify-content: center;     }
+  .preview--align-right  & { justify-content: flex-end;   }
+
+  // Mobile: Sidebar wird auf volle Breite ausgedehnt
+  @media (max-width: 640px) {
+    padding: 18px;
+    min-height: 360px;
+
+    &__card { width: 100%; }
+    &__times { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  COCKPIT-STIL (Layout 3) — Live-Statusleiste oben, große Cockpit-Tiles
+//  für Datum/Uhrzeit/Personen, Slide-Down-Picker. Hebt sich klar von Layout
+//  1 (Karte mit Hero) und Layout 2 (Hotel-Sidebar) ab durch:
+//     • technisch-cleane Statusleiste mit pulsierendem Live-Dot
+//     • Markenfarben-Akzentstrich, der den Step-Fortschritt zeigt
+//     • Cockpit-Tiles mit großem zentralem Wert + Caps-Meta drunter
+//     • Picker, der UNTER den Tiles ausfährt (statt darüber wie Karte
+//       oder als Slide-In wie Hotel)
+// ─────────────────────────────────────────────────────────────────────────
+.preview-stacked {
+  background: var(--preview-bg);
+  color: var(--preview-text);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: inherit;
+
+  // ── „Live"-Statusleiste oben ──────────────────────────────────────────
+  // Dunkler Streifen als technisches Akzent-Element. Nutzt die Textfarbe
+  // (gemixt mit BG) für ein dezentes „Cockpit-Display"-Feeling.
+  &__statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 16px;
+    background: color-mix(in srgb, var(--preview-text) 92%, transparent);
+    color: color-mix(in srgb, var(--preview-bg) 90%, transparent);
+    font-size: 0.7em;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  &__live {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  // Pulsierender Dot — animierter „Live"-Indikator in Markenfarbe
+  &__live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--preview-primary);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--preview-primary) 70%, transparent);
+    animation: preview-stacked-pulse 1.6s ease-out infinite;
+  }
+
+  @keyframes preview-stacked-pulse {
+    0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--preview-primary) 65%, transparent); }
+    70%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--preview-primary)  0%, transparent); }
+    100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--preview-primary)  0%, transparent); }
+  }
+
+  &__live-label {
+    font-size: 0.95em;
+    color: inherit;
+  }
+
+  &__steps {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--preview-bg) 18%, transparent);
+    color: color-mix(in srgb, var(--preview-bg) 70%, transparent);
+    font-size: 0.85em;
+    font-weight: 700;
+    transition: 0.2s ease;
+
+    &.is-active {
+      background: var(--preview-primary);
+      color: #fff;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--preview-primary) 25%, transparent);
+    }
+
+    &.is-done {
+      background: color-mix(in srgb, var(--preview-primary) 70%, transparent);
+      color: #fff;
+    }
+  }
+
+  &__step-bar {
+    width: 14px;
+    height: 2px;
+    background: color-mix(in srgb, var(--preview-bg) 18%, transparent);
+    border-radius: 999px;
+    transition: 0.2s ease;
+
+    &.is-done { background: var(--preview-primary); }
+  }
+
+  // Markenfarben-Akzentstrich, der unter der Statusleiste sitzt und den
+  // Step-Fortschritt visualisiert (50 % auf Step 1, 100 % auf Step 2).
+  &__accent {
+    height: 3px;
+    background: color-mix(in srgb, var(--preview-text) 8%, transparent);
+    overflow: hidden;
+  }
+
+  &__accent-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      var(--preview-primary),
+      color-mix(in srgb, var(--preview-primary) 60%, var(--preview-text))
+    );
+    transition: width 0.4s cubic-bezier(0.16, 0.84, 0.44, 1);
+  }
+
+  // ── Header (Titel + Untertitel) ───────────────────────────────────────
+  &__header {
+    padding: 16px 20px 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.4em;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--preview-text);
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    font-size: 0.85em;
+    color: var(--preview-muted);
+  }
+
+  // ── Cockpit-Tiles (Datum / Uhrzeit / Personen) ────────────────────────
+  &__tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 0 20px;
+  }
+
+  &__tile {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    padding: 12px 14px 14px;
+    background: color-mix(in srgb, var(--preview-text) 4%, var(--preview-bg));
+    border: 1.5px solid color-mix(in srgb, var(--preview-text) 10%, transparent);
+    border-radius: var(--preview-radius);
+    color: var(--preview-text);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+    transition: 0.2s cubic-bezier(0.16, 0.84, 0.44, 1);
+
+    // Markenfarben-Akzentstrich oben links — Cockpit-Detail
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background: var(--preview-primary);
+      transition: width 0.25s ease;
+    }
+
+    &:hover:not(.is-active) {
+      border-color: color-mix(in srgb, var(--preview-primary) 35%, transparent);
+      background: color-mix(in srgb, var(--preview-primary) 5%, var(--preview-bg));
+      transform: translateY(-1px);
+      &::before { width: 30%; }
+    }
+
+    &.is-active {
+      border-color: var(--preview-primary);
+      background: var(--preview-bg);
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--preview-primary) 18%, transparent);
+      &::before { width: 100%; }
+    }
+  }
+
+  &__tile-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: var(--preview-primary);
+    }
+  }
+
+  &__tile-value {
+    font-size: 1.7em;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--preview-text);
+    letter-spacing: -0.5px;
+  }
+
+  &__tile-meta {
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+  }
+
+  // ── Slide-Down-Picker (unter den Tiles) ───────────────────────────────
+  &__picker {
+    margin: 0 20px;
+    padding: 14px;
+    background: color-mix(in srgb, var(--preview-text) 3%, var(--preview-bg));
+    border: 1px solid color-mix(in srgb, var(--preview-text) 10%, transparent);
+    border-radius: var(--preview-radius);
+    animation: preview-stacked-picker-down 0.22s cubic-bezier(0.16, 0.84, 0.44, 1);
+    overflow: hidden;
+  }
+
+  @keyframes preview-stacked-picker-down {
+    from { opacity: 0; transform: translateY(-6px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0);    max-height: 600px; }
+  }
+
+  // Mini-Kalender im Picker
+  &__cal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__cal-bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__cal-month {
+    text-align: center;
+    font-size: 0.85em;
+    font-weight: 700;
+    color: var(--preview-text);
+    letter-spacing: 0.4px;
+  }
+
+  &__cal-nav {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--preview-muted);
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 12%, transparent);
+      color: var(--preview-primary);
+    }
+  }
+
+  &__cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0;
+
+    span {
+      text-align: center;
+      font-size: 0.6em;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--preview-muted);
+      padding: 2px 0;
+    }
+  }
+
+  &__cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  &__cal-day {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    aspect-ratio: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 0.78em;
+    font-weight: 600;
+    color: var(--preview-text);
+    transition: 0.12s ease;
+    min-width: 0;
+    padding: 0;
+
+    &:hover:not(:disabled):not(.is-selected) {
+      background: color-mix(in srgb, var(--preview-primary) 10%, transparent);
+      color: var(--preview-primary);
+    }
+
+    &.is-today {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      color: var(--preview-primary);
+    }
+
+    &.is-selected {
+      background: var(--preview-primary);
+      color: #fff;
+      border-color: var(--preview-primary);
+      box-shadow: 0 4px 10px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+    }
+
+    &--empty { pointer-events: none; }
+  }
+
+  // Uhrzeit-Chips im Picker — kantige Chips mit Cockpit-Look
+  &__times {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  &__time {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--preview-bg);
+    border: 1.5px solid color-mix(in srgb, var(--preview-text) 12%, transparent);
+    border-radius: 6px;
+    padding: 9px 4px;
+    font-size: 0.85em;
+    font-weight: 700;
+    color: var(--preview-text);
+    transition: 0.15s ease;
+    text-align: center;
+    letter-spacing: 0.3px;
+
+    &:hover:not(.is-selected) {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      color: var(--preview-primary);
+      transform: translateY(-1px);
+    }
+
+    &.is-selected {
+      background: var(--preview-primary);
+      border-color: var(--preview-primary);
+      color: #fff;
+      box-shadow: 0 4px 10px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+    }
+  }
+
+  // Personen-Chips im Picker — mit großer Zahl + Caps-Label
+  &__seats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  &__seat {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--preview-bg);
+    border: 1.5px solid color-mix(in srgb, var(--preview-text) 12%, transparent);
+    border-radius: 6px;
+    padding: 8px 4px 6px;
+    color: var(--preview-text);
+    transition: 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+
+    &-num {
+      font-size: 1.1em;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    &-label {
+      font-size: 0.55em;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--preview-muted);
+      transition: 0.15s ease;
+    }
+
+    &:hover:not(.is-selected) {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      color: var(--preview-primary);
+      transform: translateY(-1px);
+    }
+
+    &.is-selected {
+      background: var(--preview-primary);
+      border-color: var(--preview-primary);
+      color: #fff;
+      box-shadow: 0 4px 10px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+
+      .preview-stacked__seat-label { color: rgba(255, 255, 255, 0.85); }
+    }
+  }
+
+  // ── CTA: Reservieren → Schritt 2 ──────────────────────────────────────
+  &__cta {
+    appearance: none;
+    cursor: pointer;
+    margin: 0 20px 20px;
+    padding: 14px 18px;
+    background: var(--preview-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--preview-radius-cta);
+    font-family: inherit;
+    font-size: 1em;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--preview-primary) 30%, transparent);
+    transition: 0.15s ease;
+
+    mat-icon {
+      font-size: 1.05em;
+      width: 1.05em;
+      height: 1.05em;
+      transition: transform 0.18s ease;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 88%, black);
+      mat-icon { transform: translateX(3px); }
+    }
+
+    // Submit-Variante (Schritt 2)
+    &--submit {
+      flex: 1 1 0;
+      margin: 0;
+
+      &.is-disabled {
+        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.85;
+
+        &:hover {
+          background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
+          mat-icon { transform: none; }
+        }
+      }
+    }
+  }
+
+  // ── Schritt 2: Daten-Formular ─────────────────────────────────────────
+  &__summary {
+    margin: 0 20px;
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--preview-primary) 8%, transparent);
+    border-left: 3px solid var(--preview-primary);
+    border-radius: 4px;
+    font-size: 0.78em;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--preview-text);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 20px;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__field-label {
+    font-size: 0.7em;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+  }
+
+  &__field-input {
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--preview-text) 3%, var(--preview-bg));
+    border: 1px solid color-mix(in srgb, var(--preview-text) 10%, transparent);
+    border-radius: var(--preview-radius);
+    font-size: 0.92em;
+    color: color-mix(in srgb, var(--preview-text) 55%, transparent);
+    line-height: 1.3;
+    min-height: 1.3em;
+
+    &--area {
+      min-height: 3.4em;
+      white-space: pre-wrap;
+    }
+  }
+
+  &__optional {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.75;
+  }
+
+  // DSGVO-Einwilligung — kantiger Cockpit-Look
+  &__consent {
+    margin: 0 20px;
+    padding: 10px 12px;
+    border-radius: var(--preview-radius);
+    background: color-mix(in srgb, var(--preview-text) 3%, var(--preview-bg));
+    border: 1px solid color-mix(in srgb, var(--preview-text) 10%, transparent);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: 0.15s ease;
+
+    &.is-checked {
+      border-color: color-mix(in srgb, var(--preview-primary) 45%, transparent);
+      background: color-mix(in srgb, var(--preview-primary) 5%, var(--preview-bg));
+    }
+
+    &:hover:not(.is-checked) {
+      border-color: color-mix(in srgb, var(--preview-primary) 30%, transparent);
+    }
+
+    &-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    &-box {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+      border: 1.5px solid color-mix(in srgb, var(--preview-text) 25%, transparent);
+      border-radius: 4px;
+      background: var(--preview-bg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s ease;
+
+      mat-icon {
+        font-size: 13px;
+        width: 13px;
+        height: 13px;
+        color: #fff;
+      }
+    }
+
+    &.is-checked &-box {
+      background: var(--preview-primary);
+      border-color: var(--preview-primary);
+    }
+
+    &-text {
+      flex: 1;
+      font-size: 0.75em;
+      line-height: 1.4;
+      color: color-mix(in srgb, var(--preview-text) 75%, transparent);
+    }
+
+    &-link {
+      color: var(--preview-primary);
+      text-decoration: underline;
+      font-weight: 600;
+
+      &:hover { text-decoration: none; }
+    }
+  }
+
+  // ── Schritt-2-Footer: Zurück + Submit ─────────────────────────────────
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px 20px;
+  }
+
+  &__back {
+    appearance: none;
+    cursor: pointer;
+    background: transparent;
+    border: 1.5px solid color-mix(in srgb, var(--preview-text) 18%, transparent);
+    border-radius: var(--preview-radius);
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--preview-text);
+    transition: 0.15s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 8%, transparent);
+      border-color: var(--preview-primary);
+      color: var(--preview-primary);
+    }
+  }
+
+  // Header-Ausrichtung respektieren — verschiebt Header & CTA passend
+  .preview--align-left   & {
+    .preview-stacked__header { text-align: left; }
+  }
+  .preview--align-center & {
+    .preview-stacked__header { text-align: center; }
+  }
+  .preview--align-right  & {
+    .preview-stacked__header { text-align: right; }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  PLANER-STIL — Drei Spalten direkt anklickbar (Kalender, Zeiten, Plätze)
+//  Greift komplett auf --preview-* Variablen zu, damit Designer-Settings
+//  wie Primärfarbe, Textfarbe, Background, Radius und Schriftgröße alle
+//  Elemente uniform durchziehen.
+// ─────────────────────────────────────────────────────────────────────────
+.preview-planner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  // ── Step-Indicator (1 → 2 → 3) ─────────────────────────────────────
+  &__steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 4px 4px;
+  }
+
+  &__step {
+    appearance: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    color: inherit;
+
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    flex-shrink: 0;
+  }
+
+  &__step-num {
+    width: 1.9em;
+    height: 1.9em;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--preview-text) 8%, transparent);
+    color: var(--preview-muted);
+    border: 1.5px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85em;
+    font-weight: 700;
+    transition: 0.18s ease;
+
+    mat-icon {
+      width: 1em;
+      height: 1em;
+      font-size: 1em;
+    }
+  }
+
+  &__step.is-active &__step-num {
+    background: var(--preview-primary);
+    color: #fff;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--preview-primary) 18%, transparent);
+  }
+
+  &__step.is-done &__step-num {
+    background: color-mix(in srgb, var(--preview-primary) 16%, transparent);
+    color: var(--preview-primary);
+    border-color: color-mix(in srgb, var(--preview-primary) 35%, transparent);
+  }
+
+  &__step-label {
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+    transition: 0.18s ease;
+  }
+
+  &__step.is-active &__step-label,
+  &__step.is-done   &__step-label {
+    color: var(--preview-text);
+  }
+
+  &__step-bar {
+    flex: 1;
+    max-width: 60px;
+    height: 2px;
+    background: color-mix(in srgb, var(--preview-text) 12%, transparent);
+    border-radius: 999px;
+    margin: 0 2px;
+    transform: translateY(-8px); // optisch auf Höhe der Step-Kreise
+    transition: 0.18s ease;
+
+    &.is-done { background: color-mix(in srgb, var(--preview-primary) 60%, transparent); }
+  }
+
+  // ── Panels-Container (Desktop: 3 Spalten, Mobile: ein Panel) ───────
+  // Auf Desktop sind alle drei Panels gleichzeitig sichtbar – der
+  // Step-Indicator oben markiert nur, welcher Schritt gerade in Bearbeitung
+  // ist. Auf Mobile (`.preview--mobile`) wird das Grid auf eine Spalte
+  // reduziert und alle nicht-aktiven Panels werden ausgeblendet.
+  //
+  // `minmax(0, 1fr)` ist wichtig: ohne dieses min-Limit würde die Spalte
+  // mindestens auf die Min-Content-Breite ihres Inhalts wachsen — bei den
+  // Personen-Chips ("5 Gäste" mit Icon) sind das schnell 180px, was bei
+  // schmalem Vorschau-Frame (z.B. 460px) die rechte Spalte aus dem
+  // Browser-Frame schiebt. Mit `minmax(0, 1fr)` bleiben alle drei
+  // Spalten sauber gleich breit.
+  &__panels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  // ── Panel (eine Wizard-Seite / Spalte) ─────────────────────────────
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: color-mix(in srgb, var(--preview-text) 4%, var(--preview-bg));
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    padding: 12px;
+    min-width: 0;     // grid-item shrink-fix
+    overflow: hidden; // keine seitliche Überschreitung der Spalte
+
+    // Aktives Panel auf Desktop dezent hervorheben (Primärrand + Glow)
+    &.is-active {
+      border-color: color-mix(in srgb, var(--preview-primary) 45%, transparent);
+      box-shadow: 0 6px 20px color-mix(in srgb, var(--preview-primary) 12%, transparent);
+    }
+  }
+
+  &__panel-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--preview-text);
+    min-width: 0;
+  }
+  &__panel-icon {
+    font-size: 1em;
+    width: 1em;
+    height: 1em;
+    color: var(--preview-primary);
+    flex-shrink: 0;
+  }
+  &__panel-title {
+    font-size: 0.78em;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // ── Footer-Navigation (Zurück + CTA) ───────────────────────────────
+  &__nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 4px;
+  }
+
+  &__back {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    background: transparent;
+    color: var(--preview-muted);
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    padding: 8px 14px 8px 10px;
+    font-size: 0.85em;
+    font-weight: 600;
+    align-items: center;
+    gap: 4px;
+    transition: 0.15s ease;
+
+    // Desktop: alle Panels sind sichtbar — ein "Zurück" macht keinen Sinn.
+    // Mobile reaktiviert den Button per `.preview--mobile`-Override unten.
+    display: none;
+
+    mat-icon { font-size: 1.05em; width: 1.05em; height: 1.05em; }
+
+    &:hover {
+      color: var(--preview-text);
+      border-color: color-mix(in srgb, var(--preview-text) 30%, transparent);
+    }
+  }
+
+  &__cta {
+    margin-left: auto;
+    padding: 12px 22px;
+    width: auto;
+  }
+
+  // Chevron-Icon im "Weiter"-CTA (Stufen 1–3)
+  &__cta-icon {
+    margin-left: 4px;
+    font-size: 1.05em;
+    width: 1.05em;
+    height: 1.05em;
+  }
+
+  // Submit-Variante des CTA (Stufe 4) — wenn DSGVO nicht akzeptiert,
+  // wird der Button optisch und funktional disabled (pointer-events:none).
+  &__cta--submit {
+    &.is-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+      box-shadow: none;
+      filter: saturate(0.6);
+    }
+  }
+
+  // ── Daten-Panel (Stufe 4) ──────────────────────────────────────────
+  // Standardmäßig versteckt — wird nur sichtbar, wenn der Step aktiv ist.
+  // Auf Stufe 4 spannt es sich über die gesamte Panels-Grid-Breite und
+  // verdrängt die anderen drei Panels (siehe `&[data-step="4"]`-Regel).
+  &__panel--data {
+    display: none;
+
+    &.is-active {
+      display: flex;
+      grid-column: 1 / -1;
+    }
+  }
+
+  // Wenn Stufe 4 aktiv ist: Panels-Grid auf eine Spalte reduzieren und
+  // die Schritt-1-bis-3-Panels komplett ausblenden — der Daten-Step
+  // braucht den vollen Platz, der Header zeigt schon die Auswahl an,
+  // und die Summary-Zeile im Daten-Panel rekapituliert das Wichtigste.
+  &[data-step="4"] {
+    .preview-planner__panels {
+      grid-template-columns: 1fr;
+    }
+    .preview-planner__panel:not(.preview-planner__panel--data) {
+      display: none;
+    }
+  }
+
+  // ── Summary-Zeile im Daten-Panel ───────────────────────────────────
+  // Kompakte Zeile mit Datum · Uhrzeit · Personen, sitzt direkt unter
+  // dem Panel-Header. Zeigt dem Nutzer, was er gleich abschickt — ohne
+  // dass er zurück blättern muss, um das nochmal zu prüfen.
+  &__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--preview-radius);
+    background: color-mix(in srgb, var(--preview-primary) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--preview-primary) 18%, transparent);
+    font-size: 0.85em;
+    color: var(--preview-text);
+  }
+
+  &__summary-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+
+    mat-icon {
+      font-size: 1em;
+      width: 1em;
+      height: 1em;
+      color: var(--preview-primary);
+    }
+  }
+
+  &__summary-divider {
+    color: color-mix(in srgb, var(--preview-text) 25%, transparent);
+    font-weight: 400;
+  }
+
+  // ── Form-Grid (Vorname/Nachname, Telefon/E-Mail, Notizen) ──────────
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  &__form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__form-label {
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--preview-muted);
+  }
+
+  &__form-optional {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: color-mix(in srgb, var(--preview-muted) 70%, transparent);
+    margin-left: 4px;
+  }
+
+  // Inputs sind in der Vorschau reine Divs — wirken durch padding,
+  // border und background trotzdem wie echte Felder. Im Live-Widget
+  // werden das echte <input>/<textarea>-Elemente.
+  &__form-input {
+    padding: 10px 12px;
+    border-radius: var(--preview-radius);
+    border: 1px solid var(--preview-border);
+    background: var(--preview-bg);
+    color: color-mix(in srgb, var(--preview-text) 70%, transparent);
+    font-size: 0.9em;
+    line-height: 1.3;
+    min-height: 1em;
+
+    &--area {
+      min-height: 60px;
+    }
+  }
+
+  // ── DSGVO-Einwilligung ─────────────────────────────────────────────
+  // Eigenständig gestylte Checkbox: ein box-Element + Mat-Icon-Tick
+  // (statt der Default-Browser-Checkbox), damit das Design konsistent
+  // mit dem Rest des Widgets bleibt.
+  &__consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    padding: 4px 2px;
+    margin-top: 4px;
+
+    &.is-checked .preview-planner__consent-box {
+      background: var(--preview-primary);
+      border-color: var(--preview-primary);
+      color: #fff;
+    }
+  }
+
+  &__consent-input {
+    // Native Checkbox versteckt — der visuelle "Box"-Span übernimmt
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  &__consent-box {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid var(--preview-border);
+    background: var(--preview-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s ease;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  &__consent-text {
+    font-size: 0.82em;
+    line-height: 1.4;
+    color: var(--preview-text);
+  }
+
+  &__consent-link {
+    color: var(--preview-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  // ── Mini-Kalender (kompakt für 1/3-Spalte) ─────────────────────────
+  &__cal {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__cal-bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 2px;
+  }
+  &__cal-month {
+    text-align: center;
+    font-size: 0.78em;
+    font-weight: 700;
+    color: var(--preview-text);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__cal-nav {
+    appearance: none;
+    cursor: pointer;            // jetzt interaktiv — Monat vor/zurück
+    background: transparent;
+    border: none;
+    color: var(--preview-muted);
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 14%, transparent);
+      color: var(--preview-primary);
+    }
+
+    mat-icon {
+      font-size: 0.9em;
+      width: 0.9em;
+      height: 0.9em;
+    }
+  }
+
+  &__cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+
+    &--weekdays { gap: 0; margin-bottom: 2px; }
+  }
+  &__cal-weekday {
+    text-align: center;
+    font-size: 0.55em;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+    padding: 2px 0;
+  }
+
+  &__cal-day {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid transparent;
+
+    aspect-ratio: 1 / 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72em;
+    font-weight: 500;
+    color: var(--preview-text);
+    border-radius: calc(var(--preview-radius) * 0.4);
+    transition: 0.15s;
+    min-width: 0;
+    padding: 0;
+
+    &--empty { visibility: hidden; cursor: default; }
+
+    &.is-today:not(.is-selected) {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      color: var(--preview-primary);
+      font-weight: 700;
+    }
+
+    &.is-selected {
+      background: var(--preview-primary);
+      color: #fff;
+      font-weight: 700;
+      border-color: var(--preview-primary);
+    }
+
+    &:not(.is-selected):not(.preview-planner__cal-day--empty):hover {
+      background: color-mix(in srgb, var(--preview-primary) 12%, transparent);
+      color: var(--preview-primary);
+    }
+  }
+
+  // ── Chip-Listen (Zeiten / Plätze) ──────────────────────────────────
+  // Auf Desktop steht jedes Panel in einer schmalen 1/3-Spalte. Damit die
+  // Chips dort sauber lesbar bleiben, brechen wir sie um:
+  //   • Zeiten ("19:30")          → 2 Spalten
+  //   • Personen ("5 Gäste"+Icon) → 2 Spalten (kompakter formatiert,
+  //     siehe `&__chip--seat` weiter unten)
+  // Mobile überschreibt beide weiter unten passend zum vollen Phone-Screen.
+  &__chips {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+
+    &--times { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &--seats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  &__chip {
+    appearance: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.88em;
+    font-weight: 600;
+    color: var(--preview-text);
+    background: var(--preview-bg);
+    border: 1px solid var(--preview-border);
+    border-radius: calc(var(--preview-radius) * 0.85);
+    padding: 8px 6px;
+    text-align: center;
+    transition: 0.15s;
+    min-width: 0;
+    white-space: nowrap;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    &.is-selected {
+      background: var(--preview-primary);
+      color: #fff;
+      border-color: var(--preview-primary);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--preview-primary) 35%, transparent);
+    }
+
+    &:not(.is-selected):hover {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      color: var(--preview-primary);
+    }
+  }
+
+  // Personen-Chips sitzen in 2 schmalen Spalten — Icon + Label kompakt
+  // mittig zentriert, damit auch "8+ Gäste" sauber reinpasst.
+  &__chip--seat {
+    justify-content: center;
+    padding: 8px 6px;
+    gap: 5px;
+    font-size: 0.84em;
+  }
+  &__chip-icon {
+    font-size: 0.95em;
+    width: 0.95em;
+    height: 0.95em;
+    flex-shrink: 0;
+    color: var(--preview-primary);
+  }
+  &__chip--seat.is-selected &__chip-icon { color: #fff; }
+  &__chip-label {
+    text-align: center;
+    min-width: 0;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  Watch-Face-Dial (Uhrzeit-Picker im Planer-Stil)
+  //
+  //  Bewusst anders als RESERVISON's verschachtelte 24h-Doppelringe:
+  //   • Eine einzige Tick-Spur am Außenring — keine konzentrischen Ringe
+  //   • Animierte Nadel rotiert vom Zentrum auf die ausgewählte Uhrzeit
+  //   • Großes digitales Hub-Display in der Mitte (luxus-Uhren-Stil)
+  //   • Subtiler innerer Akzentring + Tick-Striche pro Halb-/Vollstunde
+  //
+  //  Layout: SVG füllt das quadratische Container-Element, klickbare
+  //  Tick-Buttons werden absolut positioniert (mit Top/Left aus der
+  //  Geometrie-Computed in TS), das Readout sitzt mittig per Position.
+  // ─────────────────────────────────────────────────────────────────────
+  &__dial {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 200px;       // schmale Spalte → Dial bleibt kompakt
+    margin: 0 auto;
+    user-select: none;
+  }
+
+  &__dial-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  // Außenring — dezente Linien-Optik, einziger sichtbarer Ring (kein
+  // gefüllter Hintergrund, daher fill: none — Default ist sonst schwarz!)
+  &__dial-ring {
+    fill: none;
+    stroke: color-mix(in srgb, var(--preview-text) 16%, transparent);
+    stroke-width: 1.2;
+  }
+
+  // Öffnungszeiten-Arc — leuchtender Bogen entlang des Außenrings,
+  // markiert das Zeitfenster, in dem reserviert werden kann.
+  &__dial-arc {
+    fill: none;
+    stroke: color-mix(in srgb, var(--preview-primary) 75%, transparent);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--preview-primary) 40%, transparent));
+  }
+
+  // 24 Stunden-Labels rund ums Zifferblatt. Geöffnete Stunden werden
+  // hervorgehoben, geschlossene stark abgedimmt — sofortige visuelle
+  // Orientierung, in welchem Bereich Reservierungen möglich sind.
+  // Hinweis: SVG <text> font-size in user-units (viewBox 0 0 140 140),
+  // 1 unit ≈ Container-px / 140 → bei ~240px Container ≈ 1.7px pro unit.
+  &__dial-hour {
+    font-family: inherit;
+    font-size: 5px;
+    font-weight: 600;
+    fill: color-mix(in srgb, var(--preview-text) 22%, transparent);
+    user-select: none;
+    transition: fill 0.18s ease;
+
+    // Kardinal-Stunden (0/6/12/18) leicht hervorgehoben für Orientierung
+    &.is-cardinal {
+      font-weight: 700;
+    }
+
+    // Innerhalb der Öffnungszeiten — kräftig + Primary-Tint
+    &.is-open {
+      fill: color-mix(in srgb, var(--preview-text) 85%, transparent);
+
+      &.is-cardinal {
+        fill: var(--preview-text);
+      }
+    }
+  }
+
+  // Verfügbare Slot-Dots — kleine farbige Punkte für jede buchbare Uhrzeit.
+  // Volle Stunden sind kräftiger, halbe Stunden subtiler.
+  &__dial-slot-dot {
+    fill: color-mix(in srgb, var(--preview-primary) 45%, transparent);
+    transition: fill 0.18s ease;
+
+    &.is-hour {
+      fill: color-mix(in srgb, var(--preview-primary) 70%, transparent);
+    }
+
+    &.is-selected {
+      fill: var(--preview-primary);
+    }
+  }
+
+  // Nadel: Linie vom Zentrum zum ausgewählten Tick + kleiner Punkt am Ende.
+  // Rotation läuft jetzt über das SVG transform-Attribut (rotate(angle 70 70)),
+  // weil CSS transform-box: fill-box bei einer dünnen Nadel-Geometry die
+  // Origin außerhalb der viewBox geschoben hat → keine sauberen Drehungen.
+  // Transitions auf SVG-Attribute funktionieren browserübergreifend nicht
+  // verlässlich, daher snapt die Nadel direkt auf das Ziel — das ist okay,
+  // weil die Tick-Highlights dem Auge bereits folgen.
+  &__dial-needle {
+    pointer-events: none;
+  }
+
+  &__dial-needle-line {
+    stroke: var(--preview-primary);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+
+  &__dial-needle-tip {
+    fill: var(--preview-primary);
+  }
+
+  // Hub: gefüllter Kreis im Zentrum — Hintergrund für das Readout.
+  // Liegt UNTER der Nadel, damit der Nadel-Anfang sauber unsichtbar im
+  // Hub verschwindet (kein Strich-Stub aus dem Mittelpunkt heraus).
+  &__dial-hub {
+    fill: var(--preview-bg);
+    stroke: color-mix(in srgb, var(--preview-text) 18%, transparent);
+    stroke-width: 1;
+  }
+
+  // Klickbare Hit-Areas über den SVG-Slot-Dots. Die Buttons selbst sind
+  // unsichtbar — der visuelle Punkt liegt darunter im SVG. Hover lässt
+  // einen sanften Ring um den Punkt erscheinen, damit klar ist, dass es
+  // klickbar ist. Größe etwas größer als der Dot, damit das Klick-Target
+  // touch-freundlich bleibt (~30px im realen Container).
+  &__dial-slot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 14%;     // relativ zum Dial-Container (=14% von 240px ≈ 33px)
+    height: 14%;
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.18s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 14%, transparent);
+    }
+
+    &.is-selected {
+      background: color-mix(in srgb, var(--preview-primary) 18%, transparent);
+    }
+  }
+
+  // Zentrales Readout — sitzt absolut über dem Hub-Kreis im SVG.
+  // Trennt Stunden/Minuten optisch nicht, zeigt einfach „19:00".
+  &__dial-readout {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    text-align: center;
+    line-height: 1;
+    color: var(--preview-text);
+  }
+
+  &__dial-time {
+    display: block;
+    font-size: 1.05em;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--preview-text);
+  }
+
+  &__dial-meta {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.55em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--preview-muted);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  MOBILE-FORCING — wenn die Vorschau im Phone-Mockup steckt, sollen
+//  dieselben Regeln greifen wie auf einem echten schmalen Viewport.
+//  Das CSS hängt sich an die Klasse `.preview--mobile`, die an die mobile
+//  Vorschau-Karte gebunden ist.
+// ─────────────────────────────────────────────────────────────────────────
+.preview.preview--mobile {
+
+  // Globaler kleiner Vorschau-Padding, damit das Widget im Phone nicht
+  // zu eng am Rand klebt. Der Stacked-Stil benutzt die Default-Optik der
+  // .preview-Wrapper, also Padding direkt hier reduzieren.
+  padding: 14px;
+  gap: 12px;
+
+  // Karten- & Hotel-Stil bauen ihre eigene Optik — Wrapper bleibt neutral.
+  &.preview--card,
+  &.preview--sidebar {
+    padding: 0;
+    gap: 0;
+  }
+
+  // Stacked-Cockpit: Cockpit-Tiles auf Phone untereinander statt 3-spaltig,
+  // Header etwas kompakter.
+  .preview-stacked {
+    padding: 16px;
+
+    &__tiles {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    &__times { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    &__seats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    &__row {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+
+  // Karten-Stil: Datum/Uhrzeit-Chips untereinander
+  .preview-card {
+    padding: 22px 18px 26px;
+
+    &__hero { width: 100%; }
+
+    &__datetime {
+      width: 100%;
+      max-width: none;
+      grid-template-columns: 1fr;
+    }
+
+    // Schritt 2: Form, Footer + Vorname/Nachname-Split füllen volle Breite
+    &__form,
+    &__nav,
+    &__consent { width: 100%; max-width: none; }
+
+    &__form-row--split {
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
+
+  // Hotel-Stil: Wrapper + Sidebar füllen die volle Phone-Screen-Höhe,
+  // damit das Hintergrundbild den ganzen sichtbaren Bereich abdeckt
+  // (statt nur einen ~360px-Streifen mit weißer Lücke darunter).
+  &.preview--sidebar {
+    flex: 1;
+    min-height: 100%;
+  }
+
+  .preview-sidebar {
+    flex: 1;
+    min-height: 100%;
+    padding: 16px;
+
+    &__card {
+      width: 100%;
+      padding: 18px 18px 16px;
+    }
+
+    &__row {
+      // bleibt 2-spaltig — passt auch auf Phone, da die Inhalte kurz sind
+    }
+
+    // Picker-Inhalte: Times zweispaltig auf schmalem Phone, Calendar etwas
+    // luftiger. Seats bleibt 2-spaltig (passt schon).
+    &__times { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &__cal-grid { gap: 5px; }
+  }
+
+  // Planer-Wizard: Auf Mobile wird daraus echter Schritt-für-Schritt-
+  // Wizard – Panels-Grid wird einspaltig, nicht-aktive Panels werden
+  // ausgeblendet, der Footer (Zurück + CTA) wird je nach Schritt sichtbar.
+  // Außerdem werden die Desktop-Kompaktierungen (kleinere Calendar-Zellen,
+  // 1-spaltige Seats) für den vollen Phone-Screen wieder zurückgenommen.
+  .preview-planner {
+    gap: 14px;
+
+    &__steps { gap: 2px; }
+    &__step-num { width: 1.7em; height: 1.7em; font-size: 0.78em; }
+    &__step-label { font-size: 0.55em; }
+    &__step-bar  { max-width: 32px; }
+
+    // Panels: nur das aktive Panel rendern (Wizard-Modus)
+    &__panels { grid-template-columns: 1fr; gap: 0; }
+    &__panel  { padding: 14px; overflow: visible; }
+    &__panel-title { font-size: 0.85em; }
+    &__panel:not(.is-active) { display: none; }
+    &__panel.is-active {
+      // Auf Mobile braucht's keinen Glow – das aktive Panel ist eh allein.
+      box-shadow: none;
+      border-color: var(--preview-border);
+    }
+
+    // Watch-Face-Dial wird auf Mobile etwas größer gezeigt — der Phone-
+    // Screen hat genug Platz, dadurch sind die Stunden-Labels gut lesbar.
+    &__dial {
+      max-width: 240px;
+    }
+    &__dial-time { font-size: 1.2em; }
+    // Slot-Hit-Area auf Mobile etwas größer für Touch-Bedienung
+    &__dial-slot { width: 18%; height: 18%; }
+
+    // Chips: auf Mobile haben wir genug Platz → Zeiten 2 cols, Seats 2 cols
+    &__chips {
+      gap: 8px;
+      &--times { grid-template-columns: repeat(2, 1fr); }
+      &--seats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    &__chip {
+      padding: 10px;
+      font-size: 0.9em;
+    }
+    &__chip--seat { padding: 10px 12px; }
+
+    // Calendar: kompakte Desktop-Werte zurücknehmen, da Phone-Screen breiter wirkt
+    &__cal     { gap: 8px; }
+    &__cal-bar { gap: 4px; }
+    &__cal-month { font-size: 0.85em; }
+    &__cal-nav   { width: 1.6em; height: 1.6em; mat-icon { font-size: 1em; width: 1em; height: 1em; } }
+    &__cal-grid  { gap: 3px; }
+    &__cal-weekday { font-size: 0.6em; letter-spacing: 0.6px; }
+    &__cal-day     { font-size: 0.85em; }
+
+    // Footer: Zurück ab Schritt 2, CTA auf Schritt 3 (Weiter) und 4 (Submit).
+    &__nav { padding-top: 0; }
+    &__back {
+      display: inline-flex;
+      padding: 7px 12px 7px 8px;
+      font-size: 0.78em;
+    }
+    &__cta {
+      display: none;
+      padding: 10px 16px;
+      font-size: 0.85em;
+    }
+
+    // Schritt-spezifische Sichtbarkeit (Footer-Logik)
+    &[data-step="1"] {
+      .preview-planner__nav { display: none; }   // kein Footer auf Stufe 1
+    }
+    &[data-step="3"] {
+      .preview-planner__cta { display: inline-flex; }
+    }
+    &[data-step="4"] {
+      // Step 4 (Daten): Submit-CTA sichtbar, Form-Felder einspaltig
+      .preview-planner__cta { display: inline-flex; }
+      .preview-planner__form-row { grid-template-columns: 1fr; }
+      // Summary auf Mobile etwas kompakter
+      .preview-planner__summary {
+        font-size: 0.78em;
+        padding: 8px 10px;
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  CONTROLS — neue Form-Bausteine für die Designer-Sektionen
+// ─────────────────────────────────────────────────────────────────────────
+
+// Sub-Section Header innerhalb eines Settings-Blocks (z.B. "Schriftart")
+.sub-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: $color-text-muted;
+  margin-bottom: 10px;
+
+  &--spaced { margin-top: 18px; }
+}
+
+// Generisches 2-Spalten Form-Grid (Texte/Inputs)
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--full { grid-column: 1 / -1; }
+
+  &__label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+  }
+
+  &__input {
+    appearance: none;
+    background: $color-surface-soft;
+    color: $color-text-on-dark;
+    border: 1px solid $color-border;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    transition: 0.15s;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+      box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.18);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__hint {
+    color: $color-text-muted;
+    font-size: 11px;
+  }
+}
+
+// ── Toggle-Switch ──────────────────────────────────────────────────────
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 11px;
+  color: $color-text-muted;
+
+  input { display: none; }
+
+  &__track {
+    position: relative;
+    width: 30px;
+    height: 16px;
+    background: $color-border;
+    border-radius: 999px;
+    transition: 0.15s;
+  }
+  &__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    transition: 0.15s;
+  }
+
+  input:checked + &__track { background: $color-accent; }
+  input:checked + &__track &__thumb { left: 16px; }
+
+  &__label { user-select: none; }
+}
+
+// ── Alignment-Toggle (Links / Mitte / Rechts) ─────────────────────────
+.align-toggle {
+  display: inline-flex;
+  background: $color-surface-soft;
+  border: 1px solid $color-border;
+  border-radius: 10px;
+  padding: 4px;
+  gap: 2px;
+
+  &__btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 7px;
+    padding: 8px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-text-muted;
+    transition: 0.15s;
+
+    mat-icon { width: 18px; height: 18px; font-size: 18px; }
+
+    &:hover { color: $color-text-on-dark; }
+
+    &.is-active {
+      background: rgba(var(--color-accent-rgb), 0.18);
+      color: $color-accent;
+    }
+  }
+}
+
+// ── Font-Karten ───────────────────────────────────────────────────────
+.font-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 980px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 600px) { grid-template-columns: 1fr; }
+}
+
+.font-card {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  background: $color-surface-soft;
+  border: 1.5px solid $color-border;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: 0.15s;
+
+  &:hover {
+    border-color: rgba(var(--color-accent-rgb), 0.5);
+    transform: translateY(-1px);
+  }
+
+  &.is-active {
+    border-color: $color-accent;
+    background: rgba(var(--color-accent-rgb), 0.08);
+    box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.15);
+  }
+
+  &__sample {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--color-text-rgb), 0.05);
+    border-radius: 10px;
+    font-size: 26px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  &__label {
+    font-weight: 700;
+    font-size: 13px;
+    color: $color-text-on-dark;
+  }
+
+  &__check {
+    color: $color-accent;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &__hint {
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+
+  &__preview {
+    font-size: 14px;
+    color: $color-text-on-dark;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ── Pillen-Reihe (Schriftgröße) ───────────────────────────────────────
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  appearance: none;
+  cursor: pointer;
+  background: $color-surface-soft;
+  border: 1.5px solid $color-border;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: inherit;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  transition: 0.15s;
+
+  &:hover { border-color: rgba(var(--color-accent-rgb), 0.5); }
+
+  &.is-active {
+    background: rgba(var(--color-accent-rgb), 0.12);
+    border-color: $color-accent;
+    color: $color-accent;
+  }
+
+  &__label {
+    font-weight: 700;
+    font-size: 13px;
+    color: inherit;
+  }
+  &__hint {
+    font-size: 10px;
+    color: $color-text-muted;
+  }
+
+  &.is-active &__hint { color: $color-accent; opacity: 0.8; }
+}
+
+// ── Farben-Sektion ────────────────────────────────────────────────────
+.color-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 12px;
+  background: $color-surface-soft;
+  border: 1px solid $color-border;
+  border-radius: 10px;
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__label {
+    font-weight: 700;
+    font-size: 13px;
+    color: $color-text-on-dark;
+  }
+
+  &__hint {
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+}
+
+// Farb-Eingabe (nativer color-picker, hübsch verpackt)
+.color-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  padding: 4px 10px 4px 4px;
+
+  input[type="color"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+  }
+
+  &__swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+  }
+
+  &__hex {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: $color-text-on-dark;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+}
+
+// Vorgaben-Reihe (kleine Farb-Kacheln zum schnellen Auswählen)
+.color-presets {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  &__swatch {
+    appearance: none;
+    border: 2px solid transparent;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    transition: 0.12s;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+
+    &:hover { transform: scale(1.08); }
+
+    &.is-active {
+      border-color: $color-accent;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15),
+                  0 0 0 3px rgba(var(--color-accent-rgb), 0.25);
+    }
+  }
+}
+
+// ── Radius-Karten ─────────────────────────────────────────────────────
+.radius-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.radius-card {
+  appearance: none;
+  cursor: pointer;
+  background: $color-surface-soft;
+  border: 1.5px solid $color-border;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+  transition: 0.15s;
+
+  &:hover { border-color: rgba(var(--color-accent-rgb), 0.5); }
+
+  &.is-active {
+    background: rgba(var(--color-accent-rgb), 0.08);
+    border-color: $color-accent;
+    box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.15);
+  }
+
+  &__sketch {
+    width: 56px;
+    height: 30px;
+    background: rgba(var(--color-accent-rgb), 0.25);
+    border: 1.5px solid $color-accent;
+    display: block;
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  BILD-UPLOAD (Sektion 02 — nur bei Card- & Hotel-Stil sichtbar)
+// ─────────────────────────────────────────────────────────────────────────
+.image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  // Drop-/Klick-Zone wenn noch kein Bild gewählt ist
+  &__dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 32px 18px;
+    background: $color-surface-soft;
+    border: 1.5px dashed $color-border;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.15s;
+    color: $color-text-muted;
+
+    input[type="file"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    &:hover {
+      border-color: $color-accent;
+      background: rgba(var(--color-accent-rgb), 0.06);
+      color: $color-accent;
+    }
+  }
+
+  &__dropzone-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  &__dropzone-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+
+  &__dropzone-hint {
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+
+  // Vorschau wenn ein Bild gewählt ist
+  &__preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid $color-border;
+    background: $color-surface-soft;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &__remove {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    appearance: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    transition: 0.15s;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+    &:hover { background: rgba(0, 0, 0, 0.9); }
+  }
+
+  &__note {
+    margin: 0;
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  ACTIONS
+// ─────────────────────────────────────────────────────────────────────────
+.settings-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  margin: 0 -32px -32px;
+  padding: 14px 32px;
+
+  background: $color-bg;
+  border-top: 1px solid $color-border;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+
+  &__hint {
+    color: $color-text-muted;
+    font-size: 12px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  &__buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
+
+.reset-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  color: $color-text-muted;
+  border: 1px solid $color-border;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: 0.15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover {
+    color: $color-text-on-dark;
+    border-color: rgba(var(--color-text-rgb), 0.4);
+  }
+}
+
+// ─── Embed Code Block ────────────────────────────────────────────────────────
+.embed-section {
+  .section-title__index {
+    display: flex;
+    align-items: center;
+    mat-icon { font-size: 18px; width: 18px; height: 18px; color: $color-primary; }
+  }
+}
+
+.embed-block {
+  position: relative;
+  background: rgba(var(--color-text-rgb), 0.04);
+  border: 1px solid $color-border;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.embed-code {
+  margin: 0;
+  padding: 16px 52px 16px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: $color-text-on-dark;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.embed-copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background: rgba(var(--color-text-rgb), 0.08);
+  border: 1px solid $color-border;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $color-text-muted;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover { background: rgba(var(--color-primary-rgb), 0.12); color: $color-primary; }
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+.embed-key-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: $color-text-muted;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+  code {
+    background: rgba(var(--color-text-rgb), 0.07);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    color: $color-text-on-dark;
+    letter-spacing: 0.03em;
+  }
+}
+
+// ─── Save Button ─────────────────────────────────────────────────────────────
+.save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  appearance: none;
+  border: none;
+  cursor: pointer;
+
+  background: $color-accent;
+  color: $color-dark;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  transition: 0.15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover { background: $color-accent-dark; }
+
+  &.saved {
+    background: #22c55e;
+    color: #fff;
+  }
+}

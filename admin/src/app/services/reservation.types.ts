@@ -15,6 +15,12 @@ export interface Reservation {
   ends_at: string;
   admin_notes: string | null;
   created_at: string;
+  guest_gasttypen: string[];
+  guest_hinweise: string[];
+  guest_id: string | null;
+  guest_internal_notes: string | null;
+  guest_blocked: boolean;
+  guest_blocked_reason: string | null;
 }
 
 export interface ReservationListResponse {

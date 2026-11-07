@@ -23,25 +23,37 @@ final readonly class ReservationDto
         public string $endsAt,
         public ?string $adminNotes,
         public string $createdAt,
+        public array $guestGasttypen,
+        public array $guestHinweise,
+        public ?string $guestId,
+        public ?string $guestInternalNotes,
+        public bool $guestBlocked,
+        public ?string $guestBlockedReason,
     ) {}
 
     public static function fromEntity(Reservation $r): self
     {
         return new self(
-            id:         $r->getId()->toRfc4122(),
-            token:      $r->getToken(),
-            status:     $r->getStatus(),
-            venueId:    $r->getVenue()->getId()->toRfc4122(),
-            venueName:  $r->getVenue()->getName(),
-            guestName:  $r->getGuestName(),
-            guestEmail: $r->getGuestEmail(),
-            guestPhone: $r->getGuestPhone(),
-            guestNotes: $r->getGuestNotes(),
-            partySize:  $r->getPartySize(),
-            startsAt:   $r->getStartsAt()->format(\DateTimeInterface::ATOM),
-            endsAt:     $r->getEndsAt()->format(\DateTimeInterface::ATOM),
-            adminNotes: $r->getAdminNotes(),
-            createdAt:  $r->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            id:               $r->getId()->toRfc4122(),
+            token:            $r->getToken(),
+            status:           $r->getStatus(),
+            venueId:          $r->getVenue()->getId()->toRfc4122(),
+            venueName:        $r->getVenue()->getName(),
+            guestName:        $r->getGuestName(),
+            guestEmail:       $r->getGuestEmail(),
+            guestPhone:       $r->getGuestPhone(),
+            guestNotes:       $r->getGuestNotes(),
+            partySize:        $r->getPartySize(),
+            startsAt:         $r->getStartsAt()->format(\DateTimeInterface::ATOM),
+            endsAt:           $r->getEndsAt()->format(\DateTimeInterface::ATOM),
+            adminNotes:       $r->getAdminNotes(),
+            createdAt:        $r->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            guestGasttypen:       $r->getGuest()?->getGasttypen() ?? [],
+            guestHinweise:        $r->getGuest()?->getHinweise() ?? [],
+            guestId:              $r->getGuest()?->getId()->toRfc4122(),
+            guestInternalNotes:   $r->getGuest()?->getInternalNotes(),
+            guestBlocked:         $r->getGuest()?->isBlocked() ?? false,
+            guestBlockedReason:   $r->getGuest()?->getBlockedReason(),
         );
     }
 
@@ -60,8 +72,14 @@ final readonly class ReservationDto
             'party_size'  => $this->partySize,
             'starts_at'   => $this->startsAt,
             'ends_at'     => $this->endsAt,
-            'admin_notes' => $this->adminNotes,
-            'created_at'  => $this->createdAt,
+            'admin_notes'       => $this->adminNotes,
+            'created_at'        => $this->createdAt,
+            'guest_gasttypen'       => $this->guestGasttypen,
+            'guest_hinweise'        => $this->guestHinweise,
+            'guest_id'              => $this->guestId,
+            'guest_internal_notes'  => $this->guestInternalNotes,
+            'guest_blocked'         => $this->guestBlocked,
+            'guest_blocked_reason'  => $this->guestBlockedReason,
         ];
     }
 }

@@ -1,7 +1,17 @@
 <aside class="sidebar" [class.collapsed]="collapsed()" [class.mobile-open]="layout.mobileOpen()">
 
   <div class="sidebar__logo">
-    <img src="images/salyseat-logo-helle-schrift.png" alt="Salyseat">
+    <img src="images/saly-logo.svg" alt="SALY">
+  </div>
+
+  <!-- Live-Uhr -->
+  <div class="sidebar__clock" [class.sidebar__clock--collapsed]="collapsed()">
+    @if (!collapsed()) {
+      <div class="sidebar__clock-time">{{ timeStr() }}</div>
+      <div class="sidebar__clock-date">{{ dateStr() }}</div>
+    } @else {
+      <mat-icon class="sidebar__clock-icon">schedule</mat-icon>
+    }
   </div>
 
   <nav class="sidebar__nav">
@@ -33,32 +43,36 @@
   </nav>
 
   <div class="sidebar__footer">
-    <button class="sidebar__logout" (click)="logout()"
-            [title]="collapsed() ? 'Abmelden' : ''">
-      <mat-icon>logout</mat-icon>
-      @if (!collapsed()) {
-        <span class="sidebar__logout-label">
-          <span class="sidebar__logout-text">Abmelden</span>
-          @if (currentUserEmail()) {
-            <span class="sidebar__logout-email">{{ currentUserEmail() }}</span>
-          }
-        </span>
-      }
-    </button>
     <button class="sidebar__toggle" (click)="toggle()">
       <mat-icon>{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
     </button>
-    <div class="sidebar__restaurant">
-      <mat-icon>storefront</mat-icon>
-      @if (!collapsed()) {
+    @if (!collapsed()) {
+      <div class="sidebar__restaurant">
+        <mat-icon>storefront</mat-icon>
         <span class="sidebar__restaurant-name">{{ selectedRestaurant() }}</span>
-        <button class="sidebar__restaurant-dots" [matMenuTriggerFor]="restaurantMenu">
+        <button class="sidebar__restaurant-dots"
+                [matMenuTriggerFor]="restaurantMenu"
+                title="Restaurant wechseln / Abmelden">
           <mat-icon>more_vert</mat-icon>
         </button>
-      }
-    </div>
+      </div>
+    } @else {
+      <!-- Eingeklappte Sidebar: Storefront-Icon selbst ist Menü-Trigger,
+           damit Restaurant-Wechsel und Abmelden weiterhin erreichbar sind. -->
+      <button class="sidebar__restaurant sidebar__restaurant--trigger"
+              [matMenuTriggerFor]="restaurantMenu"
+              title="Restaurant wechseln / Abmelden">
+        <mat-icon>storefront</mat-icon>
+      </button>
+    }
 
-    <mat-menu #restaurantMenu="matMenu">
+    <!--
+      Restaurant-Menü: Auswahl der Restaurants oben, dann Trenner, dann
+      "Abmelden" ganz unten (mit der Email als kleiner Subtext-Zeile).
+      Logout sitzt bewusst hier in einem Menü hinter zwei Klicks, damit
+      ein versehentlicher Logout in der Sidebar nicht mehr passieren kann.
+    -->
+    <mat-menu #restaurantMenu="matMenu" class="sidebar-menu" panelClass="sidebar-menu-panel">
       @for (r of restaurants; track r) {
         <button mat-menu-item (click)="selectRestaurant(r)">
           @if (r === selectedRestaurant()) {
@@ -69,6 +83,18 @@
           <span>{{ r }}</span>
         </button>
       }
+
+      <mat-divider></mat-divider>
+
+      <button mat-menu-item class="sidebar-menu__logout" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span class="sidebar-menu__logout-label">
+          <span class="sidebar-menu__logout-text">Abmelden</span>
+          @if (currentUserEmail()) {
+            <span class="sidebar-menu__logout-email">{{ currentUserEmail() }}</span>
+          }
+        </span>
+      </button>
     </mat-menu>
   </div>
 

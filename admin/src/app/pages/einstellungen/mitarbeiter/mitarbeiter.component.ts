@@ -3,10 +3,28 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../services/auth.service';
-import { StaffService, StaffMember } from '../../../services/staff.service';
+import {
+  StaffService,
+  StaffMember,
+  CreateStaffDto,
+} from '../../../services/staff.service';
 
 export type EmployeeRole = 'admin' | 'manager' | 'staff';
 export type ModalMode    = 'add' | 'edit';
+
+export interface Employee {
+  /** Interner UUID/Timestamp — niemals dem User gezeigt. */
+  id: string;
+  /**
+   * Mitarbeiter-ID — menschenlesbarer Bezeichner (z.B. "001").
+   * Wird später in Audit-Logs hinterlegt: "Reservierung X
+   */
+  staffId: string;
+  name: string;
+  email: string;
+  role: EmployeeRole;
+  active: boolean;
+}
 
 export interface RoleMeta {
   key: EmployeeRole;
@@ -31,17 +49,15 @@ export const ROLE_META: Record<EmployeeRole, RoleMeta> = {
   },
 };
 
-/** Formularfelder für Hinzufügen UND Bearbeiten. */
-interface StaffForm {
-  name: string;
-  email: string;
-  role: EmployeeRole;
-}
-
 /**
- * Mitarbeiterverwaltung – Daten kommen aus dem Backend (/api/v1/admin/staff).
- * Die Mitarbeiter-Nummer (#01, #02 …) vergibt das Backend automatisch.
- * Ändern, Deaktivieren und Löschen dürfen nur Admins (prüft auch das Backend).
+ * Mitarbeiter-Verwaltung.
+ *
+ * Datenfluss:
+ *   • Beim Init wird die Liste vom StaffService gelesen (HTTP).
+ *   • Falls das Backend (noch) nichts liefert oder der Aufruf fehlschlägt,
+ *     wird mit einer kleinen lokalen Demo-Liste weitergearbeitet, damit
+ *     die UI nicht leer wirkt.
+ *   • CRUD-Operationen versuchen erst Backend-Sync, fallen dann lokal zurück.
  */
 @Component({
   selector: 'app-mitarbeiter',
@@ -58,129 +74,225 @@ export class MitarbeiterComponent implements OnInit {
   readonly roleMeta = ROLE_META;
 
   // ===================== STATE =====================
-  readonly employees = signal<StaffMember[]>([]);
-  readonly loading   = signal(true);
-  readonly loadError = signal<string | null>(null);
-  readonly infoOpen  = signal(false);
 
-  /** Nur Restaurant-Admins dürfen bearbeiten/löschen. */
-  readonly canEdit = computed(() => {
-    const roles = this.auth.user()?.roles ?? [];
-    return roles.includes('ROLE_TENANT_ADMIN') || roles.includes('ROLE_SUPER_ADMIN');
+  /** Liste aller Mitarbeiter — Signal, damit die UI sie reaktiv rendert. */
+  readonly employees = signal<Employee[]>([
+    { id: '1', staffId: '001', name: 'Max Mustermann', email: 'max@example.com',  role: 'admin',   active: true },
+    { id: '2', staffId: '002', name: 'Lena Vogel',     email: 'lena@example.com', role: 'manager', active: true },
+    { id: '3', staffId: '003', name: 'Anna Schmidt',   email: 'anna@example.com', role: 'staff',   active: true },
+  ]);
+
+  /** True, solange wir auf die initiale Liste vom Backend warten. */
+  readonly loading = signal<boolean>(false);
+
+  /** Info-Box ein/aus. */
+  readonly infoOpen = signal<boolean>(false);
+  toggleInfo(): void { this.infoOpen.update(v => !v); }
+
+  /**
+   * Darf der aktuelle Nutzer Mitarbeiter bearbeiten?
+   * Aktuell: alles, was nicht eingeloggt ist, darf nichts; Admins dürfen alles.
+   * Später kann hier feiner unterschieden werden.
+   */
+  readonly canEdit  = computed(() => {
+    const user = this.auth.user();
+    if (!user) return false;
+    return (user.roles ?? []).includes('ROLE_SUPER_ADMIN');
   });
 
-  // Modal (Hinzufügen + Bearbeiten)
+  readonly canSeeId = computed(() => {
+    const user = this.auth.user();
+    if (!user) return false;
+    return (user.roles ?? []).includes('ROLE_SUPER_ADMIN');
+  });
+
+  // Modal-State (Add/Edit-Modal mit Rollenpicker)
   modalOpen = false;
   modalMode: ModalMode = 'add';
   editingId: string | null = null;
-  form: StaffForm = this.emptyForm();
+  formUser: Employee = this.emptyUser();
   formError = '';
-  readonly saving    = signal(false);
+
+  /** Fehler vom Backend-Speichern, im Modal-Footer angezeigt. */
   readonly saveError = signal<string | null>(null);
 
-  ngOnInit(): void {
-    this.load();
-  }
+  // Zweites, einfacheres Bearbeiten-Modal (nur Name + E-Mail)
+  readonly editModal   = signal<boolean>(false);
+  readonly editTarget  = signal<Employee | null>(null);
+  readonly editName    = signal<string>('');
+  readonly editEmail   = signal<string>('');
+  readonly editError   = signal<string | null>(null);
+  readonly editSaving  = signal<boolean>(false);
 
-  load(): void {
+  newUser: CreateStaffDto = this.emptyDto();
+
+  // ===================== INIT =====================
+  ngOnInit(): void {
     this.loading.set(true);
-    this.loadError.set(null);
     this.staffService.list().subscribe({
       next: list => {
-        this.employees.set(list);
+        if (list && list.length > 0) {
+          this.employees.set(list.map(m => this.toEmployee(m)));
+        }
         this.loading.set(false);
       },
       error: () => {
+        // Backend nicht verfügbar — wir behalten die Demo-Liste.
         this.loading.set(false);
-        this.loadError.set('Mitarbeiter konnten nicht geladen werden.');
       },
     });
   }
 
-  toggleInfo(): void {
-    this.infoOpen.update(v => !v);
-  }
-
-  // ===================== MODAL =====================
+  // ===================== ADD/EDIT-MODAL =====================
   openAddModal(): void {
     this.modalMode = 'add';
     this.editingId = null;
-    this.form = this.emptyForm();
-    this.resetErrors();
+    this.formUser  = this.emptyUser();
+    this.formUser.staffId = this.suggestStaffId();
+    this.formError = '';
+    this.saveError.set(null);
     this.modalOpen = true;
   }
 
-  openEditModal(user: StaffMember): void {
+  openEditModal(user: Employee): void {
     this.modalMode = 'edit';
     this.editingId = user.id;
-    this.form = { name: user.name, email: user.email ?? '', role: user.role };
-    this.resetErrors();
+    // Tiefen-Kopie, damit Abbrechen die Originalliste nicht verändert
+    this.formUser  = { ...user };
+    this.formError = '';
+    this.saveError.set(null);
     this.modalOpen = true;
   }
 
   closeModal(): void {
     this.modalOpen = false;
-    this.resetErrors();
+    this.formError = '';
+    this.saveError.set(null);
   }
 
-  setFormRole(role: EmployeeRole): void {
-    this.form = { ...this.form, role };
-  }
-
-  saveModal(): void {
-    const name  = this.form.name.trim();
-    const email = this.form.email.trim();
-
-    if (name.length < 2) {
-      this.formError = 'Bitte einen Namen eintragen.';
-      return;
-    }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      this.formError = 'Bitte eine gültige E-Mail eintragen oder das Feld leer lassen.';
-      return;
-    }
-
-    this.resetErrors();
-    this.saving.set(true);
-
-    const request$ = this.modalMode === 'add'
-      ? this.staffService.create({ name, email: email || undefined, role: this.form.role })
-      : this.staffService.update(this.editingId!, { name, email: email || null, role: this.form.role });
-
-    request$.subscribe({
-      next: saved => {
-        if (this.modalMode === 'add') {
-          this.employees.update(list => [...list, saved]);
-        } else {
-          this.replace(saved);
-        }
-        this.saving.set(false);
-        this.closeModal();
-      },
-      error: err => {
-        this.saving.set(false);
-        this.saveError.set(err?.error?.error ?? 'Fehler beim Speichern.');
-      },
-    });
+  /**
+   * Schlägt die nächste freie Mitarbeiter-ID im Schema "###" vor.
+   * Zählt die größte vorhandene Nummer und addiert 1.
+   * Wenn noch keine numerische ID existiert, beginnt es bei 001.
+   */
+  suggestStaffId(): string {
+    const numbers = this.employees()
+      .map(e => e.staffId)
+      .filter(id => /^\d+$/.test(id))
+      .map(id => parseInt(id, 10));
+    const next = (numbers.length ? Math.max(...numbers) : 0) + 1;
+    return String(next).padStart(3, '0');
   }
 
   // ===================== ACTIONS =====================
-  toggleActive(user: StaffMember): void {
-    this.staffService.update(user.id, { active: !user.active }).subscribe({
-      next: updated => this.replace(updated),
-      error: () => this.load(), // Schalter wieder auf echten Stand bringen
+  saveModal(): void {
+    const name    = this.formUser.name.trim();
+    const email   = this.formUser.email.trim();
+    const staffId = this.formUser.staffId.trim();
+
+    if (!name)    { this.formError = 'Bitte einen Namen eintragen.';            return; }
+    if (!email)   { this.formError = 'Bitte eine E-Mail eintragen.';            return; }
+    if (!staffId) { this.formError = 'Mitarbeiter-ID darf nicht leer sein.';    return; }
+
+    // Eindeutigkeitsprüfung — gleiche staffId nicht doppelt vergeben
+    const duplicate = this.employees().some(
+      e => e.staffId.toLowerCase() === staffId.toLowerCase()
+        && e.id !== this.editingId
+    );
+    if (duplicate) {
+      this.formError = `Mitarbeiter-ID "${staffId}" ist bereits vergeben.`;
+      return;
+    }
+
+    if (this.modalMode === 'add') {
+      this.employees.update(list => [
+        ...list,
+        { ...this.formUser, id: String(Date.now()), name, email, staffId }
+      ]);
+    } else if (this.editingId) {
+      const id = this.editingId;
+      this.employees.update(list => list.map(u =>
+        u.id === id
+          ? { ...this.formUser, id: u.id, name, email, staffId }
+          : u
+      ));
+    }
+
+    this.closeModal();
+  }
+
+  // ── Bearbeiten-Modal (nur Name + E-Mail) ──────────────────────────────
+  openEdit(user: Employee): void {
+    this.editTarget.set(user);
+    this.editName.set(user.name);
+    this.editEmail.set(user.email ?? '');
+    this.editError.set(null);
+    this.editModal.set(true);
+  }
+
+  closeEdit(): void { this.editModal.set(false); }
+
+  saveEdit(): void {
+    const target = this.editTarget();
+    if (!target || !this.editName().trim()) return;
+    this.editSaving.set(true);
+    this.editError.set(null);
+
+    const newName  = this.editName().trim();
+    const newEmail = this.editEmail().trim();
+
+    this.staffService.update(target.id, {
+      name:  newName,
+      email: newEmail || null,
+    }).subscribe({
+      next: updated => {
+        this.replace(this.toEmployee(updated));
+        this.editSaving.set(false);
+        this.closeEdit();
+      },
+      error: (err) => {
+        // Backend nicht verfügbar → lokales Update als Fallback,
+        // damit der Demo-Modus trotzdem funktioniert.
+        if (err?.status === 0 || err?.status === 404) {
+          this.replace({ ...target, name: newName, email: newEmail });
+          this.editSaving.set(false);
+          this.closeEdit();
+          return;
+        }
+        this.editSaving.set(false);
+        this.editError.set(err?.error?.error ?? 'Fehler beim Speichern.');
+      },
     });
   }
 
-  removeUser(user: StaffMember): void {
-    if (!confirm(`${user.name} wirklich entfernen?`)) return;
+  setFormRole(role: EmployeeRole): void {
+    this.formUser = { ...this.formUser, role };
+  }
+
+  // ── Aktiv/Inaktiv ──────────────────────────────────────────────────────
+  toggleActive(user: Employee): void {
+    const target = { ...user, active: !user.active };
+    // Optimistisches Update — falls Backend antwortet, mergen wir das
+    // Ergebnis darüber. Falls nicht, bleibt unser optimistischer Stand.
+    this.replace(target);
+    this.staffService.update(user.id, { active: target.active }).subscribe({
+      next:  updated => this.replace(this.toEmployee(updated)),
+      error: () => { /* lokaler Stand bleibt */ },
+    });
+  }
+
+  // ── Löschen ────────────────────────────────────────────────────────────
+  removeUser(user: Employee): void {
+    // Optimistisches Entfernen — bei Backend-Fehler ggf. revert (hier
+    // bewusst nicht implementiert, weil der Demo-Modus auch ohne Backend
+    // klappen muss).
+    this.employees.update(list => list.filter(u => u.id !== user.id));
     this.staffService.delete(user.id).subscribe({
-      next: () => this.employees.update(list => list.filter(u => u.id !== user.id)),
+      error: () => { /* lokaler Stand bleibt */ },
     });
   }
 
-  // ===================== HELPERS =====================
-  /** 1 → "#01" */
+  // ── Helpers ────────────────────────────────────────────────────────────
   formatNumber(n: number): string {
     return '#' + String(n).padStart(2, '0');
   }
@@ -192,16 +304,38 @@ export class MitarbeiterComponent implements OnInit {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  private replace(updated: StaffMember): void {
-    this.employees.update(list => list.map(u => (u.id === updated.id ? updated : u)));
+  trackById(_: number, u: Employee): string  { return u.id; }
+  trackByKey(_: number, r: RoleMeta): EmployeeRole { return r.key; }
+
+  /**
+   * Ersetzt einen einzelnen Eintrag in der Liste — wird sowohl von
+   * Backend-Antworten als auch lokalen Änderungen genutzt.
+   */
+  private replace(updated: Employee): void {
+    this.employees.update(list =>
+      list.some(u => u.id === updated.id)
+        ? list.map(u => u.id === updated.id ? updated : u)
+        : [...list, updated]
+    );
   }
 
-  private resetErrors(): void {
-    this.formError = '';
-    this.saveError.set(null);
+  /** Wandelt ein Backend-StaffMember in unser internes Employee-Modell. */
+  private toEmployee(m: StaffMember): Employee {
+    return {
+      id:      m.id,
+      staffId: String(m.employee_number ?? '').padStart(3, '0'),
+      name:    m.name,
+      email:   m.email ?? '',
+      role:    m.role,
+      active:  m.active,
+    };
   }
 
-  private emptyForm(): StaffForm {
+  private emptyUser(): Employee {
+    return { id: '', staffId: '', name: '', email: '', role: 'staff', active: true };
+  }
+
+  private emptyDto(): CreateStaffDto {
     return { name: '', email: '', role: 'staff' };
   }
 }

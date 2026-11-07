@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+
+
+  <!-- Hintergrund-Quadrat (rounded) -->
+  <rect x="2" y="2" width="60" height="60" rx="14"
+        fill="#2979ff"/>
+
+  <!-- "L"-Form, weiß -->
+  <path d="M 20 14 L 20 48 L 46 48 L 46 42 L 26 42 L 26 14 Z"
+        fill="#ffffff"/>
+
+  <!-- 3 Gabel-Zacken oben am L (Restaurant-Andeutung) -->
+  <rect x="20" y="10" width="2" height="6" fill="#ffffff"/>
+  <rect x="24" y="10" width="2" height="6" fill="#ffffff"/>
+  <rect x="22" y="6"  width="2" height="4" fill="#ffffff"/>
+
+  <!-- Gold-Punkt rechts oben (Akzent) -->
+  <circle cx="46" cy="20" r="4" fill="#ffb700"/>
+</svg>

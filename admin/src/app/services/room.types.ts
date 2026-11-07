@@ -1,5 +1,24 @@
 export type TableType = 'round' | 'square' | 'long';
 
+/**
+ * Dekor-Elemente: alles, was kein Tisch und keine Wand ist.
+ * Werden im Plan platziert, lassen sich verschieben, drehen, skalieren –
+ * aber haben keine Sitzplätze und können nicht gemergt werden.
+ */
+export type DecorType =
+  | 'plant'
+  | 'pillar'
+  | 'door'
+  | 'window'
+  | 'stairs'
+  | 'wc'
+  | 'entrance'
+  | 'bar'
+  | 'stage'
+  | 'coatrack'
+  | 'sofa'
+  | 'cashier';
+
 export interface PlacedTable {
   id: number;
   type: TableType;
@@ -18,6 +37,14 @@ export interface PlacedWall {
   rotation: number;
 }
 
+export interface PlacedDecor {
+  id: number;
+  type: DecorType;
+  x: number; y: number;
+  rotation: number;
+  scale: number;
+}
+
 export interface SavedRoom {
   id: string;
   name: string;
@@ -25,4 +52,5 @@ export interface SavedRoom {
   updatedAt: number;
   tables: PlacedTable[];
   walls: PlacedWall[];
+  decors: PlacedDecor[];
 }

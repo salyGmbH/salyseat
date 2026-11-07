@@ -32,6 +32,8 @@ final class ListGuestsHandler
                 'blocked'            => $g->isBlocked(),
                 'blocked_reason'     => $g->getBlockedReason(),
                 'internal_notes'     => $g->getInternalNotes(),
+                'gasttypen'          => $g->getGasttypen(),
+                'hinweise'           => $g->getHinweise(),
                 'created_at'         => $g->getCreatedAt()->format('Y-m-d'),
             ], $items),
             'total'  => $total,
