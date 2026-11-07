@@ -1,3 +1,39 @@
+<!-- ===================== GEBUCHTE MODULE ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Gebuchte Module</h2>
+  </div>
+
+  <div class="module-grid">
+
+    <div class="module-card"
+         *ngFor="let module of modules()">
+
+      <div class="module-icon">
+        <mat-icon>{{ module.icon }}</mat-icon>
+      </div>
+
+      <div class="module-content">
+        <div class="module-title">
+          {{ module.name }}
+        </div>
+
+        <div class="module-sub">
+          {{ module.description }}
+        </div>
+      </div>
+
+      <div class="module-status"
+           [class.active]="module.active">
+        {{ module.active ? 'Aktiv' : 'Inaktiv' }}
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
 <!-- ===================== DARSTELLUNG ===================== -->
 <div class="settings-block">
 
@@ -39,20 +75,20 @@
     </button>
   </div>
 
-  <!-- Effektiv aktiver Modus (wichtig bei „System") -->
   @if (theme() === 'system') {
     <div class="theme-effective">
       <mat-icon>info_outline</mat-icon>
       <span>
-        Aktuell folgt dein System der OS-Einstellung:
+        Aktuell folgt dein System:
         <strong>{{ effective() === 'dark' ? 'Dunkel 🌙' : 'Hell ☀️' }}</strong>
       </span>
     </div>
   }
 
-  <!-- SAVE -->
   <div class="actions">
-    <button class="save-button" [class.saved]="themeSaved()" (click)="saveTheme()">
+    <button class="save-button"
+            [class.saved]="themeSaved()"
+            (click)="saveTheme()">
       {{ themeSaved() ? 'Gespeichert ✓' : 'Speichern' }}
     </button>
   </div>

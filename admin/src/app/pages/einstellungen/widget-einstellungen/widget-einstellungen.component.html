@@ -381,6 +381,260 @@
 
 
   <!-- ══════════════════════════════════════════════════════════
+       12. TISCHARTEN / TISCH-AUSWAHL
+       (direkt unter Raumauswahl platziert für schnelle Konfiguration)
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">table_restaurant</mat-icon>
+        Tisch-Auswahl im Widget
+      </h2>
+      <button class="info-button" [class.active]="info12()" (click)="info12.set(!info12())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info12()">
+      Lege fest, wie der Gast beim Buchen seinen Tisch / seine Tischart wählen kann.
+      Es gibt zwei Modi:
+      <strong>Tischarten-Auswahl</strong> (rund / eckig / lang) und
+      <strong>Restaurantplan</strong> (1:1-Abbild deiner Räume – der Gast klickt
+      direkt einen Wunschtisch an, ideal für Wünsche wie „am Fenster sitzen").
+      <br><br>
+      Wenn die Tisch-Auswahl <em>deaktiviert</em> ist, weist das System dem Gast
+      automatisch einen passenden Tisch zu – dann sieht er gar keinen Auswahl-Schritt.
+      <br><br>
+      Welche Räume online buchbar sind, steuerst du oben unter
+      <strong>„Raumauswahl"</strong> – alles was dort aktiv ist, wird auch im
+      Plan-Modus angezeigt.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Tisch-Auswahl aktivieren</span>
+        <small>
+          Wenn aus, weist das System dem Gast automatisch einen passenden Tisch zu
+          (nach Personenzahl, Verfügbarkeit und Raum-Auswahl) – der Gast sieht keinen Auswahl-Schritt.
+        </small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.tischartenAktiv">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- Erklärung der automatischen Tischzuweisung wenn der Master-Toggle aus ist -->
+    @if (!settings.tischartenAktiv) {
+      <div class="auswahl-modus-section auswahl-modus-section--info">
+        <mat-icon>auto_awesome</mat-icon>
+        <div>
+          <strong>Automatische Tischzuweisung aktiv</strong>
+          <p>
+            Der Gast sieht keine Tisch-Auswahl. Sobald die Buchung eingeht,
+            wird automatisch ein passender Tisch entsprechend Personenzahl,
+            Verfügbarkeit und Raum-Auswahl zugewiesen.
+          </p>
+        </div>
+      </div>
+    }
+
+    <!-- 2 Modi-Karten -->
+    <div class="auswahl-modus-grid" [class.is-disabled]="!settings.tischartenAktiv">
+      @for (m of auswahlModi; track m.key) {
+        <button
+          type="button"
+          class="auswahl-modus-card"
+          [class.auswahl-modus-card--active]="settings.tischartenAuswahlModus === m.key"
+          [disabled]="!settings.tischartenAktiv"
+          (click)="setAuswahlModus(m.key)">
+          <div class="auswahl-modus-card__icon">
+            <mat-icon>{{ m.icon }}</mat-icon>
+          </div>
+          <div class="auswahl-modus-card__body">
+            <span class="auswahl-modus-card__label">{{ m.label }}</span>
+            <small class="auswahl-modus-card__desc">{{ m.desc }}</small>
+          </div>
+          <mat-icon class="auswahl-modus-card__check">
+            {{ settings.tischartenAuswahlModus === m.key ? 'check_circle' : 'radio_button_unchecked' }}
+          </mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+
+    @if (settings.tischartenAktiv) {
+      <!-- ── Modus „Tischarten-Liste" ──────────────────────────────── -->
+      @if (settings.tischartenAuswahlModus === 'liste') {
+        <div class="auswahl-modus-section">
+          <div class="auswahl-modus-section__title">
+            <mat-icon>view_list</mat-icon>
+            Welche Tischarten dürfen Gäste wählen?
+          </div>
+          <div class="tischart-grid">
+            @for (t of alleTischarten; track t.key) {
+              <button
+                class="tischart-card"
+                [class.tischart-card--active]="isTischartenAktiv(t.key)"
+                (click)="toggleTischart(t.key)">
+                <div class="tischart-card__visual tischart-card__visual--{{ t.shape }}"></div>
+                <span class="tischart-card__label">{{ t.label }}</span>
+                <mat-icon class="tischart-card__check">
+                  {{ isTischartenAktiv(t.key) ? 'check_circle' : 'radio_button_unchecked' }}
+                </mat-icon>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ── Modus „Restaurantplan" ────────────────────────────────── -->
+      @if (settings.tischartenAuswahlModus === 'plan') {
+        <div class="auswahl-modus-section auswahl-modus-section--plan">
+          <div class="auswahl-modus-section__title auswahl-modus-section__title--center">
+            <mat-icon>map</mat-icon>
+            Vorschau: So wählt der Gast seinen Tisch im Widget
+          </div>
+
+          @if (venues().length === 0) {
+            <div class="plan-info-hint">
+              <mat-icon>info</mat-icon>
+              <div>
+                <strong>Noch keine Räume angelegt.</strong>
+                <p>Lege zuerst unter <em>Einstellungen → Räume</em> einen Raum
+                  mit Tischen an, dann erscheint hier die Vorschau.</p>
+              </div>
+            </div>
+          } @else if (aktivePlanRaeume().length === 0) {
+            <div class="plan-info-hint plan-info-hint--warn">
+              <mat-icon>warning_amber</mat-icon>
+              <div>
+                <strong>Aktuell ist kein Raum online buchbar.</strong>
+                <p>
+                  Aktiviere mindestens einen Raum oben unter
+                  <strong>„Raumauswahl"</strong>, damit der Gast einen Tisch
+                  im Plan auswählen kann.
+                </p>
+              </div>
+            </div>
+          } @else {
+            <!-- Vorschau des Plans -->
+            <div class="plan-preview">
+              <!-- Zentrierte Raum-Switch-Tabs -->
+              @if (aktivePlanRaeume().length > 0) {
+                <div class="plan-preview__roomswitch">
+                  @if (aktivePlanRaeume().length > 1) {
+                    <div class="plan-preview__tabs" role="tablist">
+                      @for (v of aktivePlanRaeume(); track v.id) {
+                        <button
+                          type="button"
+                          role="tab"
+                          class="plan-preview__tab"
+                          [class.plan-preview__tab--active]="previewSelectedRoomId() === v.id"
+                          [attr.aria-selected]="previewSelectedRoomId() === v.id"
+                          (click)="selectPreviewRoom(v.id)">
+                          <mat-icon>meeting_room</mat-icon>
+                          <span>{{ v.name }}</span>
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <div class="plan-preview__roomtitle">
+                      <mat-icon>meeting_room</mat-icon>
+                      <span>{{ aktivePlanRaeume()[0].name }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (previewRoom(); as pr) {
+                <div class="plan-preview__canvas-wrap">
+                  <svg class="plan-preview__canvas"
+                       [attr.viewBox]="previewViewBox()"
+                       preserveAspectRatio="xMidYMid meet">
+
+                    <!-- Wände -->
+                    @for (wall of pr.walls; track wall.id) {
+                      <g [attr.transform]="'translate(' + wall.x + ' ' + wall.y + ') rotate(' + wall.rotation + ')'">
+                        <rect [attr.x]="-wall.length / 2" y="-4"
+                              [attr.width]="wall.length" height="8"
+                              rx="2" class="plan-preview__wall"/>
+                      </g>
+                    }
+
+                    <!-- Tische -->
+                    @for (t of pr.tables; track t.id) {
+                      @if (t.type === 'long') {
+                        <g [attr.transform]="'translate(' + t.x + ' ' + t.y + ') scale(' + t.scale + ') rotate(' + t.rotation + ' 70 35)'"
+                           class="plan-preview__table"
+                           [class.plan-preview__table--selected]="previewSelectedTableId() === t.id"
+                           (click)="selectPreviewTable(t.id)">
+                          <rect x="8" y="13" width="124" height="44" rx="6" class="plan-preview__table-body"/>
+                          @for (pos of getLongTableSeatPositions(t.seats); track $index) {
+                            <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" class="plan-preview__seat"/>
+                          }
+                          <text x="70" y="38" class="plan-preview__table-label">#{{ t.id }}</text>
+                        </g>
+                      } @else {
+                        <g [attr.transform]="'translate(' + t.x + ' ' + t.y + ') scale(' + t.scale + ') rotate(' + t.rotation + ' 35 35)'"
+                           class="plan-preview__table"
+                           [class.plan-preview__table--selected]="previewSelectedTableId() === t.id"
+                           (click)="selectPreviewTable(t.id)">
+                          @if (t.type === 'round') {
+                            <circle cx="35" cy="35" r="24" class="plan-preview__table-body"/>
+                            @for (pos of getSeatPositions(t.seats); track $index) {
+                              <circle [attr.cx]="pos.x" [attr.cy]="pos.y" r="5" class="plan-preview__seat"/>
+                            }
+                          } @else {
+                            <rect x="13" y="13" width="44" height="44" rx="6" class="plan-preview__table-body"/>
+                            @for (pos of getSeatPositions(t.seats); track $index) {
+                              <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" class="plan-preview__seat"/>
+                            }
+                          }
+                          <text x="35" y="38" class="plan-preview__table-label">#{{ t.id }}</text>
+                        </g>
+                      }
+                    }
+                  </svg>
+
+                  @if (pr.tables.length === 0) {
+                    <div class="plan-preview__empty">
+                      <mat-icon>info</mat-icon>
+                      <span>Dieser Raum enthält noch keine Tische. Lege Tische im Restaurantplan an.</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="plan-preview__footer">
+                  @if (previewSelectedTableId(); as tid) {
+                    <span><mat-icon>chair</mat-icon>Tisch <strong>#{{ tid }}</strong> ausgewählt</span>
+                  } @else {
+                    <span><mat-icon>touch_app</mat-icon>Klicke einen Tisch an, um die Auswahl zu testen.</span>
+                  }
+                </div>
+
+                <p class="plan-source-hint">
+                  <mat-icon>info</mat-icon>
+                  Die hier sichtbaren Räume entsprechen denen, die du oben im
+                  Block <strong>„Raumauswahl"</strong> aktiviert hast.
+                </p>
+              } @else {
+                <p class="datum-empty">Wähle mindestens einen Raum aus, um die Vorschau zu sehen.</p>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved12()" (click)="saveBlock(12)">
+        {{ saved12() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
        6. HINWEISTEXT
   ══════════════════════════════════════════════════════════ -->
   <div class="settings-block">
@@ -736,63 +990,6 @@
 
 
   <!-- ══════════════════════════════════════════════════════════
-       12. TISCHARTEN
-  ══════════════════════════════════════════════════════════ -->
-  <div class="settings-block">
-    <div class="section-header">
-      <h2 class="section-title">
-        <mat-icon class="section-icon">table_restaurant</mat-icon>
-        Tischarten auswählbar
-      </h2>
-      <button class="info-button" [class.active]="info12()" (click)="info12.set(!info12())">
-        <mat-icon>info</mat-icon>
-      </button>
-    </div>
-    <div class="info-box" [class.open]="info12()">
-      Wenn aktiviert, können Gäste beim Buchen eine bevorzugte Tischart wählen.
-      Wähle welche Tischarten im Widget angeboten werden.
-    </div>
-
-    <div class="toggle-row">
-      <div class="toggle-row__label">
-        <span>Tischart-Auswahl aktivieren</span>
-        <small>Gäste können eine Tischart bevorzugen</small>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" [(ngModel)]="settings.tischartenAktiv">
-        <span class="toggle__track"><span class="toggle__thumb"></span></span>
-      </label>
-    </div>
-
-    <div class="tischart-grid">
-      @for (t of alleTischarten; track t.key) {
-        <button
-          class="tischart-card"
-          [class.tischart-card--active]="isTischartenAktiv(t.key)"
-          [disabled]="!settings.tischartenAktiv"
-          (click)="toggleTischart(t.key)">
-          <div class="tischart-card__visual tischart-card__visual--{{ t.shape }}"></div>
-          <span class="tischart-card__label">{{ t.label }}</span>
-          <mat-icon class="tischart-card__check">
-            {{ isTischartenAktiv(t.key) ? 'check_circle' : 'radio_button_unchecked' }}
-          </mat-icon>
-        </button>
-      }
-    </div>
-
-    @if (!settings.tischartenAktiv) {
-      <p class="datum-empty">Aktiviere die Tischart-Auswahl um Tischarten zu konfigurieren.</p>
-    }
-
-    <div class="actions">
-      <button class="save-button" [class.saved]="saved12()" (click)="saveBlock(12)">
-        {{ saved12() ? 'Gespeichert ✓' : 'Speichern' }}
-      </button>
-    </div>
-  </div>
-
-
-  <!-- ══════════════════════════════════════════════════════════
        13. ONLINE ÄNDERUNGEN
   ══════════════════════════════════════════════════════════ -->
   <div class="settings-block">
@@ -896,4 +1093,99 @@
     </div>
   </div>
 
-</div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       15. WARTELISTE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">format_list_numbered</mat-icon>
+        Warteliste
+      </h2>
+      <button class="info-button" [class.active]="info15()" (click)="info15.set(!info15())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info15()">
+      Wenn ein Zeitslot ausgebucht ist, können sich Gäste auf die Warteliste setzen lassen.
+      Das Restaurant wird benachrichtigt und kann bei einer Absage selbst entscheiden, wen es
+      von der Warteliste kontaktiert. Lege fest, wie viele Plätze pro Slot möglich sind,
+      über welchen Kanal der Gast informiert werden soll und wie lange er Zeit hat zu antworten.
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-row__label">
+        <span>Warteliste aktivieren</span>
+        <small>Ausgebuchte Slots zeigen eine „Auf Warteliste" Option im Widget</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [(ngModel)]="settings.wartelisteAktiv">
+        <span class="toggle__track"><span class="toggle__thumb"></span></span>
+      </label>
+    </div>
+
+    <div [class.stepper-grid--disabled]="!settings.wartelisteAktiv">
+      <div class="stepper-grid">
+        <div class="stepper-card">
+          <span class="stepper-card__label">Max. Plätze pro Slot</span>
+          <div class="we-number">
+            <button (click)="stepDown('wartelisteMaxPlaetze', 1, 1)" [disabled]="!settings.wartelisteAktiv">
+              <mat-icon>remove</mat-icon>
+            </button>
+            <span class="stepper-card__value" [class.muted]="!settings.wartelisteAktiv">
+              {{ settings.wartelisteMaxPlaetze }}
+            </span>
+            <button (click)="stepUp('wartelisteMaxPlaetze', 1)" [disabled]="!settings.wartelisteAktiv">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+          <span class="stepper-card__sub">Personen auf der Warteliste</span>
+        </div>
+
+        <div class="stepper-card">
+          <span class="stepper-card__label">Antwortzeit bei Freiplatz</span>
+          <div class="we-number">
+            <button (click)="stepDown('wartelisteAntwortStunden', 1, 1)" [disabled]="!settings.wartelisteAktiv">
+              <mat-icon>remove</mat-icon>
+            </button>
+            <span class="stepper-card__value" [class.muted]="!settings.wartelisteAktiv">
+              {{ settings.wartelisteAntwortStunden }} Std
+            </span>
+            <button (click)="stepUp('wartelisteAntwortStunden', 1)" [disabled]="!settings.wartelisteAktiv">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+          <span class="stepper-card__sub">Zeit zum Reagieren auf Kontakt</span>
+        </div>
+      </div>
+
+      <p class="field-label" [class.muted]="!settings.wartelisteAktiv">
+        Gast wird kontaktiert via
+      </p>
+      <div class="view-toggle">
+        <button [class.active]="settings.wartelisteKanal === 'email'"
+                [disabled]="!settings.wartelisteAktiv"
+                (click)="settings.wartelisteKanal = 'email'">
+          <mat-icon>mail</mat-icon> E-Mail
+        </button>
+        <button [class.active]="settings.wartelisteKanal === 'telefon'"
+                [disabled]="!settings.wartelisteAktiv"
+                (click)="settings.wartelisteKanal = 'telefon'">
+          <mat-icon>call</mat-icon> Telefon
+        </button>
+        <button [class.active]="settings.wartelisteKanal === 'beide'"
+                [disabled]="!settings.wartelisteAktiv"
+                (click)="settings.wartelisteKanal = 'beide'">
+          <mat-icon>contact_phone</mat-icon> Beides
+        </button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved15()" (click)="saveBlock(15)">
+        {{ saved15() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+

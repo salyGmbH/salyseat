@@ -81,6 +81,48 @@
           <button [class.active]="statusFilter() === 'all'"       (click)="statusFilter.set('all')">Alle</button>
           <button [class.active]="statusFilter() === 'completed'" (click)="statusFilter.set('completed')">Beendet</button>
         </div>
+        <!-- Zusatzfilter nur bei "Alle" -->
+@if (statusFilter() === 'all') {
+  <!-- Sub-Filter (nur bei "Alle") -->
+@if (statusFilter() === 'all') {
+  <div class="sub-filter">
+    
+    <div class="sub-filter__row">
+      <button class="sub-filter__chip sub-filter__chip--active">
+        Uhrzeit ↑
+      </button>
+
+      <button class="sub-filter__chip">
+        Uhrzeit ↓
+      </button>
+
+      <button class="sub-filter__chip">
+        No-Shows
+      </button>
+
+      <button class="sub-filter__chip">
+        Storniert
+      </button>
+
+      <button class="sub-filter__chip">
+        Verspätet
+      </button>
+
+      <button class="sub-filter__chip">
+        Bevorstehend
+      </button>
+
+      <button class="sub-filter__chip">
+        Warteliste
+      </button>
+        <button class="sub-filter__chip">
+        Warlk-In
+      </button>
+    </div>
+
+  </div>
+}
+}
 
         <!-- Liste: Gruppiert nach Stunde -->
         <div class="res-panel__list">
@@ -122,15 +164,21 @@
                           }
                         </div>
                       }
-                      <div class="res-row__body"
-                           [class.res-row__body--clickable]="res.guestId"
-                           (click)="res.guestId && openGuestCard(res)">
+                      <div class="res-row__body res-row__body--clickable"
+                           (click)="openGuestCard(res)">
                         <div class="res-row__top">
                           <span class="res-row__name">{{ res.guestName }}</span>
                           <span class="res-row__party">· {{ res.partySize }} Pers.</span>
                         </div>
                         <div class="res-row__sub">
-                          @if (res.tableId) {
+                          @if ((res.tableIds?.length ?? 0) > 1) {
+                            <span>
+                              <mat-icon>table_restaurant</mat-icon>
+                              Tische @for (id of res.tableIds!; track id; let last = $last) {
+                                #{{ id }}@if (!last) { + }
+                              }
+                            </span>
+                          } @else if (res.tableId) {
                             <span><mat-icon>table_restaurant</mat-icon>Tisch #{{ res.tableId }}</span>
                           } @else {
                             <span class="warn"><mat-icon>help_outline</mat-icon>Ohne Tisch</span>
@@ -139,6 +187,16 @@
                             <span class="muted">· {{ statusLabel(res.status) }}</span>
                           }
                           @if (res.phone) { <span class="muted">· <mat-icon>call</mat-icon>{{ res.phone }}</span> }
+                          @if (res.status === 'late') {
+                            <span class="res-row__overdue-chip res-row__overdue-chip--late">
+                              <mat-icon>schedule</mat-icon>+{{ lateMinutes(res) }} min
+                            </span>
+                          }
+                          @if (res.status === 'expired') {
+                            <span class="res-row__overdue-chip res-row__overdue-chip--expired">
+                              <mat-icon>timer_off</mat-icon>+{{ expiredMinutes(res) }} min
+                            </span>
+                          }
                         </div>
                         @if (res.notes) {
                           <div class="res-row__notes"><mat-icon>sticky_note_2</mat-icon>{{ res.notes }}</div>
@@ -159,6 +217,16 @@
                           @case ('upcoming') {
                             <button class="action action--primary" (click)="checkIn(res)" title="Einchecken">
                               <mat-icon>login</mat-icon>
+                            </button>
+                          }
+                          @case ('confirmed') {
+                            <button class="action action--checkin-confirmed" (click)="checkIn(res)" title="Check in">
+                              <mat-icon>how_to_reg</mat-icon>
+                            </button>
+                          }
+                          @case ('late') {
+                            <button class="action action--checkin-late" (click)="checkIn(res)" title="Check in">
+                              <mat-icon>how_to_reg</mat-icon>
                             </button>
                           }
                           @case ('seated') {
@@ -191,7 +259,7 @@
                               <button class="kebab-menu__item" (click)="openEditDialog(res); closeMenu()">
                                 <mat-icon>edit</mat-icon> Bearbeiten
                               </button>
-                              @if (res.status === 'upcoming' || res.status === 'seated' || res.status === 'expired' || res.status === 'cleanup') {
+                              @if (res.status === 'upcoming' || res.status === 'confirmed' || res.status === 'seated' || res.status === 'expired' || res.status === 'cleanup') {
                                 @if (res.status === 'expired') {
                                   <button class="kebab-menu__item" (click)="extendReservation(res); closeMenu()">
                                     <mat-icon>more_time</mat-icon> Um 30 min verlängern
@@ -240,8 +308,18 @@
           <div class="day-load">
             @for (bucket of dayLoad(); track bucket.hour) {
               <div class="day-load__cell" [class.is-peak]="bucket.isPeak"
-                   [title]="bucket.hour + ':00 · ' + bucket.count + ' Res.'">
-                <div class="day-load__bar" [style.height.%]="bucket.count === 0 ? 8 : 20 + bucket.count * 22"></div>
+                   [title]="bucket.hour + ':00 · ' + bucket.count + ' Res. · ' + bucket.pct + '% Auslastung'">
+                <div class="day-load__pct"
+                     [class.is-green]="bucket.loadLevel === 'green'"
+                     [class.is-amber]="bucket.loadLevel === 'amber'"
+                     [class.is-red]="bucket.loadLevel === 'red'">
+                  @if (bucket.count > 0) { {{ bucket.pct }}% }
+                </div>
+                <div class="day-load__bar"
+                     [class.is-green]="bucket.loadLevel === 'green'"
+                     [class.is-amber]="bucket.loadLevel === 'amber'"
+                     [class.is-red]="bucket.loadLevel === 'red'"
+                     [style.height.%]="bucket.count === 0 ? 8 : 20 + bucket.count * 22"></div>
                 <div class="day-load__hour">{{ bucket.hour }}</div>
               </div>
             }
@@ -405,9 +483,13 @@
           </div>
         }
 
-        <!-- Merge-Verbindungslinien -->
+        <!-- Merge-Verbindungslinien (permanente Raum-Merges) -->
         @for (pair of getMergedPairs(); track pair.a.id) {
           <div class="merge-line" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
+        }
+        <!-- Merge-Verbindungslinien (Reservierungs-Tischgruppen) -->
+        @for (pair of getReservationMergePairs(); track pair.a.id + '-' + pair.b.id) {
+          <div class="merge-line merge-line--reservation" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
         }
 
         <!-- Tische -->
@@ -429,9 +511,7 @@
                           ? (reassignMode()?.sourceTableId === table.id
                                ? 'Abbrechen'
                                : 'Hierhin umsetzen')
-                          : (tableStatus(table.id).reservation
-                               ? 'Klick: bearbeiten · Lang drücken: umsetzen'
-                               : 'Neue Reservierung auf Tisch #' + table.id)">
+                          : 'Neue Reservierung auf Tisch #' + table.id">
 
             @if (table.type === 'long') {
               <svg viewBox="0 0 140 70" class="table-svg">
@@ -457,15 +537,76 @@
               </svg>
             }
 
-            <span class="placed-table__seats-badge">{{ table.seats }}</span>
+            <div class="placed-table__label">
+              <span class="placed-table__label-id">#{{ table.id }}</span>
+              <span class="placed-table__label-seats">
+                <svg viewBox="0 0 12 12" width="9" height="9"><circle cx="6" cy="3.5" r="2.2" fill="currentColor"/><path d="M2 10.5 Q2 7 6 7 Q10 7 10 10.5Z" fill="currentColor"/></svg>{{ table.seats }}
+              </span>
+            </div>
 
-            @if (tableStatus(table.id).reservation; as res) {
-              <div class="placed-table__guest">
-                <mat-icon>person</mat-icon>
-                <span>{{ res.guestName }}</span>
-                <small>{{ res.time }}</small>
+            @if (tableAllActiveReservations(table.id).length > 0) {
+              <div class="placed-table__guests">
+                @for (res of visibleGuestReservations(table.id); track res.id) {
+                  <div class="placed-table__guest"
+                       [class.is-multi]="tableAllActiveReservations(table.id).length > 1"
+                       (click)="openGuestCard(res); $event.stopPropagation()"
+                       title="Klick: Gastkartei öffnen"
+                       style="cursor: pointer;">
+                    <mat-icon>person</mat-icon>
+                    <span>{{ res.guestName }}</span>
+                    <small>{{ res.time }}</small>
+                    @if (tableAllActiveReservations(table.id).length > 1 && !reassignMode()) {
+                      <button class="placed-table__guest-remove"
+                              (click)="removeFromTable(res.id, $event)"
+                              title="Vom Tisch entfernen">×</button>
+                    }
+                  </div>
+                }
+                @if (tableAllActiveReservations(table.id).length > 2) {
+                  <button class="placed-table__guest-expand"
+                          (click)="toggleGuestsExpanded(table.id, $event)"
+                          [title]="isGuestsExpanded(table.id) ? 'Weniger anzeigen' : (tableAllActiveReservations(table.id).length - 2) + ' weitere anzeigen'">
+                    @if (isGuestsExpanded(table.id)) {
+                      <mat-icon>expand_less</mat-icon>
+                    } @else {
+                      +{{ tableAllActiveReservations(table.id).length - 2 }}
+                      <mat-icon>expand_more</mat-icon>
+                    }
+                  </button>
+                }
               </div>
             }
+
+          </div>
+        }
+
+        <!-- Split-Picker -->
+        @if (splitPickerFor() !== null) {
+          <div class="split-picker-backdrop" (click)="splitPickerFor.set(null)">
+            <div class="split-picker" (click)="$event.stopPropagation()">
+              <div class="split-picker__header">
+                <span>Tisch {{ splitPickerFor() }} teilen — Gast hinzufügen</span>
+                <button class="split-picker__close" (click)="splitPickerFor.set(null)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+              @if (unassignedForDay().length === 0) {
+                <div class="split-picker__empty">
+                  <mat-icon>info</mat-icon>
+                  Alle Reservierungen des Tages sind bereits einem Tisch zugewiesen.
+                </div>
+              } @else {
+                <div class="split-picker__list">
+                  @for (r of unassignedForDay(); track r.id) {
+                    <button class="split-picker__item" (click)="addToSplitTable(r.id)">
+                      <mat-icon>person</mat-icon>
+                      <span class="split-picker__name">{{ r.guestName }}</span>
+                      <span class="split-picker__meta">{{ r.time }} Uhr · {{ r.partySize }} Pers.</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
           </div>
         }
       </div>
@@ -479,100 +620,386 @@
 
     @if (newDialogOpen() || editDialogOpen()) {
       <div class="dialog dialog--form">
-        <h3 class="dialog__title">
-          @if (editDialogOpen()) {
-            Reservierung bearbeiten
-          } @else if (form.isWalkIn) {
-            Walk-In anlegen
-          } @else {
-            Neue Reservierung
-          }
-        </h3>
+        <div class="dialog__title-row">
+          <h3 class="dialog__title">
+            @if (editDialogOpen()) { Reservierung bearbeiten }
+            @else if (form.isWalkIn) { Walk-In anlegen }
+            @else { Neue Reservierung }
+          </h3>
+          <button type="button" class="dialog__close" (click)="closeFormDialog()" title="Schließen">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <!-- ── Mobile Step-Indicator ────────────────────────────────── -->
+        @if (!editDialogOpen()) {
+          <div class="rf-mob-indicator" [hidden]="!isMobile()">
+            <button type="button" class="rf-mob-indicator__step"
+                    [class.is-active]="mobileStep() === 1"
+                    [class.is-done]="mobileStep() > 1"
+                    (click)="mobileStep.set(1)">
+              <span class="rf-mob-indicator__num">1</span>
+              <span class="rf-mob-indicator__lbl">Datum</span>
+            </button>
+            <div class="rf-mob-indicator__line" [class.is-done]="mobileStep() > 1"></div>
+            <button type="button" class="rf-mob-indicator__step"
+                    [class.is-active]="mobileStep() === 2"
+                    [class.is-done]="mobileStep() > 2"
+                    (click)="mobileStep() > 1 && mobileStep.set(2)">
+              <span class="rf-mob-indicator__num">2</span>
+              <span class="rf-mob-indicator__lbl">Uhrzeit</span>
+            </button>
+            <div class="rf-mob-indicator__line" [class.is-done]="mobileStep() > 2"></div>
+            <button type="button" class="rf-mob-indicator__step"
+                    [class.is-active]="mobileStep() === 3"
+                    [class.is-done]="mobileStep() > 3"
+                    (click)="mobileStep() > 2 && mobileStep.set(3)">
+              <span class="rf-mob-indicator__num">3</span>
+              <span class="rf-mob-indicator__lbl">Details</span>
+            </button>
+            <div class="rf-mob-indicator__line" [class.is-done]="mobileStep() > 3"></div>
+            <button type="button" class="rf-mob-indicator__step"
+                    [class.is-active]="mobileStep() === 4"
+                    (click)="mobileStep() > 3 && mobileStep.set(4)">
+              <span class="rf-mob-indicator__num">4</span>
+              <span class="rf-mob-indicator__lbl">Tisch</span>
+            </button>
+          </div>
+        }
 
         <form class="reservation-form" (ngSubmit)="saveForm()" #resForm="ngForm">
-          <div class="field">
-            <span class="field__label">Name</span>
-            <div class="guest-autocomplete">
-              <input class="field__input reservation-form__name-input"
-                     name="guestName" type="text" maxlength="60"
-                     placeholder="Gastname oder suchen…"
-                     autocomplete="off"
-                     [(ngModel)]="form.guestName"
-                     (ngModelChange)="newDialogOpen() && onGuestNameInput($event)" />
-              @if (showSuggestions() && newDialogOpen()) {
-                <div class="guest-suggestions">
-                  @for (g of guestSuggestions(); track g.id) {
-                    <button type="button" class="guest-suggestion" (click)="selectGuest(g)">
-                      <div class="guest-suggestion__avatar">{{ guestInitials(g.name) }}</div>
-                      <div class="guest-suggestion__info">
-                        <span class="guest-suggestion__name">{{ g.name }}</span>
-                        <span class="guest-suggestion__meta">
-                          {{ g.email }}@if (g.phone) { · {{ g.phone }} }
-                        </span>
-                      </div>
-                      <span class="guest-suggestion__count" title="Bisherige Buchungen">
-                        {{ g.total_reservations }}×
-                      </span>
-                    </button>
-                  }
+          <div class="rf-layout" [attr.data-mob-step]="mobileStep()">
+
+            <!-- ── Linkes Panel: Reservierungsdetails (Step 3 auf Mobile) -->
+            <div class="rf-mob-section" data-mob-section="3">
+            <div class="rf-panel rf-panel--details">
+              <div class="rf-panel__header">
+                <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+                  <rect x="2" y="4" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                  <line x1="6" y1="4" x2="6" y2="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                  <line x1="14" y1="4" x2="14" y2="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                  <line x1="2" y1="8" x2="18" y2="8" stroke="currentColor" stroke-width="1.4"/>
+                  <rect x="5" y="10" width="3" height="3" rx="0.8" fill="currentColor" opacity=".7"/>
+                  <rect x="9" y="10" width="3" height="3" rx="0.8" fill="currentColor" opacity=".7"/>
+                </svg>
+                Reservierungsdetails
+              </div>
+
+              @if (!editDialogOpen()) {
+                <div class="type-toggle">
+                  <button type="button" class="type-toggle__btn"
+                          [class.type-toggle__btn--active]="!form.isWalkIn"
+                          (click)="form.isWalkIn = false">
+                    <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="2" y="4" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                      <line x1="6" y1="4" x2="6" y2="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                      <line x1="14" y1="4" x2="14" y2="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                      <line x1="2" y1="8" x2="18" y2="8" stroke="currentColor" stroke-width="1.4"/>
+                      <rect x="5" y="10" width="3" height="3" rx="0.8" fill="currentColor" opacity=".7"/>
+                      <rect x="9" y="10" width="3" height="3" rx="0.8" fill="currentColor" opacity=".7"/>
+                    </svg>
+                    Reservierung
+                  </button>
+                  <button type="button" class="type-toggle__btn"
+                          [class.type-toggle__btn--active]="form.isWalkIn"
+                          (click)="form.isWalkIn = true">
+                    <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="10" cy="4" r="2.2" fill="currentColor"/>
+                      <path d="M7 8.5 Q10 7 13 8.5 L14 13 H11.5 L11 17 H9 L8.5 13 H6 Z" fill="currentColor"/>
+                      <line x1="6" y1="10.5" x2="4" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      <line x1="14" y1="10.5" x2="16" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Walk-In
+                  </button>
                 </div>
               }
+
+              <div class="field">
+                <span class="field__label">
+                  Vor- und Nachname
+                  @if (formSubmitAttempted() && !form.vorname.trim()) {
+                    <span class="field__required-hint">Pflichtfeld</span>
+                  }
+                </span>
+                <div class="guest-autocomplete">
+                  <input class="field__input reservation-form__name-input"
+                         name="vorname" type="text" maxlength="80"
+                         placeholder="z. B. Max Mustermann" autocomplete="off"
+                         [(ngModel)]="form.vorname"
+                         (ngModelChange)="newDialogOpen() && onVornameInput($event)"
+                         (blur)="hideSuggestionsDelayed()"
+                         [class.field__input--invalid]="formSubmitAttempted() && !form.vorname.trim()" />
+                  @if (showSuggestions() && newDialogOpen()) {
+                    <div class="guest-suggestions">
+                      @for (g of guestSuggestions(); track g.id) {
+                        <button type="button" class="guest-suggestion" (click)="selectGuest(g)">
+                          <div class="guest-suggestion__avatar">{{ guestInitials(g.name) }}</div>
+                          <div class="guest-suggestion__info">
+                            <span class="guest-suggestion__name">{{ g.name }}</span>
+                            <span class="guest-suggestion__meta">{{ g.email }}@if (g.phone) { · {{ g.phone }} }</span>
+                          </div>
+                          <span class="guest-suggestion__count">{{ g.total_reservations }}×</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <label class="field">
+                <span class="field__label">Dauer</span>
+                <select class="field__input field__input--select" name="duration" [(ngModel)]="form.durationMinutes">
+                  <option [value]="30">30 min</option><option [value]="45">45 min</option>
+                  <option [value]="60">1 Std.</option><option [value]="75">1 Std. 15</option>
+                  <option [value]="90">1 Std. 30</option><option [value]="105">1 Std. 45</option>
+                  <option [value]="120">2 Std.</option><option [value]="135">2 Std. 15</option>
+                  <option [value]="150">2 Std. 30</option><option [value]="180">3 Std.</option>
+                  <option [value]="210">3 Std. 30</option><option [value]="240">4 Std.</option>
+                  <option [value]="300">5 Std.</option><option [value]="360">6 Std.</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span class="field__label">E-Mail (optional)</span>
+                <input class="field__input" name="guestEmail" type="email" placeholder="gast@beispiel.de" [(ngModel)]="form.guestEmail">
+              </label>
+
+              <label class="field">
+                <span class="field__label">Telefon (optional)</span>
+                <input class="field__input" name="phone" type="tel" placeholder="+49 123 456789" [(ngModel)]="form.phone">
+              </label>
+
+              <label class="field rf-notes">
+                <span class="field__label">Notiz (optional)</span>
+                <textarea class="field__input field__input--area" rows="4"
+                          name="notes" placeholder="Allergien, Geburtstag, Wünsche…"
+                          [(ngModel)]="form.notes"></textarea>
+              </label>
             </div>
-          </div>
+            </div><!-- /rf-mob-section 3 -->
 
-          <div class="field-row">
-            <label class="field">
-              <span class="field__label">Personen</span>
-              <input class="field__input" name="partySize" type="number" min="1" max="40" [(ngModel)]="form.partySize">
-            </label>
-            <label class="field">
-              <span class="field__label">Uhrzeit</span>
-              <input class="field__input" name="time" type="time" [(ngModel)]="form.time">
-            </label>
-            <label class="field">
-              <span class="field__label">Dauer (min)</span>
-              <input class="field__input" name="duration" type="number" min="15" max="480" step="15" [(ngModel)]="form.durationMinutes">
-            </label>
-          </div>
+            <!-- ── Rechte Seite ────────────────────────────────────────── -->
+            <div class="rf-right">
 
-          <label class="field">
-            <span class="field__label">Tisch (optional)</span>
-            <select class="field__input" name="tableId" [(ngModel)]="form.tableId">
-              <option [ngValue]="0">— Kein Tisch zuweisen —</option>
-              @for (t of availableTables(); track t.id) {
-                <option [ngValue]="t.id">Tisch #{{ t.id }} · {{ tableLabel(t.id) }}</option>
-              }
-            </select>
-          </label>
+              <!-- Datum & Uhrzeit (Step 1 = Kalender, Step 2 = Zeit+Personen auf Mobile) -->
+              <div class="rf-mob-section" data-mob-section="1-2">
+              <div class="rf-panel">
+                <div class="rf-panel__header">
+                  <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+                    <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                    <line x1="10" y1="10" x2="10" y2="5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    <line x1="10" y1="10" x2="13.5" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="10" cy="3"  r=".8" fill="currentColor" opacity=".5"/>
+                    <circle cx="10" cy="17" r=".8" fill="currentColor" opacity=".5"/>
+                    <circle cx="3"  cy="10" r=".8" fill="currentColor" opacity=".5"/>
+                    <circle cx="17" cy="10" r=".8" fill="currentColor" opacity=".5"/>
+                  </svg>
+                  Datum &amp; Uhrzeit
+                </div>
 
-          @if (!editDialogOpen()) {
-            <label class="field">
-              <span class="field__label">E-Mail (optional)</span>
-              <input class="field__input" name="guestEmail" type="email" placeholder="gast@beispiel.de" [(ngModel)]="form.guestEmail">
-            </label>
-          }
+                <div class="rf-datetime">
+                  <!-- Kalender (nur bei neuer Reservierung) — Step 1 auf Mobile -->
+                  @if (!editDialogOpen()) {
+                    <div class="inline-cal rf-mob-cal">
+                      <div class="inline-cal__header">
+                        <button type="button" class="inline-cal__nav" (click)="prevCalendarMonth()">
+                          <mat-icon>chevron_left</mat-icon>
+                        </button>
+                        <span class="inline-cal__month-label">{{ calendarMonthLabel() }}</span>
+                        <button type="button" class="inline-cal__nav" (click)="nextCalendarMonth()">
+                          <mat-icon>chevron_right</mat-icon>
+                        </button>
+                      </div>
+                      <div class="inline-cal__weekdays">
+                        <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span>
+                        <span>Fr</span><span>Sa</span><span>So</span>
+                      </div>
+                      <div class="inline-cal__grid">
+                        @for (cell of calendarDays(); track cell.iso) {
+                          <button type="button" class="inline-cal__day"
+                                  [class.is-other-month]="!cell.cur"
+                                  [class.is-past]="cell.past && !cell.isToday"
+                                  [class.is-today]="cell.isToday"
+                                  [class.is-selected]="cell.sel"
+                                  [disabled]="cell.disabled"
+                                  (click)="selectCalendarDay(cell.iso)">
+                            {{ cell.day }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
 
-          <label class="field">
-            <span class="field__label">Telefon (optional)</span>
-            <input class="field__input" name="phone" type="tel" placeholder="+49 ..." [(ngModel)]="form.phone">
-          </label>
+                  <!-- Uhrzeit + Personen — Step 2 auf Mobile -->
+                  <div class="rf-time-persons rf-mob-time">
+                    <div class="rf-section-label">
+                      Uhrzeit
+                      @if (formSubmitAttempted() && !form.time) {
+                        <span class="field__required-hint">Pflichtfeld</span>
+                      }
+                    </div>
+                    <div class="rf-time-slots">
+                      <div class="table-inline table-inline--time"
+                           [class.table-inline--invalid]="formSubmitAttempted() && !form.time">
+                        @for (slot of filteredTimeSlots(); track slot) {
+                          <button type="button" class="table-inline__card"
+                                  [class.table-inline__card--selected]="form.time === slot"
+                                  (click)="form.time = slot">
+                            <span class="table-inline__num">{{ slot }}</span>
+                          </button>
+                        }
+                      </div>
+                    </div>
 
-          <label class="field">
-            <span class="field__label">Notiz (optional)</span>
-            <textarea class="field__input field__input--area" name="notes" rows="2" placeholder="Allergien, Geburtstag, Wünsche..."
-                      [(ngModel)]="form.notes"></textarea>
-          </label>
+                    <div class="rf-section-label">
+                      <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="14" height="14" style="opacity:.7">
+                        <circle cx="7" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".6"/>
+                        <path d="M1 17 Q1 12 7 12 Q9.5 12 11 13.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+                        <circle cx="13" cy="6" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                        <path d="M6.5 17.5 Q6.5 12 13 12 Q19.5 12 19.5 17.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                      </svg>
+                      Personen
+                      @if (formSubmitAttempted() && form.partySize < 1) {
+                        <span class="field__required-hint">Pflichtfeld</span>
+                      }
+                    </div>
+                    <div class="picker-row" [class.picker-row--invalid]="formSubmitAttempted() && form.partySize < 1">
+                      @for (n of partyOptions; track n) {
+                        <button type="button" class="table-inline__card picker-row__card"
+                                [class.table-inline__card--selected]="form.partySize === n"
+                                (click)="form.partySize = n">
+                          <span class="table-inline__num">{{ n }}</span>
+                        </button>
+                      }
+                      <input type="number" min="11" max="200"
+                             class="picker-row__more-input"
+                             [class.picker-row__more-input--active]="form.partySize > 10"
+                             placeholder="11+"
+                             [value]="form.partySize > 10 ? form.partySize : null"
+                             (change)="form.partySize = +$any($event.target).value" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </div><!-- /rf-mob-section 1-2 -->
+
+              <!-- Tisch auswählen (Step 4 auf Mobile) -->
+              <div class="rf-mob-section" data-mob-section="4">
+              <div class="rf-panel">
+                <div class="rf-panel__header">
+                  <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+                    <rect x="3" y="7.5" width="14" height="3" rx="1.5" fill="currentColor"/>
+                    <rect x="5" y="10.5" width="2" height="5" rx="1" fill="currentColor" opacity=".7"/>
+                    <rect x="13" y="10.5" width="2" height="5" rx="1" fill="currentColor" opacity=".7"/>
+                    <rect x="1.5" y="4" width="4" height="3.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                    <rect x="14.5" y="4" width="4" height="3.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                  </svg>
+                  Tisch auswählen
+                  @if (form.tableIds.length > 0) {
+                    <span class="rf-seats-info"
+                          [class.rf-seats-info--ok]="selectedSeatsTotal() >= form.partySize"
+                          [class.rf-seats-info--warn]="selectedSeatsTotal() < form.partySize">
+                      <mat-icon>{{ selectedSeatsTotal() >= form.partySize ? 'check_circle' : 'warning' }}</mat-icon>
+                      {{ form.tableIds.length }} Tisch{{ form.tableIds.length > 1 ? 'e' : '' }} · {{ selectedSeatsTotal() }} Plätze
+                    </span>
+                  }
+                </div>
+
+                @if (bestMergeSuggestion() !== null && form.tableIds.length === 1) {
+                  @let sugId = bestMergeSuggestion()!;
+                  <div class="merge-hint merge-hint--best">
+                    <mat-icon>auto_awesome</mat-icon>
+                    <span>Beste Kombi: <strong>#{{ form.tableIds[0] }}</strong> + <strong>#{{ sugId }}</strong> · {{ selectedSeatsTotal() + suggestedTableSeats(sugId) }} Pl.</span>
+                    <button type="button" class="merge-hint__chip merge-hint__chip--best" (click)="toggleTableSelection(sugId)">#{{ sugId }} hinzufügen</button>
+                  </div>
+                }
+                @if (mergeSuggestions().length > 0 && form.tableIds.length === 0) {
+                  <div class="merge-hint">
+                    <mat-icon>merge_type</mat-icon>
+                    <span>Kein Einzeltisch für {{ form.partySize }} Pers. — Kombination wählen:</span>
+                    @for (s of mergeSuggestions(); track s.ids.join(',')) {
+                      <button type="button" class="merge-hint__chip" (click)="form.tableIds = s.ids; form.tableId = s.ids[0]">
+                        @for (id of s.ids; track id) { #{{ id }} }
+                        <span class="merge-hint__seats">({{ s.seats }} Pl.)</span>
+                      </button>
+                    }
+                  </div>
+                }
+
+                <div class="rf-table-grid">
+                  <div class="table-inline">
+                    <button type="button" class="table-inline__card"
+                            [class.table-inline__card--selected]="isTableSelected(0)"
+                            (click)="toggleTableSelection(0)">
+                      <mat-icon class="table-inline__icon">block</mat-icon>
+                      <span class="table-inline__num">Kein</span>
+                    </button>
+                    @for (t of availableTables(); track t.id) {
+                      @let occupied    = isTableOccupied(t.id, form.time, form.durationMinutes, editingId()) && !isTableSelected(t.id);
+                      @let tooSmall    = !occupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id);
+                      @let isSuggested = bestMergeSuggestion() === t.id && !isTableSelected(t.id);
+                      @let mergeIdx    = form.tableIds.indexOf(t.id);
+                      <button type="button" class="table-inline__card"
+                              [class.table-inline__card--selected]="isTableSelected(t.id)"
+                              [class.table-inline__card--full]="occupied"
+                              [class.table-inline__card--small]="tooSmall && !isSuggested"
+                              [class.table-inline__card--suggested]="isSuggested"
+                              [class.table-inline__card--merge]="isTableSelected(t.id) && form.tableIds.length > 1"
+                              [disabled]="occupied"
+                              (click)="toggleTableSelection(t.id)">
+                        <span class="table-inline__num">#{{ t.id }}</span>
+                        <span class="table-inline__lbl">{{ tableLabel(t.id) }}</span>
+                        @if (occupied) { <span class="table-inline__badge">Besetzt</span> }
+                        @else if (isSuggested) { <span class="table-inline__badge table-inline__badge--suggested">Beste Kombi</span> }
+                        @else if (tooSmall) { <span class="table-inline__badge table-inline__badge--small">+ Kombinieren</span> }
+                        @else if (isTableSelected(t.id) && form.tableIds.length > 1) { <span class="table-inline__badge table-inline__badge--merge">{{ mergeIdx + 1 }}</span> }
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+              </div><!-- /rf-mob-section 4 -->
+
+            </div><!-- rf-right -->
+          </div><!-- rf-layout -->
 
           @if (formError()) {
-            <p class="dialog__error">{{ formError() }}</p>
+            <p class="dialog__error dialog__error--bottom">{{ formError() }}</p>
           }
 
-          <div class="dialog__actions">
+          <!-- Desktop-Buttons (immer sichtbar auf Desktop) -->
+          <div class="dialog__actions dialog__actions--bottom-right rf-desktop-actions"
+               [hidden]="isMobile()">
             <button type="button" class="dialog__btn dialog__btn--secondary" (click)="closeFormDialog()">Abbrechen</button>
             <button type="submit" class="dialog__btn dialog__btn--primary">
               @if (editDialogOpen()) { Speichern } @else { Anlegen }
             </button>
           </div>
+
+          <!-- Mobile-Navigation (nur auf Mobile sichtbar) -->
+          @if (!editDialogOpen()) {
+            <div class="rf-mob-nav" [hidden]="!isMobile()">
+              @if (mobileStep() > 1) {
+                <button type="button" class="rf-mob-nav__back" (click)="prevMobileStep()">
+                  <mat-icon>arrow_back</mat-icon> Zurück
+                </button>
+              } @else {
+                <button type="button" class="rf-mob-nav__back" (click)="closeFormDialog()">Abbrechen</button>
+              }
+              @if (mobileStep() < mobileStepMax) {
+                <button type="button" class="rf-mob-nav__next" (click)="nextMobileStep()">
+                  Weiter <mat-icon>arrow_forward</mat-icon>
+                </button>
+              } @else {
+                <button type="submit" class="rf-mob-nav__submit">Anlegen</button>
+              }
+            </div>
+          } @else {
+            <div class="rf-mob-nav" [hidden]="!isMobile()">
+              <button type="button" class="rf-mob-nav__back" (click)="closeFormDialog()">Abbrechen</button>
+              <button type="submit" class="rf-mob-nav__submit">Speichern</button>
+            </div>
+          }
         </form>
       </div>
     }
@@ -584,9 +1011,17 @@
 
         <div class="table-picker">
           @for (t of availableTables(); track t.id) {
-            <button class="table-picker__item" (click)="assignTableAndCheckIn(t.id)">
+            @let pickerRes = tablePickerReservation();
+            @let isFull = pickerRes ? isTableOccupied(t.id, pickerRes.time, pickerRes.durationMinutes, pickerRes.id) : false;
+            <button class="table-picker__item"
+                    [class.is-full]="isFull"
+                    [disabled]="isFull"
+                    (click)="assignTableAndCheckIn(t.id)">
               <span class="table-picker__num">#{{ t.id }}</span>
               <span class="table-picker__lbl">{{ tableLabel(t.id) }}</span>
+              @if (isFull) {
+                <span class="table-picker__full-badge">Besetzt</span>
+              }
             </button>
           }
         </div>
@@ -614,19 +1049,97 @@
           </button>
         </div>
 
+        <!-- Reservierungsübersicht -->
+        @if (guestCardRes(); as res) {
+          <div class="gc-reservation-info">
+            <div class="gc-res-top-row">
+              <div class="gc-res-status"
+                   [style.background]="colorFor(res.status) + '22'"
+                   [style.border-color]="colorFor(res.status) + '55'"
+                   [style.color]="colorFor(res.status)">
+                {{ labelFor(res.status) }}
+              </div>
+              <button class="gc-edit-btn" (click)="editFromGuestCard()" title="Reservierung bearbeiten">
+                <mat-icon>edit</mat-icon>
+                Bearbeiten
+              </button>
+            </div>
+            <div class="gc-res-details">
+              <span class="gc-res-detail">
+                <mat-icon>calendar_today</mat-icon>
+                {{ res.date | date:'dd.MM.yyyy' }}
+              </span>
+              <span class="gc-res-detail">
+                <mat-icon>schedule</mat-icon>
+                {{ res.time }} Uhr · {{ res.durationMinutes }} min
+              </span>
+              <span class="gc-res-detail">
+                <mat-icon>group</mat-icon>
+                {{ res.partySize }} Person{{ res.partySize !== 1 ? 'en' : '' }}
+              </span>
+              @if ((res.tableIds?.length ?? 0) > 1) {
+                <span class="gc-res-detail">
+                  <mat-icon>table_restaurant</mat-icon>
+                  Tische @for (id of res.tableIds!; track id; let last = $last) {
+                    #{{ id }}@if (!last) { + }
+                  }
+                </span>
+              } @else if (res.tableId) {
+                <span class="gc-res-detail">
+                  <mat-icon>table_restaurant</mat-icon>
+                  Tisch #{{ res.tableId }}
+                </span>
+              }
+              @if (res.guestEmail) {
+                <span class="gc-res-detail">
+                  <mat-icon>mail_outline</mat-icon>
+                  {{ res.guestEmail }}
+                </span>
+              }
+              @if (res.phone) {
+                <span class="gc-res-detail">
+                  <mat-icon>call</mat-icon>
+                  {{ res.phone }}
+                </span>
+              }
+              @if (res.notes) {
+                <span class="gc-res-detail gc-res-detail--notes">
+                  <mat-icon>sticky_note_2</mat-icon>
+                  {{ res.notes }}
+                </span>
+              }
+            </div>
+          </div>
+        }
+
+        @if (!guestCardRes()?.guestId) {
+          <div class="gc-no-profile">
+            <mat-icon>person_off</mat-icon>
+            Kein Gastkartei-Eintrag vorhanden.<br>
+            <small>Dieser Gast wurde ohne Kundenkonto angelegt.</small>
+          </div>
+        } @else {
         <div class="reservation-form">
 
-          <label class="field">
-            <span class="field__label">Name</span>
-            <input class="field__input" type="text"
-                   [ngModel]="gcName()" (ngModelChange)="gcName.set($event)" />
-          </label>
+          <div class="gc-fields-row">
+            <label class="field">
+              <span class="field__label">Name</span>
+              <input class="field__input" type="text"
+                     [ngModel]="gcName()" (ngModelChange)="gcName.set($event)" />
+            </label>
 
-          <label class="field">
-            <span class="field__label">Telefon</span>
-            <input class="field__input" type="tel" placeholder="+49 …"
-                   [ngModel]="gcPhone()" (ngModelChange)="gcPhone.set($event)" />
-          </label>
+            <label class="field">
+              <span class="field__label">Telefon</span>
+              <input class="field__input" type="tel" placeholder="+49 …"
+                     [ngModel]="gcPhone()" (ngModelChange)="gcPhone.set($event)" />
+            </label>
+
+            <label class="field">
+              <span class="field__label">E-Mail</span>
+              <input class="field__input" type="email" placeholder="gast@beispiel.de"
+                     [ngModel]="gcEmail()" (ngModelChange)="gcEmail.set($event)" />
+            </label>
+          </div>
 
           <label class="field">
             <span class="field__label">Interne Notiz</span>
@@ -684,14 +1197,17 @@
           }
 
         </div>
+        } <!-- end @else guestId -->
 
         <div class="dialog__actions">
-          <button class="dialog__btn dialog__btn--secondary" (click)="closeGuestCard()">Abbrechen</button>
-          <button class="dialog__btn dialog__btn--primary"
-                  [disabled]="!gcName().trim() || gcSaving()"
-                  (click)="saveGuestCard()">
-            {{ gcSaving() ? 'Wird gespeichert …' : 'Speichern' }}
-          </button>
+          <button class="dialog__btn dialog__btn--secondary" (click)="closeGuestCard()">Schließen</button>
+          @if (guestCardRes()?.guestId) {
+            <button class="dialog__btn dialog__btn--primary"
+                    [disabled]="!gcName().trim() || gcSaving()"
+                    (click)="saveGuestCard()">
+              {{ gcSaving() ? 'Wird gespeichert …' : 'Speichern' }}
+            </button>
+          }
         </div>
 
       </div>

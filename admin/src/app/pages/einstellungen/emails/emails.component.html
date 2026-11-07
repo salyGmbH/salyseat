@@ -1,4 +1,4 @@
-
+<!-- ===================== AUTOMATISCHE MAILS ===================== -->
 <div class="settings-block">
 
   <div class="section-header">
@@ -33,6 +33,7 @@
 </div>
 
 
+<!-- ===================== ERINNERUNG ===================== -->
 <div class="settings-block">
 
   <div class="section-header">
@@ -86,6 +87,257 @@
 
 </div>
 
+
+<!-- ===================== EMAIL DESIGN ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Email Design</h2>
+  </div>
+
+<!-- ===================== EMAIL DESIGN ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Email Design</h2>
+  </div>
+
+  <div class="design-grid">
+
+    <!-- MODE -->
+    <div class="setting-group">
+
+      <label class="setting-label">Modus</label>
+
+      <div class="view-toggle">
+        <button
+          [class.active]="emailMode === 'dark'"
+          (click)="setEmailMode('dark')">
+          Dark
+        </button>
+
+        <button
+          [class.active]="emailMode === 'light'"
+          (click)="setEmailMode('light')">
+          Light
+        </button>
+      </div>
+
+    </div>
+
+    <!-- BUTTON -->
+    <div class="setting-group">
+      <label class="setting-label">Button Farbe</label>
+
+      <input
+        type="color"
+        [(ngModel)]="primaryColor"
+        class="color-input">
+    </div>
+
+    <!-- HIGHLIGHT -->
+    <div class="setting-group">
+      <label class="setting-label">Highlight Farbe</label>
+
+      <input
+        type="color"
+        [(ngModel)]="highlightColor"
+        class="color-input">
+    </div>
+
+    <!-- CARD -->
+    <div class="setting-group">
+      <label class="setting-label">Karten Farbe</label>
+
+      <input
+        type="color"
+        [(ngModel)]="cardColor"
+        class="color-input">
+    </div>
+
+    <!-- BORDER RADIUS -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Border Radius
+      </label>
+
+      <input
+        type="number"
+        [(ngModel)]="borderRadius"
+        class="text-input">
+
+    </div>
+
+    <!-- FONT -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Schriftart
+      </label>
+
+      <select [(ngModel)]="fontFamily" class="text-input">
+        <option value="Arial">Arial</option>
+        <option value="Inter">Inter</option>
+        <option value="Poppins">Poppins</option>
+        <option value="Montserrat">Montserrat</option>
+      </select>
+
+    </div>
+
+    <!-- LOGO -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Logo Upload
+      </label>
+
+      <input
+        type="file"
+        (change)="onLogoUpload($event)"
+        class="text-input">
+
+    </div>
+
+    <!-- HEADER IMAGE -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Header Bild
+      </label>
+
+      <input
+        type="file"
+        (change)="onHeaderUpload($event)"
+        class="text-input">
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ===================== CONTENT ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Inhalte</h2>
+  </div>
+
+  <div class="design-grid">
+
+    <!-- FOOTER -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Footer Text
+      </label>
+
+      <textarea
+        [(ngModel)]="footerText"
+        class="textarea-input"></textarea>
+
+    </div>
+
+    <!-- INFO -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Info Text
+      </label>
+
+      <textarea
+        [(ngModel)]="infoText"
+        class="textarea-input"></textarea>
+
+    </div>
+
+    <!-- SIGNATURE -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Eigene Signatur
+      </label>
+
+      <textarea
+        [(ngModel)]="signature"
+        class="textarea-input"></textarea>
+
+    </div>
+
+    <!-- SOCIAL -->
+    <div class="setting-group">
+
+      <label class="setting-label">
+        Social Links
+      </label>
+
+      <input
+        type="text"
+        [(ngModel)]="instagram"
+        placeholder="Instagram"
+        class="text-input">
+
+      <input
+        type="text"
+        [(ngModel)]="facebook"
+        placeholder="Facebook"
+        class="text-input">
+
+      <input
+        type="text"
+        [(ngModel)]="tiktok"
+        placeholder="TikTok"
+        class="text-input">
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ===================== ANHÄNGE ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Anhänge</h2>
+  </div>
+
+  <input
+    type="file"
+    multiple
+    (change)="onAttachmentsSelected($event)"
+    class="text-input">
+
+  <div class="attachment-list">
+
+    <div
+      class="attachment-item"
+      *ngFor="let attachment of attachments">
+
+      <strong>{{ attachment.name }}</strong>
+
+      <div class="attachment-mails">
+
+        <label *ngFor="let mail of mailSettings">
+
+          <input
+            type="checkbox"
+            [(ngModel)]="attachment.assignedMails[mail.key]">
+
+          {{ mail.label }}
+
+        </label>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ===================== ACTIONS ===================== -->
 <div class="settings-block">
 
   <div class="actions">

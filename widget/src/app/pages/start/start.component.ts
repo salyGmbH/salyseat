@@ -101,6 +101,29 @@ export class StartComponent implements OnInit {
   menuOpen                = signal<boolean>(false);
   hinweisOpen             = signal<boolean>(false);
 
+  // ─── Kinderstühle ────────────────────────────────────────────────────────
+  kinderStuehleAktiv   = signal<boolean>(false);
+  kinderStuehleOnline  = signal<number>(2);
+  kinderStuehle        = signal<number>(0);
+
+  // ─── Vorausbuchung ───────────────────────────────────────────────────────
+  vorausbuchungEinheit = signal<string>('monate');
+  vorausbuchungWert    = signal<number>(12);
+
+  // ─── Mindestvorlauf ──────────────────────────────────────────────────────
+  mindestvorlaufMinuten = signal<number>(60);
+
+  // ─── Tischarten ──────────────────────────────────────────────────────────
+  tischartenAktiv      = signal<boolean>(false);
+  tischartenAktiveTypes = signal<string[]>(['round', 'square', 'long']);
+  selectedTischart     = signal<string>('');
+
+  // ─── Online Änderungen / Stornierung ─────────────────────────────────────
+  onlineAenderungen        = signal<boolean>(false);
+  onlineAenderungenMinuten = signal<number>(120);
+  onlineStornierung        = signal<boolean>(false);
+  onlineStornierungMinuten = signal<number>(120);
+
   readonly weekdays: readonly string[] = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
   readonly seatOptions: readonly { count: number; label: string }[] = [
     { count: 1, label: '1 Gast'   },
@@ -176,7 +199,16 @@ export class StartComponent implements OnInit {
     const from   = avail?.open_time  ?? DEFAULT_FROM;
     const to     = avail?.close_time ?? DEFAULT_TO;
     const breaks = avail?.breaks     ?? [];
-    return buildSlots(from, to, this.stepMinutes(), breaks);
+    let slots = buildSlots(from, to, this.stepMinutes(), breaks);
+    if (this.date() === this.today) {
+      const now = new Date();
+      const cutoff = now.getHours() * 60 + now.getMinutes() + this.mindestvorlaufMinuten();
+      slots = slots.filter(s => {
+        const [h, mm] = s.split(':').map(Number);
+        return h * 60 + mm >= cutoff;
+      });
+    }
+    return slots;
   });
 
   readonly validTime = computed(() => {
@@ -213,6 +245,7 @@ export class StartComponent implements OnInit {
       this.emailLooksOk() &&
       (!req.includes('phone') || this.guestPhone().trim().length > 0) &&
       (!req.includes('notes') || this.notes().trim().length > 0) &&
+      (!this.tischartenAktiv() || !!this.selectedTischart()) &&
       consent &&
       this.state() !== 'submitting';
   });
@@ -241,14 +274,24 @@ export class StartComponent implements OnInit {
     const firstOfMonth = new Date(y, m, 1);
     const monthStartWeekday = (firstOfMonth.getDay() + 6) % 7;
     const daysInMonth = new Date(y, m + 1, 0).getDate();
-    const today = new Date();
-    const isCurrentMonth = today.getFullYear() === y && today.getMonth() === m;
-    const todayDay = today.getDate();
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === y && now.getMonth() === m;
+    const todayDay = now.getDate();
     const sel = this.selectedDay();
-    const cells: { day: number | null; isToday: boolean; isSelected: boolean }[] = [];
-    for (let i = 0; i < monthStartWeekday; i++) cells.push({ day: null, isToday: false, isSelected: false });
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const maxD = new Date(now);
+    if (this.vorausbuchungEinheit() === 'tage') {
+      maxD.setDate(maxD.getDate() + this.vorausbuchungWert());
+    } else {
+      maxD.setMonth(maxD.getMonth() + this.vorausbuchungWert());
+    }
+    maxD.setHours(23, 59, 59, 999);
+    const cells: { day: number | null; isToday: boolean; isSelected: boolean; isDisabled: boolean }[] = [];
+    for (let i = 0; i < monthStartWeekday; i++) cells.push({ day: null, isToday: false, isSelected: false, isDisabled: false });
     for (let d = 1; d <= daysInMonth; d++) {
-      cells.push({ day: d, isToday: isCurrentMonth && d === todayDay, isSelected: d === sel });
+      const cellDate = new Date(y, m, d);
+      const isDisabled = cellDate < todayStart || cellDate > maxD;
+      cells.push({ day: d, isToday: isCurrentMonth && d === todayDay, isSelected: d === sel, isDisabled });
     }
     return cells;
   });
@@ -373,9 +416,22 @@ export class StartComponent implements OnInit {
   }
 
   selectDay(day: number): void {
-    const m = (this.calendarMonth() + 1).toString().padStart(2, '0');
-    const d = day.toString().padStart(2, '0');
-    this.date.set(`${this.calendarYear()}-${m}-${d}`);
+    const y = this.calendarYear();
+    const m = this.calendarMonth();
+    const cellDate = new Date(y, m, day);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const maxD = new Date();
+    if (this.vorausbuchungEinheit() === 'tage') {
+      maxD.setDate(maxD.getDate() + this.vorausbuchungWert());
+    } else {
+      maxD.setMonth(maxD.getMonth() + this.vorausbuchungWert());
+    }
+    maxD.setHours(23, 59, 59, 999);
+    if (cellDate < todayStart || cellDate > maxD) return;
+    const mStr = (m + 1).toString().padStart(2, '0');
+    const dStr = day.toString().padStart(2, '0');
+    this.date.set(`${y}-${mStr}-${dStr}`);
   }
 
   // ─── Card methods ─────────────────────────────────────────────────────────
@@ -415,6 +471,29 @@ export class StartComponent implements OnInit {
   stackedSelectDay(day: number): void { this.selectDay(day); this.stackedClosePicker(); }
   stackedSelectTime(t: string): void { this.time.set(t); this.stackedClosePicker(); }
   stackedSelectSeats(n: number): void { this.people.set(n); this.stackedClosePicker(); }
+
+  // ─── Tischarten ──────────────────────────────────────────────────────────
+  readonly alleTischarten = [
+    { key: 'round',  label: 'Runder Tisch',     icon: '⭕' },
+    { key: 'square', label: 'Viereckiger Tisch', icon: '⬛' },
+    { key: 'long',   label: 'Langer Tisch',      icon: '▬'  },
+  ];
+
+  readonly availableTischarten = computed(() =>
+    this.alleTischarten.filter(t => this.tischartenAktiveTypes().includes(t.key))
+  );
+
+  // ─── Kinderstühle helpers ─────────────────────────────────────────────────
+  incKinderStuehle(): void { this.kinderStuehle.update(n => Math.min(this.kinderStuehleOnline(), n + 1)); }
+  decKinderStuehle(): void { this.kinderStuehle.update(n => Math.max(0, n - 1)); }
+
+  // ─── Minuten formatieren ──────────────────────────────────────────────────
+  formatMinutenPolicy(min: number): string {
+    if (min < 60) return `${min} Min.`;
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m === 0 ? `${h} Std.` : `${h} Std. ${m} Min.`;
+  }
 
   // ─── Planner methods ──────────────────────────────────────────────────────
   setPlannerStep(s: 1 | 2 | 3 | 4): void { this.plannerStep.set(s); }
@@ -568,6 +647,17 @@ export class StartComponent implements OnInit {
     if (func.maxPersonenEmail != null)                 this.maxPersonenEmail.set(func.maxPersonenEmail);
     if (typeof func.raumauswahl === 'boolean')         this.raumauswahl.set(func.raumauswahl);
     if (Array.isArray(func.raumauswahlAktiveIds))      this.raumauswahlAktiveIds.set(func.raumauswahlAktiveIds);
+    if (typeof func.kinderStuehleAktiv === 'boolean')  this.kinderStuehleAktiv.set(func.kinderStuehleAktiv);
+    if (typeof func.kinderStuehleOnline === 'number')  this.kinderStuehleOnline.set(func.kinderStuehleOnline);
+    if (func.vorausbuchungEinheit)                     this.vorausbuchungEinheit.set(func.vorausbuchungEinheit);
+    if (typeof func.vorausbuchungWert === 'number')    this.vorausbuchungWert.set(func.vorausbuchungWert);
+    if (typeof func.mindestvorlaufMinuten === 'number') this.mindestvorlaufMinuten.set(func.mindestvorlaufMinuten);
+    if (typeof func.tischartenAktiv === 'boolean')     this.tischartenAktiv.set(func.tischartenAktiv);
+    if (Array.isArray(func.tischartenAktiveTypes))     this.tischartenAktiveTypes.set(func.tischartenAktiveTypes);
+    if (typeof func.onlineAenderungen === 'boolean')   this.onlineAenderungen.set(func.onlineAenderungen);
+    if (typeof func.onlineAenderungenMinuten === 'number') this.onlineAenderungenMinuten.set(func.onlineAenderungenMinuten);
+    if (typeof func.onlineStornierung === 'boolean')   this.onlineStornierung.set(func.onlineStornierung);
+    if (typeof func.onlineStornierungMinuten === 'number') this.onlineStornierungMinuten.set(func.onlineStornierungMinuten);
   }
 
   private isDarkBackground(hex: string): boolean {
@@ -615,6 +705,16 @@ export class StartComponent implements OnInit {
     this.state.set('submitting');
     this.errorMessage.set('');
 
+    let notesText = this.notes().trim();
+    if (this.kinderStuehleAktiv() && this.kinderStuehle() > 0) {
+      notesText = [notesText, `Kinderstühle: ${this.kinderStuehle()}`].filter(Boolean).join(' | ');
+    }
+    if (this.tischartenAktiv() && this.selectedTischart()) {
+      const found = this.alleTischarten.find(t => t.key === this.selectedTischart());
+      const label = found ? found.label : this.selectedTischart();
+      notesText = [notesText, `Tischart: ${label}`].filter(Boolean).join(' | ');
+    }
+
     this.reservations.create({
       venue_id:    venue.id,
       guest_name:  this.guestName().trim(),
@@ -622,7 +722,7 @@ export class StartComponent implements OnInit {
       guest_phone: this.guestPhone().trim() || undefined,
       party_size:  this.people(),
       starts_at:   toAtomDateTime(this.date(), time),
-      notes:       this.notes().trim() || undefined,
+      notes:       notesText || undefined,
     }).subscribe({
       next: () => {
         this.state.set('success');
@@ -669,6 +769,8 @@ export class StartComponent implements OnInit {
     this.plannerStep.set(1);
     this.plannerConsent.set(false);
     if (this.venues().length > 1) this.selectedVenue.set(null);
+    this.kinderStuehle.set(0);
+    this.selectedTischart.set('');
   }
 
   formatDate(iso: string): string {

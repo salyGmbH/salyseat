@@ -48,6 +48,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 15px 0 10px 0;
 
   img {
     width: 100px;
@@ -155,6 +156,91 @@
   border-radius: 8px;
 }
 
+// ─── Notizen-Button ──────────────────────────────────────────────────────────
+.sidebar__notiz-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin: 0;
+  padding: 12px 20px;
+  border-radius: 0;
+  border: none;
+  border-left: 3px solid $color-accent;
+  background: rgba(var(--color-accent-rgb), 0.12);
+  color: $color-accent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  transition: background .2s;
+  animation: nzSidebarIn .3s cubic-bezier(.34,1.56,.64,1) both;
+  box-shadow: none;
+
+  &:hover {
+    background: rgba(var(--color-accent-rgb), 0.2);
+  }
+
+  // Eingeklappt: zentriert
+  &--collapsed {
+    justify-content: center;
+    padding: 12px 20px;
+    border-left-color: $color-accent;
+  }
+
+  // Ungelesen: pulsierender Glow
+  &--unread {
+    animation: nzSidebarIn .3s cubic-bezier(.34,1.56,.64,1) both,
+               nzGlow 2.5s ease-in-out infinite;
+  }
+}
+
+@keyframes nzSidebarIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes nzGlow {
+  0%, 100% { box-shadow: inset 3px 0 8px rgba(var(--color-accent-rgb), 0.15); }
+  50%       { box-shadow: inset 3px 0 16px rgba(var(--color-accent-rgb), 0.4); }
+}
+
+.sidebar__notiz-svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.sidebar__notiz-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__notiz-count {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(var(--color-accent-rgb), 0.2);
+  color: $color-accent;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  flex-shrink: 0;
+
+  &--abs {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 .sidebar__footer {
   border-top: 1px solid $color-border;
   padding: 8px 0 0;

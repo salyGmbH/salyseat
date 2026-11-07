@@ -22,6 +22,16 @@
         wurde gespeichert.
       </p>
       <p class="success-hint">Du erhältst in Kürze eine Bestätigungsmail.</p>
+      @if (onlineAenderungen() || onlineStornierung()) {
+        <div class="success-policy">
+          @if (onlineAenderungen()) {
+            <p>✏️ Änderungen möglich bis {{ formatMinutenPolicy(onlineAenderungenMinuten()) }} vor der Reservierung.</p>
+          }
+          @if (onlineStornierung()) {
+            <p>🗑 Stornierung möglich bis {{ formatMinutenPolicy(onlineStornierungMinuten()) }} vor der Reservierung.</p>
+          }
+        </div>
+      }
       <button type="button" class="btn-secondary" (click)="reset()">Neue Reservierung</button>
     </div>
   }
@@ -127,6 +137,8 @@
                                 class="preview-planner__cal-day"
                                 [class.is-today]="cell.isToday"
                                 [class.is-selected]="cell.isSelected"
+                                [class.is-disabled]="cell.isDisabled"
+                                [disabled]="cell.isDisabled"
                                 (click)="cardSelectDay(cell.day!)">
                           {{ cell.day }}
                         </button>
@@ -185,6 +197,22 @@
                 </button>
               </div>
             </div>
+
+            @if (tischartenAktiv() && availableTischarten().length > 0) {
+              <div class="tischart-picker">
+                <div class="tischart-picker__label">Tischart</div>
+                <div class="tischart-picker__chips">
+                  @for (t of availableTischarten(); track t.key) {
+                    <button type="button"
+                            class="tischart-chip"
+                            [class.is-selected]="selectedTischart() === t.key"
+                            (click)="selectedTischart.set(t.key)">
+                      {{ t.icon }} {{ t.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
 
             @if (speisekarte()) {
               <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
@@ -261,6 +289,18 @@
                        [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
                        placeholder="+49 …" autocomplete="tel" name="cardPhone">
               </div>
+
+              @if (kinderStuehleAktiv()) {
+                <div class="preview-card__field">
+                  <label class="preview-card__field-label">Kinderstühle</label>
+                  <div class="kinder-stepper">
+                    <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
+                    <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                  </div>
+                </div>
+              }
 
               <div class="preview-card__field">
                 <label class="preview-card__field-label" for="card-notes">
@@ -363,6 +403,22 @@
                 <span class="preview-sidebar__chevron">›</span>
               </button>
 
+              @if (tischartenAktiv() && availableTischarten().length > 0) {
+                <div class="tischart-picker">
+                  <div class="tischart-picker__label">Tischart</div>
+                  <div class="tischart-picker__chips">
+                    @for (t of availableTischarten(); track t.key) {
+                      <button type="button"
+                              class="tischart-chip"
+                              [class.is-selected]="selectedTischart() === t.key"
+                              (click)="selectedTischart.set(t.key)">
+                        {{ t.icon }} {{ t.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
               @if (speisekarte()) {
                 <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
                   🍽 Speisekarte ansehen
@@ -441,6 +497,18 @@
                        placeholder="+49 …" autocomplete="tel" name="sbPhone">
               </div>
 
+              @if (kinderStuehleAktiv()) {
+                <div class="preview-sidebar__group">
+                  <label class="preview-sidebar__label">Kinderstühle</label>
+                  <div class="kinder-stepper">
+                    <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
+                    <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                  </div>
+                </div>
+              }
+
               <div class="preview-sidebar__group">
                 <label class="preview-sidebar__label" for="sb-notes">
                   Notizen
@@ -515,6 +583,8 @@
                                     class="preview-sidebar__cal-day"
                                     [class.is-today]="cell.isToday"
                                     [class.is-selected]="cell.isSelected"
+                                    [class.is-disabled]="cell.isDisabled"
+                                    [disabled]="cell.isDisabled"
                                     (click)="sidebarSelectDay(cell.day!)">
                               {{ cell.day }}
                             </button>
@@ -650,6 +720,8 @@
                                     type="button"
                                     [class.is-today]="cell.isToday"
                                     [class.is-selected]="cell.isSelected"
+                                    [class.is-disabled]="cell.isDisabled"
+                                    [disabled]="cell.isDisabled"
                                     (click)="stackedSelectDay(cell.day!)">
                               {{ cell.day }}
                             </button>
@@ -684,6 +756,22 @@
                     </div>
                   }
                 }
+              </div>
+            }
+
+            @if (tischartenAktiv() && availableTischarten().length > 0) {
+              <div class="tischart-picker">
+                <div class="tischart-picker__label">Tischart</div>
+                <div class="tischart-picker__chips">
+                  @for (t of availableTischarten(); track t.key) {
+                    <button type="button"
+                            class="tischart-chip"
+                            [class.is-selected]="selectedTischart() === t.key"
+                            (click)="selectedTischart.set(t.key)">
+                      {{ t.icon }} {{ t.label }}
+                    </button>
+                  }
+                </div>
               </div>
             }
 
@@ -764,6 +852,18 @@
                        [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
                        placeholder="+49 …" autocomplete="tel" name="stPhone">
               </div>
+
+              @if (kinderStuehleAktiv()) {
+                <div class="preview-stacked__field">
+                  <label class="preview-stacked__field-label">Kinderstühle</label>
+                  <div class="kinder-stepper">
+                    <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
+                    <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                  </div>
+                </div>
+              }
 
               <div class="preview-stacked__field">
                 <label class="preview-stacked__field-label" for="st-notes">
@@ -906,6 +1006,8 @@
                                 type="button"
                                 [class.is-today]="cell.isToday"
                                 [class.is-selected]="cell.isSelected"
+                                [class.is-disabled]="cell.isDisabled"
+                                [disabled]="cell.isDisabled"
                                 (click)="selectPlannerDay(cell.day!)">
                           {{ cell.day }}
                         </button>
@@ -1081,6 +1183,34 @@
                                 name="plNotes" rows="2"></textarea>
                     </div>
                   </div>
+
+                  @if (tischartenAktiv() && availableTischarten().length > 0) {
+                    <div class="tischart-picker tischart-picker--planner">
+                      <div class="tischart-picker__label">Tischart</div>
+                      <div class="tischart-picker__chips">
+                        @for (t of availableTischarten(); track t.key) {
+                          <button type="button"
+                                  class="tischart-chip"
+                                  [class.is-selected]="selectedTischart() === t.key"
+                                  (click)="selectedTischart.set(t.key)">
+                            {{ t.icon }} {{ t.label }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (kinderStuehleAktiv()) {
+                    <div class="preview-planner__form-group">
+                      <label class="preview-planner__form-label">Kinderstühle</label>
+                      <div class="kinder-stepper">
+                        <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
+                        <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
+                        <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
+                        <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                      </div>
+                    </div>
+                  }
 
                   @if (state() === 'error') {
                     <div class="widget-alert">{{ errorMessage() }}</div>

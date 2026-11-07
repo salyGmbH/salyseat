@@ -45,6 +45,18 @@ export interface WidgetFunctionalConfig {
   maxPersonenText:         string;
   maxPersonenPhone:        string;
   maxPersonenEmail:        string;
+  kinderStuehleAktiv:      boolean;
+  kinderStuehleGesamt:     number;
+  kinderStuehleOnline:     number;
+  vorausbuchungEinheit:    string;
+  vorausbuchungWert:       number;
+  mindestvorlaufMinuten:   number;
+  tischartenAktiv:         boolean;
+  tischartenAktiveTypes:   string[];
+  onlineAenderungen:       boolean;
+  onlineAenderungenMinuten: number;
+  onlineStornierung:       boolean;
+  onlineStornierungMinuten: number;
 }
 
 export interface WidgetConfig {

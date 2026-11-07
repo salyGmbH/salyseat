@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import {
   DEFAULT_RESERVATION_TIMING,
   ReservationTimingSettings,
@@ -39,15 +39,29 @@ export class ReservationTimingService {
   readonly cleanupEnabled         = computed(() => this._settings().cleanupEnabled);
   readonly cleanupMinutes         = computed(() => this._settings().cleanupMinutes);
 
-  /** Heartbeat — jede Minute Auto-Expire prüfen. Stoppt nicht (App-weit aktiv). */
+  /** Heartbeat — jede Minute Status-Übergänge prüfen. Stoppt nicht (App-weit aktiv). */
   private timerHandle: ReturnType<typeof setInterval> | null = null;
+
+  /** Aktueller Zeitstempel — wird jede Minute aktualisiert, damit die UI live reagiert. */
+  readonly now = signal<number>(Date.now());
 
   constructor() {
     this.tenantSettings.load().subscribe(s => {
       if (s.reservationTiming) {
         this._settings.set({ ...DEFAULT_RESERVATION_TIMING, ...s.reservationTiming });
       }
+      // Nach Settings-Load nochmal prüfen (Settings beeinflussen autoExpire)
+      untracked(() => this.runExpiryCheck());
     });
+
+    // Reaktiver Check: läuft sofort wenn Reservierungen geladen/geändert werden.
+    // Dadurch werden abgelaufene RVs direkt nach dem Backend-Load erkannt,
+    // ohne auf den nächsten 60s-Tick warten zu müssen.
+    effect(() => {
+      const _ = this.reservations.reservations(); // Signal-Abhängigkeit registrieren
+      untracked(() => this.runExpiryCheck());
+    });
+
     this.startHeartbeat();
   }
 
@@ -124,31 +138,58 @@ export class ReservationTimingService {
     if (this.timerHandle) return;
     // Sofort einmal prüfen, danach jede Minute.
     this.runExpiryCheck();
-    this.timerHandle = setInterval(() => this.runExpiryCheck(), 60_000);
+    this.timerHandle = setInterval(() => {
+      this.now.set(Date.now());
+      this.runExpiryCheck();
+    }, 60_000);
   }
 
   /**
-   * Heartbeat-Logik:
-   *   • Auto-Expire: 'seated' → 'expired', wenn Dauer abgelaufen
-   *     (nur wenn autoExpireEnabled).
-   *   • Cleanup-Ende: 'cleanup' → 'completed', wenn die Cleanup-Zeit
-   *     seit dem Statuswechsel (updatedAt) vorbei ist
-   *     (nur wenn cleanupEnabled, sonst regelt das markCompleted direkt).
+   * Heartbeat-Logik — Status-Übergänge jede Minute:
+   *
+   *   confirmed / upcoming → 'late':
+   *     Reservierungszeit ist erreicht, Gast noch nicht eingecheckt.
+   *
+   *   late → bleibt 'late':
+   *     Bleibt so bis Personal manuell eingreift (No-Show / Einchecken).
+   *
+   *   seated → 'expired':
+   *     Reservierungsdauer abgelaufen (nur wenn autoExpireEnabled).
+   *
+   *   cleanup → 'completed':
+   *     Cleanup-Zeit seit Statuswechsel abgelaufen.
    */
   private runExpiryCheck(): void {
     const now = Date.now();
     const list = this.reservations.reservations();
     for (const r of list) {
+      // Bevorstehend → Verspätet: Reservierungszeit ist jetzt überschritten
+      if ((r.status === 'confirmed' || r.status === 'upcoming')
+          && now >= this.startMs(r)) {
+        this.reservations.setStatus(r.id, 'late');
+      }
+      // Eingecheckt → Zeit abgelaufen: Dauer überschritten
       if (this.autoExpireEnabled()
           && r.status === 'seated'
           && this.isExpired(r, now)) {
         this.reservations.setStatus(r.id, 'expired');
       }
+      // Cleanup beendet
       if (this.cleanupEnabled()
           && r.status === 'cleanup'
           && this.isCleanupDone(r, now)) {
         this.reservations.setStatus(r.id, 'completed');
       }
     }
+  }
+
+  /** Wie viele Minuten ist der Gast bereits verspätet? */
+  lateMinutes(res: FloorReservation, now: number = Date.now()): number {
+    return Math.floor((now - this.startMs(res)) / 60_000);
+  }
+
+  /** Wie viele Minuten ist die Reservierungszeit bereits überschritten? */
+  expiredMinutes(res: FloorReservation, now: number = Date.now()): number {
+    return Math.floor((now - this.reservationEndMs(res)) / 60_000);
   }
 }

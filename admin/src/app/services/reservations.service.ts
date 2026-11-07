@@ -16,6 +16,17 @@ export class ReservationsService {
   readonly total        = computed(() => this._total());
   readonly loading      = computed(() => this._loading());
 
+  loadForExport(params: { status?: string; dateFrom?: string; dateTo?: string } = {}): Observable<Reservation[]> {
+    let qp = new HttpParams().set('limit', '2000');
+    if (params.status)   qp = qp.set('status',    params.status);
+    if (params.dateFrom) qp = qp.set('date_from',  params.dateFrom);
+    if (params.dateTo)   qp = qp.set('date_to',    params.dateTo);
+    return this.http.get<ReservationListResponse>(this.base, { params: qp }).pipe(
+      map(res => res.reservations),
+      catchError(() => of([])),
+    );
+  }
+
   load(params: { status?: string; date?: string; limit?: number; offset?: number } = {}): Observable<ReservationListResponse> {
     this._loading.set(true);
 

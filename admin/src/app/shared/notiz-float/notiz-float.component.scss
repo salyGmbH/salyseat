@@ -1,0 +1,298 @@
+@use '../../../styles/variables' as *;
+
+// ── Floating Trigger ──────────────────────────────────────────────────────────
+.nf-trigger {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 300;
+
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  // Eintritts-Animation
+  animation: nfSlideIn .35s cubic-bezier(.34,1.56,.64,1) both;
+
+  &--active .nf-svg {
+    filter: brightness(1.2) drop-shadow(0 0 14px rgba(200,168,75,.7));
+    transform: scale(1.08) rotate(-3deg);
+  }
+}
+
+@keyframes nfSlideIn {
+  from { opacity: 0; transform: translateY(-50%) translateX(60px); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+.nf-svg {
+  width: 54px;
+  height: 54px;
+  filter: drop-shadow(0 4px 16px rgba(200,168,75,.45))
+          drop-shadow(0 1px 4px rgba(0,0,0,.4));
+  transition: filter .2s, transform .2s;
+
+  // Idle-Pulse
+  animation: nfPulse 3s ease-in-out infinite;
+}
+
+@keyframes nfPulse {
+  0%, 100% { filter: drop-shadow(0 4px 16px rgba(200,168,75,.45)) drop-shadow(0 1px 4px rgba(0,0,0,.4)); }
+  50%       { filter: drop-shadow(0 4px 24px rgba(200,168,75,.75)) drop-shadow(0 1px 8px rgba(0,0,0,.5)); }
+}
+
+.nf-trigger:hover .nf-svg {
+  filter: brightness(1.1) drop-shadow(0 4px 22px rgba(200,168,75,.7));
+  transform: scale(1.07) rotate(-4deg);
+  animation: none;
+}
+
+.nf-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: $color-danger;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid $color-bg;
+  pointer-events: none;
+}
+
+// ── Backdrop ──────────────────────────────────────────────────────────────────
+.nf-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 295;
+  background: rgba(0,0,0,.35);
+  animation: nfFadeIn .2s ease;
+}
+
+@keyframes nfFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ── Panel ─────────────────────────────────────────────────────────────────────
+.nf-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 296;
+  width: 340px;
+  max-width: 95vw;
+
+  background: $color-surface;
+  border-left: 1px solid $color-border;
+  box-shadow: -8px 0 40px rgba(0,0,0,.45);
+
+  display: flex;
+  flex-direction: column;
+
+  animation: nfPanelSlide .3s cubic-bezier(.25,.46,.45,.94) both;
+}
+
+@keyframes nfPanelSlide {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+// Panel Header
+.nf-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid $color-border;
+  flex-shrink: 0;
+}
+
+.nf-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: $color-text-on-dark;
+}
+
+.nf-panel__icon {
+  width: 20px;
+  height: 20px;
+  color: $color-accent;
+}
+
+.nf-panel__count {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(var(--color-accent-rgb), 0.2);
+  color: $color-accent;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.nf-panel__close {
+  background: none;
+  border: none;
+  color: $color-text-muted;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  padding: 4px;
+  transition: background .15s, color .15s;
+
+  &:hover { background: rgba(255,255,255,.07); color: $color-text-on-dark; }
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+// Panel Liste
+.nf-panel__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: $color-primary transparent;
+}
+
+// Notiz-Karte im Panel
+.nf-note {
+  background: rgba(0,0,0,.2);
+  border: 1px solid $color-border;
+  border-left: 3px solid $color-border;
+  border-radius: 10px;
+  padding: 12px 12px 10px;
+  transition: background .15s;
+
+  &--default { border-left-color: $color-border; }
+  &--info    { border-left-color: $color-primary;
+               background: rgba(var(--color-primary-rgb),.06); }
+  &--success { border-left-color: $color-success;
+               background: rgba(82,196,26,.06); }
+  &--warn    { border-left-color: $color-warn;
+               background: rgba(250,173,20,.06); }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  &__time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: $color-text-muted;
+    font-weight: 500;
+
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+  }
+
+  &__read {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid $color-border;
+    background: transparent;
+    color: $color-text-muted;
+    cursor: pointer;
+    transition: all .15s;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+    &:hover {
+      border-color: $color-success;
+      color: $color-success;
+      background: rgba(82,196,26,.1);
+    }
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    margin: 0 0 4px;
+    line-height: 1.3;
+  }
+
+  &__text {
+    font-size: 12px;
+    color: $color-text-muted;
+    margin: 0;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+}
+
+// Panel Footer
+.nf-panel__foot {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid $color-border;
+  flex-shrink: 0;
+}
+
+.nf-btn-ghost {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  background: transparent;
+  color: $color-text-muted;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &:hover { border-color: $color-primary; color: $color-primary; }
+}
+
+.nf-btn-primary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--color-primary-rgb), 0.5);
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: $color-primary;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.15);
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &:hover { background: rgba(var(--color-primary-rgb), 0.2); }
+}

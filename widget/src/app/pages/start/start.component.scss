@@ -1807,7 +1807,7 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 800px;
+  max-width: 1200px;
 }
 
 .preview__header {
@@ -2360,7 +2360,7 @@
     position: relative;
     width: 100%;
     aspect-ratio: 1;
-    max-width: 200px;
+    max-width: 100%;
     margin: 0 auto;
     user-select: none;
   }
@@ -2473,7 +2473,7 @@
     &__panel:not(.is-active) { display: none; }
     &__panel.is-active { box-shadow: none; border-color: var(--preview-border); }
     &__back { display: inline-flex; }
-    &__dial { max-width: 240px; }
+    &__dial { max-width: 100%; }
     &__chips {
       &--times { grid-template-columns: repeat(2, 1fr); }
       &--seats { grid-template-columns: repeat(2, 1fr); }
@@ -2684,5 +2684,137 @@
   &--inline {
     font-size: 0.82em;
     padding: 8px 12px;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Tischart-Picker
+// ─────────────────────────────────────────────────────────────────────────
+.tischart-picker {
+  margin-bottom: 12px;
+
+  &__label {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: var(--preview-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &--planner {
+    margin-top: 12px;
+  }
+}
+
+.tischart-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border: 1.5px solid var(--preview-border, #e5e7eb);
+  border-radius: var(--preview-radius, 10px);
+  background: var(--preview-soft, #f9fafb);
+  color: var(--preview-text, #1f2937);
+  font-size: 0.82em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+
+  &:hover:not(.is-selected) {
+    border-color: var(--preview-primary, #2563eb);
+    color: var(--preview-primary, #2563eb);
+  }
+
+  &.is-selected {
+    border-color: var(--preview-primary, #2563eb);
+    background: color-mix(in srgb, var(--preview-primary, #2563eb) 10%, transparent);
+    color: var(--preview-primary, #2563eb);
+    font-weight: 600;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Kinderstühle-Stepper
+// ─────────────────────────────────────────────────────────────────────────
+.kinder-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+
+  &__btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--preview-border, #e5e7eb);
+    border-radius: 50%;
+    background: var(--preview-soft, #f9fafb);
+    color: var(--preview-text, #1f2937);
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+
+    &:hover {
+      border-color: var(--preview-primary, #2563eb);
+      color: var(--preview-primary, #2563eb);
+    }
+  }
+
+  &__val {
+    min-width: 24px;
+    text-align: center;
+    font-size: 1em;
+    font-weight: 600;
+  }
+
+  &__hint {
+    font-size: 0.78em;
+    color: var(--preview-muted, #6b7280);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Disabled calendar days
+// ─────────────────────────────────────────────────────────────────────────
+.preview-planner__cal-day,
+.preview-sidebar__cal-day,
+.preview-stacked__cal-day {
+  &.is-disabled, &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Success-Policy (Online Änderungen / Stornierung)
+// ─────────────────────────────────────────────────────────────────────────
+.success-policy {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--preview-radius, 10px);
+  background: var(--preview-soft, #f9fafb);
+  border: 1px solid var(--preview-border, #e5e7eb);
+  text-align: left;
+
+  p {
+    margin: 0;
+    font-size: 0.82em;
+    color: var(--preview-muted, #6b7280);
+    line-height: 1.5;
+
+    & + p {
+      margin-top: 4px;
+    }
   }
 }

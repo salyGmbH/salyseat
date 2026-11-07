@@ -1,7 +1,7 @@
 <aside class="sidebar" [class.collapsed]="collapsed()" [class.mobile-open]="layout.mobileOpen()">
 
   <div class="sidebar__logo">
-    <img src="images/saly-logo.svg" alt="SALY">
+    <img src="images/white-logo.png" alt="SALY">
   </div>
 
   <!-- Live-Uhr -->
@@ -41,6 +41,33 @@
       @if (!collapsed()) { <span>Einstellungen</span> }
     </a>
   </nav>
+
+  <!-- ── Notizen-Button (erscheint wenn heutige Notizen vorhanden) ─────── -->
+  @if (notizenState.hasAny()) {
+    <button
+      class="sidebar__notiz-btn"
+      [class.sidebar__notiz-btn--unread]="notizenState.hasUnread() && !notizenState.floatDismissed()"
+      [class.sidebar__notiz-btn--collapsed]="collapsed()"
+      (click)="openNotizenPanel()"
+      [title]="collapsed() ? 'Notizen heute' : ''">
+
+      <svg class="sidebar__notiz-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="2" width="14" height="17" rx="2" fill="currentColor" opacity=".18"/>
+        <rect x="3" y="2" width="14" height="17" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        <path d="M17 2 L20 5 L17 5 Z" fill="currentColor" opacity=".5"/>
+        <line x1="6.5" y1="7.5"  x2="13.5" y2="7.5"  stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <line x1="6.5" y1="13.5" x2="10"   y2="13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+
+      @if (!collapsed()) {
+        <span class="sidebar__notiz-label">Notizen heute</span>
+        <span class="sidebar__notiz-count">{{ notizenState.totalToday() }}</span>
+      } @else {
+        <span class="sidebar__notiz-count sidebar__notiz-count--abs">{{ notizenState.totalToday() }}</span>
+      }
+    </button>
+  }
 
   <div class="sidebar__footer">
     <button class="sidebar__toggle" (click)="toggle()">

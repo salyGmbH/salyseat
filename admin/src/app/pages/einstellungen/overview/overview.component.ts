@@ -30,6 +30,7 @@ export class OverviewComponent {
     { label: 'Reservierungen',                  route: 'reservierungen',         icon: 'event_available' },
     { label: 'Benachrichtigungen',              route: 'notifications',          icon: 'notifications_active' },
     { label: 'Öffnungszeiten',                  route: 'oeffnungszeiten',        icon: 'schedule' },
+    { label: 'Notizen',                         route: 'notizen',                icon: 'sticky_note_2' },
     // TEMPORÄR ausgeblendet — wieder aktivieren wenn Funktion fertig:
     // { label: 'Integrationen',                   route: 'integrationen',          icon: 'extension' },
     // { label: 'Backup & Export',                 route: 'backup',                 icon: 'backup' },

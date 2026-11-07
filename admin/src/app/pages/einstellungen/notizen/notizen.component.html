@@ -1,0 +1,305 @@
+<p>notizen works!</p>
+<div class="notizen-page">
+
+  <!-- ── Page Hero ─────────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="page-hero">
+      <div class="page-hero__icon">
+        <mat-icon>sticky_note_2</mat-icon>
+      </div>
+      <div>
+        <h2 class="page-hero__title">Notizen</h2>
+        <p class="page-hero__sub">
+          Hinterlege interne Notizen für bestimmte Tage und Uhrzeiten —
+          z.&nbsp;B. Besonderheiten, Events oder wichtige Hinweise für dein Team.
+        </p>
+      </div>
+      <button class="btn-primary btn--add" (click)="openNew()">
+        <mat-icon>add</mat-icon>
+        Neue Notiz
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Haupt-Layout ───────────────────────────────────────────────────── -->
+  <div class="nz-layout">
+
+    <!-- Linke Spalte: Kalender + Alle Notizen -->
+    <div class="nz-left">
+
+      <!-- Kalender -->
+      <div class="settings-block nz-calendar">
+        <div class="cal-nav">
+          <button class="cal-arrow" (click)="prevMonth()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <span class="cal-label">{{ calLabel() }}</span>
+          <button class="cal-arrow" (click)="nextMonth()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+
+        <div class="cal-grid">
+          <span class="cal-wd" *ngFor="let w of weekdaysShort">{{ w }}</span>
+
+          <button
+            class="cal-day"
+            *ngFor="let cell of calDays(); trackBy: trackByDate"
+            [class.cal-day--empty]="!cell.cur"
+            [class.cal-day--today]="isToday(cell.date)"
+            [class.cal-day--selected]="isSelected(cell.date)"
+            [class.cal-day--marked]="cell.hasMark && !isSelected(cell.date)"
+            (click)="selectDay(cell.date)"
+            [disabled]="!cell.cur">
+            <span>{{ cell.cur ? cell.day : '' }}</span>
+            <span class="cal-dot" *ngIf="cell.hasMark && !isSelected(cell.date)"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Alle Notizen -->
+      <div class="settings-block nz-all">
+        <div class="nz-all__header">
+          <span class="section-title">Alle Notizen</span>
+          <span class="nz-count">{{ allNotizen().length }}</span>
+        </div>
+
+        <div class="nz-loading" *ngIf="loading()">
+          <div class="spinner"></div> Notizen werden geladen…
+        </div>
+
+        <div class="nz-empty nz-empty--lg" *ngIf="!loading() && allNotizen().length === 0">
+          <mat-icon>sticky_note_2</mat-icon>
+          <span>Noch keine Notizen angelegt.<br/>Klicke auf „Neue Notiz" um zu starten.</span>
+        </div>
+
+        <div class="nz-all__list" *ngIf="!loading() && allNotizen().length > 0">
+          <div
+            class="nz-item nz-item--full"
+            *ngFor="let n of allNotizen(); trackBy: trackById"
+            [class]="'nz-item--full nz-item--' + n.color"
+            [class.nz-item--done]="n.done"
+            (click)="openView(n); selectDay(n.date); calYear.set(+n.date.slice(0,4)); calMonth.set(+n.date.slice(5,7)-1)">
+            <div class="nz-item__meta">
+              <span class="nz-item__date">{{ formatDate(n.date) }}</span>
+              <span class="nz-item__time-tag" *ngIf="n.time">{{ n.time }} Uhr</span>
+              <span class="nz-item__time-tag nz-item__time-tag--day" *ngIf="!n.time">Ganzer Tag</span>
+            </div>
+            <div class="nz-item__body">
+              <span class="nz-item__title">{{ n.title }}</span>
+              <span class="nz-item__text" *ngIf="n.text">{{ n.text }}</span>
+            </div>
+            <button class="nz-status-badge"
+                    [class.nz-status-badge--done]="n.done"
+                    (click)="toggleDone(n, $event)"
+                    [title]="n.done ? 'Als offen markieren' : 'Als erledigt markieren'">
+              {{ n.done ? 'Erledigt' : 'Offen' }}
+            </button>
+            <div class="nz-item__actions" (click)="$event.stopPropagation()">
+              <button class="btn-icon btn-icon--sm" (click)="openEdit(n)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="delete(n)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Rechte Spalte: Tages-Einträge + Formular / Detail-View -->
+    <div class="nz-right">
+
+      <!-- Notizen für ausgewählten Tag (immer sichtbar) -->
+      <div class="settings-block nz-day-list" *ngIf="!showForm()"
+           [class.nz-day-list--today]="selected() === todayStr">
+        <div class="nz-day-header">
+          <span class="nz-day-title">{{ formatDate(selected()) }}</span>
+          <button class="btn-icon" (click)="openNew()">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+
+        <div class="nz-empty" *ngIf="notizenForDay().length === 0">
+          <mat-icon>event_note</mat-icon>
+          <span>Keine Notizen für diesen Tag</span>
+        </div>
+
+        <div
+          class="nz-item"
+          *ngFor="let n of notizenForDay(); trackBy: trackById"
+          [class]="'nz-item--' + n.color"
+          [class.nz-item--done]="n.done"
+          (click)="openView(n)">
+          <div class="nz-item__time">
+            <mat-icon *ngIf="!n.time">wb_sunny</mat-icon>
+            <span *ngIf="n.time">{{ n.time }}</span>
+          </div>
+          <div class="nz-item__body">
+            <span class="nz-item__title">{{ n.title }}</span>
+            <span class="nz-item__text" *ngIf="n.text">{{ n.text }}</span>
+          </div>
+          <button class="nz-status-badge"
+                  [class.nz-status-badge--done]="n.done"
+                  (click)="toggleDone(n, $event)"
+                  [title]="n.done ? 'Als offen markieren' : 'Als erledigt markieren'">
+            {{ n.done ? 'Erledigt' : 'Offen' }}
+          </button>
+          <div class="nz-item__actions" (click)="$event.stopPropagation()">
+            <button class="btn-icon btn-icon--sm" (click)="openEdit(n)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="delete(n)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Formular ─────────────────────────────────────────────────── -->
+      <div class="settings-block nz-form" *ngIf="showForm()">
+        <h3 class="nz-form__title">
+          <mat-icon>{{ editId() ? 'edit' : 'add_circle' }}</mat-icon>
+          {{ editId() ? 'Notiz bearbeiten' : 'Neue Notiz' }}
+        </h3>
+
+        <!-- Datum mit Kalender-Dropdown -->
+        <div class="nz-field">
+          <label class="nz-field__label">Datum</label>
+          <div class="nz-datepicker-wrap">
+            <button class="nz-datepicker-trigger" type="button" (click)="openDatePicker($event)">
+              <mat-icon>calendar_today</mat-icon>
+              <span>{{ formDateDisplay }}</span>
+              <mat-icon class="nz-datepicker-trigger__chevron">expand_more</mat-icon>
+            </button>
+
+            <div class="nz-datepicker-panel" *ngIf="dpOpen()" (click)="$event.stopPropagation()">
+              <div class="dp-nav">
+                <button class="dp-arrow" type="button" (click)="dpPrevMonth()">
+                  <mat-icon>chevron_left</mat-icon>
+                </button>
+                <span class="dp-label">{{ dpLabel() }}</span>
+                <button class="dp-arrow" type="button" (click)="dpNextMonth()">
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+              </div>
+
+              <div class="dp-grid">
+                <span class="dp-wd" *ngFor="let w of weekdaysShort">{{ w }}</span>
+                <button
+                  class="dp-day"
+                  type="button"
+                  *ngFor="let cell of dpDays(); trackBy: trackByDate"
+                  [class.dp-day--empty]="!cell.cur"
+                  [class.dp-day--today]="dpIsToday(cell.date)"
+                  [class.dp-day--selected]="dpIsSelected(cell.date)"
+                  [disabled]="!cell.cur"
+                  (click)="dpSelectDay(cell.date, $event)">
+                  {{ cell.cur ? cell.day : '' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Uhrzeit -->
+        <div class="nz-field">
+          <label class="nz-field__label">Uhrzeit</label>
+          <div class="nz-time-row">
+            <label class="nz-toggle">
+              <input type="checkbox" [(ngModel)]="form.allDay" />
+              <span>Ganzer Tag</span>
+            </label>
+            <input
+              class="nz-field__input nz-field__input--time"
+              type="time"
+              [(ngModel)]="form.time"
+              [disabled]="form.allDay" />
+          </div>
+        </div>
+
+        <!-- Titel -->
+        <div class="nz-field">
+          <label class="nz-field__label">Titel <span class="req">*</span></label>
+          <input
+            class="nz-field__input"
+            type="text"
+            placeholder="Kurzer Titel…"
+            [(ngModel)]="form.title"
+            maxlength="120" />
+        </div>
+
+        <!-- Notiztext -->
+        <div class="nz-field nz-field--grow">
+          <label class="nz-field__label">Notiz</label>
+          <textarea
+            class="nz-field__input nz-field__input--ta"
+            placeholder="Optionaler Beschreibungstext…"
+            [(ngModel)]="form.text"
+            rows="4"></textarea>
+        </div>
+
+        <!-- Farbe -->
+        <div class="nz-field">
+          <label class="nz-field__label">Farbe / Kategorie</label>
+          <div class="nz-colors">
+            <button
+              *ngFor="let c of colorKeys"
+              class="nz-color-btn"
+              [class]="'nz-color-btn--' + c"
+              [class.active]="form.color === c"
+              (click)="form.color = c">
+              {{ colorLabel(c) }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="nz-form__actions">
+          <button class="btn-ghost" (click)="cancelForm()">Abbrechen</button>
+          <button
+            class="btn-save"
+            [disabled]="saving() || !form.title.trim()"
+            (click)="save()">
+            <mat-icon *ngIf="saving()">hourglass_empty</mat-icon>
+            <mat-icon *ngIf="saved() && !saving()">check</mat-icon>
+            <mat-icon *ngIf="!saving() && !saved()">save</mat-icon>
+            {{ saving() ? 'Speichern…' : (saved() ? 'Gespeichert' : 'Speichern') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Detail-View ───────────────────────────────────────────────── -->
+      <div class="settings-block nz-view" *ngIf="viewNotiz() && !showForm()">
+        <div class="nz-view__header">
+          <span class="nz-badge" [class]="'nz-badge--' + viewNotiz()!.color">
+            {{ colorLabel(viewNotiz()!.color) }}
+          </span>
+          <div class="nz-view__acts">
+            <button class="btn-icon btn-icon--sm" (click)="openEdit(viewNotiz()!)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button class="btn-icon btn-icon--sm" (click)="closeView()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="nz-view__date">
+          <mat-icon>calendar_today</mat-icon>
+          {{ formatDate(viewNotiz()!.date) }}
+          <span *ngIf="viewNotiz()!.time" class="nz-view__time">
+            <mat-icon>access_time</mat-icon>{{ viewNotiz()!.time }} Uhr
+          </span>
+        </div>
+
+        <h3 class="nz-view__title">{{ viewNotiz()!.title }}</h3>
+        <p class="nz-view__text" *ngIf="viewNotiz()!.text">{{ viewNotiz()!.text }}</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>

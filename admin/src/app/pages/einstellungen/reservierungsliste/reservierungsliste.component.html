@@ -32,60 +32,85 @@
     </div>
 
     <div class="filter-bar__actions">
-      <button class="btn-reload" (click)="openPrintModal()" title="Drucken">
-        <mat-icon>print</mat-icon>
+      <button class="action-btn action-btn--pdf" (click)="openExportModal('pdf')" title="PDF exportieren">
+        <mat-icon>picture_as_pdf</mat-icon>
+        <span>PDF</span>
       </button>
 
-      <button class="btn-reload" (click)="resetToToday()" [disabled]="loading()" title="Aktualisieren">
+      <button class="action-btn action-btn--print" (click)="openExportModal('print')" title="Drucken">
+        <mat-icon>print</mat-icon>
+        <span>Drucken</span>
+      </button>
+
+      <button class="action-btn action-btn--refresh" (click)="resetToToday()" [disabled]="loading()" title="Aktualisieren">
         <mat-icon>refresh</mat-icon>
       </button>
     </div>
   </div>
 
-  <!-- PRINT MODAL -->
-  @if (showPrintModal()) {
-    <div class="modal-backdrop" (click)="closePrintModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
+  <!-- EXPORT MODAL -->
+  @if (exportModal()) {
+    <div class="modal-backdrop" (click)="closeExportModal()">
+      <div class="modal export-modal" (click)="$event.stopPropagation()">
 
-        <h3>Druckoptionen</h3>
-
-        <!-- Tag / Zeitraum -->
-        <div class="modal-section">
-          <button (click)="printMode = 'day'; printFrom = filterDate; printTo = filterDate">
-            Tag drucken
+        <div class="export-modal__header">
+          <mat-icon>{{ exportMode === 'pdf' ? 'picture_as_pdf' : 'print' }}</mat-icon>
+          <h3>{{ exportMode === 'pdf' ? 'PDF exportieren' : 'Drucken' }}</h3>
+          <button class="export-modal__close" (click)="closeExportModal()">
+            <mat-icon>close</mat-icon>
           </button>
-
-          <span>oder</span>
-
-          <div class="date-range">
-            <input type="date" [(ngModel)]="printFrom" />
-            <input type="date" [(ngModel)]="printTo" />
-          </div>
         </div>
 
-        <!-- Status Filter -->
-        <div class="modal-section">
-          <button (click)="selectedStatuses = []">
-            Alle Reservierungen
-          </button>
+        <!-- Zeitraum -->
+        <div class="export-section">
+          <span class="export-label">Zeitraum</span>
+          <div class="export-range-tabs">
+            <button [class.active]="exportRange === 'day'" (click)="exportRange = 'day'">
+              Tag
+            </button>
+            <button [class.active]="exportRange === 'range'" (click)="exportRange = 'range'">
+              Zeitraum
+            </button>
+          </div>
 
-          <div class="status-buttons">
+          @if (exportRange === 'day') {
+            <input type="date" class="filter-input" [(ngModel)]="exportFrom" />
+          } @else {
+            <div class="export-date-range">
+              <input type="date" class="filter-input" [(ngModel)]="exportFrom" />
+              <span class="export-date-sep">–</span>
+              <input type="date" class="filter-input" [(ngModel)]="exportTo" />
+            </div>
+          }
+        </div>
+
+        <!-- Status -->
+        <div class="export-section">
+          <span class="export-label">Status</span>
+          <div class="export-chips">
             @for (opt of statusOptions; track opt.value) {
               @if (opt.value) {
                 <button
-                  (click)="toggleStatus(opt.value)"
-                  [class.active]="selectedStatuses.includes(opt.value)">
+                  class="export-chip"
+                  [class.active]="selectedStatuses.includes(opt.value)"
+                  (click)="toggleStatus(opt.value)">
                   {{ opt.label }}
                 </button>
               }
             }
           </div>
+          @if (selectedStatuses.length === 0) {
+            <span class="export-hint">Alle Status werden einbezogen</span>
+          }
         </div>
 
-        <!-- Actions -->
-        <div class="modal-actions">
-          <button (click)="closePrintModal()">Abbrechen</button>
-          <button (click)="print()">Drucken</button>
+        <!-- Footer -->
+        <div class="export-modal__footer">
+          <button class="btn-cancel" (click)="closeExportModal()">Abbrechen</button>
+          <button class="btn-run" (click)="runExport()">
+            <mat-icon>{{ exportMode === 'pdf' ? 'download' : 'print' }}</mat-icon>
+            {{ exportMode === 'pdf' ? 'PDF erstellen' : 'Drucken' }}
+          </button>
         </div>
 
       </div>
@@ -121,16 +146,11 @@
 
     <div class="print-area">
 
-      <!-- Print Header -->
+      <!-- Print Header (nur beim Drucken sichtbar) -->
       <div class="print-header">
         <h2>Reservierungen</h2>
-        <span>
-          {{ printMode === 'day'
-            ? filterDate
-            : (printFrom + ' - ' + printTo) }}
-        </span>
+        <span>{{ dateLabel() }}</span>
       </div>
-
 
       <!-- Liste -->
       <div class="reservation-list">
@@ -144,11 +164,13 @@
             <div class="reservation-card__left">
               @if (viewMode() === 'card') {
                 <div class="reservation-card__time reservation-card__time--colored">
+                  <span class="time-date">{{ formatDate(r.starts_at) }}</span>
                   <span class="time-main">{{ formatTime(r.starts_at) }}</span>
                   <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
                 </div>
               } @else {
                 <div class="reservation-card__time reservation-card__time--neutral">
+                  <span class="time-date">{{ formatDate(r.starts_at) }}</span>
                   <span class="time-main">{{ formatTime(r.starts_at) }}</span>
                   <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
                 </div>
@@ -190,8 +212,7 @@
               }
             </div>
 
-            <!-- Status-Label rechts (nur Anzeige, keine Aktionen — die laufen
-                 ausschließlich über die Raumübersicht) -->
+            <!-- Status-Label rechts -->
             <div class="reservation-card__status-label">
               {{ labelForBooking(r.status) }}
             </div>

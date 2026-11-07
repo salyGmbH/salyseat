@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { WidgetEinstellungenComponent } from './widget-einstellungen.component';
 
@@ -8,7 +10,9 @@ describe('WidgetEinstellungenComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [WidgetEinstellungenComponent]
+      imports: [WidgetEinstellungenComponent],
+      // VenueService lädt per HttpClient – im Test ohne echtes Backend
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     })
     .compileComponents();
 

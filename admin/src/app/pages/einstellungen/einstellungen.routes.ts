@@ -30,6 +30,7 @@ import { IntegrationenComponent } from './integrationen/integrationen.component'
 import { BackupComponent } from './backup/backup.component';
 import { BrandingComponent } from './branding/branding.component';
 import { KundenComponent } from './kunden/kunden.component';
+import { NotizenComponent } from './notizen/notizen.component';
 
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
@@ -39,7 +40,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: '', component: OverviewComponent },
 
       { path: 'allgemein',      component: AllgemeinComponent },
-      { path: 'widget',         component: WidgetComponent },
+      { path: 'widget',                component: WidgetComponent },
       { path: 'widget-einstellungen', component: WidgetEinstellungenComponent },
       { path: 'restaurantplan', component: RestaurantplanComponent },
       { path: 'mitarbeiter',    component: MitarbeiterComponent },
@@ -68,6 +69,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'backup',          component: BackupComponent },
       { path: 'branding',        component: BrandingComponent },
       { path: 'kunden',          component: KundenComponent },
+      { path: 'notizen',         component: NotizenComponent },
     ]
   }
 ];

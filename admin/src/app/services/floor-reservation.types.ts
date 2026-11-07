@@ -1,5 +1,7 @@
 export type FloorReservationStatus =
   | 'upcoming'
+  | 'confirmed'
+  | 'late'
   | 'seated'
   | 'expired'
   | 'cleanup'
@@ -17,6 +19,8 @@ export interface FloorReservation {
   time: string;
   durationMinutes: number;
   tableId?: number;
+  /** Mehrere zusammengeführte Tische für eine Reservierung. */
+  tableIds?: number[];
   status: FloorReservationStatus;
   notes?: string;
   phone?: string;
@@ -32,9 +36,11 @@ export interface FloorReservation {
 }
 
 export const STATUS_LABELS: Record<FloorReservationStatus, string> = {
-  upcoming:  'Geplant',
+  upcoming:  'Warteliste',
+  confirmed: 'Bevorstehend',
+  late:      'Verspätet',
   seated:    'Eingecheckt',
-  expired:   'Reservierungszeit abgelaufen',
+  expired:   'Abgelaufen',
   cleanup:   'Wird gereinigt',
   completed: 'Beendet',
   cancelled: 'Storniert',

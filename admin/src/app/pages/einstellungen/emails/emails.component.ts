@@ -18,22 +18,53 @@ type MailSetting = {
 })
 export class EmailsComponent {
 
+  // =========================
+  // 🔥 STATE
+  // =========================
   mailInfo = false;
   languageInfo = false;
 
-  saved = false;
+saved = false;
 
-  reminderTime: '2h' | '24h' = '2h';
-  language: 'de' | 'en' | 'it' = 'de';
+reminderTime: '2h' | '24h' = '2h';
+language: 'de' | 'en' | 'it' = 'de';
+
+emailMode: 'dark' | 'light' = 'dark';
+
+primaryColor = '#ff6b2c';
+highlightColor = '#ff6b2c';
+
+backgroundColor = '#0E0E11';
+cardColor = '#1F232C';
+
+borderRadius = 16;
+
+fontFamily = 'Inter';
+
+footerText = '';
+infoText = '';
+signature = '';
+
+instagram = '';
+facebook = '';
+tiktok = '';
+
+logoFile: File | null = null;
+headerFile: File | null = null;
+
+attachments: any[] = [];
+
 
   mailSettings: MailSetting[] = [
     { key: 'confirmation', label: 'Reservierungsbestätigung', enabled: true },
     { key: 'reminder', label: 'Erinnerung vor Termin', enabled: true },
     { key: 'cancel', label: 'Stornierungsbestätigung', enabled: true },
     { key: 'no_show', label: 'No-Show Info', enabled: false },
-    { key: 'follow_up', label: 'Follow-Up', enabled: false },
   ];
 
+  // =========================
+  // 🔥 ACTIONS
+  // =========================
   toggleMailInfo() {
     this.mailInfo = !this.mailInfo;
     this.languageInfo = false;
@@ -48,16 +79,75 @@ export class EmailsComponent {
     this.reminderTime = time;
   }
 
-  setLanguage(lang: 'de' | 'en' | 'it') {
-    this.language = lang;
-  }
+setLanguage(lang: 'de' | 'en' | 'it') {
+  this.language = lang;
+}
 
-  save() {
-    console.log('Mail Settings:', this.mailSettings);
-    console.log('Reminder:', this.reminderTime);
-    console.log('Language:', this.language);
+setEmailMode(mode: 'dark' | 'light') {
+  this.emailMode = mode;
 
-    this.saved = true;
-    setTimeout(() => this.saved = false, 2000);
+  if (mode === 'dark') {
+
+    this.backgroundColor = '#0E0E11';
+    this.cardColor = '#1F232C';
+
+  } else {
+
+    this.backgroundColor = '#F5F7FA';
+    this.cardColor = '#FFFFFF';
+
   }
+}
+
+onLogoUpload(event: any) {
+  this.logoFile = event.target.files[0];
+}
+
+onHeaderUpload(event: any) {
+  this.headerFile = event.target.files[0];
+}
+
+onAttachmentsSelected(event: any) {
+
+  const files = event.target.files;
+
+  for (let file of files) {
+
+    this.attachments.push({
+      name: file.name,
+      file,
+      assignedMails: {}
+    });
+
+  }
+}
+
+save() {
+
+  const settings = {
+
+    mailSettings: this.mailSettings,
+
+    reminder: this.reminderTime,
+
+    language: this.language,
+
+    design: {
+      mode: this.emailMode,
+      primaryColor: this.primaryColor,
+      highlightColor: this.highlightColor,
+      backgroundColor: this.backgroundColor,
+      cardColor: this.cardColor
+    }
+
+  };
+
+  console.log(settings);
+
+  this.saved = true;
+
+  setTimeout(() => {
+    this.saved = false;
+  }, 2000);
+}
 }

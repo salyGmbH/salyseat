@@ -127,12 +127,32 @@ export interface WidgetFunctionalSettings {
   /** Tischarten */
   tischartenAktiv: boolean;
   tischartenAktiveTypes: string[];
+  /**
+   * Modus, wie der Gast die Tisch-/Sitzplatzwahl im Widget vornimmt:
+   *  - 'liste'  → Auswahl der Tischarten wie bisher (rund / eckig / lang)
+   *  - 'plan'   → 1:1-Abbild des Restaurantplans, der Gast klickt einen Tisch an
+   *
+   * Wenn `tischartenAktiv` aus ist, weist das System automatisch einen passenden
+   * Tisch zu (Personenzahl, Verfügbarkeit, Raum-Auswahl). Daher gibt es keinen
+   * separaten „Auto"-Modus mehr.
+   *
+   * Die Liste der online buchbaren Räume kommt aus `raumauswahlAktiveIds`
+   * (siehe Block „Raumauswahl"). Räume, die dort deaktiviert sind, sind
+   * im Widget nicht buchbar (z. B. Terrasse nur für Walk-Ins).
+   */
+  tischartenAuswahlModus: 'liste' | 'plan';
   /** Online Änderungen */
   onlineAenderungen: boolean;
   onlineAenderungenMinuten: number;
   /** Online Stornierung */
   onlineStornierung: boolean;
   onlineStornierungMinuten: number;
+  /** Warteliste */
+  wartelisteAktiv: boolean;
+  wartelisteMaxPlaetze: number;
+  wartelisteKanal: 'email' | 'telefon' | 'beide';
+  wartelisteAntwortStunden: number;
+  wartelisteHinweis: string;
 }
 
 export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
@@ -166,10 +186,16 @@ export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
   mindestvorlaufMinuten:    60,
   tischartenAktiv:          false,
   tischartenAktiveTypes:    ['round', 'square', 'long'],
+  tischartenAuswahlModus:   'liste',
   onlineAenderungen:        false,
   onlineAenderungenMinuten: 120,
   onlineStornierung:        false,
   onlineStornierungMinuten: 120,
+  wartelisteAktiv:          false,
+  wartelisteMaxPlaetze:     3,
+  wartelisteKanal:          'email',
+  wartelisteAntwortStunden: 24,
+  wartelisteHinweis:        '',
 };
 
 export interface ReservationTimingSettings {

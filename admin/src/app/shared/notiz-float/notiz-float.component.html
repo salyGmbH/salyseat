@@ -1,0 +1,105 @@
+
+<!-- ═══ Floating Trigger (nur wenn ungelesene Notizen heute) ════════════════ -->
+@if (state.hasUnread() && !state.floatDismissed()) {
+  <button
+    class="nf-trigger"
+    [class.nf-trigger--active]="state.panelOpen()"
+    (click)="state.togglePanel()"
+    title="{{ state.unreadToday().length }} Notiz(en) für heute">
+
+    <!-- Sticky-Note SVG -->
+    <svg class="nf-svg" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+      <!-- Schatten -->
+      <ellipse cx="28" cy="50" rx="18" ry="3" fill="rgba(0,0,0,0.25)" />
+      <!-- Hauptblatt -->
+      <rect x="6" y="4" width="38" height="44" rx="4" ry="4" fill="url(#nf-grad)" />
+      <!-- Eselsohrecke oben rechts -->
+      <path d="M34 4 L44 14 L34 14 Z" fill="rgba(0,0,0,0.18)" />
+      <path d="M34 4 L44 4 L44 14 Z" fill="url(#nf-grad2)" />
+      <!-- Linien -->
+      <line x1="13" y1="22" x2="35" y2="22" stroke="rgba(255,255,255,0.35)" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="13" y1="29" x2="35" y2="29" stroke="rgba(255,255,255,0.35)" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="13" y1="36" x2="26" y2="36" stroke="rgba(255,255,255,0.35)" stroke-width="1.8" stroke-linecap="round"/>
+      <!-- Stift dunkel -->
+      <g transform="translate(30,33) rotate(-35)">
+        <rect x="-3" y="-12" width="6" height="16" rx="1" fill="#1a1a2e"/>
+        <polygon points="-3,4 3,4 0,9" fill="#2d2d44"/>
+        <line x1="0" y1="7.5" x2="0" y2="9" stroke="#111" stroke-width="1"/>
+        <rect x="-3" y="-14" width="6" height="3" rx="0.5" fill="#4a4a5a"/>
+      </g>
+      <defs>
+        <linearGradient id="nf-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stop-color="#c8a84b"/>
+          <stop offset="100%" stop-color="#a07830"/>
+        </linearGradient>
+        <linearGradient id="nf-grad2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stop-color="#e8c96a"/>
+          <stop offset="100%" stop-color="#c8a84b"/>
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <!-- Badge -->
+    <span class="nf-badge">{{ state.unreadToday().length }}</span>
+  </button>
+}
+
+<!-- ═══ Panel (Slide-in von rechts) ════════════════════════════════════════ -->
+@if (state.panelOpen()) {
+  <!-- Backdrop -->
+  <div class="nf-backdrop" (click)="state.closePanel()"></div>
+
+  <div class="nf-panel">
+    <!-- Header -->
+    <div class="nf-panel__head">
+      <div class="nf-panel__title">
+        <svg class="nf-panel__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="2" width="15" height="18" rx="2" fill="currentColor" opacity=".15"/>
+          <rect x="3" y="2" width="15" height="18" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          <path d="M18 2 L21 5 L18 5 Z" fill="currentColor" opacity=".4"/>
+          <line x1="7" y1="8"  x2="14" y2="8"  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="7" y1="11" x2="14" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="7" y1="14" x2="11" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>Notizen heute</span>
+        <span class="nf-panel__count">{{ state.unreadToday().length }}</span>
+      </div>
+      <button class="nf-panel__close" (click)="state.closePanel()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Notizen-Liste -->
+    <div class="nf-panel__list">
+      @for (n of state.unreadToday(); track n.id) {
+        <div class="nf-note" [class]="colorClass(n)">
+          <div class="nf-note__top">
+            <span class="nf-note__time">
+              <mat-icon>{{ n.time ? 'access_time' : 'wb_sunny' }}</mat-icon>
+              {{ formatTime(n.time) }}
+            </span>
+            <button class="nf-note__read" (click)="markOne(n.id)" title="Als gelesen markieren">
+              <mat-icon>done</mat-icon>
+            </button>
+          </div>
+          <p class="nf-note__title">{{ n.title }}</p>
+          @if (n.text) {
+            <p class="nf-note__text">{{ n.text }}</p>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="nf-panel__foot">
+      <button class="nf-btn-ghost" (click)="goToNotizen()">
+        <mat-icon>open_in_new</mat-icon>
+        Alle Notizen
+      </button>
+      <button class="nf-btn-primary" (click)="markAll()">
+        <mat-icon>done_all</mat-icon>
+        Alle gelesen
+      </button>
+    </div>
+  </div>
+}

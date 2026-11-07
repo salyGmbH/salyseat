@@ -5,6 +5,7 @@ import { TenantSettingsService } from './tenant-settings.service';
 
 export type StatusKey =
   | 'waiting'
+  | 'confirmed'
   | 'active'
   | 'late'
   | 'expired'
@@ -25,6 +26,7 @@ export type StatusViewMode = 'card' | 'text' | 'svg';
 
 export const DEFAULT_STATUSES: StatusColor[] = [
   { key: 'waiting',   label: 'Warteliste',  color: '#f59e0b', icon: 'circle' },
+  { key: 'confirmed', label: 'Bevorstehend', color: '#94a3b8', icon: 'circle-dot' },
   { key: 'active',    label: 'Aktiv',       color: '#22c55e', icon: 'check' },
   { key: 'late',      label: 'Verspätet',   color: '#eab308', icon: 'clock' },
   // 'expired' = Standard-Reservierungsdauer ist abgelaufen, der Tisch ist
@@ -43,6 +45,8 @@ const DEFAULT_VIEW_MODE: StatusViewMode = 'card';
 
 const LIFECYCLE_TO_OPERATIONAL: Record<FloorReservationStatus, StatusKey> = {
   upcoming:   'waiting',
+  confirmed:  'confirmed',
+  late:       'late',
   seated:     'active',
   expired:    'expired',
   cleanup:    'cleanup',

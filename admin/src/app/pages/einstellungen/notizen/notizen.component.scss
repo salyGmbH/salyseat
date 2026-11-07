@@ -1,0 +1,777 @@
+@use '../../../../styles/variables' as *;
+@use '../_placeholder' as *;
+
+// ── Page-Layout ───────────────────────────────────────────────────────────────
+.notizen-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  max-width: 1100px;
+}
+
+// ── Page-Hero Override (Add-Button) ───────────────────────────────────────────
+.page-hero {
+  align-items: center;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.btn--add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--color-primary-rgb), 0.55);
+  background: rgba(var(--color-primary-rgb), 0.10);
+  color: $color-primary;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: auto;
+  transition: all .15s;
+  box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.15),
+              inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.08);
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { background: rgba(var(--color-primary-rgb), 0.18); }
+}
+
+// ── Haupt-Layout ──────────────────────────────────────────────────────────────
+.nz-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nz-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nz-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// ── Kalender ──────────────────────────────────────────────────────────────────
+.nz-calendar {
+  padding: 14px;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cal-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.cal-arrow {
+  background: none;
+  border: none;
+  color: $color-text-muted;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color .15s, background .15s;
+
+  &:hover { color: $color-primary; background: rgba(var(--color-primary-rgb), 0.1); }
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-wd {
+  font-size: 11px;
+  font-weight: 600;
+  color: $color-text-muted;
+  text-align: center;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.cal-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  background: none;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  color: $color-text;
+  cursor: pointer;
+  transition: all .12s;
+
+  &:hover:not(:disabled):not(.cal-day--empty) {
+    background: rgba(var(--color-primary-rgb), 0.1);
+    border-color: rgba(var(--color-primary-rgb), 0.3);
+  }
+
+  &--empty { pointer-events: none; }
+
+  &--today {
+    color: $color-accent;
+    font-weight: 700;
+  }
+
+  &--selected {
+    background: rgba(var(--color-accent-rgb), 0.15) !important;
+    border-color: $color-accent !important;
+    color: $color-accent !important;
+    font-weight: 700;
+  }
+}
+
+.cal-dot {
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: $color-primary;
+}
+
+// ── Tages-Liste ───────────────────────────────────────────────────────────────
+.nz-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.nz-day-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.nz-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $color-text-muted;
+  font-size: 13px;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; opacity: .6; }
+}
+
+// ── Notiz-Item ────────────────────────────────────────────────────────────────
+.nz-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 3px solid $color-border;
+  background: rgba(0,0,0, 0.15);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  margin-bottom: 6px;
+
+  &:last-child { margin-bottom: 0; }
+
+  &:hover { background: rgba(0,0,0, 0.25); }
+
+  &--default { border-left-color: $color-border; }
+  &--info    { border-left-color: $color-primary; }
+  &--success { border-left-color: $color-success; }
+  &--warn    { border-left-color: $color-warn; }
+
+  &__time {
+    min-width: 38px;
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-text-muted;
+    display: flex;
+    align-items: center;
+    padding-top: 1px;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  }
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__text {
+    font-size: 12px;
+    color: $color-text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 2px;
+  }
+
+  // Alle-Notizen-Variante
+  &--full {
+    align-items: center;
+
+    // Status-Badge + Actions immer ganz rechts, feste Breiten
+    .nz-status-badge {
+      margin-left: auto;  // schiebt Badge nach rechts
+      flex-shrink: 0;
+      min-width: 64px;
+      text-align: center;
+    }
+
+    .nz-item__actions {
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 80px;
+  }
+
+  &__date {
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+  }
+
+  &__time-tag {
+    font-size: 11px;
+    color: $color-primary;
+    font-weight: 500;
+    white-space: nowrap;
+
+    &--day { color: $color-text-muted; }
+  }
+}
+
+// ── Status-Badge (Offen / Erledigt) ──────────────────────────────────────────
+.nz-status-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(255,77,77,.5);
+  background: rgba(255,77,77,.12);
+  color: $color-danger;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+
+  &:hover { background: rgba(255,77,77,.22); }
+
+  &--done {
+    border-color: rgba(var(--color-success-rgb, 82,196,26),.5);
+    background: rgba(var(--color-success-rgb, 82,196,26),.12);
+    color: $color-success;
+
+    &:hover { background: rgba(var(--color-success-rgb, 82,196,26),.22); }
+  }
+}
+
+// Erledigte Items: leicht ausgegraut
+.nz-item--done {
+  opacity: 0.6;
+
+  .nz-item__title { text-decoration: line-through; }
+}
+
+// ── Leerzustand ───────────────────────────────────────────────────────────────
+.nz-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $color-text-muted;
+  font-size: 13px;
+  padding: 8px 0;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; opacity: .5; }
+
+  &--lg {
+    flex-direction: column;
+    text-align: center;
+    padding: 32px 16px;
+
+    mat-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      opacity: .3;
+    }
+  }
+}
+
+// ── Date-Picker Dropdown ──────────────────────────────────────────────────────
+.nz-datepicker-wrap {
+  position: relative;
+}
+
+.nz-datepicker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  background: rgba(0,0,0, 0.15);
+  color: $color-text;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; color: $color-text-muted; }
+
+  &__chevron {
+    margin-left: auto;
+    transition: transform .2s;
+  }
+
+  &:hover { border-color: $color-primary; }
+}
+
+.nz-datepicker-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  width: 260px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  animation: dpFadeIn .15s ease;
+}
+
+@keyframes dpFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.dp-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.dp-arrow {
+  background: none;
+  border: none;
+  color: $color-text-muted;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color .15s, background .15s;
+
+  &:hover { color: $color-primary; background: rgba(var(--color-primary-rgb), 0.1); }
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-wd {
+  font-size: 10px;
+  font-weight: 600;
+  color: $color-text-muted;
+  text-align: center;
+  padding: 3px 0;
+  text-transform: uppercase;
+}
+
+.dp-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  background: none;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  color: $color-text;
+  cursor: pointer;
+  transition: all .1s;
+
+  &:hover:not(:disabled):not(.dp-day--empty) {
+    background: rgba(var(--color-primary-rgb), 0.12);
+    border-color: rgba(var(--color-primary-rgb), 0.3);
+  }
+
+  &--empty { pointer-events: none; }
+
+  &--today {
+    color: $color-accent;
+    font-weight: 700;
+  }
+
+  &--selected {
+    background: rgba(var(--color-accent-rgb), 0.15) !important;
+    border-color: $color-accent !important;
+    color: $color-accent !important;
+    font-weight: 700;
+  }
+}
+
+// ── Alle Notizen ──────────────────────────────────────────────────────────────
+.nz-all__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.nz-count {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(var(--color-primary-rgb), 0.15);
+  color: $color-primary;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.nz-all__list {
+  max-height: 520px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $color-primary transparent;
+}
+
+// ── Loading ───────────────────────────────────────────────────────────────────
+.nz-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px;
+  color: $color-text-muted;
+  font-size: 14px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid $color-border;
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// Tagesliste: subtiler gelber Border wenn heute angezeigt
+.nz-day-list--today {
+  border-color: rgba(var(--color-accent-rgb), 0.35);
+}
+
+// ── Formular ──────────────────────────────────────────────────────────────────
+.nz-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    margin: 0 0 4px;
+
+    mat-icon { font-size: 20px; width: 20px; height: 20px; color: $color-primary; }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+    border-top: 1px solid $color-border;
+  }
+}
+
+.nz-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  &__input {
+    padding: 8px 10px;
+    border: 1px solid $color-border;
+    border-radius: 8px;
+    background: rgba(0,0,0, 0.15);
+    color: $color-text;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color .15s;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+
+    &:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    &--time { width: auto; }
+
+    &--ta {
+      resize: vertical;
+      min-height: 90px;
+      font-family: inherit;
+    }
+  }
+}
+
+.nz-time-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nz-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $color-text;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: $color-primary;
+    cursor: pointer;
+  }
+}
+
+.req { color: $color-warn; }
+
+// ── Farb-Buttons ──────────────────────────────────────────────────────────────
+.nz-colors {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nz-color-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid $color-border;
+  background: transparent;
+  color: $color-text;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+
+  &--default.active { border-color: $color-border; background: rgba(var(--color-text-rgb),.1); color: $color-text-on-dark; }
+  &--info.active    { border-color: $color-primary; background: rgba(var(--color-primary-rgb),.15); color: $color-primary; }
+  &--success.active { border-color: $color-success; background: rgba(var(--color-success-rgb, 82,196,26),.15); color: $color-success; }
+  &--warn.active    { border-color: $color-warn; background: rgba(var(--color-warn-rgb, 250,173,20),.15); color: $color-warn; }
+
+  &:hover { border-color: $color-primary; }
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid $color-border;
+  background: $color-surface-soft;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: all .15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover { border-color: $color-primary; color: $color-primary; }
+
+  &--sm {
+    width: 26px;
+    height: 26px;
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  }
+
+  &--danger:hover { border-color: $color-danger; color: $color-danger; }
+}
+
+.btn-ghost {
+  padding: 8px 14px;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  background: transparent;
+  color: $color-text-muted;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+
+  &:hover { border-color: $color-primary; color: $color-primary; }
+}
+
+.btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--color-primary-rgb), 0.55);
+  background: rgba(var(--color-primary-rgb), 0.10);
+  color: $color-primary;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.15),
+              inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.08);
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:disabled { opacity: .5; cursor: not-allowed; }
+  &:not(:disabled):hover { background: rgba(var(--color-primary-rgb), 0.18); }
+}
+
+// ── Detail-View ───────────────────────────────────────────────────────────────
+.nz-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__acts {
+    display: flex;
+    gap: 6px;
+  }
+
+  &__date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: $color-text-muted;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  }
+
+  &__time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: $color-primary;
+    font-weight: 500;
+    margin-left: 6px;
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  }
+
+  &__title {
+    font-size: 17px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    margin: 0;
+  }
+
+  &__text {
+    font-size: 14px;
+    color: $color-text;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin: 0;
+  }
+}
+
+.nz-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
+  &--default { background: rgba(var(--color-text-rgb),.08); color: $color-text-muted; }
+  &--info    { background: rgba(var(--color-primary-rgb),.15); color: $color-primary; }
+  &--success { background: rgba(var(--color-success-rgb, 82,196,26),.15); color: $color-success; }
+  &--warn    { background: rgba(var(--color-warn-rgb, 250,173,20),.15); color: $color-warn; }
+}

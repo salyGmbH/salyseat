@@ -1,10 +1,13 @@
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { LayoutService } from '../layout.service';
 import { AuthService } from '../../services/auth.service';
+import { NotizenStateService } from '../../services/notizen-state.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
@@ -16,11 +19,13 @@ import { AuthService } from '../../services/auth.service';
 export class SidebarComponent implements OnDestroy {
   layout = inject(LayoutService);
   private auth = inject(AuthService);
+  readonly notizenState = inject(NotizenStateService);
+  private readonly router = inject(Router);
 
   collapsed = signal(false);
 
-  restaurants = ['salyseat Restaurant', 'Restaurant X', 'Cafe Y'];
-  selectedRestaurant = signal('salyseat Restaurant');
+  restaurants = ['Salyseat Restaurant', 'Restaurant X', 'Cafe Y'];
+  selectedRestaurant = signal('Salyseat Restaurant');
 
   // Eingeloggten User für die Sidebar zugänglich machen
   currentUserEmail = computed(() => this.auth.user()?.email ?? '');
@@ -53,5 +58,10 @@ export class SidebarComponent implements OnDestroy {
 
   logout() {
     this.auth.logout();
+  }
+
+  openNotizenPanel(): void {
+    this.notizenState.floatDismissed.set(true);
+    this.notizenState.panelOpen.set(true);
   }
 }

@@ -27,6 +27,7 @@ export interface GuestListResponse {
 
 export interface UpdateGuestDto {
   name?: string;
+  email?: string | null;
   phone?: string | null;
   internal_notes?: string | null;
   blocked?: boolean;

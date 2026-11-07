@@ -224,3 +224,96 @@
     border-radius: 12px;
   }
 }
+/* ===================== MODULE GRID ===================== */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* MOBILE DEFAULT = 2 nebeneinander */
+  gap: 10px;
+}
+
+/* TABLET: 2 bleibt gleich (optional nur sauber definiert) */
+@media (min-width: 600px) {
+  .module-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* DESKTOP: ALLE IN EINE REIHE */
+@media (min-width: 992px) {
+  .module-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+/* ===================== CARD ===================== */
+.module-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px;
+  border-radius: 12px;
+
+  background: rgba(var(--color-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.12);
+
+  transition: 0.25s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--color-primary-rgb), 0.3);
+    background: rgba(var(--color-primary-rgb), 0.10);
+  }
+}
+
+/* ICON */
+.module-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+
+  background: rgba(var(--color-accent-rgb), 0.12);
+  color: $color-accent;
+
+  mat-icon {
+    font-size: 20px;
+  }
+}
+
+/* TEXT */
+.module-content {
+  flex: 1;
+  margin-left: 12px;
+}
+
+.module-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.module-sub {
+  font-size: 11px;
+  color: $color-text-muted;
+  margin-top: 2px;
+}
+
+/* STATUS */
+.module-status {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+
+  border: 1px solid $color-border;
+  color: $color-text-muted;
+
+  &.active {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: #22c55e;
+    color: #22c55e;
+  }
+}
