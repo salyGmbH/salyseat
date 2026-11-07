@@ -1,22 +1,241 @@
+<!-- ── Header-Block ────────────────────────────────────────────────────────── -->
 <div class="settings-block">
   <div class="page-hero">
     <div class="page-hero__icon"><mat-icon>schedule</mat-icon></div>
     <div>
       <h2 class="page-hero__title">Öffnungszeiten</h2>
       <p class="page-hero__sub">
-        Legt fest, wann Gäste online buchen können und wann das Restaurant regulär
-        geöffnet ist — inklusive Service-Zeiten, Ruhetagen und Sonderöffnungen.
+        Legt fest, wann Gäste online buchen können — inklusive Ruhetagen,
+        Feiertagen und Sonderöffnungen.
       </p>
     </div>
-    <span class="soon-pill">In Vorbereitung</span>
   </div>
 
-  <div class="feature-list">
-    @for (f of features; track f.label) {
-      <div class="feature">
-        <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>
-        <span>{{ f.label }}</span>
-      </div>
-    }
+  <!-- Venue-Selektor (nur wenn mehrere) -->
+  @if (venues().length > 1) {
+    <div class="venue-tabs">
+      @for (v of venues(); track v.id) {
+        <button
+          class="venue-tab"
+          [class.venue-tab--active]="selectedVenueId() === v.id"
+          (click)="selectVenue(v.id)">
+          {{ v.name }}
+        </button>
+      }
+    </div>
+  }
+</div>
+
+<!-- ── Öffnungszeiten-Grid ────────────────────────────────────────────────── -->
+<div class="settings-block oh-block">
+
+  <div class="oh-header">
+    <h2 class="section-title">Reguläre Öffnungszeiten</h2>
+    <p class="section-sub">Definiere für jeden Wochentag ob geöffnet ist und zu welchen Zeiten.</p>
   </div>
+
+  <!-- Loading -->
+  @if (loadingDays()) {
+    <div class="oh-loading"><span class="spinner"></span> Wird geladen…</div>
+  }
+
+  <!-- Grid -->
+  @if (!loadingDays() && days().length > 0) {
+    <div class="day-grid">
+      @for (day of days(); track trackByWeekday($index, day)) {
+
+        <div class="day-row" [class.day-row--closed]="!day.open">
+
+          <!-- Toggle + Label -->
+          <div class="day-row__label">
+            <button class="toggle" [class.toggle--on]="day.open" (click)="toggleDay(day)">
+              <span class="toggle__knob"></span>
+            </button>
+            <span class="day-name">{{ day.label }}</span>
+          </div>
+
+          <!-- Zeiten -->
+          <div class="day-row__times" [class.day-row__times--hidden]="!day.open">
+            <div class="time-pair">
+              <label class="time-label">Öffnet</label>
+              <input class="time-input" type="time" [(ngModel)]="day.open_time" [disabled]="!day.open" />
+            </div>
+            <span class="time-sep">–</span>
+            <div class="time-pair">
+              <label class="time-label">Schließt</label>
+              <input class="time-input" type="time" [(ngModel)]="day.close_time" [disabled]="!day.open" />
+            </div>
+          </div>
+
+          <!-- Pausen -->
+          @if (day.open) {
+            <div class="day-row__breaks">
+              @for (brk of day.breaks; track trackByIdx($index)) {
+                <div class="break-row">
+                  <input class="time-input time-input--sm" type="time" [(ngModel)]="brk.from" placeholder="von" />
+                  <span class="time-sep">–</span>
+                  <input class="time-input time-input--sm" type="time" [(ngModel)]="brk.to" placeholder="bis" />
+                  <button class="icon-btn icon-btn--remove" (click)="removeBreak(day, $index)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              }
+              <button class="add-break-btn" (click)="addBreak(day)">
+                <mat-icon>add</mat-icon> Pause hinzufügen
+              </button>
+            </div>
+          }
+
+          <!-- Geschlossen-Label -->
+          @if (!day.open) {
+            <span class="closed-label">Geschlossen</span>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Speichern -->
+    <div class="oh-footer">
+      <button class="save-btn" [class.save-btn--saved]="savedDays()" [disabled]="savingDays()" (click)="saveHours()">
+        @if (savingDays()) {
+          <span class="spinner spinner--sm"></span> Wird gespeichert…
+        } @else if (savedDays()) {
+          <mat-icon>check</mat-icon> Gespeichert
+        } @else {
+          <mat-icon>save</mat-icon> Öffnungszeiten speichern
+        }
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Sonderöffnungen / Schliessungen ────────────────────────────────────── -->
+<div class="settings-block sc-block">
+
+  <div class="sc-header">
+    <div>
+      <h2 class="section-title">Sonderöffnungen &amp; Schliessungen</h2>
+      <p class="section-sub">Feiertage, Betriebsurlaub oder abweichende Zeiten für einen Zeitraum.</p>
+    </div>
+    <button class="add-btn" (click)="openAddForm()" [disabled]="showAddForm()">
+      <mat-icon>add</mat-icon> Eintrag hinzufügen
+    </button>
+  </div>
+
+  <!-- Hinzufügen-Formular -->
+  @if (showAddForm()) {
+    <div class="sc-form">
+      <div class="sc-form__grid">
+
+        <div class="form-group">
+          <label class="form-label">Von</label>
+          <input class="form-input" type="date" [(ngModel)]="newClosing.date_from" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Bis</label>
+          <input class="form-input" type="date" [(ngModel)]="newClosing.date_to" />
+        </div>
+
+        <div class="form-group form-group--full">
+          <label class="form-label">Grund (optional)</label>
+          <input class="form-input" type="text" [(ngModel)]="newClosing.reason" placeholder="z. B. Weihnachten, Betriebsurlaub…" />
+        </div>
+
+        <div class="form-group form-group--full">
+          <label class="form-label toggle-row">
+            <span>Komplett geschlossen</span>
+            <button class="toggle" [class.toggle--on]="newClosing.full_day" (click)="newClosing.full_day = !newClosing.full_day">
+              <span class="toggle__knob"></span>
+            </button>
+          </label>
+        </div>
+
+        @if (!newClosing.full_day) {
+          <div class="form-group">
+            <label class="form-label">Öffnet</label>
+            <input class="form-input" type="time" [(ngModel)]="newClosing.open_time" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Schließt</label>
+            <input class="form-input" type="time" [(ngModel)]="newClosing.close_time" />
+          </div>
+        }
+      </div>
+
+      <div class="sc-form__actions">
+        <button class="cancel-btn" (click)="cancelAdd()">Abbrechen</button>
+        <button class="save-btn" [disabled]="savingClosing() || !newClosing.date_from || !newClosing.date_to" (click)="createClosing()">
+          @if (savingClosing()) {
+            <span class="spinner spinner--sm"></span> Speichern…
+          } @else {
+            <mat-icon>save</mat-icon> Speichern
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loadingClosings()) {
+    <div class="oh-loading"><span class="spinner"></span> Wird geladen…</div>
+  }
+
+  <!-- Leer -->
+  @if (!loadingClosings() && closings().length === 0 && !showAddForm()) {
+    <div class="sc-empty">
+      <mat-icon>event_available</mat-icon>
+      <p>Noch keine Sonderöffnungen oder Schliessungen definiert.</p>
+    </div>
+  }
+
+  <!-- Tabelle -->
+  @if (!loadingClosings() && closings().length > 0) {
+    <div class="sc-table-wrap">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th>Zeitraum</th>
+            <th>Grund</th>
+            <th>Art</th>
+            <th>Zeiten</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (sc of closings(); track trackById($index, sc)) {
+            <tr>
+              <td class="col-date">
+                @if (sc.date_from === sc.date_to) {
+                  {{ formatDate(sc.date_from) }}
+                } @else {
+                  {{ formatDate(sc.date_from) }} – {{ formatDate(sc.date_to) }}
+                }
+              </td>
+              <td>{{ sc.reason ?? '–' }}</td>
+              <td>
+                @if (sc.full_day) {
+                  <span class="pill pill--closed">Geschlossen</span>
+                } @else {
+                  <span class="pill pill--custom">Sonderzeiten</span>
+                }
+              </td>
+              <td class="col-time">
+                @if (!sc.full_day) {
+                  {{ sc.open_time }} – {{ sc.close_time }}
+                } @else {
+                  –
+                }
+              </td>
+              <td class="col-action">
+                <button class="icon-btn icon-btn--remove" (click)="deleteClosing(sc.id)">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
 </div>

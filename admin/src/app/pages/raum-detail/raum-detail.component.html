@@ -49,7 +49,7 @@
           <input matInput [matDatepicker]="picker" class="date-card__hidden-input"
                  [value]="selectedDateAsDate()"
                  (dateChange)="onDateSelected($event)" />
-          <mat-datepicker #picker panelClass="salyseat-datepicker-panel"></mat-datepicker>
+          <mat-datepicker #picker panelClass="lyandro-datepicker-panel"></mat-datepicker>
 
           @if (selectedDate() !== todayIsoPublic()) {
             <button class="date-card__today-link" (click)="goToday()">
@@ -132,9 +132,6 @@
                           }
                           @if (res.phone) { <span class="muted">· <mat-icon>call</mat-icon>{{ res.phone }}</span> }
                         </div>
-                        @if (res.notes) {
-                          <div class="res-row__notes"><mat-icon>sticky_note_2</mat-icon>{{ res.notes }}</div>
-                        }
                       </div>
                       <div class="res-row__actions">
                         @switch (res.status) {
@@ -179,6 +176,12 @@
                           }
                         </div>
                       </div>
+                      @if (res.notes) {
+                        <div class="res-row__notes">
+                          <mat-icon>sticky_note_2</mat-icon>
+                          <span>{{ res.notes }}</span>
+                        </div>
+                      }
                     </div>
                   }
                 </div>

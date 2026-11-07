@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Availability\Domain\Entity;
 
+use App\Module\Availability\Infrastructure\Persistence\DoctrineSpecialClosingRepository;
 use App\Module\Venue\Domain\Entity\Venue;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -12,13 +13,8 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Sonderöffnungszeiten oder Schliessungen für einen bestimmten Tag.
  * Überschreibt die regulären OpeningHours für diesen Tag.
- *
- * Beispiele:
- * - Weihnachten: komplett geschlossen
- * - Silvester: nur von 18:00 - 23:00 geöffnet
- * - Betriebsferien: 01.08 - 14.08 geschlossen
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: DoctrineSpecialClosingRepository::class)]
 #[ORM\Table(name: 'special_closings')]
 class SpecialClosing
 {

@@ -6,12 +6,16 @@ namespace App\Api\Controller\Admin;
 
 use App\Module\Reservation\Application\Command\AdminCancelReservation\AdminCancelReservationCommand;
 use App\Module\Reservation\Application\Command\AdminCancelReservation\AdminCancelReservationHandler;
+use App\Module\Reservation\Application\Command\CompleteReservation\CompleteReservationCommand;
+use App\Module\Reservation\Application\Command\CompleteReservation\CompleteReservationHandler;
 use App\Module\Reservation\Application\Command\ConfirmReservation\ConfirmReservationCommand;
 use App\Module\Reservation\Application\Command\ConfirmReservation\ConfirmReservationHandler;
 use App\Module\Reservation\Application\Command\CreateReservation\CreateReservationCommand;
 use App\Module\Reservation\Application\Command\CreateReservation\CreateReservationHandler;
 use App\Module\Reservation\Application\Command\MarkNoShow\MarkNoShowCommand;
 use App\Module\Reservation\Application\Command\MarkNoShow\MarkNoShowHandler;
+use App\Module\Reservation\Application\Command\ReopenReservation\ReopenReservationCommand;
+use App\Module\Reservation\Application\Command\ReopenReservation\ReopenReservationHandler;
 use App\Module\Reservation\Application\Command\UpdateReservation\UpdateReservationCommand;
 use App\Module\Reservation\Application\Command\UpdateReservation\UpdateReservationHandler;
 use App\Module\Reservation\Application\Dto\ReservationDto;
@@ -40,6 +44,8 @@ class ReservationController extends AbstractController
         private readonly CreateReservationHandler $createHandler,
         private readonly UpdateReservationHandler $updateHandler,
         private readonly AdminCancelReservationHandler $cancelHandler,
+        private readonly CompleteReservationHandler $completeHandler,
+        private readonly ReopenReservationHandler $reopenHandler,
         private readonly EntityManagerInterface $em,
     ) {}
 
@@ -108,7 +114,7 @@ class ReservationController extends AbstractController
 
     /**
      * GET /api/v1/admin/reservations
-     * Filter: ?date=2026-11-05 ?status=confirmed ?limit=50 ?offset=0
+     * Filter: ?date=2026-11-06 ?status=confirmed ?limit=50 ?offset=0
      */
     #[Route('', name: 'admin_reservation_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] User $user): JsonResponse
@@ -257,6 +263,52 @@ class ReservationController extends AbstractController
 
         try {
             $reservation = ($this->cancelHandler)(new AdminCancelReservationCommand(
+                reservationId: $id,
+                tenantId:      $tenant->getId()->toRfc4122(),
+            ));
+        } catch (\DomainException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $this->json(ReservationDto::fromEntity($reservation)->toArray());
+    }
+
+    /**
+     * PATCH /api/v1/admin/reservations/{id}/complete
+     */
+    #[Route('/{id}/complete', name: 'admin_reservation_complete', methods: ['PATCH'])]
+    public function complete(string $id, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant zugewiesen.'], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $reservation = ($this->completeHandler)(new CompleteReservationCommand(
+                reservationId: $id,
+                tenantId:      $tenant->getId()->toRfc4122(),
+            ));
+        } catch (\DomainException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $this->json(ReservationDto::fromEntity($reservation)->toArray());
+    }
+
+    /**
+     * PATCH /api/v1/admin/reservations/{id}/reopen
+     */
+    #[Route('/{id}/reopen', name: 'admin_reservation_reopen', methods: ['PATCH'])]
+    public function reopen(string $id, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant zugewiesen.'], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $reservation = ($this->reopenHandler)(new ReopenReservationCommand(
                 reservationId: $id,
                 tenantId:      $tenant->getId()->toRfc4122(),
             ));

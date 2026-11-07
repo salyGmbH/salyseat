@@ -1,22 +1,17 @@
-<!-- ===================== MITARBEITER ===================== -->
 <div class="settings-block">
 
   <!-- Header -->
   <div class="section-header">
     <div class="section-header__left">
       <h2 class="section-title">Mitarbeiter</h2>
-      <span class="count-pill">{{ employees.length }}</span>
+      <span class="count-pill">{{ employees().length }}</span>
     </div>
-
     <div class="header-actions">
-      <button class="ghost-button"
-              [class.active]="infoOpen"
-              (click)="toggleInfo()"
-              title="Info">
+      <button class="ghost-button" [class.active]="infoOpen()" (click)="toggleInfo()" title="Info">
         <mat-icon>info</mat-icon>
       </button>
 
-      <button class="primary-button" (click)="openModal()">
+      <button class="primary-button" (click)="openAddModal()">
         <mat-icon>person_add</mat-icon>
         <span>Hinzufügen</span>
       </button>
@@ -24,20 +19,21 @@
   </div>
 
   <!-- Info-Box -->
-  <div class="info-box" [class.open]="infoOpen">
-    Lege fest, wer was darf. Wir unterstützen drei Rollen:
+  <div class="info-box" [class.open]="infoOpen()">
+    Lege fest, wer was darf. Drei Rollen stehen zur Verfügung:
     <strong>Admin</strong> hat uneingeschränkten Zugriff,
     <strong>Manager</strong> kümmert sich um den operativen Alltag,
     <strong>Staff</strong> arbeitet mit eingeschränkten Rechten am Tischplan.
+    Jeder Mitarbeiter bekommt automatisch eine eigene <strong>Mitarbeiter-Nummer</strong>
+    (z. B. #01), über die später nachvollziehbar wird, wer welche
+    Reservierung bearbeitet hat.
   </div>
 
   <!-- Rollen-Legende -->
   <div class="role-legend">
     @for (r of roles; track r.key) {
       <div class="role-card role-card--{{ r.key }}">
-        <div class="role-card__icon">
-          <mat-icon>{{ r.icon }}</mat-icon>
-        </div>
+        <div class="role-card__icon"><mat-icon>{{ r.icon }}</mat-icon></div>
         <div class="role-card__text">
           <div class="role-card__label">{{ r.label }}</div>
           <div class="role-card__tagline">{{ r.tagline }}</div>
@@ -46,85 +42,87 @@
     }
   </div>
 
-  <!-- Liste -->
-  <div class="employee-list">
-    @for (user of employees; track user.id) {
-      <div class="employee-card"
-           [class.inactive]="!user.active"
-           [attr.data-role]="user.role">
+  <!-- Lade-Zustand / Fehler / Leer -->
+  @if (loading()) {
+    <div class="empty-state">
+      <mat-icon>sync</mat-icon>
+      <div>Wird geladen …</div>
+    </div>
+  } @else if (loadError()) {
+    <div class="form-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ loadError() }}</span>
+      <button class="icon-button" (click)="load()" title="Erneut versuchen">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  } @else if (!employees().length) {
+    <div class="empty-state">
+      <mat-icon>group_add</mat-icon>
+      <div>Noch keine Mitarbeiter angelegt.</div>
+    </div>
+  } @else {
 
-        <!-- Avatar -->
-        <div class="avatar" [attr.data-role]="user.role">
-          {{ initials(user.name) }}
-        </div>
+    <!-- Liste -->
+    <div class="employee-list">
+      @for (user of employees(); track user.id) {
+        <div class="employee-card"
+             [class.inactive]="!user.active"
+             [attr.data-role]="user.role">
 
-        <!-- Info -->
-        <div class="employee-info">
-          <div class="employee-name">
-            {{ user.name }}
-            @if (!user.active) {
-              <span class="pill pill--muted">Deaktiviert</span>
+          <!-- Avatar -->
+          <div class="avatar" [attr.data-role]="user.role">
+            {{ initials(user.name) }}
+          </div>
+
+          <!-- Info -->
+          <div class="employee-info">
+            <div class="employee-name">
+              {{ user.name }}
+              <span class="staff-id-pill" [attr.data-role]="user.role" title="Mitarbeiter-Nummer">
+                {{ formatNumber(user.employee_number) }}
+              </span>
+              @if (!user.active) {
+                <span class="pill pill--muted">Deaktiviert</span>
+              }
+            </div>
+            @if (user.email) {
+              <div class="employee-email">{{ user.email }}</div>
             }
           </div>
-          <div class="employee-email">{{ user.email }}</div>
-        </div>
 
-        <!-- Rollen-Chips -->
-        <div class="role-chips">
-          @for (r of roles; track r.key) {
-            <button type="button"
-                    class="role-chip role-chip--{{ r.key }}"
-                    [class.active]="user.role === r.key"
-                    (click)="setRole(user, r.key)"
-                    [title]="r.tagline">
-              <mat-icon>{{ r.icon }}</mat-icon>
-              <span>{{ r.label }}</span>
-            </button>
+          <!-- Actions (nur Admin) -->
+          @if (canEdit()) {
+            <div class="employee-actions">
+              <label class="switch" title="Aktivieren / deaktivieren">
+                <input type="checkbox" [checked]="user.active" (change)="toggleActive(user)" />
+                <span class="slider"></span>
+              </label>
+
+              <button class="icon-button" (click)="openEditModal(user)" title="Bearbeiten">
+                <mat-icon>edit</mat-icon>
+              </button>
+
+              <button class="icon-button danger" (click)="removeUser(user)" title="Entfernen">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
           }
+
         </div>
-
-        <!-- Actions -->
-        <div class="employee-actions">
-          <label class="switch" title="Aktivieren / deaktivieren">
-            <input type="checkbox"
-                   [checked]="user.active"
-                   (change)="toggleActive(user)" />
-            <span class="slider"></span>
-          </label>
-
-          <button class="icon-button danger"
-                  (click)="removeUser(user)"
-                  title="Entfernen">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
-        </div>
-      </div>
-    }
-
-    @if (!employees.length) {
-      <div class="empty-state">
-        <mat-icon>group_off</mat-icon>
-        <div>Noch keine Mitarbeiter angelegt.</div>
-      </div>
-    }
-  </div>
-
-  <!-- Save -->
-  <div class="actions">
-    <button class="save-button" [class.saved]="saved" (click)="save()">
-      {{ saved ? 'Gespeichert ✓' : 'Speichern' }}
-    </button>
-  </div>
+      }
+    </div>
+  }
 
 </div>
 
-<!-- ===================== MODAL ===================== -->
+<!-- ===================== MODAL (Hinzufügen + Bearbeiten) ===================== -->
 @if (modalOpen) {
   <div class="modal-backdrop" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
 
       <div class="modal__header">
-        <h3>Mitarbeiter hinzufügen</h3>
+        <h3>{{ modalMode === 'add' ? 'Mitarbeiter hinzufügen' : 'Mitarbeiter bearbeiten' }}</h3>
         <button class="icon-button" (click)="closeModal()" title="Schließen">
           <mat-icon>close</mat-icon>
         </button>
@@ -133,18 +131,21 @@
       <div class="modal__body">
 
         <label class="field">
-          <span class="field__label">Name</span>
-          <input type="text"
-                 placeholder="z. B. Lena Vogel"
-                 [(ngModel)]="newUser.name" />
+          <span class="field__label">Name *</span>
+          <input type="text" name="name" placeholder="z. B. Lena Vogel" [(ngModel)]="form.name" />
         </label>
 
         <label class="field">
-          <span class="field__label">E-Mail</span>
-          <input type="email"
-                 placeholder="lena@example.com"
-                 [(ngModel)]="newUser.email" />
+          <span class="field__label">
+            E-Mail
+            <span class="field__hint">— optional</span>
+          </span>
+          <input type="email" name="email" placeholder="lena@example.com" [(ngModel)]="form.email" />
         </label>
+
+        @if (modalMode === 'add') {
+          <p class="field__hint">Die Mitarbeiter-Nummer wird automatisch vergeben.</p>
+        }
 
         <!-- Rollen-Picker -->
         <div class="field">
@@ -153,8 +154,8 @@
             @for (r of roles; track r.key) {
               <button type="button"
                       class="role-option role-option--{{ r.key }}"
-                      [class.active]="newUser.role === r.key"
-                      (click)="setNewRole(r.key)">
+                      [class.active]="form.role === r.key"
+                      (click)="setFormRole(r.key)">
                 <div class="role-option__icon">
                   <mat-icon>{{ r.icon }}</mat-icon>
                 </div>
@@ -162,7 +163,7 @@
                   <div class="role-option__label">{{ r.label }}</div>
                   <div class="role-option__tagline">{{ r.tagline }}</div>
                 </div>
-                @if (newUser.role === r.key) {
+                @if (form.role === r.key) {
                   <mat-icon class="role-option__check">check_circle</mat-icon>
                 }
               </button>
@@ -171,13 +172,13 @@
         </div>
 
         <!-- Berechtigungs-Vorschau -->
-        <div class="permissions-preview permissions-preview--{{ newUser.role }}">
+        <div class="permissions-preview permissions-preview--{{ form.role }}">
           <div class="permissions-preview__title">
             <mat-icon>verified</mat-icon>
-            Was {{ roleMeta[newUser.role].label }} darf
+            Was {{ roleMeta[form.role].label }} darf
           </div>
           <ul>
-            @for (p of roleMeta[newUser.role].permissions; track p) {
+            @for (p of roleMeta[form.role].permissions; track p) {
               <li>
                 <mat-icon>check</mat-icon>
                 <span>{{ p }}</span>
@@ -186,11 +187,31 @@
           </ul>
         </div>
 
+        @if (formError) {
+          <div class="form-error">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ formError }}</span>
+          </div>
+        }
+
       </div>
+
+      @if (saveError()) {
+        <div class="modal-error">
+          <mat-icon>error_outline</mat-icon>
+          {{ saveError() }}
+        </div>
+      }
 
       <div class="modal-actions">
         <button class="btn-secondary" (click)="closeModal()">Abbrechen</button>
-        <button class="btn-primary" (click)="addUser()">Hinzufügen</button>
+        <button class="btn-primary" [disabled]="saving()" (click)="saveModal()">
+          @if (saving()) {
+            Wird gespeichert …
+          } @else {
+            {{ modalMode === 'add' ? 'Hinzufügen' : 'Speichern' }}
+          }
+        </button>
       </div>
 
     </div>

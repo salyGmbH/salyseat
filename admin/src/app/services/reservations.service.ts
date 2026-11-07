@@ -56,6 +56,18 @@ export class ReservationsService {
     );
   }
 
+  complete(id: string): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.base}/${id}/complete`, {}).pipe(
+      tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),
+    );
+  }
+
+  reopen(id: string): Observable<Reservation> {
+    return this.http.patch<Reservation>(`${this.base}/${id}/reopen`, {}).pipe(
+      tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),
+    );
+  }
+
   update(id: string, payload: {
     guest_name?: string;
     party_size?: number;

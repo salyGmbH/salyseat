@@ -1,3 +1,4 @@
+<!-- ── Bestehender Block (unverändert) ─────────────────────────────────── -->
 <div class="settings-block">
   <div class="page-hero">
     <div class="page-hero__icon"><mat-icon>groups</mat-icon></div>
@@ -20,4 +21,122 @@
       </div>
     }
   </div>
+</div>
+
+<!-- ── Kundenliste ──────────────────────────────────────────────────────── -->
+<div class="settings-block guest-block">
+
+  <div class="guest-header">
+    <div class="guest-header__left">
+      <h2 class="section-title">Alle Kunden</h2>
+      <span class="guest-count" *ngIf="!loading()">{{ total() }} Einträge</span>
+    </div>
+
+    <div class="guest-search">
+      <mat-icon class="guest-search__icon">search</mat-icon>
+      <input
+        class="guest-search__input"
+        type="text"
+        placeholder="Name oder E-Mail suchen…"
+        [(ngModel)]="searchInput"
+        (keyup.enter)="onSearch()"
+        (input)="onSearch()" />
+      <button class="guest-search__clear" *ngIf="searchInput" (click)="clearSearch()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="guest-loading" *ngIf="loading()">
+    <span class="spinner"></span> Wird geladen…
+  </div>
+
+  <!-- Leer -->
+  <div class="guest-empty" *ngIf="!loading() && guests().length === 0">
+    <mat-icon>person_off</mat-icon>
+    <p>Noch keine Kunden gefunden.</p>
+  </div>
+
+  <!-- Tabelle -->
+  <div class="guest-table-wrap" *ngIf="!loading() && guests().length > 0">
+    <table class="guest-table">
+      <thead>
+        <tr>
+          <th>Gast</th>
+          <th>Kontakt</th>
+          <th class="col-num">Buchungen</th>
+          <th class="col-num">No-Shows</th>
+          <th class="col-num">Zuverlässigkeit</th>
+          <th>Status</th>
+          <th>Seit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let g of guests()" [class.row--blocked]="g.blocked">
+          <!-- Gast -->
+          <td>
+            <div class="guest-cell">
+              <div class="guest-avatar" [class.avatar--blocked]="g.blocked">
+                {{ initials(g.name) }}
+              </div>
+              <div class="guest-info">
+                <span class="guest-name">{{ g.name }}</span>
+                <span class="guest-notes" *ngIf="g.internal_notes">{{ g.internal_notes }}</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Kontakt -->
+          <td>
+            <div class="contact-cell">
+              <span class="contact-email">{{ g.email }}</span>
+              <span class="contact-phone" *ngIf="g.phone">{{ g.phone }}</span>
+            </div>
+          </td>
+
+          <!-- Buchungen -->
+          <td class="col-num">
+            <span class="num-badge">{{ g.total_reservations }}</span>
+          </td>
+
+          <!-- No-Shows -->
+          <td class="col-num">
+            <span class="num-badge num-badge--warn" *ngIf="g.no_show_count > 0">{{ g.no_show_count }}</span>
+            <span class="num-badge num-badge--muted" *ngIf="g.no_show_count === 0">0</span>
+          </td>
+
+          <!-- Zuverlässigkeit -->
+          <td class="col-num">
+            <div class="score-wrap">
+              <span class="score-bar">
+                <span class="score-bar__fill" [class]="reliabilityClass(g.reliability_score)"
+                      [style.width.%]="g.reliability_score"></span>
+              </span>
+              <span class="score-label" [class]="reliabilityClass(g.reliability_score)">
+                {{ g.reliability_score }}%
+              </span>
+            </div>
+          </td>
+
+          <!-- Status -->
+          <td>
+            <span class="status-pill status-pill--blocked" *ngIf="g.blocked">
+              <mat-icon>block</mat-icon> Gesperrt
+            </span>
+            <span class="status-pill status-pill--ok" *ngIf="!g.blocked && g.total_reservations >= 3">
+              <mat-icon>star</mat-icon> Stammgast
+            </span>
+            <span class="status-pill status-pill--new" *ngIf="!g.blocked && g.total_reservations < 3">
+              Neukunde
+            </span>
+          </td>
+
+          <!-- Seit -->
+          <td class="col-date">{{ g.created_at }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
 </div>

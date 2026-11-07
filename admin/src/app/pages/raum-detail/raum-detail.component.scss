@@ -509,6 +509,9 @@
 
   display: grid;
   grid-template-columns: 56px 1fr auto;
+  grid-template-areas:
+    "time body actions"
+    "notes notes notes";
   align-items: stretch;
   gap: 10px;
   padding: 6px 10px 6px 6px;
@@ -533,6 +536,7 @@
 
   // Farbiger Uhrzeit-Block links — wie bei OpenTable
   &__time {
+    grid-area: time;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -551,6 +555,7 @@
   }
 
   &__body {
+    grid-area: body;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -598,19 +603,43 @@
     .muted  { color: rgba(var(--color-text-rgb), 0.4); }
   }
 
+  // Notiz: eigene volle-Breite-Zeile unter Time/Body/Actions —
+  // wirkt wie ein abgesetztes Sticky-Note-Panel mit Status-Akzent.
   &__notes {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    color: rgba(var(--color-text-rgb), 0.5);
-    font-style: italic;
+    grid-area: notes;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     margin-top: 2px;
+    padding: 8px 10px;
+    background: color-mix(in srgb, var(--status-color) 7%, rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(var(--color-text-rgb), 0.06);
+    border-left: 2px solid var(--status-color);
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(var(--color-text-rgb), 0.78);
 
-    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+    mat-icon {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      color: var(--status-color);
+      opacity: 0.85;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    span {
+      flex: 1;
+      min-width: 0;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
   }
 
   &__actions {
+    grid-area: actions;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -626,6 +655,7 @@
   }
 
   &__left-stack {
+    grid-area: time;
     display: flex;
     flex-direction: column;
     gap: 3px;

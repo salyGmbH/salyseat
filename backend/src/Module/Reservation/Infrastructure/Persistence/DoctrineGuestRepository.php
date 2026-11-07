@@ -34,6 +34,38 @@ class DoctrineGuestRepository extends ServiceEntityRepository implements GuestRe
             ->getOneOrNullResult();
     }
 
+    public function listByTenant(Uuid $tenantId, ?string $search, int $limit, int $offset): array
+    {
+        $qb = $this->createQueryBuilder('g')
+            ->where('IDENTITY(g.tenant) = :tenantId')
+            ->setParameter('tenantId', $tenantId->toBinary())
+            ->orderBy('g.name', 'ASC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        if ($search !== null && $search !== '') {
+            $qb->andWhere('g.name LIKE :search OR g.email LIKE :search')
+               ->setParameter('search', '%' . $search . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function countByTenant(Uuid $tenantId, ?string $search): int
+    {
+        $qb = $this->createQueryBuilder('g')
+            ->select('COUNT(g.id)')
+            ->where('IDENTITY(g.tenant) = :tenantId')
+            ->setParameter('tenantId', $tenantId->toBinary());
+
+        if ($search !== null && $search !== '') {
+            $qb->andWhere('g.name LIKE :search OR g.email LIKE :search')
+               ->setParameter('search', '%' . $search . '%');
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
     public function save(Guest $guest): void
     {
         $this->getEntityManager()->persist($guest);

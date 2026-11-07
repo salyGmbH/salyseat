@@ -64,11 +64,25 @@
 }
 
 .col__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--w-color-text-muted);
+}
+
+.hours-hint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--w-color-text-muted);
+  background: rgba(0,0,0,.05);
+  border-radius: 4px;
+  padding: 1px 6px;
 }
 
 // ─── Inputs ──────────────────────────────────────────────────────────────
@@ -87,6 +101,20 @@
   &:focus {
     border-color: var(--w-color-primary);
     box-shadow: 0 0 0 3px rgba(var(--w-color-primary-rgb), 0.15);
+  }
+
+  &--select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 32px;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
   }
 
   &--textarea {
@@ -176,6 +204,18 @@
     color: #b71c1c;
     border: 1px solid rgba(229, 57, 53, 0.25);
   }
+
+  &--closed {
+    background: rgba(229, 57, 53, 0.08);
+    color: #b71c1c;
+    border: 1px solid rgba(229, 57, 53, 0.2);
+  }
+
+  &--warn {
+    background: rgba(234, 179, 8, 0.10);
+    color: #92400e;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+  }
 }
 
 // ─── Buttons ─────────────────────────────────────────────────────────────
@@ -256,6 +296,76 @@
     color: var(--w-color-text-muted);
     font-size: 0.9rem;
     margin: 0;
+  }
+}
+
+// ─── Lade-Zustand ────────────────────────────────────────────────────────
+.state-loading {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--w-color-text-muted);
+  font-size: 0.95rem;
+  padding: 48px 28px;
+  flex-direction: row;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--w-color-border);
+  border-top-color: var(--w-color-primary);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ─── Venue-Picker ─────────────────────────────────────────────────────────
+.venue-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--w-color-text-muted);
+    margin: 0;
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.venue-btn {
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--w-color-text);
+  background: var(--w-color-surface);
+  border: 1px solid var(--w-color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+
+  &:hover {
+    border-color: var(--w-color-primary);
+    background: rgba(var(--w-color-primary-rgb), 0.05);
+  }
+
+  &--active {
+    border-color: var(--w-color-primary);
+    background: rgba(var(--w-color-primary-rgb), 0.1);
+    color: var(--w-color-primary);
+    font-weight: 600;
   }
 }
 

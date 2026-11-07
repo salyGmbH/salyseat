@@ -1,22 +1,31 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError, of } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 
-/** Payload, das das Widget ans Backend schickt. */
+export interface WidgetVenue {
+  id: string;
+  name: string;
+  category: string;
+  address: string | null;
+}
+
+export interface WidgetConfig {
+  name: string;
+  venues: WidgetVenue[];
+}
+
 export interface CreateReservationPayload {
   venue_id:    string;
   guest_name:  string;
   guest_email: string;
   guest_phone?: string;
   party_size:  number;
-  /** ATOM-Format mit Timezone, z.B. 2026-11-29T19:00:00+02:00 */
   starts_at:   string;
   notes?:      string;
 }
 
-/** Antwort des Backends nach erfolgreicher Erstellung. */
 export interface CreateReservationResponse {
   reservation: {
     id:         string;
@@ -31,10 +40,36 @@ export interface CreateReservationResponse {
   message: string;
 }
 
+export interface Break {
+  from: string;
+  to: string;
+}
+
+export interface DayAvailability {
+  open: boolean;
+  open_time: string | null;
+  close_time: string | null;
+  breaks: Break[];
+  reason: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReservationsService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/widget/reservations`;
+  private readonly availBase = `${environment.apiUrl}/widget/availability`;
+
+  loadConfig(publicKey: string): Observable<WidgetConfig> {
+    return this.http.get<WidgetConfig>(`${this.base}/config/${publicKey}`).pipe(
+      catchError(() => of({ name: 'Restaurant', venues: [] }))
+    );
+  }
+
+  checkAvailability(venueId: string, date: string): Observable<DayAvailability> {
+    return this.http.get<DayAvailability>(`${this.availBase}?venue_id=${venueId}&date=${date}`).pipe(
+      catchError(() => of({ open: true, open_time: null, close_time: null, breaks: [], reason: null }))
+    );
+  }
 
   create(payload: CreateReservationPayload): Observable<CreateReservationResponse> {
     return this.http.post<CreateReservationResponse>(this.base, payload);
@@ -42,11 +77,7 @@ export class ReservationsService {
 }
 
 // ─── Helfer: Datum + Uhrzeit → ATOM-String (mit lokalem TZ-Offset) ────────
-//
-// Das Backend validiert starts_at strikt im ATOM-Format (Y-m-d\TH:i:sP),
-// also brauchen wir den Timezone-Offset hinten dran (z.B. +02:00).
 export function toAtomDateTime(date: string, time: string): string {
-  // date = "2026-11.05", time = "19:00"
   const local = new Date(`${date}T${time}:00`);
   const offsetMinutes = -local.getTimezoneOffset();
   const sign = offsetMinutes >= 0 ? '+' : '-';

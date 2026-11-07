@@ -11,6 +11,8 @@ use App\Module\Reservation\Application\Command\CreateReservation\CreateReservati
 use App\Module\Reservation\Application\Dto\ReservationDto;
 use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenHandler;
 use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenQuery;
+use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,7 +29,44 @@ class ReservationController extends AbstractController
         private readonly CreateReservationHandler $createHandler,
         private readonly CancelReservationHandler $cancelHandler,
         private readonly GetReservationByTokenHandler $statusHandler,
+        private readonly DoctrineTenantRepository $tenants,
+        private readonly EntityManagerInterface $em,
     ) {}
+
+    /**
+     * GET /api/v1/widget/config/{publicKey}
+     * Gibt Restaurantname + aktive Venues zurück — kein Auth nötig.
+     */
+    #[Route('/config/{publicKey}', name: 'widget_config', methods: ['GET'])]
+    public function config(string $publicKey): JsonResponse
+    {
+        $tenant = $this->tenants->findByPublicKey($publicKey);
+
+        if ($tenant === null || !$tenant->isActive()) {
+            return $this->json(['error' => 'Restaurant nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $venueList = $this->em->createQueryBuilder()
+            ->select('v')
+            ->from('App\Module\Venue\Domain\Entity\Venue', 'v')
+            ->where('IDENTITY(v.tenant) = :tenantId')
+            ->andWhere('v.active = :active')
+            ->setParameter('tenantId', $tenant->getId()->toBinary())
+            ->setParameter('active', true)
+            ->orderBy('v.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->json([
+            'name'   => $tenant->getName(),
+            'venues' => array_map(fn ($v) => [
+                'id'       => $v->getId()->toRfc4122(),
+                'name'     => $v->getName(),
+                'category' => $v->getCategory(),
+                'address'  => $v->getAddress(),
+            ], $venueList),
+        ]);
+    }
 
     /**
      * POST /api/v1/widget/reservations

@@ -43,6 +43,9 @@ class Tenant
     #[ORM\OneToOne(mappedBy: 'tenant', cascade: ['persist', 'remove'])]
     private ?TenantBranding $branding = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $uiSettings = null;
+
     public function __construct(string $name, string $slug)
     {
         $this->id = Uuid::v7();
@@ -86,6 +89,16 @@ class Tenant
     public function getBranding(): ?TenantBranding
     {
         return $this->branding;
+    }
+
+    public function getUiSettings(): ?array
+    {
+        return $this->uiSettings;
+    }
+
+    public function setUiSettings(?array $settings): void
+    {
+        $this->uiSettings = $settings;
     }
     public function getCreatedAt(): \DateTimeImmutable
     {

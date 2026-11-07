@@ -15,4 +15,7 @@ export const environment = {
   production: false,
   apiUrl: '/api/v1',
   venueId: '01a1b160-c05e-75fa-af94-33921014d179',
+  /** Öffentlicher Schlüssel von „Salyseat Restaurant“ (Spalte tenants.public_key).
+   *  Override per URL:  http://localhost:4301/?key=<publicKey> */
+  publicKey: '9a28109b7d268d4c8875ecf77380fac7fc0843b896342be7',
 };

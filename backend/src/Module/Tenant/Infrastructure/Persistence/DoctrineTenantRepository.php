@@ -40,6 +40,11 @@ class DoctrineTenantRepository extends ServiceEntityRepository
         return $this->findOneBy(['slug' => $slug]);
     }
 
+    public function findByPublicKey(string $key): ?Tenant
+    {
+        return $this->findOneBy(['publicKey' => $key]);
+    }
+
     public function save(Tenant $tenant): void
     {
         $this->getEntityManager()->persist($tenant);

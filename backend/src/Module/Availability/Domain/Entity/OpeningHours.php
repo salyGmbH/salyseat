@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Availability\Domain\Entity;
 
+use App\Module\Availability\Infrastructure\Persistence\DoctrineOpeningHoursRepository;
 use App\Module\Venue\Domain\Entity\Venue;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -15,7 +16,7 @@ use Symfony\Component\Uid\Uuid;
  *
  * Wochentage: 0 = Montag, 1 = Dienstag, ..., 6 = Sonntag
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: DoctrineOpeningHoursRepository::class)]
 #[ORM\Table(name: 'opening_hours')]
 #[ORM\UniqueConstraint(name: 'uq_venue_weekday', columns: ['venue_id', 'weekday'])]
 class OpeningHours

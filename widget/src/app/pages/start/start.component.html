@@ -1,31 +1,61 @@
 <section class="card">
   <header class="card__header">
     <h1>Tisch reservieren</h1>
-    <p class="subtitle">bei {{ restaurantName }}</p>
+    @if (restaurantName()) {
+      <p class="subtitle">bei {{ restaurantName() }}</p>
+    }
   </header>
 
-  <!-- ─── Erfolgs-Ansicht ───────────────────────────────────────────────── -->
-  @if (state() === 'success' && successInfo(); as info) {
+  <!-- ─── Laden ────────────────────────────────────────────────────────── -->
+  @if (state() === 'loading') {
+    <div class="card__body state-loading">
+      <span class="spinner"></span>
+      <span>Wird geladen …</span>
+    </div>
+  }
+
+  <!-- ─── Erfolg ───────────────────────────────────────────────────────── -->
+  @else if (state() === 'success') {
     <div class="card__body success">
       <div class="success__icon">✓</div>
       <h2>Reservierung bestätigt</h2>
       <p class="success__lead">
-        Danke {{ info.name }}! Deine Reservierung am
-        <strong>{{ formatDate(info.date) }}</strong> um
-        <strong>{{ info.time }} Uhr</strong> für
-        <strong>{{ info.people }} {{ info.people === 1 ? 'Person' : 'Personen' }}</strong>
+        Danke <strong>{{ successInfo()!.name }}</strong>! Deine Reservierung am
+        <strong>{{ formatDate(successInfo()!.date) }}</strong> um
+        <strong>{{ successInfo()!.time }} Uhr</strong> für
+        <strong>{{ successInfo()!.people }} {{ successInfo()!.people === 1 ? 'Person' : 'Personen' }}</strong>
+        @if (venues().length > 1) { im <strong>{{ successInfo()!.venue }}</strong> }
         wurde gespeichert.
       </p>
-      <p class="success__hint">
-        Sie ist jetzt im Admin-Bereich sichtbar.
-      </p>
+      <p class="success__hint">Du erhältst in Kürze eine Bestätigungsmail.</p>
       <button type="button" class="btn-secondary" (click)="reset()">
         Neue Reservierung
       </button>
     </div>
-  } @else {
-    <!-- ─── Eingabe-Ansicht ────────────────────────────────────────────── -->
+  }
+
+  <!-- ─── Formular ─────────────────────────────────────────────────────── -->
+  @else {
     <div class="card__body">
+
+      <!-- Venue-Picker (nur wenn mehrere Venues vorhanden) -->
+      @if (venues().length > 1) {
+        <div class="venue-picker">
+          <p class="venue-picker__label">Bereich wählen</p>
+          <div class="venue-picker__list">
+            @for (v of venues(); track v.id) {
+              <button
+                type="button"
+                class="venue-btn"
+                [class.venue-btn--active]="selectedVenue()?.id === v.id"
+                (click)="selectVenue(v)">
+                {{ v.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
       <!-- 3-Spalten: Datum / Uhrzeit / Personen -->
       <div class="grid">
         <div class="col">
@@ -37,41 +67,35 @@
             [min]="today"
             [ngModel]="date()"
             (ngModelChange)="date.set($event)"
-            name="date"
-          />
+            name="date" />
         </div>
 
         <div class="col">
           <label class="col__label" for="res-time">Uhrzeit</label>
-          <input
+          <select
             id="res-time"
-            type="time"
-            class="field"
-            step="900"
-            [ngModel]="time()"
-            (ngModelChange)="time.set($event)"
-            name="time"
-          />
+            class="field field--select"
+            [ngModel]="validTime()"
+            (ngModelChange)="onTimeChange($event)"
+            [disabled]="isClosedDay() || timeSlots().length === 0"
+            name="time">
+            @for (slot of timeSlots(); track slot) {
+              <option [value]="slot">{{ slot }} Uhr</option>
+            }
+            @if (isClosedDay()) {
+              <option value="">Geschlossen</option>
+            }
+          </select>
         </div>
 
         <div class="col">
           <label class="col__label">Personen</label>
           <div class="stepper" role="group" aria-label="Personenanzahl">
-            <button
-              type="button"
-              class="stepper__btn"
-              (click)="decrement()"
-              [disabled]="people() <= minPeople"
-              aria-label="Weniger Personen"
-            >−</button>
+            <button type="button" class="stepper__btn"
+                    (click)="decrement()" [disabled]="people() <= minPeople">−</button>
             <span class="stepper__value">{{ people() }}</span>
-            <button
-              type="button"
-              class="stepper__btn"
-              (click)="increment()"
-              [disabled]="people() >= maxPeople"
-              aria-label="Mehr Personen"
-            >+</button>
+            <button type="button" class="stepper__btn"
+                    (click)="increment()" [disabled]="people() >= maxPeople">+</button>
           </div>
         </div>
       </div>
@@ -80,55 +104,41 @@
       <div class="guest">
         <label class="guest__row">
           <span class="guest__label">Name</span>
-          <input
-            type="text"
-            class="field"
-            [ngModel]="guestName()"
-            (ngModelChange)="guestName.set($event)"
-            name="guestName"
-            placeholder="Vor- und Nachname"
-            autocomplete="name"
-          />
+          <input type="text" class="field"
+                 [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
+                 name="guestName" placeholder="Vor- und Nachname" autocomplete="name" />
         </label>
 
         <label class="guest__row">
           <span class="guest__label">E-Mail</span>
-          <input
-            type="email"
-            class="field"
-            [ngModel]="guestEmail()"
-            (ngModelChange)="guestEmail.set($event)"
-            name="guestEmail"
-            placeholder="name@beispiel.de"
-            autocomplete="email"
-          />
+          <input type="email" class="field"
+                 [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                 name="guestEmail" placeholder="name@beispiel.de" autocomplete="email" />
         </label>
 
         <label class="guest__row">
           <span class="guest__label">Telefon <span class="guest__optional">(optional)</span></span>
-          <input
-            type="tel"
-            class="field"
-            [ngModel]="guestPhone()"
-            (ngModelChange)="guestPhone.set($event)"
-            name="guestPhone"
-            placeholder="+49 …"
-            autocomplete="tel"
-          />
+          <input type="tel" class="field"
+                 [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
+                 name="guestPhone" placeholder="+49 …" autocomplete="tel" />
         </label>
 
         <label class="guest__row">
           <span class="guest__label">Anmerkungen <span class="guest__optional">(optional)</span></span>
-          <textarea
-            class="field field--textarea"
-            [ngModel]="notes()"
-            (ngModelChange)="notes.set($event)"
-            name="notes"
-            rows="2"
-            placeholder="Besonderheiten, Allergien …"
-          ></textarea>
+          <textarea class="field field--textarea"
+                    [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                    name="notes" rows="2"
+                    placeholder="Besonderheiten, Allergien …"></textarea>
         </label>
       </div>
+
+      <!-- Geschlossener Tag -->
+      @if (isClosedDay()) {
+        <div class="alert alert--closed">
+          <strong>An diesem Tag geschlossen</strong>
+          @if (availability()?.reason) { — {{ availability()!.reason }} }
+        </div>
+      }
 
       @if (state() === 'error') {
         <div class="alert alert--error">{{ errorMessage() }}</div>
@@ -136,17 +146,10 @@
     </div>
 
     <footer class="card__footer">
-      <button
-        type="button"
-        class="btn-primary"
-        [disabled]="!canSubmit()"
-        (click)="weiter()"
-      >
-        @if (state() === 'submitting') {
-          Wird gesendet …
-        } @else {
-          Reservierung absenden
-        }
+      <button type="button" class="btn-primary"
+              [disabled]="!canSubmit()" (click)="weiter()">
+        @if (state() === 'submitting') { Wird gesendet … }
+        @else { Reservierung absenden }
       </button>
     </footer>
   }

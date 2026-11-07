@@ -167,9 +167,11 @@ export class RaumDetailComponent implements OnInit {
   }
 
   private mapBackendStatus(status: string): FloorReservationStatus {
+    if (status === 'confirmed') return 'seated';
+    if (status === 'completed') return 'completed';
     if (status === 'cancelled') return 'cancelled';
     if (status === 'no_show')   return 'no-show';
-    return 'upcoming';
+    return 'upcoming';  // pending
   }
 
   // ── Reservierungs-State ────────────────────────────────────────────────
@@ -535,12 +537,16 @@ export class RaumDetailComponent implements OnInit {
 
   // ── Status-Aktionen ───────────────────────────────────────────────────
   checkIn(res: FloorReservation) {
-    // Wenn kein Tisch zugewiesen, Tisch-Auswahl anstoßen
     if (!res.tableId) {
       this.tablePickerFor.set(res.id);
       return;
     }
     this.reservationsService.setStatus(res.id, 'seated');
+    if (res.backendId) {
+      this.apiReservations.confirm(res.backendId).subscribe({
+        error: () => console.warn('Check-in Backend-Sync fehlgeschlagen'),
+      });
+    }
   }
 
   assignTableAndCheckIn(tableId: number) {
@@ -548,25 +554,65 @@ export class RaumDetailComponent implements OnInit {
     if (!id) return;
     this.reservationsService.update(id, { tableId, status: 'seated' });
     this.tablePickerFor.set(null);
+    const backendId = this.reservationsService.reservations().find(r => r.id === id)?.backendId;
+    if (backendId) {
+      this.apiReservations.confirm(backendId).subscribe({
+        error: () => console.warn('Check-in Backend-Sync fehlgeschlagen'),
+      });
+    }
   }
 
   skipTableAndCheckIn() {
     const id = this.tablePickerFor();
     if (!id) return;
+    const res = this.reservationsService.reservations().find(r => r.id === id);
     this.reservationsService.setStatus(id, 'seated');
     this.tablePickerFor.set(null);
+    if (res?.backendId) {
+      this.apiReservations.confirm(res.backendId).subscribe({
+        error: () => console.warn('Check-in Backend-Sync fehlgeschlagen'),
+      });
+    }
   }
 
   closeTablePicker() { this.tablePickerFor.set(null); }
 
-  markCompleted(res: FloorReservation) { this.reservationsService.setStatus(res.id, 'completed'); }
-  markNoShow(res: FloorReservation)    { this.reservationsService.setStatus(res.id, 'no-show'); }
-  cancel(res: FloorReservation)        { this.reservationsService.setStatus(res.id, 'cancelled'); }
-  remove(res: FloorReservation)        { this.reservationsService.remove(res.id); }
+  markCompleted(res: FloorReservation) {
+    this.reservationsService.setStatus(res.id, 'completed');
+    if (res.backendId) {
+      this.apiReservations.complete(res.backendId).subscribe({
+        error: () => console.warn('Complete Backend-Sync fehlgeschlagen'),
+      });
+    }
+  }
+
+  markNoShow(res: FloorReservation) {
+    this.reservationsService.setStatus(res.id, 'no-show');
+    if (res.backendId) {
+      this.apiReservations.markNoShow(res.backendId).subscribe({
+        error: () => console.warn('No-Show Backend-Sync fehlgeschlagen'),
+      });
+    }
+  }
+
+  cancel(res: FloorReservation) {
+    this.reservationsService.setStatus(res.id, 'cancelled');
+    if (res.backendId) {
+      this.apiReservations.cancel(res.backendId).subscribe({
+        error: () => console.warn('Cancel Backend-Sync fehlgeschlagen'),
+      });
+    }
+  }
+
+  remove(res: FloorReservation) { this.reservationsService.remove(res.id); }
 
   reopen(res: FloorReservation) {
-    // Von completed/cancelled/no-show zurück zu upcoming
     this.reservationsService.setStatus(res.id, 'upcoming');
+    if (res.backendId) {
+      this.apiReservations.reopen(res.backendId).subscribe({
+        error: () => console.warn('Reopen Backend-Sync fehlgeschlagen'),
+      });
+    }
   }
 
   // ── Rendering-Helfer (aus restaurant-plan übernommen) ─────────────────

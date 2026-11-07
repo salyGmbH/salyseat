@@ -1,2 +1,481 @@
 @use '../../../../styles/variables' as *;
 @use '../_placeholder' as *;
+
+// ── Venue-Tabs ────────────────────────────────────────────────────────────────
+.venue-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.venue-tab {
+  padding: 6px 14px;
+  border: 1px solid $color-border;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background: $color-surface-soft;
+  color: $color-text;
+  cursor: pointer;
+  transition: all .15s;
+
+  &:hover { border-color: $color-primary; }
+
+  &--active {
+    background: $color-primary;
+    border-color: $color-primary;
+    color: #fff;
+  }
+}
+
+// ── Öffnungszeiten-Block ──────────────────────────────────────────────────────
+.oh-block,
+.sc-block {
+  margin-top: 20px;
+  padding: 0;
+}
+
+.oh-header,
+.sc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid $color-border;
+  flex-wrap: wrap;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text;
+  margin: 0;
+}
+
+.section-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: $color-text-muted;
+}
+
+// ── Loading ───────────────────────────────────────────────────────────────────
+.oh-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 24px;
+  color: $color-text-muted;
+  font-size: 14px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid $color-border;
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+
+  &--sm { width: 14px; height: 14px; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Day Grid ──────────────────────────────────────────────────────────────────
+.day-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.day-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 14px 24px;
+  border-bottom: 1px solid $color-border;
+  flex-wrap: wrap;
+  transition: background .15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $color-surface-soft; }
+
+  &--closed {
+    opacity: .65;
+  }
+
+  // Label column
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 180px;
+    flex-shrink: 0;
+    padding-top: 6px;
+  }
+
+  // Times column
+  &__times {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &--hidden { opacity: .3; pointer-events: none; }
+  }
+
+  // Breaks column
+  &__breaks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: auto;
+    align-items: flex-start;
+  }
+}
+
+.day-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: $color-text;
+  min-width: 90px;
+}
+
+.closed-label {
+  font-size: 12px;
+  color: $color-text-muted;
+  padding-top: 8px;
+  font-style: italic;
+}
+
+// ── Toggle ────────────────────────────────────────────────────────────────────
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: $color-border;
+  cursor: pointer;
+  transition: background .2s;
+  flex-shrink: 0;
+
+  &--on {
+    background: $color-primary;
+  }
+
+  &__knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+}
+
+.toggle--on .toggle__knob {
+  transform: translateX(18px);
+}
+
+// ── Time inputs ───────────────────────────────────────────────────────────────
+.time-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.time-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: $color-text-muted;
+}
+
+.time-input {
+  padding: 6px 10px;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  font-size: 13px;
+  color: $color-text;
+  background: $color-surface;
+  width: 110px;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), .15);
+  }
+
+  &--sm { width: 90px; }
+  &:disabled { opacity: .4; cursor: not-allowed; }
+}
+
+.time-sep {
+  font-size: 14px;
+  color: $color-text-muted;
+  padding-top: 18px;
+}
+
+// ── Breaks ────────────────────────────────────────────────────────────────────
+.break-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .time-sep { padding-top: 0; }
+}
+
+.add-break-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: $color-primary;
+  background: none;
+  border: 1px dashed rgba(var(--color-primary-rgb), .4);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all .15s;
+
+  mat-icon { font-size: 16px; }
+
+  &:hover {
+    background: rgba(var(--color-primary-rgb), .06);
+    border-color: $color-primary;
+  }
+}
+
+// ── Icon buttons ──────────────────────────────────────────────────────────────
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: $color-text-muted;
+  transition: all .15s;
+
+  mat-icon { font-size: 18px; }
+
+  &--remove:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+.oh-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid $color-border;
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: $color-primary;
+  color: #fff;
+  transition: opacity .15s, background .2s;
+
+  mat-icon { font-size: 18px; }
+
+  &:disabled { opacity: .6; cursor: not-allowed; }
+
+  &--saved {
+    background: #22c55e;
+  }
+
+  &:not(:disabled):hover { opacity: .9; }
+}
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid $color-border;
+  background: $color-surface;
+  color: $color-text;
+  cursor: pointer;
+  transition: all .15s;
+  flex-shrink: 0;
+
+  mat-icon { font-size: 18px; }
+
+  &:hover:not(:disabled) {
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid $color-border;
+  background: $color-surface-soft;
+  color: $color-text;
+  cursor: pointer;
+
+  &:hover { border-color: $color-text-muted; }
+}
+
+// ── Special Closings Form ─────────────────────────────────────────────────────
+.sc-form {
+  padding: 20px 24px;
+  border-bottom: 1px solid $color-border;
+  background: $color-surface-soft;
+}
+
+.sc-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--full { grid-column: 1 / -1; }
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-text;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.form-input {
+  padding: 8px 12px;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  font-size: 13px;
+  color: $color-text;
+  background: $color-surface;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), .15);
+  }
+}
+
+.sc-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+// ── Special Closings Empty ────────────────────────────────────────────────────
+.sc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px;
+  gap: 10px;
+  color: $color-text-muted;
+
+  mat-icon { font-size: 36px; opacity: .35; }
+  p { margin: 0; font-size: 13px; }
+}
+
+// ── Special Closings Table ────────────────────────────────────────────────────
+.sc-table-wrap { overflow-x: auto; }
+
+.sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: $color-text-muted;
+    padding: 10px 16px;
+    border-bottom: 1px solid $color-border;
+    background: $color-surface-soft;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid $color-border;
+    vertical-align: middle;
+    color: $color-text;
+  }
+
+  tbody tr {
+    &:hover { background: $color-surface-soft; }
+    &:last-child td { border-bottom: none; }
+  }
+
+  .col-date { white-space: nowrap; font-weight: 500; }
+  .col-time { white-space: nowrap; color: $color-text-muted; }
+  .col-action { width: 48px; text-align: center; }
+}
+
+// ── Pills ─────────────────────────────────────────────────────────────────────
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+
+  &--closed {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  &--custom {
+    background: #fef9c3;
+    color: #854d0e;
+  }
+}

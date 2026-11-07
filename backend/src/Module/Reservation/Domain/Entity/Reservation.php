@@ -113,6 +113,16 @@ class Reservation
         $this->status = ReservationStatus::NO_SHOW;
     }
 
+    public function complete(): void
+    {
+        $this->status = ReservationStatus::COMPLETED;
+    }
+
+    public function reopen(): void
+    {
+        $this->status = ReservationStatus::PENDING;
+    }
+
     public function getId(): Uuid
     {
         return $this->id;

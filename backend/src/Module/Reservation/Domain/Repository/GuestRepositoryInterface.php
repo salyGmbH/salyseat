@@ -13,5 +13,10 @@ interface GuestRepositoryInterface
 
     public function findByTenantAndEmail(Uuid $tenantId, string $email): ?Guest;
 
+    /** @return Guest[] */
+    public function listByTenant(Uuid $tenantId, ?string $search, int $limit, int $offset): array;
+
+    public function countByTenant(Uuid $tenantId, ?string $search): int;
+
     public function save(Guest $guest): void;
 }
