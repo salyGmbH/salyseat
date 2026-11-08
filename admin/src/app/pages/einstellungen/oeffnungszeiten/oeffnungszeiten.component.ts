@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { VenueService } from '../../../services/venue.service';
-import { Venue } from '../../../services/venue.types';
 import {
   OpeningHoursService,
   DayHours,
@@ -41,12 +40,11 @@ const WEEKDAY_LABELS = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','S
   styleUrl: './oeffnungszeiten.component.scss',
 })
 export class OeffnungszeitenComponent implements OnInit {
-  private readonly venueService  = inject(VenueService);
-  private readonly ohService     = inject(OpeningHoursService);
+  private readonly ohService    = inject(OpeningHoursService);
+  private readonly venueService = inject(VenueService);
 
-  // ── Venues ────────────────────────────────────────────────────────────────
-  venues         = signal<Venue[]>([]);
-  selectedVenueId = signal<string | null>(null);
+  /** Öffnungszeiten hängen im Backend an einem Raum – wir nehmen den ersten. */
+  private venueId = '';
 
   // ── Opening hours ─────────────────────────────────────────────────────────
   days        = signal<DayRow[]>([]);
@@ -64,24 +62,18 @@ export class OeffnungszeitenComponent implements OnInit {
 
   ngOnInit(): void {
     this.venueService.load().subscribe(res => {
-      this.venues.set(res.venues);
-      if (res.venues.length > 0) {
-        this.selectVenue(res.venues[0].id);
-      }
+      if (!res.venues.length) return;
+      this.venueId = res.venues[0].id;
+      this.loadHours();
+      this.loadClosings();
     });
-  }
-
-  selectVenue(id: string): void {
-    this.selectedVenueId.set(id);
-    this.loadHours(id);
-    this.loadClosings(id);
   }
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
-  private loadHours(venueId: string): void {
+  private loadHours(): void {
     this.loadingDays.set(true);
-    this.ohService.getHours(venueId).subscribe({
+    this.ohService.getHours(this.venueId).subscribe({
       next: data => {
         this.days.set(data.map(d => this.toDayRow(d)));
         this.loadingDays.set(false);
@@ -90,9 +82,9 @@ export class OeffnungszeitenComponent implements OnInit {
     });
   }
 
-  private loadClosings(venueId: string): void {
+  private loadClosings(): void {
     this.loadingClosings.set(true);
-    this.ohService.getSpecialClosings(venueId).subscribe({
+    this.ohService.getSpecialClosings(this.venueId).subscribe({
       next: data => {
         this.closings.set(data);
         this.loadingClosings.set(false);
@@ -120,9 +112,6 @@ export class OeffnungszeitenComponent implements OnInit {
   }
 
   saveHours(): void {
-    const venueId = this.selectedVenueId();
-    if (!venueId) return;
-
     const payload: DayHours[] = this.days().map(d => ({
       weekday:    d.weekday,
       open:       d.open,
@@ -132,7 +121,7 @@ export class OeffnungszeitenComponent implements OnInit {
     }));
 
     this.savingDays.set(true);
-    this.ohService.saveHours(venueId, payload).subscribe({
+    this.ohService.saveHours(this.venueId, payload).subscribe({
       next: () => {
         this.savingDays.set(false);
         this.savedDays.set(true);
@@ -154,9 +143,6 @@ export class OeffnungszeitenComponent implements OnInit {
   }
 
   createClosing(): void {
-    const venueId = this.selectedVenueId();
-    if (!venueId) return;
-
     const dto: CreateSpecialClosingDto = {
       date_from: this.newClosing.date_from,
       date_to:   this.newClosing.date_to,
@@ -169,7 +155,7 @@ export class OeffnungszeitenComponent implements OnInit {
     }
 
     this.savingClosing.set(true);
-    this.ohService.createSpecialClosing(venueId, dto).subscribe({
+    this.ohService.createSpecialClosing(this.venueId, dto).subscribe({
       next: sc => {
         this.closings.update(list => [...list, sc]);
         this.showAddForm.set(false);
@@ -180,10 +166,7 @@ export class OeffnungszeitenComponent implements OnInit {
   }
 
   deleteClosing(id: string): void {
-    const venueId = this.selectedVenueId();
-    if (!venueId) return;
-
-    this.ohService.deleteSpecialClosing(venueId, id).subscribe({
+    this.ohService.deleteSpecialClosing(this.venueId, id).subscribe({
       next: () => this.closings.update(list => list.filter(c => c.id !== id)),
     });
   }
@@ -213,10 +196,5 @@ export class OeffnungszeitenComponent implements OnInit {
   formatDate(s: string): string {
     const [y, m, d] = s.split('-');
     return `${d}.${m}.${y}`;
-  }
-
-  selectedVenueName(): string {
-    const id = this.selectedVenueId();
-    return this.venues().find(v => v.id === id)?.name ?? '';
   }
 }

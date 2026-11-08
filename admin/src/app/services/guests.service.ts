@@ -10,12 +10,32 @@ export interface Guest {
   total_reservations: number;
   no_show_count: number;
   reliability_score: number;
+  cancellation_count: number;
+  cancellation_rate: number;
+  last_visit_at: string | null;  // 'YYYY-MM-DD'
   blocked: boolean;
   blocked_reason: string | null;
   internal_notes: string | null;
+  allergies: string | null;
   gasttypen: string[];
   hinweise: string[];
+  allergene: string[];
+  birthday: string | null;       // 'YYYY-MM-DD'
+  wedding_date: string | null;   // 'YYYY-MM-DD'
+  total_revenue_cents: number;
   created_at: string;
+}
+
+export interface GuestReservation {
+  id: string;
+  starts_at: string;  // 'YYYY-MM-DD HH:mm'
+  ends_at: string;
+  party_size: number;
+  status: string;
+  table_number: number | null;
+  guest_notes: string | null;
+  admin_notes: string | null;
+  venue_name: string;
 }
 
 export interface GuestListResponse {
@@ -30,10 +50,14 @@ export interface UpdateGuestDto {
   email?: string | null;
   phone?: string | null;
   internal_notes?: string | null;
+  allergies?: string | null;
   blocked?: boolean;
   blocked_reason?: string;
   gasttypen?: string[];
   hinweise?: string[];
+  allergene?: string[];
+  birthday?: string | null;
+  wedding_date?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -54,5 +78,13 @@ export class GuestsService {
 
   update(id: string, dto: UpdateGuestDto): Observable<Guest> {
     return this.http.patch<Guest>(`${this.base}/${id}`, dto);
+  }
+
+  loadReservations(guestId: string, upcomingOnly = false): Observable<{ reservations: GuestReservation[]; avg_party_size: number }> {
+    let qp = new HttpParams();
+    if (upcomingOnly) qp = qp.set('upcoming', '1');
+    return this.http.get<{ reservations: GuestReservation[]; avg_party_size: number }>(
+      `${this.base}/${guestId}/reservations`, { params: qp }
+    ).pipe(catchError(() => of({ reservations: [], avg_party_size: 0 })));
   }
 }

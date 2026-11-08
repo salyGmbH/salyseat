@@ -86,6 +86,8 @@ export class ReservationsService {
     duration_minutes?: number;
     guest_phone?: string;
     notes?: string;
+    /** null = Tisch entziehen, number = Tisch zuweisen */
+    table_id?: number | null;
   }): Observable<Reservation> {
     return this.http.patch<Reservation>(`${this.base}/${id}`, payload).pipe(
       tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),
@@ -108,6 +110,8 @@ export class ReservationsService {
     party_size: number;
     starts_at: string;
     notes?: string;
+    duration_minutes?: number;
+    table_id?: number;
   }): Observable<Reservation> {
     return this.http.post<Reservation>(this.base, payload);
   }

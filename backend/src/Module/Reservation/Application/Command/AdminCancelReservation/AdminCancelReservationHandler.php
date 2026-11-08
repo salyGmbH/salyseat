@@ -31,6 +31,13 @@ final class AdminCancelReservationHandler
         }
 
         $reservation->cancel();
+
+        // Stornierungen beim Gast zählen
+        $guest = $reservation->getGuest();
+        if ($guest !== null) {
+            $guest->incrementCancellations();
+        }
+
         $this->reservations->save($reservation);
 
         $this->bus->dispatch(new SendCancellationEmail(

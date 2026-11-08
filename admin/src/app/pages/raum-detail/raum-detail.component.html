@@ -12,6 +12,35 @@
           <span><mat-icon>person</mat-icon>{{ totalSeats() }} Plätze</span>
         </div>
       </div>
+      <!-- Timeline / Plan Toggle -->
+      <button class="btn-view-toggle"
+              [class.btn-view-toggle--active]="showTimeline()"
+              (click)="showTimeline.set(!showTimeline())"
+              [title]="showTimeline() ? 'Zurück zum Tischplan' : 'Tagesübersicht anzeigen'">
+        @if (!showTimeline()) {
+          <!-- Timeline-Icon: Gantt-Balken -->
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="4" y1="3" x2="4" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="4" y1="5.5" x2="5.5" y2="5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+            <line x1="4" y1="9.5" x2="5.5" y2="9.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+            <line x1="4" y1="13.5" x2="5.5" y2="13.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+            <rect x="6" y="4" width="10" height="3" rx="1.5" fill="currentColor" opacity=".85"/>
+            <rect x="6" y="8" width="6.5" height="3" rx="1.5" fill="currentColor" opacity=".55"/>
+            <rect x="6" y="12" width="8.5" height="3" rx="1.5" fill="currentColor" opacity=".85"/>
+          </svg>
+          <span>Übersicht</span>
+        } @else {
+          <!-- Tischplan-Icon: Grundriss-Raster -->
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span>Tischplan</span>
+        }
+      </button>
+
       <a class="btn-secondary" [routerLink]="['/restaurant-plan', r.id]">
         <mat-icon>edit</mat-icon> Plan bearbeiten
       </a>
@@ -48,8 +77,16 @@
           <!-- Unsichtbares Material-Input, das nur den MatDatepicker triggert -->
           <input matInput [matDatepicker]="picker" class="date-card__hidden-input"
                  [value]="selectedDateAsDate()"
+                 [matDatepickerFilter]="dateFilter"
                  (dateChange)="onDateSelected($event)" />
           <mat-datepicker #picker panelClass="salyseat-datepicker-panel"></mat-datepicker>
+
+          @if (isSelectedDayClosed()) {
+            <div class="date-card__closed-banner">
+              <mat-icon>block</mat-icon>
+              Geschlossen – keine Reservierungen möglich
+            </div>
+          }
 
           @if (selectedDate() !== todayIsoPublic()) {
             <button class="date-card__today-link" (click)="goToday()">
@@ -60,69 +97,73 @@
 
         <!-- Neue Reservierung + Walk-In (50/50 nebeneinander) -->
         <div class="btn-row">
-          <button class="btn-new" (click)="openNewDialog()">
+          <button class="btn-new" [disabled]="isSelectedDayClosed()" (click)="openNewDialog()">
             <mat-icon>add</mat-icon>
             <span>Neue Reservierung</span>
           </button>
-          <button class="btn-new btn-new--walkin" (click)="openWalkInDialog()">
+          <button class="btn-new btn-new--walkin" [disabled]="isSelectedDayClosed()" (click)="openWalkInDialog()">
             <mat-icon>directions_walk</mat-icon>
             <span>Walk-In</span>
           </button>
         </div>
 
-        <!-- Filter-Tabs -->
-        <div class="filter-tabs">
-          <button [class.active]="statusFilter() === 'active'"    (click)="statusFilter.set('active')">
-            Aktiv
-            @if (stats().upcoming + stats().seated > 0) {
-              <span class="filter-tabs__badge">{{ stats().upcoming + stats().seated }}</span>
+        <!-- Filter-Button -->
+        <div class="filter-toggle-wrap">
+          <button class="filter-toggle-btn"
+                  [class.filter-toggle-btn--open]="filterPanelOpen()"
+                  (click)="filterPanelOpen.set(!filterPanelOpen())">
+            <mat-icon>filter_list</mat-icon>
+            <span>Filter</span>
+            @if (statusFilter() !== 'active') {
+              <span class="filter-toggle-btn__badge">1</span>
             }
+            <mat-icon class="filter-toggle-btn__arrow">
+              {{ filterPanelOpen() ? 'expand_less' : 'expand_more' }}
+            </mat-icon>
           </button>
-          <button [class.active]="statusFilter() === 'all'"       (click)="statusFilter.set('all')">Alle</button>
-          <button [class.active]="statusFilter() === 'completed'" (click)="statusFilter.set('completed')">Beendet</button>
         </div>
-        <!-- Zusatzfilter nur bei "Alle" -->
-@if (statusFilter() === 'all') {
-  <!-- Sub-Filter (nur bei "Alle") -->
-@if (statusFilter() === 'all') {
-  <div class="sub-filter">
-    
-    <div class="sub-filter__row">
-      <button class="sub-filter__chip sub-filter__chip--active">
-        Uhrzeit ↑
-      </button>
 
-      <button class="sub-filter__chip">
-        Uhrzeit ↓
-      </button>
+        @if (filterPanelOpen()) {
+          <div class="filter-panel">
+            <div class="filter-panel__group">
+              <span class="filter-panel__label">Status</span>
+              <div class="filter-panel__chips">
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'active'"
+                        (click)="statusFilter.set('active')">
+                  Aktiv
+                  @if (stats().upcoming + stats().seated > 0) {
+                    <span class="filter-panel__count">{{ stats().upcoming + stats().seated }}</span>
+                  }
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'all'"
+                        (click)="statusFilter.set('all')">
+                  Alle
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'completed'"
+                        (click)="statusFilter.set('completed')">
+                  Beendet
+                </button>
+              </div>
+            </div>
 
-      <button class="sub-filter__chip">
-        No-Shows
-      </button>
-
-      <button class="sub-filter__chip">
-        Storniert
-      </button>
-
-      <button class="sub-filter__chip">
-        Verspätet
-      </button>
-
-      <button class="sub-filter__chip">
-        Bevorstehend
-      </button>
-
-      <button class="sub-filter__chip">
-        Warteliste
-      </button>
-        <button class="sub-filter__chip">
-        Warlk-In
-      </button>
-    </div>
-
-  </div>
-}
-}
+            <div class="filter-panel__group">
+              <span class="filter-panel__label">Sortierung &amp; Anzeige</span>
+              <div class="filter-panel__chips">
+                <button class="sub-filter__chip sub-filter__chip--active">Uhrzeit ↑</button>
+                <button class="sub-filter__chip">Uhrzeit ↓</button>
+                <button class="sub-filter__chip">No-Shows</button>
+                <button class="sub-filter__chip">Storniert</button>
+                <button class="sub-filter__chip">Verspätet</button>
+                <button class="sub-filter__chip">Bevorstehend</button>
+                <button class="sub-filter__chip">Warteliste</button>
+                <button class="sub-filter__chip">Walk-In</button>
+              </div>
+            </div>
+          </div>
+        }
 
         <!-- Liste: Gruppiert nach Stunde -->
         <div class="res-panel__list">
@@ -167,6 +208,38 @@
                       <div class="res-row__body res-row__body--clickable"
                            (click)="openGuestCard(res)">
                         <div class="res-row__top">
+                          @if (getraenke.activeAlerts().has(res.id)) {
+                            <button class="drinks-alert"
+                                    (click)="acknowledgeGetraenke(res.id, $event)"
+                                    title="Getränke bringen — Klick zum Bestätigen">
+                              <svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" class="drinks-alert__svg">
+                                <ellipse cx="14" cy="25.5" rx="8.5" ry="1.5" fill="rgba(0,0,0,0.18)"/>
+                                <path d="M7 5 L9 23 Q9 24 10 24 L18 24 Q19 24 19 23 L21 5 Z"
+                                      fill="url(#da-glass)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+                                <path d="M8.5 11 L10 23 Q10 23.5 10.5 23.5 L17.5 23.5 Q18 23.5 18 23 L19.5 11 Z"
+                                      fill="url(#da-liquid)"/>
+                                <rect x="11" y="15" width="3.5" height="3.5" rx="0.8"
+                                      fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"/>
+                                <rect x="16" y="4" width="2" height="16" rx="1"
+                                      fill="url(#da-straw)"/>
+                                <rect x="6.5" y="4" width="15" height="2" rx="1" fill="rgba(255,255,255,0.12)"/>
+                                <defs>
+                                  <linearGradient id="da-glass" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%"   stop-color="rgba(255,255,255,0.12)"/>
+                                    <stop offset="100%" stop-color="rgba(255,255,255,0.14)"/>
+                                  </linearGradient>
+                                  <linearGradient id="da-liquid" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%"   stop-color="#38bdf8"/>
+                                    <stop offset="100%" stop-color="#0369a1"/>
+                                  </linearGradient>
+                                  <linearGradient id="da-straw" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%"   stop-color="#fde68a"/>
+                                    <stop offset="100%" stop-color="#f59e0b"/>
+                                  </linearGradient>
+                                </defs>
+                              </svg>
+                            </button>
+                          }
                           <span class="res-row__name">{{ res.guestName }}</span>
                           <span class="res-row__party">· {{ res.partySize }} Pers.</span>
                         </div>
@@ -184,7 +257,7 @@
                             <span class="warn"><mat-icon>help_outline</mat-icon>Ohne Tisch</span>
                           }
                           @if (res.status === 'completed' || res.status === 'cancelled' || res.status === 'no-show') {
-                            <span class="muted">· {{ statusLabel(res.status) }}</span>
+                            <span class="muted">· {{ statusLabel(res.status) }}@if (res.status === 'no-show' && (res.guestNoShowCount ?? 0) > 1) { <span class="no-show-count">({{ res.guestNoShowCount }})</span>}</span>
                           }
                           @if (res.phone) { <span class="muted">· <mat-icon>call</mat-icon>{{ res.phone }}</span> }
                           @if (res.status === 'late') {
@@ -294,8 +367,109 @@
         </div>
       </aside>
 
-      <!-- ─── Rechtes Panel: Plan ─── -->
+      <!-- ─── Rechtes Panel: Plan / Timeline ─── -->
       <div class="raum-detail__right">
+
+      @if (showTimeline()) {
+        <!-- ══════ TAGESÜBERSICHT ══════ -->
+        <div class="tl-view">
+
+          <!-- Grid: Zeit-Achse + Tabellen-Spalten -->
+          <div class="tl-grid-wrap">
+            <!-- Einziger Scroll-Container (X+Y) ─ Header und Body teilen sich denselben Scroll -->
+            <div class="tl-scroll">
+              <div class="tl-inner">
+
+                <!-- Sticky Header: scrollt horizontal mit, bleibt vertikal oben -->
+                <div class="tl-header">
+                  <div class="tl-header__axis"></div>
+                  @for (table of r.tables; track table.id) {
+                    <div class="tl-header__col">
+                      <span class="tl-header__num">#{{ table.id }}</span>
+                      <span class="tl-header__seats">{{ table.seats }} Pl.</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Content: Zeitachse + Spalten -->
+                <div class="tl-content">
+                  <!-- Zeitachse links (sticky left) -->
+                  <div class="tl-axis">
+                    @for (hour of tlHours; track hour) {
+                      <div class="tl-axis__label" [style.height.px]="tlSlotPx * 2">{{ hour }}</div>
+                    }
+                  </div>
+
+                  <!-- Spalten pro Tisch -->
+                  <div class="tl-columns">
+                    @for (table of r.tables; track table.id) {
+                      <div class="tl-col" [style.height.px]="tlTotalPx">
+
+                        <!-- Hintergrund-Raster -->
+                        @for (slot of tlSlots; track slot; let i = $index) {
+                          <div class="tl-col__slot"
+                               [class.tl-col__slot--hour]="i % 2 === 0"
+                               [style.height.px]="tlSlotPx"></div>
+                        }
+
+                        <!-- Jetzt-Linie -->
+                        @if (tlNowPx() >= 0) {
+                          <div class="tl-now-line" [style.top.px]="tlNowPx()"></div>
+                        }
+
+                        <!-- Reservierungs-Blöcke -->
+                        @for (res of activeResForTable(table.id); track res.id) {
+                          <div class="tl-res"
+                               [style.top.px]="resBlockTop(res)"
+                               [style.height.px]="resBlockHeight(res)"
+                               [style.background]="colorFor(res.status)"
+                               (click)="openGuestCard(res)"
+                               [title]="res.guestName + ' · ' + res.partySize + ' Pers.'">
+                            <span class="tl-res__name">{{ res.guestName }}</span>
+                            @if (resBlockHeight(res) >= tlSlotPx * 2) {
+                              <span class="tl-res__meta">{{ res.partySize }} P. · {{ res.durationMinutes }} min</span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Freie Slots Panel -->
+          <div class="tl-free-panel">
+            <div class="tl-free-panel__head">
+              <mat-icon>event_available</mat-icon>
+              Freie Slots heute
+            </div>
+            <div class="tl-free-panel__list">
+              @for (s of freeSlotsToday(); track s.time) {
+                <div class="tl-free-slot">
+                  <span class="tl-free-slot__dot"></span>
+                  <span class="tl-free-slot__time">{{ s.time }}</span>
+                  <span class="tl-free-slot__count">{{ s.freeCount }} Tisch{{ s.freeCount !== 1 ? 'e' : '' }}</span>
+                  <button class="tl-free-slot__btn"
+                          (click)="openNewDialog({time: s.time})">Buchen</button>
+                </div>
+              }
+              @if (freeSlotsToday().length === 0) {
+                <div class="tl-free-panel__empty">
+                  <mat-icon>event_busy</mat-icon>
+                  <span>Keine freien Slots</span>
+                </div>
+              }
+            </div>
+          </div>
+
+        </div>
+        <!-- ══════ /TAGESÜBERSICHT ══════ -->
+      }
+
+      @if (!showTimeline()) {
 
         <!-- Tagesverlauf (Stunden) — über dem Tischplan -->
         <div class="day-load-bar">
@@ -609,9 +783,12 @@
             </div>
           </div>
         }
-      </div>
-      </div>
-    </div>
+      </div><!-- /raum-detail__canvas -->
+
+      } <!-- /if !showTimeline -->
+
+      </div><!-- /raum-detail__right -->
+    </div><!-- /raum-detail__body -->
 
     <!-- ── Dialoge ────────────────────────────────────────────────────── -->
     @if (newDialogOpen() || editDialogOpen() || tablePickerFor()) {
@@ -748,7 +925,7 @@
 
               <label class="field">
                 <span class="field__label">Dauer</span>
-                <select class="field__input field__input--select" name="duration" [(ngModel)]="form.durationMinutes">
+                <select class="field__input field__input--select" name="duration" [(ngModel)]="form.durationMinutes" (ngModelChange)="formDurationMinutes.set(+$event)">
                   <option [value]="30">30 min</option><option [value]="45">45 min</option>
                   <option [value]="60">1 Std.</option><option [value]="75">1 Std. 15</option>
                   <option [value]="90">1 Std. 30</option><option [value]="105">1 Std. 45</option>
@@ -927,6 +1104,12 @@
                 }
 
                 <div class="rf-table-grid">
+                  @if (isAnySelectedTableOccupied()) {
+                    <div class="table-occupied-warning">
+                      <mat-icon>lock</mat-icon>
+                      <span>Tisch&nbsp;#{{ firstOccupiedSelectedTableId() }} ist um&nbsp;<strong>{{ form.time }}&nbsp;Uhr</strong> bereits belegt — bitte andere Uhrzeit oder anderen Tisch wählen.</span>
+                    </div>
+                  }
                   <div class="table-inline">
                     <button type="button" class="table-inline__card"
                             [class.table-inline__card--selected]="isTableSelected(0)"
@@ -935,24 +1118,32 @@
                       <span class="table-inline__num">Kein</span>
                     </button>
                     @for (t of availableTables(); track t.id) {
-                      @let occupied    = isTableOccupied(t.id, form.time, form.durationMinutes, editingId()) && !isTableSelected(t.id);
-                      @let tooSmall    = !occupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id);
-                      @let isSuggested = bestMergeSuggestion() === t.id && !isTableSelected(t.id);
-                      @let mergeIdx    = form.tableIds.indexOf(t.id);
+                      @let actuallyOccupied = isTableOccupied(t.id, form.time, form.durationMinutes, editingId());
+                      @let occupied         = actuallyOccupied && !isTableSelected(t.id);
+                      @let selectedOccupied = actuallyOccupied && isTableSelected(t.id);
+                      @let tooSmall         = !actuallyOccupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id);
+                      @let isSuggested      = bestMergeSuggestion() === t.id && !isTableSelected(t.id);
+                      @let mergeIdx         = form.tableIds.indexOf(t.id);
                       <button type="button" class="table-inline__card"
-                              [class.table-inline__card--selected]="isTableSelected(t.id)"
+                              [class.table-inline__card--selected]="isTableSelected(t.id) && !selectedOccupied"
+                              [class.table-inline__card--selected-full]="selectedOccupied"
                               [class.table-inline__card--full]="occupied"
                               [class.table-inline__card--small]="tooSmall && !isSuggested"
                               [class.table-inline__card--suggested]="isSuggested"
-                              [class.table-inline__card--merge]="isTableSelected(t.id) && form.tableIds.length > 1"
+                              [class.table-inline__card--merge]="isTableSelected(t.id) && form.tableIds.length > 1 && !selectedOccupied"
                               [disabled]="occupied"
                               (click)="toggleTableSelection(t.id)">
                         <span class="table-inline__num">#{{ t.id }}</span>
                         <span class="table-inline__lbl">{{ tableLabel(t.id) }}</span>
-                        @if (occupied) { <span class="table-inline__badge">Besetzt</span> }
-                        @else if (isSuggested) { <span class="table-inline__badge table-inline__badge--suggested">Beste Kombi</span> }
-                        @else if (tooSmall) { <span class="table-inline__badge table-inline__badge--small">+ Kombinieren</span> }
-                        @else if (isTableSelected(t.id) && form.tableIds.length > 1) { <span class="table-inline__badge table-inline__badge--merge">{{ mergeIdx + 1 }}</span> }
+                        @if (occupied || selectedOccupied) {
+                          <span class="table-inline__badge">Besetzt</span>
+                        } @else if (isSuggested) {
+                          <span class="table-inline__badge table-inline__badge--suggested">Beste Kombi</span>
+                        } @else if (tooSmall) {
+                          <span class="table-inline__badge table-inline__badge--small">+ Kombinieren</span>
+                        } @else if (isTableSelected(t.id) && form.tableIds.length > 1) {
+                          <span class="table-inline__badge table-inline__badge--merge">{{ mergeIdx + 1 }}</span>
+                        }
                       </button>
                     }
                   </div>

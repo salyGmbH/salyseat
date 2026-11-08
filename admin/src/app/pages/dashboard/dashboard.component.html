@@ -1,23 +1,108 @@
 <div class="dashboard">
 
-  <!-- Header -->
+  <!-- ══════════════════════════════════════════════════════════
+       HEADER
+  ══════════════════════════════════════════════════════════ -->
   <div class="page-header">
     <div>
       <h1 class="page-title">Dashboard</h1>
       <p class="page-subtitle">{{ today }}</p>
     </div>
-    @if (!loading()) {
-      <button class="btn-refresh" (click)="ngOnInit()" title="Aktualisieren">
+    <div class="header-right">
+      @if (lastUpdated()) {
+        <span class="last-updated">
+          <mat-icon>sync</mat-icon>
+          {{ formatUpdated(lastUpdated()!) }}
+        </span>
+      }
+      <button class="btn-refresh" (click)="refresh()" title="Jetzt aktualisieren" [disabled]="loading()">
         <mat-icon>refresh</mat-icon>
       </button>
-    }
+    </div>
   </div>
+
+  <!-- ── Geburtstags-Alert ──────────────────────────────────────────────── -->
+  @if (birthdayGuests().length > 0) {
+    <div class="birthday-banner">
+      <span class="birthday-banner__cake">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+          <!-- flame -->
+          <path d="M12 2c0 0-1.5 2-1.5 3.2a1.5 1.5 0 0 0 3 0C13.5 4 12 2 12 2z"/>
+          <!-- candle -->
+          <rect x="11" y="5.5" width="2" height="3" rx=".4"/>
+          <!-- top tier -->
+          <rect x="6" y="9" width="12" height="4" rx="1.2"/>
+          <!-- frosting drips -->
+          <path d="M6 10.5 Q7.5 12 9 10.5 Q10.5 12 12 10.5 Q13.5 12 15 10.5 Q16.5 12 18 10.5" stroke="currentColor" stroke-width=".8" fill="none" opacity=".35"/>
+          <!-- bottom tier -->
+          <rect x="4" y="13" width="16" height="5" rx="1.2"/>
+          <!-- frosting drips bottom -->
+          <path d="M4 14.5 Q5.5 16 7 14.5 Q8.5 16 10 14.5 Q11.5 16 13 14.5 Q14.5 16 16 14.5 Q17.5 16 19 14.5 Q20 16 20 14.5" stroke="currentColor" stroke-width=".8" fill="none" opacity=".35"/>
+          <!-- plate line -->
+          <rect x="3" y="18" width="18" height="1.5" rx=".75"/>
+        </svg>
+      </span>
+      <div class="birthday-banner__content">
+        <span class="birthday-banner__title">Geburtstag heute!</span>
+        <span class="birthday-banner__names">
+          @for (g of birthdayGuests(); track g.id; let last = $last) {
+            <strong>{{ g.name }}</strong>@if (!last) {<span class="birthday-banner__sep">&</span>}
+          }
+          @if (birthdayGuests().length === 1) {
+            <span class="birthday-banner__sub">hat heute Geburtstag 🎉</span>
+          } @else {
+            <span class="birthday-banner__sub">haben heute Geburtstag 🎉</span>
+          }
+        </span>
+      </div>
+      <a class="birthday-banner__link" routerLink="/einstellungen/kunden">
+        <mat-icon>arrow_forward</mat-icon>
+        Zur Kundenkartei
+      </a>
+    </div>
+  }
+
+  <!-- ── Hochzeitstags-Alert ───────────────────────────────────────────── -->
+  @if (weddingGuests().length > 0) {
+    <div class="birthday-banner birthday-banner--wedding">
+      <span class="birthday-banner__cake">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+          <!-- diamond top -->
+          <path d="M12 4 L15.5 8.5 H8.5 Z"/>
+          <!-- diamond side facets -->
+          <path d="M8.5 8.5 L12 4 L7 8.5 Z" opacity=".6"/>
+          <path d="M15.5 8.5 L12 4 L17 8.5 Z" opacity=".6"/>
+          <!-- ring band (donut via evenodd) -->
+          <path fill-rule="evenodd" d="M12 10a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 2.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6z"/>
+          <!-- diamond base line on ring -->
+          <path d="M8.5 8.5 H15.5 L14 10.4 H10 Z"/>
+        </svg>
+      </span>
+      <div class="birthday-banner__content">
+        <span class="birthday-banner__title">Jahrestag heute!</span>
+        <span class="birthday-banner__names">
+          @for (g of weddingGuests(); track g.id; let last = $last) {
+            <strong>{{ g.name }}</strong>@if (!last) {<span class="birthday-banner__sep">&</span>}
+          }
+          @if (weddingGuests().length === 1) {
+            <span class="birthday-banner__sub">feiert heute Jahrestag / Hochzeitstag 💕</span>
+          } @else {
+            <span class="birthday-banner__sub">feiern heute Jahrestag / Hochzeitstag 💕</span>
+          }
+        </span>
+      </div>
+      <a class="birthday-banner__link" routerLink="/einstellungen/kunden">
+        <mat-icon>arrow_forward</mat-icon>
+        Zur Kundenkartei
+      </a>
+    </div>
+  }
 
   <!-- Loading -->
   @if (loading()) {
     <div class="state-loading">
       <div class="spinner"></div>
-      <span>Lade Statistiken…</span>
+      <span>Lade Dashboard…</span>
     </div>
   }
 
@@ -29,101 +114,264 @@
     </div>
   }
 
-  <!-- Stats -->
   @if (stats(); as s) {
 
-    <!-- Heute -->
-    <div class="stats-section">
-      <h2 class="section-label">Heute</h2>
-      <div class="stats-grid">
+    <!-- ══════════════════════════════════════════════════════════
+         SEKTION 1: HEUTE — HERO-STATS
+    ══════════════════════════════════════════════════════════ -->
+    <section class="dash-section">
+      <h2 class="section-label">
+        <mat-icon>today</mat-icon>
+        Heute
+      </h2>
 
-        <div class="stat-card stat-card--primary">
-          <div class="stat-card__icon"><mat-icon>event_available</mat-icon></div>
-          <div class="stat-card__content">
-            <span class="stat-card__label">Reservierungen</span>
-            <span class="stat-card__value">{{ s.today.total }}</span>
+      <div class="hero-grid">
+
+        <!-- Reservierungen gesamt -->
+        <div class="hero-card hero-card--primary">
+          <div class="hero-card__icon">
+            <mat-icon>event_available</mat-icon>
           </div>
+          <div class="hero-card__body">
+            <span class="hero-card__value">{{ s.today.total }}</span>
+            <span class="hero-card__label">Reservierungen</span>
+          </div>
+          <div class="hero-card__sub">{{ s.today.guests }} Gäste</div>
         </div>
 
-        <div class="stat-card stat-card--green">
-          <div class="stat-card__icon"><mat-icon>people</mat-icon></div>
-          <div class="stat-card__content">
-            <span class="stat-card__label">Gäste erwartet</span>
-            <span class="stat-card__value">{{ s.today.guests }}</span>
+        <!-- Jetzt eingecheckt -->
+        <div class="hero-card" [class.hero-card--active]="s.today.seated > 0">
+          <div class="hero-card__icon">
+            <mat-icon>airline_seat_recline_normal</mat-icon>
           </div>
+          <div class="hero-card__body">
+            <span class="hero-card__value">{{ s.today.seated }}</span>
+            <span class="hero-card__label">Jetzt aktiv</span>
+          </div>
+          <div class="hero-card__sub">{{ s.today.seated_guests }} Gäste sitzen</div>
         </div>
 
-        <div class="stat-card" [class.stat-card--warn]="s.today.pending > 0">
-          <div class="stat-card__icon"><mat-icon>pending_actions</mat-icon></div>
-          <div class="stat-card__content">
-            <span class="stat-card__label">Ausstehend</span>
-            <span class="stat-card__value">{{ s.today.pending }}</span>
-            @if (s.today.pending > 0) {
-              <span class="stat-card__hint">Bestätigung nötig</span>
+        <!-- Ausstehend -->
+        <div class="hero-card" [class.hero-card--warn]="s.today.pending > 0">
+          <div class="hero-card__icon">
+            <mat-icon>pending_actions</mat-icon>
+          </div>
+          <div class="hero-card__body">
+            <span class="hero-card__value">{{ s.today.pending }}</span>
+            <span class="hero-card__label">Ausstehend</span>
+          </div>
+          @if (s.today.pending > 0) {
+            <div class="hero-card__sub hero-card__sub--warn">Bestätigung nötig</div>
+          } @else {
+            <div class="hero-card__sub">Alle bestätigt</div>
+          }
+        </div>
+
+        <!-- Aktive Räume -->
+        <div class="hero-card">
+          <div class="hero-card__icon">
+            <mat-icon>meeting_room</mat-icon>
+          </div>
+          <div class="hero-card__body">
+            <span class="hero-card__value">{{ s.venues }}</span>
+            <span class="hero-card__label">Aktive Räume</span>
+          </div>
+          <div class="hero-card__sub">im System</div>
+        </div>
+
+      </div>
+
+      <!-- Status-Aufschlüsselung -->
+      @if (s.today.total > 0) {
+        <div class="status-row">
+          @if (s.today.confirmed > 0) {
+            <div class="status-pill status-pill--confirmed">
+              <mat-icon>check_circle</mat-icon>
+              {{ s.today.confirmed }} Bestätigt
+            </div>
+          }
+          @if (s.today.seated > 0) {
+            <div class="status-pill status-pill--seated">
+              <mat-icon>airline_seat_recline_normal</mat-icon>
+              {{ s.today.seated }} Eingecheckt
+            </div>
+          }
+          @if (s.today.completed > 0) {
+            <div class="status-pill status-pill--completed">
+              <mat-icon>task_alt</mat-icon>
+              {{ s.today.completed }} Beendet
+            </div>
+          }
+          @if (s.today.cancelled > 0) {
+            <div class="status-pill status-pill--cancelled">
+              <mat-icon>cancel</mat-icon>
+              {{ s.today.cancelled }} Storniert
+            </div>
+          }
+          @if (s.today.no_show > 0) {
+            <div class="status-pill status-pill--noshow">
+              <mat-icon>person_off</mat-icon>
+              {{ s.today.no_show }} No-Show
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SEKTION 2: HEUTIGE RESERVIERUNGEN (LISTE)
+    ══════════════════════════════════════════════════════════ -->
+    <section class="dash-section">
+      <div class="section-label-row">
+        <h2 class="section-label">
+          <mat-icon>list_alt</mat-icon>
+          Heutige Reservierungen
+        </h2>
+        <a routerLink="/einstellungen/reservierungsliste" class="section-link">
+          Alle anzeigen
+          <mat-icon>arrow_forward</mat-icon>
+        </a>
+      </div>
+
+      @if (upcomingRes().length === 0 && !loading()) {
+        <div class="empty-state">
+          <mat-icon>event_busy</mat-icon>
+          <span>Keine offenen Reservierungen für heute</span>
+        </div>
+      }
+
+      @if (upcomingRes().length > 0) {
+        <div class="res-list">
+          @for (r of upcomingRes(); track r.id) {
+            <div class="res-row">
+              <div class="res-row__time">{{ formatTime(r.starts_at) }}</div>
+              <div class="res-row__main">
+                <span class="res-row__name">{{ r.guest_name }}</span>
+                <span class="res-row__detail">
+                  <mat-icon>group</mat-icon>
+                  {{ r.party_size }} Pers.
+                  @if (r.guest_phone) {
+                    <mat-icon>phone</mat-icon>{{ r.guest_phone }}
+                  }
+                </span>
+              </div>
+              <div class="res-row__right">
+                @if (r.table_number) {
+                  <span class="res-row__table">Tisch {{ r.table_number }}</span>
+                }
+                <span class="badge" [ngClass]="statusClass(r.status)">
+                  {{ statusLabel(r.status) }}
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SEKTION 3: VORSCHAU
+    ══════════════════════════════════════════════════════════ -->
+    <section class="dash-section">
+      <h2 class="section-label">
+        <mat-icon>date_range</mat-icon>
+        Vorschau
+      </h2>
+      <div class="preview-grid">
+
+        <div class="preview-card">
+          <div class="preview-card__header">
+            <mat-icon>event</mat-icon>
+            <span>Morgen</span>
+          </div>
+          <div class="preview-card__value">{{ s.tomorrow.total }}</div>
+          <div class="preview-card__meta">
+            <span><mat-icon>group</mat-icon>{{ s.tomorrow.guests }} Gäste</span>
+            @if (s.tomorrow.pending > 0) {
+              <span class="preview-card__warn">
+                <mat-icon>pending_actions</mat-icon>{{ s.tomorrow.pending }} ausstehend
+              </span>
+            }
+            @if (s.tomorrow.cancelled > 0) {
+              <span class="preview-card__muted">
+                <mat-icon>cancel</mat-icon>{{ s.tomorrow.cancelled }} storniert
+              </span>
             }
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-card__icon"><mat-icon>meeting_room</mat-icon></div>
-          <div class="stat-card__content">
-            <span class="stat-card__label">Aktive Räume</span>
-            <span class="stat-card__value">{{ s.venues }}</span>
+        <div class="preview-card">
+          <div class="preview-card__header">
+            <mat-icon>date_range</mat-icon>
+            <span>Diese Woche</span>
+          </div>
+          <div class="preview-card__value">{{ s.week.total }}</div>
+          <div class="preview-card__meta">
+            <span><mat-icon>group</mat-icon>{{ s.week.guests }} Gäste</span>
+            @if (s.week.pending > 0) {
+              <span class="preview-card__warn">
+                <mat-icon>pending_actions</mat-icon>{{ s.week.pending }} ausstehend
+              </span>
+            }
+            @if (s.week.cancelled > 0) {
+              <span class="preview-card__muted">
+                <mat-icon>cancel</mat-icon>{{ s.week.cancelled }} storniert
+              </span>
+            }
+            @if (s.week.no_show > 0) {
+              <span class="preview-card__muted">
+                <mat-icon>person_off</mat-icon>{{ s.week.no_show }} No-Show
+              </span>
+            }
           </div>
         </div>
 
       </div>
-    </div>
-
-    <!-- Morgen + Woche -->
-    <div class="stats-section">
-      <h2 class="section-label">Vorschau</h2>
-      <div class="stats-grid stats-grid--half">
-
-        <div class="stat-card stat-card--muted">
-          <div class="stat-card__icon"><mat-icon>event</mat-icon></div>
-          <div class="stat-card__content">
-            <span class="stat-card__label">Morgen</span>
-            <span class="stat-card__value">{{ s.tomorrow.total }}</span>
-            <span class="stat-card__hint">{{ s.tomorrow.guests }} Gäste</span>
-          </div>
-        </div>
-
-        <div class="stat-card stat-card--muted">
-          <div class="stat-card__icon"><mat-icon>date_range</mat-icon></div>
-          <div class="stat-card__content">
-            <span class="stat-card__label">Diese Woche</span>
-            <span class="stat-card__value">{{ s.week.total }}</span>
-            <span class="stat-card__hint">{{ s.week.guests }} Gäste</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
+    </section>
 
   }
 
-  <!-- Schnellzugriff -->
-  <div class="quick-actions">
-    <h2 class="section-label">Schnellzugriff</h2>
-    <div class="quick-actions__grid">
+
+  <!-- ══════════════════════════════════════════════════════════
+       SEKTION 4: SCHNELLZUGRIFF
+  ══════════════════════════════════════════════════════════ -->
+  <section class="dash-section">
+    <h2 class="section-label">
+      <mat-icon>bolt</mat-icon>
+      Schnellzugriff
+    </h2>
+    <div class="quick-grid">
       <a routerLink="/raum" class="quick-card">
-        <mat-icon>table_restaurant</mat-icon>
-        <span>Raumplan</span>
+        <div class="quick-card__icon quick-card__icon--primary">
+          <mat-icon>table_restaurant</mat-icon>
+        </div>
+        <div class="quick-card__label">Raumplan</div>
+        <mat-icon class="quick-card__arrow">arrow_forward</mat-icon>
       </a>
       <a routerLink="/einstellungen/reservierungsliste" class="quick-card">
-        <mat-icon>list_alt</mat-icon>
-        <span>Reservierungen</span>
+        <div class="quick-card__icon quick-card__icon--accent">
+          <mat-icon>list_alt</mat-icon>
+        </div>
+        <div class="quick-card__label">Reservierungsliste</div>
+        <mat-icon class="quick-card__arrow">arrow_forward</mat-icon>
       </a>
-      <a routerLink="/statistiken" class="quick-card">
-        <mat-icon>bar_chart</mat-icon>
-        <span>Statistiken</span>
+      <a routerLink="/gaeste" class="quick-card">
+        <div class="quick-card__icon quick-card__icon--green">
+          <mat-icon>people</mat-icon>
+        </div>
+        <div class="quick-card__label">Gästeverwaltung</div>
+        <mat-icon class="quick-card__arrow">arrow_forward</mat-icon>
       </a>
       <a routerLink="/einstellungen" class="quick-card">
-        <mat-icon>settings</mat-icon>
-        <span>Einstellungen</span>
+        <div class="quick-card__icon quick-card__icon--muted">
+          <mat-icon>settings</mat-icon>
+        </div>
+        <div class="quick-card__label">Einstellungen</div>
+        <mat-icon class="quick-card__arrow">arrow_forward</mat-icon>
       </a>
     </div>
-  </div>
+  </section>
 
 </div>

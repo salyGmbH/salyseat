@@ -1,749 +1,597 @@
-@use '../../../../styles/variables' as *;
+// ===========================================================================
+//  Reservierungs-Zeiten — Einstellungs-Seite
+//  Visuell identisch mit Widget-Einstellungen:
+//  • linksbündiger Aufbau (kein margin: auto)
+//  • Info-Button oben rechts in jeder Section
+//  • Speichern-Button als Ghost/Outline wie in Widget-Einstellungen
+// ===========================================================================
 
-.reservations-page {
+:host { display: block; }
+
+// ── Äußerer Wrapper (analog .settings-container in widget-einstellungen) ──
+.settings-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+  max-width: 1100px;
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
+// ── Settings-Block (eine Card pro Section) ────────────────────────────────
+.settings-block {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+  color: var(--color-text);
+}
 
-.page-header {
+// ── Section Header ────────────────────────────────────────────────────────
+.section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-.page-header__left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.page-title {
+.section-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: $color-text-on-dark;
-}
-
-.total-badge {
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: rgba(var(--color-accent-rgb), 0.12);
-  color: $color-accent;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-// ─── Filter Bar ───────────────────────────────────────────────────────────────
-
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  background: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: 12px;
-  padding: 12px 16px;
-}
-
-.filter-bar__field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: $color-text-muted;
-
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
-}
-
-.filter-input,
-.filter-select {
-  background: $color-surface-soft;
-  border: 1px solid $color-border;
-  border-radius: 8px;
-  color: $color-text-on-dark;
-  font-size: 13px;
-  padding: 6px 10px;
-  outline: none;
-  cursor: pointer;
-
-  &:focus {
-    border-color: $color-accent;
-  }
-}
-
-.filter-bar__actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid $color-border;
-  background: $color-surface-soft;
-  color: $color-text-muted;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s;
-
-  mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-  }
-
-  span { line-height: 1; }
-
-  &:hover:not(:disabled) {
-    border-color: $color-accent;
-    color: $color-accent;
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  // PDF — rötlicher Akzent
-  &--pdf:hover:not(:disabled) {
-    border-color: #e53935;
-    color: #e53935;
-    background: rgba(229, 57, 53, 0.07);
-  }
-
-  // Print — neutraler blauer Akzent
-  &--print:hover:not(:disabled) {
-    border-color: $color-accent;
-    color: $color-accent;
-    background: rgba(var(--color-accent-rgb), 0.07);
-  }
-
-  // Refresh — nur Icon, keine Beschriftung, quadratisch
-  &--refresh {
-    padding: 0;
-    width: 36px;
-    justify-content: center;
-
-    span { display: none; }
-  }
-}
-
-// ─── Error Banner ─────────────────────────────────────────────────────────────
-
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #ef4444;
-  font-size: 13px;
-
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
-}
-
-// ─── State Box (loading / empty) ──────────────────────────────────────────────
-
-.state-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 48px 24px;
-  background: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: 12px;
-  color: $color-text-muted;
-  font-size: 14px;
-
-  &__icon {
-    font-size: 36px;
-    width: 36px;
-    height: 36px;
-    opacity: 0.4;
-  }
-}
-
-.spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid $color-border;
-  border-top-color: $color-accent;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-// ─── Reservation List ─────────────────────────────────────────────────────────
-
-.reservation-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.reservation-card {
-  --status-color: #{$color-border};
-
-  display: grid;
-  grid-template-columns: 96px 1fr auto;
-  gap: 16px;
-  align-items: center;
-  background: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: 12px;
-  padding: 14px 16px;
-  // Border-Left in der konfigurierten Status-Farbe
-  border-left: 4px solid var(--status-color);
-}
-
-// ─── Linke Spalte: Zeit + Status-Indikator (Farbe / Text / Icon) ─────────────
-
-.reservation-card__left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: stretch;
-  width: 96px;
-  flex-shrink: 0;
-}
-
-.reservation-card__time--colored {
-  background: var(--status-color);
-  color: #fff;
-  border-radius: 8px;
-  padding: 6px 4px;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-              0 1px 2px rgba(0, 0, 0, 0.15);
-
-  .time-main { color: #fff; }
-  .time-end  { color: rgba(255, 255, 255, 0.85); }
-}
-
-.reservation-card__time--neutral {
-  background: rgba(var(--color-text-rgb), 0.06);
-  border-radius: 8px;
-  padding: 4px 4px;
-  box-shadow: inset 0 0 0 1px rgba(var(--color-text-rgb), 0.08);
-
-  .time-main { font-size: 15px; }
-  .time-end  { font-size: 10px; }
-}
-
-.reservation-card__status-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 5px 8px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-}
-
-.reservation-card__status-tile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--status-color);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-              0 1px 2px rgba(0, 0, 0, 0.2);
-
-  app-status-icon { line-height: 0; }
-}
-
-// Rechte Spalte: nur Status-Label-Text (statt Action-Buttons)
-.reservation-card__status-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--status-color);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  white-space: nowrap;
-  padding: 4px 10px;
-  border: 1px solid var(--status-color);
-  border-radius: 999px;
-  background: transparent;
-}
-
-// ─── Time ────────────────────────────────────────────────────────────────────
-
-.reservation-card__time {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.time-main {
-  font-size: 18px;
-  font-weight: 700;
-  color: $color-text-on-dark;
-}
-
-.time-end {
-  font-size: 11px;
-  color: $color-text-muted;
-}
-
-// ─── Info ─────────────────────────────────────────────────────────────────────
-
-.reservation-card__info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.info-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-size: 15px;
   font-weight: 600;
-  color: $color-text-on-dark;
-
-  mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    color: $color-text-muted;
-    flex-shrink: 0;
-  }
-}
-
-.party-size {
+  color: var(--color-text);
   display: flex;
   align-items: center;
-  gap: 3px;
-  margin-left: 6px;
-  font-size: 13px;
-  font-weight: 400;
-  color: $color-text-muted;
+  gap: 10px;
+}
 
-  mat-icon {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
+.section-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--color-primary);
+}
+
+// ── Icon-Wrap farbige Box (primary / accent / warning / info) ─────────────
+.section-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex-shrink: 0;
+
+  mat-icon { font-size: 19px; width: 19px; height: 19px; }
+
+  &--primary {
+    background: rgba(var(--color-primary-rgb), 0.12);
+    color: var(--color-primary);
+  }
+  &--accent {
+    background: rgba(var(--color-accent-rgb), 0.18);
+    color: var(--color-accent-dark);
+  }
+  &--warning {
+    background: rgba(251, 146, 60, 0.18);
+    color: #fb923c;
+  }
+  &--info {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+  }
+  &--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
   }
 }
 
-.info-meta {
-  font-size: 12px;
-  color: $color-text-muted;
-  padding-left: 22px;
+// ── Section Subtitle ──────────────────────────────────────────────────────
+.section-subtitle {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(var(--color-text-rgb), 0.6);
+  margin: 0 0 14px;
+
+  strong { color: var(--color-text); font-weight: 600; }
 }
 
-.info-notes {
+// ── Section Header Right (Info-Button + ggf. Toggle) ─────────────────────
+.section-header__right {
   display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  font-size: 12px;
-  color: $color-text-muted;
-  padding-left: 22px;
-  font-style: italic;
-
-  mat-icon {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-}
-
-// ─── Actions ─────────────────────────────────────────────────────────────────
-
-.reservation-card__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.status-badge {
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-
-  &--pending   { background: rgba(245, 158, 11, 0.15);  color: #f59e0b; }
-  &--confirmed { background: rgba(34, 197, 94, 0.15);   color: #22c55e; }
-  &--cancelled { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
-  &--no_show   { background: rgba(239, 68, 68, 0.15);   color: #ef4444; }
-}
-
-.action-buttons {
-  display: flex;
-  gap: 6px;
-}
-
-.btn-action {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  border: 1px solid;
-  font-size: 12px;
-  font-weight: 500;
+// ── Info-Button — 1:1 aus widget-einstellungen ────────────────────────────
+.info-button {
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: 0.2s;
-
-  mat-icon {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
-  }
-
-  &--confirm {
-    background: rgba(34, 197, 94, 0.1);
-    border-color: rgba(34, 197, 94, 0.3);
-    color: #22c55e;
-
-    &:hover { background: rgba(34, 197, 94, 0.2); }
-  }
-
-  &--noshow {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #ef4444;
-
-    &:hover { background: rgba(239, 68, 68, 0.2); }
-  }
-
-  &--cancel {
-    background: rgba(249, 115, 22, 0.1);
-    border-color: rgba(249, 115, 22, 0.3);
-    color: #f97316;
-
-    &:hover { background: rgba(249, 115, 22, 0.2); }
-  }
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  color: var(--color-accent);
+  padding: 6px;
+  border-radius: 50%;
+  transition: 0.2s;
+  flex-shrink: 0;
+
+  mat-icon { font-size: 20px; }
+
+  &:hover { background: rgba(var(--color-accent-rgb), 0.10); transform: scale(1.05); }
+  &.active { background: rgba(var(--color-accent-rgb), 0.15); }
 }
 
-// ─── Export Modal ─────────────────────────────────────────────────────────────
-
-.export-modal {
-  background: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: 14px;
-  padding: 0;
-  width: 420px;
-  display: flex;
-  flex-direction: column;
+// ── Info-Box (aufklappbar, identisch mit widget-einstellungen) ────────────
+.info-box {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.20);
+  color: rgba(var(--color-text-rgb), 0.8);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
   overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: max-height 0.25s ease, opacity 0.25s ease, transform 0.25s ease, margin-bottom 0.25s ease;
 
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 18px 20px 16px;
-    border-bottom: 1px solid $color-border;
+  strong { color: var(--color-text); font-weight: 600; }
 
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-      color: $color-accent;
-    }
-
-    h3 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: $color-text-on-dark;
-      flex: 1;
-    }
-  }
-
-  &__close {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border: none;
-    background: transparent;
-    color: $color-text-muted;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: 0.15s;
-
-    mat-icon { font-size: 18px; width: 18px; height: 18px; }
-    &:hover { background: $color-surface-soft; color: $color-text-on-dark; }
-  }
-
-  &__footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 16px 20px;
-    border-top: 1px solid $color-border;
+  &.open {
+    max-height: 300px;
+    opacity: 1;
+    transform: translateY(0);
+    margin-bottom: 4px;
   }
 }
 
-.export-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 20px;
-
-  & + & {
-    border-top: 1px solid $color-border;
-    padding-top: 14px;
-  }
-}
-
-.export-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: $color-text-muted;
-}
-
-.export-range-tabs {
-  display: flex;
-  gap: 6px;
-
-  button {
-    flex: 1;
-    padding: 7px 0;
-    border-radius: 8px;
-    border: 1px solid $color-border;
-    background: $color-surface-soft;
-    color: $color-text-muted;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: 0.15s;
-
-    &.active {
-      border-color: $color-accent;
-      background: rgba(var(--color-accent-rgb), 0.1);
-      color: $color-accent;
-    }
-
-    &:not(.active):hover {
-      border-color: $color-accent;
-      color: $color-text-on-dark;
-    }
-  }
-}
-
-.export-date-range {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .filter-input { flex: 1; }
-}
-
-.export-date-sep {
-  font-size: 14px;
-  color: $color-text-muted;
-}
-
-.export-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.export-chip {
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid $color-border;
-  background: $color-surface-soft;
-  color: $color-text-muted;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.15s;
-
-  &.active {
-    border-color: $color-accent;
-    background: rgba(var(--color-accent-rgb), 0.12);
-    color: $color-accent;
-  }
-
-  &:not(.active):hover {
-    border-color: $color-text-muted;
-    color: $color-text-on-dark;
-  }
-}
-
-.export-hint {
-  font-size: 11px;
-  color: $color-text-muted;
-  font-style: italic;
-}
-
-.btn-cancel {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid $color-border;
-  background: transparent;
-  color: $color-text-muted;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.15s;
-
-  &:hover {
-    border-color: $color-text-muted;
-    color: $color-text-on-dark;
-  }
-}
-
-.btn-run {
+// ── Status-Hint (aktiv / inaktiv) ─────────────────────────────────────────
+.status-hint {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 18px;
-  border-radius: 8px;
-  border: none;
-  background: $color-accent;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.15s;
+  font-size: 12px;
+  color: rgba(var(--color-text-rgb), 0.5);
+  margin: 10px 0 4px;
+  transition: color 0.2s;
 
   mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
-  &:hover { filter: brightness(1.1); }
+  &--active { color: var(--color-success); }
 }
 
-@media print {
+// ── Block disabled (preset/input wenn Toggle aus) ─────────────────────────
+.block--disabled {
+  opacity: 0.38;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
 
-  body * {
-    visibility: hidden;
+// ── Preset-Chips ──────────────────────────────────────────────────────────
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.preset-chip {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: rgba(var(--color-text-rgb), 0.03);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover {
+    background: rgba(var(--color-text-rgb), 0.07);
+    border-color: rgba(var(--color-text-rgb), 0.2);
   }
 
-  .print-area,
-  .print-area * {
-    visibility: visible;
+  &.active {
+    background: rgba(var(--color-primary-rgb), 0.15);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    font-weight: 600;
   }
 
-  .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    padding: 20px;
-    background: white;
+  &--accent.active {
+    background: rgba(var(--color-accent-rgb), 0.15);
+    border-color: var(--color-accent);
+    color: var(--color-accent-dark);
+    font-weight: 600;
   }
 
-  /* Header schöner machen */
-  .print-header {
+  &--danger.active {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+  }
+}
+
+// ── Field Label ───────────────────────────────────────────────────────────
+.field-label {
+  font-size: 12.5px;
+  color: rgba(var(--color-text-rgb), 0.6);
+  margin: 0 0 10px;
+}
+
+// ── Time-Cards (Getränke-Erinnerung) ─────────────────────────────────────
+.time-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.time-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: rgba(var(--color-text-rgb), 0.03);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+
+  &__val {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__unit {
+    font-size: 10px;
+    color: rgba(var(--color-text-rgb), 0.5);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  &:hover {
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &--active {
+    background: rgba(56, 189, 248, 0.14);
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+
+    .time-card__val { color: #38bdf8; }
+    .time-card__unit { color: rgba(56, 189, 248, 0.7); }
+  }
+}
+
+// ── Custom-Input (Zahl + Einheit) ─────────────────────────────────────────
+.custom-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 220px;
+
+  &__label {
+    font-size: 12px;
+    color: rgba(var(--color-text-rgb), 0.6);
+    font-weight: 500;
+  }
+
+  &__field {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    align-items: center;
+    background: rgba(var(--color-text-rgb), 0.04);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 4px 12px;
+    transition: border-color 0.15s, background 0.15s;
 
-    h2 {
-      margin: 0;
-      font-size: 20px;
+    &:focus-within {
+      border-color: var(--color-primary);
+      background: var(--color-surface);
     }
-
-    span {
-      font-size: 14px;
-      color: #666;
-    }
   }
 
-  /* Karten vereinfachen */
-  .reservation-card {
-    border: 1px solid #ccc !important;
-    border-left: 4px solid #000 !important;
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: 8px 0;
+    min-width: 0;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button { opacity: 0.5; }
   }
 
-  /* Buttons entfernen */
-  .reservation-card__actions {
-    display: none !important;
-  }
-
-  /* Farben neutralisieren */
-  .status-badge {
-    background: none !important;
-    color: black !important;
-    border: 1px solid #000;
-  }
-
-  /* Icons ausblenden */
-  mat-icon {
-    display: none !important;
-  }
-}
-@media print {
-  .print-hide {
-    display: none !important;
+  &__unit {
+    font-size: 12px;
+    color: rgba(var(--color-text-rgb), 0.5);
+    margin-left: 6px;
   }
 }
 
-// ─── Responsive ──────────────────────────────────────────────────────────────
+// ── Toggle Switch (identisch mit widget-einstellungen) ────────────────────
+.toggle {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+  flex-shrink: 0;
 
+  input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+  &__track {
+    width: 44px;
+    height: 24px;
+    background: rgba(var(--color-text-rgb), 0.12);
+    border-radius: 99px;
+    transition: background 0.2s;
+    position: relative;
+  }
+
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s;
+  }
+
+  input:checked ~ .toggle__track {
+    background: rgba(var(--color-primary-rgb), 0.35);
+  }
+
+  input:checked ~ .toggle__track .toggle__thumb {
+    transform: translateX(20px);
+    background: var(--color-primary);
+    box-shadow: 0 1px 6px rgba(var(--color-primary-rgb), 0.6);
+  }
+}
+
+// ── Preview-Block (Zeitstrahl) ─────────────────────────────────────────────
+.preview-block {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-primary-rgb), 0.06) 0%,
+    rgba(var(--color-accent-rgb), 0.04) 100%
+  );
+  border: 1px dashed rgba(var(--color-primary-rgb), 0.3);
+}
+
+.preview-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: rgba(var(--color-text-rgb), 0.75);
+  margin-top: 4px;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--color-success); }
+
+  strong {
+    color: var(--color-text);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ── Timeline ──────────────────────────────────────────────────────────────
+.timeline {
+  display: flex;
+  width: 100%;
+  height: 64px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  margin: 10px 0;
+
+  &__segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    color: #fff;
+    text-align: center;
+    overflow: hidden;
+    transition: flex 0.25s;
+
+    &--reservation {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    }
+
+    &--cleanup {
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(var(--color-accent-rgb), 0.85),
+        rgba(var(--color-accent-rgb), 0.85) 8px,
+        rgba(var(--color-accent-dark-rgb), 0.85) 8px,
+        rgba(var(--color-accent-dark-rgb), 0.85) 16px
+      );
+      color: #1a1a1a;
+    }
+  }
+
+  &__label {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+
+    strong { font-size: 12px; font-weight: 700; }
+  }
+
+  &__minutes {
+    font-size: 10px;
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ── Actions (Speichern-Zeile) — identisch mit widget-einstellungen ─────────
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+// ── Speichern-Button — Ghost/Outline wie widget-einstellungen ─────────────
+.save-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 22px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--color-primary-rgb), 0.55);
+  background: rgba(var(--color-primary-rgb), 0.10);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.18),
+              inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.08);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-primary);
+    background: rgba(var(--color-primary-rgb), 0.16);
+    box-shadow: 0 0 16px rgba(var(--color-primary-rgb), 0.30),
+                inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.12);
+  }
+
+  &.saved {
+    border-color: rgba(var(--color-success-rgb), 0.55);
+    background: rgba(var(--color-success-rgb), 0.10);
+    color: var(--color-success);
+    box-shadow: 0 0 10px rgba(var(--color-success-rgb), 0.18),
+                inset 0 0 0 1px rgba(var(--color-success-rgb), 0.08);
+  }
+}
+
+// ── Footer-Aktionen (Auf Standard zurücksetzen) ───────────────────────────
+.footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: rgba(var(--color-text-rgb), 0.7);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover {
+    background: rgba(var(--color-text-rgb), 0.05);
+    color: var(--color-text);
+  }
+}
+
+// ── VIP-Schwelle ──────────────────────────────────────────────────────────
+.section-icon-wrap--vip {
+  background: rgba(167, 139, 250, 0.15);
+  color: #a78bfa;
+}
+
+.preset-chip--vip {
+  &.active {
+    background: rgba(167, 139, 250, 0.18);
+    border-color: #a78bfa;
+    color: #a78bfa;
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.25);
+  }
+}
+
+.vip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.vip-custom-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(var(--color-text-rgb), 0.03);
+  transition: border-color .15s, background .15s;
+  cursor: text;
+
+  &:focus-within {
+    border-color: #a78bfa;
+    background: rgba(167, 139, 250, .06);
+  }
+
+  input {
+    width: 46px;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: center;
+    padding: 7px 4px 7px 12px;
+    -moz-appearance: textfield;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    &::placeholder { color: rgba(var(--color-text-rgb), .3); font-weight: 400; }
+  }
+
+  &__unit {
+    font-size: 12px;
+    color: rgba(var(--color-text-rgb), .5);
+    padding: 7px 12px 7px 4px;
+    white-space: nowrap;
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────
 @media (max-width: 600px) {
-  .reservation-card {
-    grid-template-columns: 1fr;
-  }
+  .settings-block { padding: 16px; }
 
-  .reservation-card__time {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 6px;
-  }
+  .actions { padding-top: 12px; }
 
-  .reservation-card__actions {
-    align-items: flex-start;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
+  .preset-chip { padding: 6px 12px; font-size: 12px; }
+
+  .time-card { width: 52px; height: 50px; }
 }

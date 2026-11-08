@@ -61,7 +61,7 @@ export class SidebarComponent implements OnDestroy {
   }
 
   openNotizenPanel(): void {
-    this.notizenState.floatDismissed.set(true);
+    this.notizenState.dismiss();
     this.notizenState.panelOpen.set(true);
   }
 }

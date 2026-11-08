@@ -32,6 +32,7 @@ export class AuthService {
   readonly user            = computed(() => this._user());
   readonly isAuthenticated = computed(() => this._token() !== null);
 
+  // ── Login / Logout ────────────────────────────────────────────────────────
   login(email: string, password: string): Observable<LoginResponse> {
     const body: LoginRequest = { email, password };
     return this.http.post<LoginResponse>(`${this.apiBase}/auth/login`, body).pipe(
@@ -45,10 +46,12 @@ export class AuthService {
     try {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem('nf-dismissed');
     } catch { /* ignore */ }
     this.router.navigate(['/login']);
   }
 
+  // ── Session-Handling ──────────────────────────────────────────────────────
   private setSession(res: LoginResponse): void {
     this._token.set(res.token);
     this._user.set(res.user);

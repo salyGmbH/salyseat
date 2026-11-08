@@ -47,6 +47,9 @@ class Reservation
     #[ORM\Column]
     private int $partySize;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $tableNumber = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $startsAt;
 
@@ -113,6 +116,16 @@ class Reservation
         $this->status = ReservationStatus::NO_SHOW;
     }
 
+    public function seat(): void
+    {
+        $this->status = ReservationStatus::SEATED;
+    }
+
+    public function startCleanup(): void
+    {
+        $this->status = ReservationStatus::CLEANUP;
+    }
+
     public function complete(): void
     {
         $this->status = ReservationStatus::COMPLETED;
@@ -154,6 +167,14 @@ class Reservation
     public function getPartySize(): int
     {
         return $this->partySize;
+    }
+    public function getTableNumber(): ?int
+    {
+        return $this->tableNumber;
+    }
+    public function setTableNumber(?int $n): void
+    {
+        $this->tableNumber = $n;
     }
     public function getStartsAt(): \DateTimeImmutable
     {

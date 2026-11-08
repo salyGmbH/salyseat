@@ -141,6 +141,330 @@
   }
 }
 
+// ── View-Toggle Button (Plan ↔ Übersicht) ─────────────────────────────────
+.btn-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), 0.04);
+  color: $color-text-muted;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+
+  svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  &:hover {
+    background: rgba(var(--color-primary-rgb), 0.08);
+    border-color: rgba(var(--color-primary-rgb), 0.35);
+    color: $color-primary;
+  }
+
+  &--active {
+    background: rgba(var(--color-primary-rgb), 0.12);
+    border-color: rgba(var(--color-primary-rgb), 0.4);
+    color: $color-primary;
+    box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.15);
+  }
+}
+
+// ── Tagesübersicht (Timeline) ──────────────────────────────────────────────
+.tl-view {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tl-grid-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// Einziger Scroll-Container (X + Y) — Header und Body teilen sich den Scroll
+.tl-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: $color-primary transparent;
+}
+
+// Innerer Wrapper: min-width: max-content sorgt dafür, dass Header und Body
+// immer gleich breit sind → Spalten fluchten immer mit den Tisch-Headers
+.tl-inner {
+  display: flex;
+  flex-direction: column;
+  min-width: max-content;
+}
+
+// Sticky Header (Tisch-Nummern): scrollt horizontal MIT dem Inhalt,
+// bleibt aber beim vertikalen Scrollen oben stehen
+.tl-header {
+  display: flex;
+  background: $color-dark;
+  border-bottom: 1px solid $color-border;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  &__axis {
+    width: 52px;
+    min-width: 52px;
+    flex-shrink: 0;
+    border-right: 1px solid $color-border;
+    // Ecke bleibt sichtbar wenn gleichzeitig links UND oben gestickt
+    position: sticky;
+    left: 0;
+    background: $color-dark;
+    z-index: 2;
+  }
+
+  &__col {
+    flex: 1;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    border-right: 1px solid $color-border;
+    gap: 1px;
+  }
+
+  &__num {
+    font-size: 13px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+
+  &__seats {
+    font-size: 10px;
+    color: $color-text-muted;
+  }
+}
+
+// Content-Reihe: Zeitachse + Spalten
+.tl-content {
+  display: flex;
+}
+
+// Zeit-Achse links (sticky left — bleibt sichtbar beim horizontalen Scrollen)
+.tl-axis {
+  width: 52px;
+  min-width: 52px;
+  flex-shrink: 0;
+  border-right: 1px solid $color-border;
+  background: $color-dark;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+
+  &__label {
+    display: flex;
+    align-items: flex-start;
+    padding: 4px 6px 0;
+    font-size: 10px;
+    font-weight: 500;
+    color: $color-text-muted;
+    font-variant-numeric: tabular-nums;
+    border-top: 1px solid $color-border;
+  }
+}
+
+// Spalten-Container
+.tl-columns {
+  flex: 1;
+  display: flex;
+}
+
+// Eine Tisch-Spalte
+.tl-col {
+  flex: 1;
+  min-width: 80px; // gleich wie tl-header__col → perfekte Ausrichtung
+  border-right: 1px solid $color-border;
+  position: relative;
+
+  &__slot {
+    box-sizing: border-box;
+
+    &--hour {
+      border-top: 1px solid rgba(var(--color-text-rgb), 0.1);
+    }
+
+    &:not(&--hour) {
+      border-top: 1px solid rgba(var(--color-text-rgb), 0.04);
+    }
+  }
+}
+
+// Reservierungs-Block
+.tl-res {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border-radius: 5px;
+  padding: 3px 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+
+  &:hover { opacity: 0.88; transform: scaleX(0.97); }
+
+  &__name {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0,0,0,.25);
+    line-height: 1.3;
+  }
+
+  &__meta {
+    display: block;
+    font-size: 9px;
+    color: rgba(255,255,255,.8);
+    margin-top: 1px;
+  }
+}
+
+// Jetzt-Linie
+.tl-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: $color-danger;
+  z-index: 5;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $color-danger;
+  }
+}
+
+// Freie Slots Panel (rechte Sidebar)
+.tl-free-panel {
+  width: 210px;
+  flex-shrink: 0;
+  border-left: 1px solid $color-border;
+  background: $color-dark;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid $color-border;
+    font-size: 13px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    flex-shrink: 0;
+
+    mat-icon {
+      font-size: 16px; width: 16px; height: 16px;
+      color: $color-success;
+    }
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: $color-primary transparent;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px 16px;
+    color: $color-text-muted;
+    font-size: 12px;
+    text-align: center;
+
+    mat-icon { font-size: 28px; width: 28px; height: 28px; opacity: .5; }
+  }
+}
+
+// Freier-Slot-Eintrag
+.tl-free-slot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), 0.02);
+  transition: background .12s;
+
+  &:hover { background: rgba(var(--color-text-rgb), 0.05); }
+
+  &__dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: $color-success;
+    flex-shrink: 0;
+  }
+
+  &__time {
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: $color-text-on-dark;
+    flex: 1;
+  }
+
+  &__count {
+    font-size: 10px;
+    color: $color-text-muted;
+    white-space: nowrap;
+  }
+
+  &__btn {
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid rgba(var(--color-primary-rgb), 0.4);
+    background: rgba(var(--color-primary-rgb), 0.1);
+    color: $color-primary;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+
+    &:hover { background: rgba(var(--color-primary-rgb), 0.2); }
+  }
+}
+
 // ── Buttons ────────────────────────────────────────────────────────────────
 .btn-icon {
   display: inline-flex;
@@ -292,6 +616,22 @@
     background: transparent;
   }
 
+  &__closed-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 7px 10px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 8px;
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 600;
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; flex-shrink: 0; }
+  }
+
   &__today-link {
     display: inline-flex;
     align-items: center;
@@ -436,6 +776,12 @@
     background: rgba(var(--color-primary-rgb), 0.2);
     border-color: $color-primary;
     border-style: solid;
+  }
+
+  &:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   // Walk-In-Variante: Gold/Akzent statt Blau – signalisiert "jetzt sofort".
@@ -643,7 +989,7 @@
 
   &__top {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 4px;
     min-width: 0;
   }
@@ -680,6 +1026,11 @@
 
     .warn   { color: #fb8c00; }
     .muted  { color: rgba(var(--color-text-rgb), 0.4); }
+
+    .no-show-count {
+      font-weight: 700;
+      color: $color-danger;
+    }
   }
 
   &__notes {
@@ -1822,6 +2173,13 @@
     background: rgba(var(--color-accent-rgb), 0.12);
     .table-inline__num { color: $color-accent; }
   }
+
+  &--selected-full {
+    background: rgba(229, 57, 53, 0.12);
+    border-color: #e53935;
+    border-style: solid;
+    .table-inline__num { color: #e53935; }
+  }
 }
 
 .table-inline__icon {
@@ -1873,6 +2231,30 @@
     font-size: 10px;
     font-weight: 800;
   }
+}
+
+// ── Besetzt-Warnung im Reservierungsdialog ───────────────────────────────
+.table-occupied-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: rgba(229, 57, 53, 0.1);
+  border: 1px solid rgba(229, 57, 53, 0.4);
+  border-radius: 8px;
+  color: #e53935;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  strong { font-weight: 700; }
 }
 
 // ── Picker-Row (Personen & Uhrzeit als horizontale Karten-Reihe) ────────
@@ -2056,6 +2438,41 @@
     border-radius: 4px;
     padding: 1px 5px;
   }
+}
+
+// ── Getränke-Alert-Icon direkt in der Reservierungszeile ─────────────────────
+.drinks-alert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-right: 2px;
+  position: relative;
+
+  &__svg {
+    width: 22px;
+    height: 22px;
+    filter: drop-shadow(0 0 5px rgba(56,189,248,.8))
+            drop-shadow(0 0 12px rgba(56,189,248,.5));
+    animation: drinksPulse 1.6s ease-in-out infinite;
+    transition: transform .15s;
+  }
+
+  &:hover &__svg {
+    transform: scale(1.18);
+    animation: none;
+    filter: drop-shadow(0 0 8px rgba(56,189,248,1))
+            drop-shadow(0 0 16px rgba(56,189,248,.7));
+  }
+}
+
+@keyframes drinksPulse {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(56,189,248,.8)) drop-shadow(0 0 12px rgba(56,189,248,.5)); }
+  50%       { filter: drop-shadow(0 0 9px rgba(56,189,248,1)) drop-shadow(0 0 20px rgba(56,189,248,.75)); }
 }
 
 // ── res-row__body klickbar ────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-export type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show';
+export type ReservationStatus = 'pending' | 'confirmed' | 'seated' | 'cleanup' | 'completed' | 'cancelled' | 'no_show';
 
 export interface Reservation {
   id: string;
@@ -11,6 +11,7 @@ export interface Reservation {
   guest_phone: string | null;
   guest_notes: string | null;
   party_size: number;
+  table_number: number | null;
   starts_at: string;
   ends_at: string;
   admin_notes: string | null;
@@ -21,6 +22,7 @@ export interface Reservation {
   guest_internal_notes: string | null;
   guest_blocked: boolean;
   guest_blocked_reason: string | null;
+  guest_no_show_count: number;
 }
 
 export interface ReservationListResponse {
@@ -33,6 +35,9 @@ export interface ReservationListResponse {
 export const STATUS_LABELS: Record<ReservationStatus, string> = {
   pending:   'Ausstehend',
   confirmed: 'Bestätigt',
+  seated:    'Eingecheckt',
+  cleanup:   'Wird gereinigt',
+  completed: 'Abgeschlossen',
   cancelled: 'Storniert',
   no_show:   'No-Show',
 };

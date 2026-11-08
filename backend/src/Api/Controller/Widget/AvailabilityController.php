@@ -29,13 +29,21 @@ class AvailabilityController extends AbstractController
 
     /**
      * Gibt Öffnungsinformationen für ein Venue an einem bestimmten Datum zurück.
-     * GET /api/v1/widget/availability?venue_id=X&date=YYYY-MM-DD
+     * GET /api/v1/widget/availability?venue_id=X&date=YYYY-MM-DD[&time=HH:MM]
+     *
+     * Immer enthalten:
+     *   bookedPeriods  – alle aktiven Reservierungen des Tages mit Zeitfenster + Tischnummer
+     *   totalTables    – Anzahl Tische im Venue-Layout (für "vollständig belegt"-Prüfung)
+     *
+     * Nur wenn &time=HH:MM übergeben wird:
+     *   bookedTableNumbers – Tischnummern die im konkreten Slot belegt sind
      */
     #[Route('', name: 'widget_availability_slots', methods: ['GET'])]
     public function getSlots(Request $request): JsonResponse
     {
         $venueId = $request->query->getString('venue_id');
         $dateStr = $request->query->getString('date');
+        $timeStr = $request->query->getString('time'); // optional, HH:MM
 
         if ($venueId === '' || $dateStr === '') {
             return $this->json(['error' => 'venue_id und date sind erforderlich.'], Response::HTTP_BAD_REQUEST);
@@ -46,21 +54,26 @@ class AvailabilityController extends AbstractController
             return $this->json(['error' => 'Venue nicht gefunden.'], Response::HTTP_NOT_FOUND);
         }
 
+        $tenant = $venue->getTenant();
+
         try {
             $date = new \DateTimeImmutable($dateStr);
         } catch (\Exception) {
             return $this->json(['error' => 'Ungültiges Datum.'], Response::HTTP_BAD_REQUEST);
         }
 
+        $bookedPeriods = $this->fetchBookedPeriods($venue, $dateStr);
+        $totalTables   = count($venue->getLayout()['tables'] ?? []);
+
         // 1. Sondertage prüfen — überschreiben reguläre Zeiten
         $specials = $this->dbal->fetchAllAssociative(
             'SELECT full_day, open_time, close_time, reason
                FROM special_closings
-              WHERE venue_id = UNHEX(REPLACE(?, \'-\', \'\'))
+              WHERE tenant_id = UNHEX(REPLACE(?, \'-\', \'\'))
                 AND date_from <= ?
                 AND date_to   >= ?
               ORDER BY date_from ASC',
-            [$venueId, $dateStr, $dateStr],
+            [$tenant->getId()->toRfc4122(), $dateStr, $dateStr],
         );
 
         if (count($specials) > 0) {
@@ -68,39 +81,107 @@ class AvailabilityController extends AbstractController
 
             if ((bool) $sc['full_day']) {
                 return $this->json([
-                    'open'       => false,
-                    'open_time'  => null,
-                    'close_time' => null,
-                    'breaks'     => [],
-                    'reason'     => $sc['reason'],
+                    'open'               => false,
+                    'open_time'          => null,
+                    'close_time'         => null,
+                    'breaks'             => [],
+                    'reason'             => $sc['reason'],
+                    'bookedTableNumbers' => [],
+                    'bookedPeriods'      => $bookedPeriods,
+                    'totalTables'        => $totalTables,
                 ]);
             }
 
             return $this->json([
-                'open'       => true,
-                'open_time'  => $sc['open_time'],
-                'close_time' => $sc['close_time'],
-                'breaks'     => [],
-                'reason'     => $sc['reason'],
+                'open'               => true,
+                'open_time'          => $sc['open_time'],
+                'close_time'         => $sc['close_time'],
+                'breaks'             => [],
+                'reason'             => $sc['reason'],
+                'bookedTableNumbers' => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
+                'bookedPeriods'      => $bookedPeriods,
+                'totalTables'        => $totalTables,
             ]);
         }
 
         // 2. Reguläre Öffnungszeiten — 0=Montag … 6=Sonntag
-        // PHP N: 1=Montag … 7=Sonntag → wir mappen auf 0-6
         $weekday = ((int) $date->format('N')) - 1;
 
-        $oh = $this->ohRepo->findByVenueAndWeekday($venue, $weekday);
+        $oh = $this->ohRepo->findByTenantAndWeekday($tenant, $weekday);
 
         if ($oh === null) {
-            return $this->json(['open' => true, 'open_time' => null, 'close_time' => null, 'breaks' => [], 'reason' => null]);
+            return $this->json([
+                'open'               => true,
+                'open_time'          => null,
+                'close_time'         => null,
+                'breaks'             => [],
+                'reason'             => null,
+                'bookedTableNumbers' => [],
+                'bookedPeriods'      => $bookedPeriods,
+                'totalTables'        => $totalTables,
+            ]);
         }
 
         return $this->json([
-            'open'       => $oh->isOpen(),
-            'open_time'  => $oh->isOpen() ? $oh->getOpenTime()  : null,
-            'close_time' => $oh->isOpen() ? $oh->getCloseTime() : null,
-            'breaks'     => $oh->isOpen() ? ($oh->getBreaks() ?? []) : [],
-            'reason'     => null,
+            'open'               => $oh->isOpen(),
+            'open_time'          => $oh->isOpen() ? $oh->getOpenTime()  : null,
+            'close_time'         => $oh->isOpen() ? $oh->getCloseTime() : null,
+            'breaks'             => $oh->isOpen() ? ($oh->getBreaks() ?? []) : [],
+            'reason'             => null,
+            'bookedTableNumbers' => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
+            'bookedPeriods'      => $bookedPeriods,
+            'totalTables'        => $totalTables,
         ]);
+    }
+
+    /**
+     * Alle aktiven Reservierungen des Tages mit Tischnummer als Zeitfenster-Liste.
+     * Wird vom Frontend genutzt um vollständig belegte Slots auszublenden.
+     */
+    private function fetchBookedPeriods(Venue $venue, string $dateStr): array
+    {
+        $rows = $this->dbal->fetchAllAssociative(
+            'SELECT r.table_number                      AS tableNumber,
+                    DATE_FORMAT(r.starts_at, \'%H:%i\') AS `from`,
+                    DATE_FORMAT(r.ends_at,   \'%H:%i\') AS `to`
+               FROM reservations r
+              WHERE r.venue_id = UNHEX(REPLACE(?, \'-\', \'\'))
+                AND r.status NOT IN (\'cancelled\', \'completed\', \'no_show\')
+                AND DATE(r.starts_at) = ?',
+            [$venue->getId()->toRfc4122(), $dateStr],
+        );
+
+        return array_map(fn ($r) => [
+            'tableNumber' => (int) $r['tableNumber'],
+            'from'        => $r['from'],
+            'to'          => $r['to'],
+        ], $rows);
+    }
+
+    private function fetchBookedTableNumbers(Venue $venue, string $dateStr, string $timeStr): array
+    {
+        if ($timeStr === '') {
+            return [];
+        }
+
+        $startsAt = new \DateTimeImmutable("{$dateStr}T{$timeStr}:00");
+        $endsAt   = $startsAt->modify(sprintf('+%d minutes', $venue->getDefaultDurationMinutes()));
+
+        $rows = $this->dbal->fetchFirstColumn(
+            'SELECT DISTINCT r.table_number
+               FROM reservations r
+              WHERE r.venue_id = UNHEX(REPLACE(?, \'-\', \'\'))
+                AND r.status NOT IN (\'cancelled\', \'completed\', \'no_show\')
+                AND r.table_number IS NOT NULL
+                AND r.starts_at < ?
+                AND r.ends_at   > ?',
+            [
+                $venue->getId()->toRfc4122(),
+                $endsAt->format('Y-m-d H:i:s'),
+                $startsAt->format('Y-m-d H:i:s'),
+            ],
+        );
+
+        return array_map('intval', $rows);
     }
 }

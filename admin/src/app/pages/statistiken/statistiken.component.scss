@@ -96,6 +96,10 @@
     border-color: rgba(var(--color-warn-rgb), 0.30);
     .stat-card__icon { background-color: rgba(var(--color-warn-rgb), 0.12); mat-icon { color: $color-warn; } }
   }
+  &--danger {
+    border-color: rgba(var(--color-danger-rgb), 0.30);
+    .stat-card__icon { background-color: rgba(var(--color-danger-rgb), 0.12); mat-icon { color: $color-danger; } }
+  }
 }
 
 // ─── Charts (Umsatz + Donut) ──────────────────────────────────────────────────
@@ -512,4 +516,36 @@
 
   &--active   { background: rgba(var(--color-success-rgb), 0.12); color: $color-success; }
   &--inactive { background: rgba(var(--color-danger-rgb),  0.10); color: $color-danger;  }
+  &--warn     { background: rgba(var(--color-warn-rgb),    0.12); color: $color-warn;    }
+}
+
+.reliability-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &__fill {
+    height: 6px;
+    width: 0;
+    max-width: 80px;
+    min-width: 4px;
+    border-radius: 3px;
+    background: $color-success;
+    transition: width 0.4s ease;
+
+    &--warn { background: $color-warn; }
+  }
+
+  &__label {
+    font-size: 12px;
+    color: rgba(var(--color-text-rgb), 0.6);
+    min-width: 36px;
+  }
+}
+
+.data-table__empty {
+  text-align: center;
+  padding: 24px;
+  color: rgba(var(--color-text-rgb), 0.4);
+  font-size: 13px;
 }

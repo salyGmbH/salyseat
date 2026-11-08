@@ -1,226 +1,417 @@
-<div class="reservations-page">
+<!-- ===================== RESERVIERUNGS-EINSTELLUNGEN ===================== -->
+<div class="settings-container">
 
-  <!-- Header -->
-  <div class="page-header">
-    <div class="page-header__left">
-      <h1 class="page-title">Reservierungen</h1>
-      @if (!loading()) {
-        <span class="total-badge">{{ total() }} gesamt</span>
+  <!-- ══════════════════════════════════════════════════════════
+       1. STANDARD-RESERVIERUNGSDAUER
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <div class="section-icon-wrap section-icon-wrap--primary">
+          <mat-icon>schedule</mat-icon>
+        </div>
+        Standard-Reservierungsdauer
+      </h2>
+      <button class="info-button" [class.active]="info1()" (click)="info1.set(!info1())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+
+    <div class="info-box" [class.open]="info1()">
+      Legt fest, wie lange ein Tisch ab Reservierungsbeginn als belegt gilt.
+      Dieser Wert wird im <strong>Widget</strong> verwendet, um freie Zeitslots zu berechnen,
+      und im <strong>Raum-Detail</strong>, um den Status automatisch auf
+      „Zeit abgelaufen" zu wechseln. Empfohlen: <strong>90–120 Minuten</strong> für die meisten Restaurants.
+    </div>
+
+    <p class="section-subtitle">
+      Wie lange ein Tisch ab Reservierungsbeginn belegt ist.
+    </p>
+
+    <div class="preset-row">
+      @for (p of durationPresets; track p.minutes) {
+        <button type="button"
+                class="preset-chip"
+                [class.active]="defaultDuration() === p.minutes"
+                (click)="setDuration(p.minutes)">
+          {{ p.label }}
+        </button>
       }
     </div>
-  </div>
 
-  <!-- Filter Bar -->
-  <div class="filter-bar">
-    <div class="filter-bar__field">
-      <mat-icon>calendar_today</mat-icon>
-      <input
-        type="date"
-        class="filter-input"
-        [(ngModel)]="filterDate"
-        (change)="load()"
-      />
-    </div>
+    <label class="custom-input">
+      <span class="custom-input__label">oder eigener Wert (Min.)</span>
+      <div class="custom-input__field">
+        <input type="number"
+               min="15" max="480" step="15"
+               [ngModel]="defaultDuration()"
+               (ngModelChange)="setDuration($event)" />
+        <span class="custom-input__unit">min</span>
+      </div>
+    </label>
 
-    <div class="filter-bar__field">
-      <mat-icon>filter_list</mat-icon>
-      <select class="filter-select" [(ngModel)]="filterStatus" (change)="load()">
-        @for (opt of statusOptions; track opt.value) {
-          <option [value]="opt.value">{{ opt.label }}</option>
-        }
-      </select>
-    </div>
-
-    <div class="filter-bar__actions">
-      <button class="action-btn action-btn--pdf" (click)="openExportModal('pdf')" title="PDF exportieren">
-        <mat-icon>picture_as_pdf</mat-icon>
-        <span>PDF</span>
-      </button>
-
-      <button class="action-btn action-btn--print" (click)="openExportModal('print')" title="Drucken">
-        <mat-icon>print</mat-icon>
-        <span>Drucken</span>
-      </button>
-
-      <button class="action-btn action-btn--refresh" (click)="resetToToday()" [disabled]="loading()" title="Aktualisieren">
-        <mat-icon>refresh</mat-icon>
+    <div class="actions">
+      <button type="button" class="save-button" [class.saved]="savedDuration()" (click)="saveDuration()">
+        {{ savedDuration() ? 'Gespeichert ✓' : 'Speichern' }}
       </button>
     </div>
   </div>
 
-  <!-- EXPORT MODAL -->
-  @if (exportModal()) {
-    <div class="modal-backdrop" (click)="closeExportModal()">
-      <div class="modal export-modal" (click)="$event.stopPropagation()">
 
-        <div class="export-modal__header">
-          <mat-icon>{{ exportMode === 'pdf' ? 'picture_as_pdf' : 'print' }}</mat-icon>
-          <h3>{{ exportMode === 'pdf' ? 'PDF exportieren' : 'Drucken' }}</h3>
-          <button class="export-modal__close" (click)="closeExportModal()">
-            <mat-icon>close</mat-icon>
-          </button>
+  <!-- ══════════════════════════════════════════════════════════
+       2. AUTO-EXPIRE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <div class="section-icon-wrap section-icon-wrap--warning">
+          <mat-icon>timer_off</mat-icon>
         </div>
-
-        <!-- Zeitraum -->
-        <div class="export-section">
-          <span class="export-label">Zeitraum</span>
-          <div class="export-range-tabs">
-            <button [class.active]="exportRange === 'day'" (click)="exportRange = 'day'">
-              Tag
-            </button>
-            <button [class.active]="exportRange === 'range'" (click)="exportRange = 'range'">
-              Zeitraum
-            </button>
-          </div>
-
-          @if (exportRange === 'day') {
-            <input type="date" class="filter-input" [(ngModel)]="exportFrom" />
-          } @else {
-            <div class="export-date-range">
-              <input type="date" class="filter-input" [(ngModel)]="exportFrom" />
-              <span class="export-date-sep">–</span>
-              <input type="date" class="filter-input" [(ngModel)]="exportTo" />
-            </div>
-          }
-        </div>
-
-        <!-- Status -->
-        <div class="export-section">
-          <span class="export-label">Status</span>
-          <div class="export-chips">
-            @for (opt of statusOptions; track opt.value) {
-              @if (opt.value) {
-                <button
-                  class="export-chip"
-                  [class.active]="selectedStatuses.includes(opt.value)"
-                  (click)="toggleStatus(opt.value)">
-                  {{ opt.label }}
-                </button>
-              }
-            }
-          </div>
-          @if (selectedStatuses.length === 0) {
-            <span class="export-hint">Alle Status werden einbezogen</span>
-          }
-        </div>
-
-        <!-- Footer -->
-        <div class="export-modal__footer">
-          <button class="btn-cancel" (click)="closeExportModal()">Abbrechen</button>
-          <button class="btn-run" (click)="runExport()">
-            <mat-icon>{{ exportMode === 'pdf' ? 'download' : 'print' }}</mat-icon>
-            {{ exportMode === 'pdf' ? 'PDF erstellen' : 'Drucken' }}
-          </button>
-        </div>
-
+        Status-Auto-Wechsel
+      </h2>
+      <div class="section-header__right">
+        <button class="info-button" [class.active]="info2()" (click)="info2.set(!info2())" >
+          <mat-icon>info</mat-icon>
+        </button>
+        <label class="toggle">
+          <input type="checkbox" [checked]="autoExpire()" (change)="toggleAutoExpire()" />
+          <span class="toggle__track"><span class="toggle__thumb"></span></span>
+        </label>
       </div>
     </div>
-  }
 
-  <!-- Error -->
-  @if (actionError()) {
-    <div class="error-banner">
-      <mat-icon>error_outline</mat-icon>
-      {{ actionError() }}
+    <div class="info-box" [class.open]="info2()">
+      Wenn aktiv, wechselt der Status eines eingecheckten Gastes automatisch auf
+      <strong>„Zeit abgelaufen"</strong>, sobald die Standard-Reservierungsdauer verstrichen ist.
+      Der Heartbeat läuft jede Minute — so sieht das Service-Team sofort,
+      wo nachgefragt werden sollte. Wenn deaktiviert, muss der Status manuell auf „Beendet" gesetzt werden.
     </div>
-  }
 
-  <!-- Loading -->
-  @if (loading()) {
-    <div class="state-box">
-      <div class="spinner"></div>
-      <span>Lade Reservierungen…</span>
+    <p class="section-subtitle">
+      Sobald die Reservierungsdauer abgelaufen ist, wechselt der Status
+      eingecheckter Gäste automatisch auf <strong>„Zeit abgelaufen"</strong>.
+    </p>
+
+    <div class="status-hint" [class.status-hint--active]="autoExpire()">
+      <mat-icon>{{ autoExpire() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+      @if (autoExpire()) {
+        Aktiv — Reservierungen werden jede Minute geprüft.
+      } @else {
+        Deaktiviert — Status muss manuell auf „Beendet" gesetzt werden.
+      }
     </div>
-  }
 
-  <!-- Empty -->
-  @if (!loading() && reservations().length === 0) {
-    <div class="state-box">
-      <mat-icon class="state-box__icon">event_busy</mat-icon>
-      <span>Keine Reservierungen für diesen Filter.</span>
+    <div class="actions">
+      <button type="button" class="save-button" [class.saved]="savedAutoExpire()" (click)="saveAutoExpire()">
+        {{ savedAutoExpire() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
     </div>
-  }
+  </div>
 
-  <!-- LIST + PRINT -->
-  @if (!loading() && reservations().length > 0) {
 
-    <div class="print-area">
-
-      <!-- Print Header (nur beim Drucken sichtbar) -->
-      <div class="print-header">
-        <h2>Reservierungen</h2>
-        <span>{{ dateLabel() }}</span>
+  <!-- ══════════════════════════════════════════════════════════
+       3. CLEAN-UP-ZEIT
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <div class="section-icon-wrap section-icon-wrap--accent">
+          <mat-icon>cleaning_services</mat-icon>
+        </div>
+        Clean-up-Zeit
+      </h2>
+      <div class="section-header__right">
+        <button class="info-button" [class.active]="info3()" (click)="info3.set(!info3())" >
+          <mat-icon>info</mat-icon>
+        </button>
+        <label class="toggle">
+          <input type="checkbox" [checked]="cleanupOn()" (change)="toggleCleanup()" />
+          <span class="toggle__track"><span class="toggle__thumb"></span></span>
+        </label>
       </div>
+    </div>
 
-      <!-- Liste -->
-      <div class="reservation-list">
+    <div class="info-box" [class.open]="info3()">
+      Die Clean-up-Zeit ist ein <strong>Puffer nach jeder Reservierung</strong> am gleichen Tisch —
+      zum Beispiel zum Eindecken oder Reinigen. Im Widget wird dieser Zeitraum bei der
+      Slot-Berechnung berücksichtigt, sodass Gäste den Tisch nicht direkt nach einer
+      vorherigen Buchung buchen können. Empfohlen: <strong>15–20 Minuten</strong>.
+    </div>
 
-        @for (r of (printReservations.length ? printReservations : reservations()); track r.id) {
+    <p class="section-subtitle">
+      Pufferzeit zwischen zwei Buchungen am gleichen Tisch (z. B. zum
+      Eindecken). Wird im Widget bei der Slot-Berechnung berücksichtigt.
+    </p>
 
-          <div class="reservation-card reservation-card--{{ r.status }} reservation-card--mode-{{ viewMode() }}"
-               [style.--status-color]="colorForBooking(r.status)">
-
-            <!-- Zeit + Status-Indikator (links, je nach ViewMode) -->
-            <div class="reservation-card__left">
-              @if (viewMode() === 'card') {
-                <div class="reservation-card__time reservation-card__time--colored">
-                  <span class="time-main">{{ formatTime(r.starts_at) }}</span>
-                  <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
-                </div>
-              } @else {
-                <div class="reservation-card__time reservation-card__time--neutral">
-                  <span class="time-main">{{ formatTime(r.starts_at) }}</span>
-                  <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
-                </div>
-                @if (viewMode() === 'text') {
-                  <span class="reservation-card__status-badge"
-                        [style.background]="colorForBooking(r.status)"
-                        [style.color]="textColorFor(colorForBooking(r.status))">
-                    {{ labelForBooking(r.status) }}
-                  </span>
-                } @else if (viewMode() === 'svg') {
-                  <span class="reservation-card__status-tile"
-                        [title]="labelForBooking(r.status)">
-                    <app-status-icon [name]="iconForBooking(r.status)" [size]="20"></app-status-icon>
-                  </span>
-                }
-              }
-            </div>
-
-            <!-- Info -->
-            <div class="reservation-card__info">
-              <div class="info-name">
-                <mat-icon>person</mat-icon>
-                {{ r.guest_name }}
-                <span class="party-size">
-                  <mat-icon>group</mat-icon>{{ r.party_size }}
-                </span>
-              </div>
-
-              <div class="info-meta print-hide">{{ r.guest_email }}</div>
-
-              @if (r.guest_phone) {
-                <div class="info-meta">{{ r.guest_phone }}</div>
-              }
-
-              @if (r.guest_notes) {
-                <div class="info-notes">
-                  <mat-icon>notes</mat-icon>{{ r.guest_notes }}
-                </div>
-              }
-            </div>
-
-            <!-- Status-Label rechts -->
-            <div class="reservation-card__status-label">
-              {{ labelForBooking(r.status) }}
-            </div>
-
-          </div>
-
+    <div [class.block--disabled]="!cleanupOn()">
+      <div class="preset-row">
+        @for (p of cleanupPresets; track p.minutes) {
+          <button type="button"
+                  class="preset-chip preset-chip--accent"
+                  [class.active]="cleanupMinutes() === p.minutes"
+                  (click)="setCleanup(p.minutes)">
+            {{ p.label }}
+          </button>
         }
+      </div>
 
+      <label class="custom-input" style="margin-top: 12px;">
+        <span class="custom-input__label">oder eigener Wert (Min.)</span>
+        <div class="custom-input__field">
+          <input type="number"
+                 min="5" max="120" step="5"
+                 [ngModel]="cleanupMinutes()"
+                 (ngModelChange)="setCleanup($event)" />
+          <span class="custom-input__unit">min</span>
+        </div>
+      </label>
+    </div>
+
+    <div class="status-hint" [class.status-hint--active]="cleanupOn()">
+      <mat-icon>{{ cleanupOn() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+      @if (cleanupOn()) {
+        Aktiv — Pufferzeit wird bei der Slot-Berechnung berücksichtigt.
+      } @else {
+        Deaktiviert — kein Puffer zwischen Buchungen.
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="save-button" [class.saved]="savedCleanup()" (click)="saveCleanup()">
+        {{ savedCleanup() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       ZEITSTRAHL-VORSCHAU
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block preview-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">visibility</mat-icon>
+        Beispiel: Reservierung um 19:00 Uhr
+      </h2>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline__segment timeline__segment--reservation"
+           [style.flex]="defaultDuration()">
+        <div class="timeline__label">
+          <strong>Reservierung</strong>
+          <span>{{ previewExample().start }} – {{ previewExample().endRes }}</span>
+          <span class="timeline__minutes">{{ defaultDuration() }} min</span>
+        </div>
+      </div>
+
+      @if (cleanupOn()) {
+        <div class="timeline__segment timeline__segment--cleanup"
+             [style.flex]="cleanupMinutes()">
+          <div class="timeline__label">
+            <strong>Clean-up</strong>
+            <span>{{ previewExample().endRes }} – {{ previewExample().endSlot }}</span>
+            <span class="timeline__minutes">{{ cleanupMinutes() }} min</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="preview-summary">
+      <mat-icon>event_available</mat-icon>
+      Tisch ist nach dieser Buchung wieder frei ab
+      <strong>{{ previewExample().endSlot }}</strong> Uhr.
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       4. GETRÄNKE-ERINNERUNG
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <div class="section-icon-wrap section-icon-wrap--info">
+          <mat-icon>local_bar</mat-icon>
+        </div>
+        Getränke-Erinnerung
+      </h2>
+      <div class="section-header__right">
+        <button class="info-button" [class.active]="info4()" (click)="info4.set(!info4())" >
+          <mat-icon>info</mat-icon>
+        </button>
+        <label class="toggle">
+          <input type="checkbox" [checked]="getraenkeOn()" (change)="toggleGetraenke()" />
+          <span class="toggle__track"><span class="toggle__thumb"></span></span>
+        </label>
       </div>
     </div>
-  }
+
+    <div class="info-box" [class.open]="info4()">
+      Nach dem Einchecken eines Gastes startet automatisch ein Timer.
+      Nach der eingestellten Zeit erscheint im Raum-Detail ein <strong>Hinweis-Icon</strong>
+      beim betreffenden Tisch — ein Signal für das Service-Team, die Getränkebestellung aufzunehmen.
+      Der Timer startet erneut, sobald der Hinweis bestätigt wurde.
+    </div>
+
+    <p class="section-subtitle">
+      Automatische Erinnerung nach dem Einchecken — <strong>„Bedienung, geh mal hin!"</strong>
+    </p>
+
+    <div [class.block--disabled]="!getraenkeOn()">
+      <p class="field-label">Nach wie vielen Minuten soll die Erinnerung erscheinen?</p>
+      <div class="time-card-row">
+        @for (min of getraenkePresets; track min) {
+          <button type="button"
+                  class="time-card"
+                  [class.time-card--active]="getraenkeMinutes() === min"
+                  (click)="setGetraenke(min)">
+            <span class="time-card__val">{{ min }}</span>
+            <span class="time-card__unit">min</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="status-hint" [class.status-hint--active]="getraenkeOn()">
+      <mat-icon>{{ getraenkeOn() ? 'notifications_active' : 'notifications_off' }}</mat-icon>
+      @if (getraenkeOn()) {
+        Aktiv — Erinnerung nach <strong>{{ getraenkeMinutes() }} Minuten</strong> pro eingechecktem Gast.
+      } @else {
+        Deaktiviert — keine Getränke-Erinnerungen.
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="save-button" [class.saved]="savedGetraenke()" (click)="saveGetraenke()">
+        {{ savedGetraenke() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       5. VIP-SCHWELLE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <div class="section-icon-wrap section-icon-wrap--vip">
+          <mat-icon>workspace_premium</mat-icon>
+        </div>
+        VIP-Schwelle
+      </h2>
+      <button class="info-button" [class.active]="info5()" (click)="info5.set(!info5())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+
+    <div class="info-box" [class.open]="info5()">
+      Legt fest, ab wie vielen Reservierungen ein Gast in der <strong>Kundenkartei</strong>
+      als <strong>VIP</strong> eingestuft wird. VIP-Gäste werden beim Einchecken besonders
+      hervorgehoben und erhalten eine spezielle Kennzeichnung in der Gästeliste.
+      Gäste mit mindestens 60 % des VIP-Schwellenwerts werden als <strong>Stammgast</strong> markiert.
+    </div>
+
+    <p class="section-subtitle">
+      Ab wie vielen Reservierungen gilt ein Gast als <strong>VIP</strong>?
+      Dieser Wert wird in der Kundenkartei und beim Einchecken verwendet.
+    </p>
+
+    <div class="vip-row">
+      @for (n of [3, 5, 8, 10, 15]; track n) {
+        <button type="button"
+                class="preset-chip preset-chip--vip"
+                [class.active]="vipThresholdInput === n"
+                (click)="vipThresholdInput = n">
+          {{ n }}×
+        </button>
+      }
+      <label class="vip-custom-input">
+        <input type="number" min="1" max="100"
+               [(ngModel)]="vipThresholdInput"
+               placeholder="?" />
+        <span class="vip-custom-input__unit">Buchungen</span>
+      </label>
+    </div>
+
+    <div class="status-hint" [class.status-hint--active]="true">
+      <mat-icon>workspace_premium</mat-icon>
+      Gäste mit <strong>{{ vipThresholdInput }}+</strong> Reservierungen werden als VIP markiert.
+    </div>
+
+    <div class="actions">
+      <button type="button" class="save-button" [class.saved]="savedVipThreshold()" (click)="saveVipThreshold()">
+        {{ savedVipThreshold() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ====================================================================
+       No-Show Auto-Sperre
+  ===================================================================== -->
+  <section class="setting-card">
+    <div class="setting-card__header">
+      <div class="setting-card__icon setting-card__icon--danger">
+        <mat-icon>block</mat-icon>
+      </div>
+      <div class="setting-card__heading">
+        <div class="setting-card__title">Automatische Gast-Sperrung</div>
+        <div class="setting-card__subtitle">
+          Gast wird nach N No-Shows automatisch für weitere Reservierungen gesperrt.
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-card__body">
+      <p class="setting-card__label">Sperren nach wie vielen No-Shows?</p>
+      <div class="preset-row">
+        <button type="button"
+                class="preset-chip preset-chip--danger"
+                [class.active]="noShowThreshold() === null"
+                (click)="setNoShowThreshold(null)">
+          Deaktiviert
+        </button>
+        @for (n of noShowPresets; track n) {
+          <button type="button"
+                  class="preset-chip preset-chip--danger"
+                  [class.active]="noShowThreshold() === n"
+                  (click)="setNoShowThreshold(n)">
+            Nach {{ n }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="setting-card__hint" [class.setting-card__hint--muted]="noShowThreshold() === null">
+      <mat-icon>{{ noShowThreshold() !== null ? 'gpp_bad' : 'radio_button_unchecked' }}</mat-icon>
+      @if (noShowThreshold() !== null) {
+        Aktiv — Gast wird nach <strong>{{ noShowThreshold() }} No-Show{{ noShowThreshold()! > 1 ? 's' : '' }}</strong> automatisch gesperrt.
+      } @else {
+        Deaktiviert — Sperrung muss manuell erfolgen.
+      }
+    </div>
+
+    <div class="setting-card__footer">
+      <button type="button"
+              class="save-button save-button--card"
+              [class.saved]="savedNoShowThreshold()"
+              (click)="saveNoShowThreshold()">
+        {{ savedNoShowThreshold() ? 'Gespeichert ✓' : 'Speichern' }}
+      </button>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       AKTIONEN
+  ══════════════════════════════════════════════════════════ -->
+  <div class="footer-actions">
+    <button type="button" class="ghost-button" (click)="resetDefaults()">
+      <mat-icon>restart_alt</mat-icon>
+      Auf Standard zurücksetzen
+    </button>
+  </div>
 
 </div>

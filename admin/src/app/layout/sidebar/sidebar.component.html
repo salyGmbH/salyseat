@@ -35,7 +35,12 @@
       <mat-icon>bar_chart</mat-icon>
       @if (!collapsed()) { <span>Statistiken</span> }
     </a>
-    <a routerLink="/einstellungen" routerLinkActive="active" class="nav-item"
+    <a routerLink="/einstellungen/notizen" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? 'Notizen' : ''" (click)="layout.closeMobile()">
+      <mat-icon>sticky_note_2</mat-icon>
+      @if (!collapsed()) { <span>Notizen</span> }
+    </a>
+    <a routerLink="/einstellungen" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item"
        [title]="collapsed() ? 'Einstellungen' : ''" (click)="layout.closeMobile()">
       <mat-icon>settings</mat-icon>
       @if (!collapsed()) { <span>Einstellungen</span> }

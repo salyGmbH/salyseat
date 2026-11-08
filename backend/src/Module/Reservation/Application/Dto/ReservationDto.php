@@ -19,6 +19,7 @@ final readonly class ReservationDto
         public ?string $guestPhone,
         public ?string $guestNotes,
         public int $partySize,
+        public ?int $tableNumber,
         public string $startsAt,
         public string $endsAt,
         public ?string $adminNotes,
@@ -29,6 +30,7 @@ final readonly class ReservationDto
         public ?string $guestInternalNotes,
         public bool $guestBlocked,
         public ?string $guestBlockedReason,
+        public int $guestNoShowCount,
     ) {}
 
     public static function fromEntity(Reservation $r): self
@@ -44,6 +46,7 @@ final readonly class ReservationDto
             guestPhone:       $r->getGuestPhone(),
             guestNotes:       $r->getGuestNotes(),
             partySize:        $r->getPartySize(),
+            tableNumber:      $r->getTableNumber(),
             startsAt:         $r->getStartsAt()->format(\DateTimeInterface::ATOM),
             endsAt:           $r->getEndsAt()->format(\DateTimeInterface::ATOM),
             adminNotes:       $r->getAdminNotes(),
@@ -54,6 +57,7 @@ final readonly class ReservationDto
             guestInternalNotes:   $r->getGuest()?->getInternalNotes(),
             guestBlocked:         $r->getGuest()?->isBlocked() ?? false,
             guestBlockedReason:   $r->getGuest()?->getBlockedReason(),
+            guestNoShowCount:     $r->getGuest()?->getNoShowCount() ?? 0,
         );
     }
 
@@ -68,9 +72,10 @@ final readonly class ReservationDto
             'guest_name'  => $this->guestName,
             'guest_email' => $this->guestEmail,
             'guest_phone' => $this->guestPhone,
-            'guest_notes' => $this->guestNotes,
-            'party_size'  => $this->partySize,
-            'starts_at'   => $this->startsAt,
+            'guest_notes'  => $this->guestNotes,
+            'party_size'   => $this->partySize,
+            'table_number' => $this->tableNumber,
+            'starts_at'    => $this->startsAt,
             'ends_at'     => $this->endsAt,
             'admin_notes'       => $this->adminNotes,
             'created_at'        => $this->createdAt,
@@ -80,6 +85,7 @@ final readonly class ReservationDto
             'guest_internal_notes'  => $this->guestInternalNotes,
             'guest_blocked'         => $this->guestBlocked,
             'guest_blocked_reason'  => $this->guestBlockedReason,
+            'guest_no_show_count'   => $this->guestNoShowCount,
         ];
     }
 }

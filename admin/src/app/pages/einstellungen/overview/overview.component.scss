@@ -4,14 +4,19 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(6, auto);
+  grid-auto-flow: column;
   gap: 16px;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(9, auto);
   }
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-flow: row;
   }
 }
 .item {
@@ -25,8 +30,8 @@
   background-color: $color-surface;
   border: 1px solid $color-border;
 
-  text-decoration: none;   
-  color: inherit;          
+  text-decoration: none;   // ❗ entfernt Unterstrich
+  color: inherit;          // ❗ verhindert blau
   cursor: pointer;
 
   transition: 
@@ -35,17 +40,20 @@
     transform 0.1s,
     box-shadow 0.1s;
 
+  // Hover wie Dashboard
   &:hover {
     background-color: $color-surface-soft;
     border-color: rgba(var(--color-accent-rgb), 0.3);
     transform: translateY(-1px);
   }
 
+  // Klick-Feedback
   &:active {
     transform: translateY(0);
     box-shadow: inset 0 0 0 1px rgba(var(--color-accent-rgb), 0.2);
   }
 
+  // Fokus (Accessibility + Tastatur)
   &:focus-visible {
     outline: none;
     border-color: $color-accent;

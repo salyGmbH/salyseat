@@ -13,25 +13,11 @@
     <h2 class="section-label">Kennzahlen</h2>
     <div class="stats-grid">
 
-      <div class="stat-card stat-card--primary">
-        <div class="stat-card__icon"><mat-icon>euro</mat-icon></div>
-        <div class="stat-card__content">
-          <span class="stat-card__label">Umsatz</span>
-          <span class="stat-card__value">€12.430</span>
-          <span class="stat-card__trend stat-card__trend--up">
-            <mat-icon>trending_up</mat-icon>+12 %
-          </span>
-        </div>
-      </div>
-
       <div class="stat-card stat-card--green">
         <div class="stat-card__icon"><mat-icon>people</mat-icon></div>
         <div class="stat-card__content">
           <span class="stat-card__label">Gäste gesamt</span>
-          <span class="stat-card__value">1.245</span>
-          <span class="stat-card__trend stat-card__trend--down">
-            <mat-icon>trending_down</mat-icon>-3 %
-          </span>
+          <span class="stat-card__value">{{ totals().guests | number }}</span>
         </div>
       </div>
 
@@ -39,32 +25,36 @@
         <div class="stat-card__icon"><mat-icon>event_available</mat-icon></div>
         <div class="stat-card__content">
           <span class="stat-card__label">Reservierungen</span>
-          <span class="stat-card__value">320</span>
-          <span class="stat-card__trend stat-card__trend--up">
-            <mat-icon>trending_up</mat-icon>+8 %
-          </span>
+          <span class="stat-card__value">{{ totals().reservations | number }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--danger">
+        <div class="stat-card__icon"><mat-icon>person_off</mat-icon></div>
+        <div class="stat-card__content">
+          <span class="stat-card__label">No-Shows</span>
+          <span class="stat-card__value">{{ totals().noShows | number }}</span>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-card__icon"><mat-icon>percent</mat-icon></div>
         <div class="stat-card__content">
-          <span class="stat-card__label">Auslastung</span>
-          <span class="stat-card__value">4.2 %</span>
-          <span class="stat-card__trend stat-card__trend--up">
-            <mat-icon>trending_up</mat-icon>+1.1 %
-          </span>
+          <span class="stat-card__label">Auslastung (30 Tage)</span>
+          <span class="stat-card__value">{{ totals().auslastung | number:'1.0-1' }} %</span>
         </div>
       </div>
 
     </div>
   </div>
 
-  <!-- ─── Umsatz Verlauf (full width) ─────────────────────────────────────── -->
+  <!-- ─── Reservierungen pro Monat (full width) ───────────────────────────── -->
   <div class="chart-card">
     <div class="chart-card__header">
-      <h3 class="chart-card__title">Umsatz Verlauf</h3>
-      <span class="chart-card__badge">Jan – Jun 2025</span>
+      <h3 class="chart-card__title">Reservierungen pro Monat</h3>
+      @if (monthlyBadge) {
+        <span class="chart-card__badge">{{ monthlyBadge }}</span>
+      }
     </div>
     <div class="chart-card__body">
       <canvas id="lineChart"></canvas>
@@ -258,33 +248,47 @@
     </div>
 
     <div class="table-card">
-      <h2 class="section-label">Top Nutzer</h2>
+      <h2 class="section-label">Top Gäste</h2>
       <table class="data-table">
         <thead>
           <tr>
             <th>Name</th>
-            <th>Aktionen</th>
+            <th>Besuche</th>
+            <th>Zuverlässigkeit</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          @for (user of topUsers; track user.name) {
+          @for (g of topGuests; track g.name) {
             <tr>
               <td>
                 <div class="user-cell">
-                  <div class="user-avatar">{{ user.name[0] }}</div>
-                  <span>{{ user.name }}</span>
+                  <div class="user-avatar">{{ g.name[0].toUpperCase() }}</div>
+                  <span>{{ g.name }}</span>
                 </div>
               </td>
-              <td>{{ user.actions }}</td>
+              <td>{{ g.visits }}×</td>
               <td>
-                <span class="status-badge"
-                  [class.status-badge--active]="user.active"
-                  [class.status-badge--inactive]="!user.active">
-                  {{ user.active ? 'Aktiv' : 'Inaktiv' }}
-                </span>
+                <div class="reliability-bar">
+                  <div class="reliability-bar__fill"
+                       [style.width.%]="g.reliabilityScore"
+                       [class.reliability-bar__fill--warn]="g.reliabilityScore < 70"></div>
+                  <span class="reliability-bar__label">{{ g.reliabilityScore }} %</span>
+                </div>
+              </td>
+              <td>
+                @if (g.blocked) {
+                  <span class="status-badge status-badge--inactive">Gesperrt</span>
+                } @else if (g.noShows > 0) {
+                  <span class="status-badge status-badge--warn">{{ g.noShows }} No-Show{{ g.noShows > 1 ? 's' : '' }}</span>
+                } @else {
+                  <span class="status-badge status-badge--active">Zuverlässig</span>
+                }
               </td>
             </tr>
+          }
+          @if (topGuests.length === 0) {
+            <tr><td colspan="4" class="data-table__empty">Noch keine Gäste im Gästebuch</td></tr>
           }
         </tbody>
       </table>

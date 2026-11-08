@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
 import { NotizenService, Notiz } from './notizen.service';
+
 @Injectable({ providedIn: 'root' })
 export class NotizenStateService implements OnDestroy {
   private readonly svc = inject(NotizenService);
@@ -32,7 +33,7 @@ export class NotizenStateService implements OnDestroy {
 
   // Panel-Sichtbarkeit & Float-Status
   panelOpen      = signal(false);
-  floatDismissed = signal(false);
+  floatDismissed = signal(sessionStorage.getItem('nf-dismissed') === '1');
 
   constructor() { this.load(); }
 
@@ -51,8 +52,13 @@ export class NotizenStateService implements OnDestroy {
   }
 
   togglePanel(): void {
-    this.floatDismissed.set(true);
+    this.dismiss();
     this.panelOpen.update(v => !v);
+  }
+
+  dismiss(): void {
+    this.floatDismissed.set(true);
+    sessionStorage.setItem('nf-dismissed', '1');
   }
 
   closePanel(): void { this.panelOpen.set(false); }

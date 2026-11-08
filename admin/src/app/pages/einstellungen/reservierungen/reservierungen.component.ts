@@ -1,203 +1,175 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
+import { Component, computed, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ReservationsService } from '../../../services/reservations.service';
-import { Reservation, ReservationStatus, STATUS_LABELS } from '../../../services/reservation.types';
-import { StatusColorsService, StatusKey } from '../../../services/status-colors.service';
-import { StatusIconComponent } from '../../../shared/status-icon/status-icon.component';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { MatIconModule } from '@angular/material/icon';
+import { ReservationTimingService } from '../../../services/reservation-timing.service';
+import {
+  DEFAULT_RESERVATION_TIMING,
+  ReservationTimingSettings,
+  TenantSettingsService,
+} from '../../../services/tenant-settings.service';
+import { GetraenkeReminderService } from '../../../services/getraenke-reminder.service';
+
+interface DurationPreset {
+  label: string;
+  minutes: number;
+}
 
 @Component({
   selector: 'app-reservierungen',
   standalone: true,
-  imports: [MatIconModule, FormsModule, StatusIconComponent],
+  imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: './reservierungen.component.html',
-  styleUrl: './reservierungen.component.scss',
+  styleUrl: './reservierungen.component.scss'
 })
-export class ReservierungenComponent implements OnInit {
+export class ReservierungenComponent {
 
-  private readonly svc          = inject(ReservationsService);
-  private readonly statusColors = inject(StatusColorsService);
+  private readonly timing          = inject(ReservationTimingService);
+  private readonly getraenke       = inject(GetraenkeReminderService);
+  private readonly tenantSettings  = inject(TenantSettingsService);
 
-  readonly reservations = this.svc.reservations;
-  readonly total        = this.svc.total;
-  readonly loading      = this.svc.loading;
-  readonly viewMode     = this.statusColors.viewMode;
+  // ────────────────────────────────────────────────────────────────
+  //  Lokales Bearbeitungs-State (initial aus dem Service gefüttert)
+  // ────────────────────────────────────────────────────────────────
+  defaultDuration = signal<number>(this.timing.defaultDurationMinutes());
+  autoExpire      = signal<boolean>(this.timing.autoExpireEnabled());
+  cleanupOn       = signal<boolean>(this.timing.cleanupEnabled());
+  cleanupMinutes  = signal<number>(this.timing.cleanupMinutes());
 
-  private readonly bookingStatusToKey: Record<ReservationStatus, StatusKey> = {
-    pending:   'waiting',
-    confirmed: 'active',
-    cancelled: 'cancelled',
-    no_show:   'no_show',
-  };
+  // ── Info-Panels (je Section) ─────────────────────────────────────────────────
+  info1 = signal(false); // Standard-Reservierungsdauer
+  info2 = signal(false); // Status-Auto-Wechsel
+  info3 = signal(false); // Clean-up-Zeit
+  info4 = signal(false); // Getränke-Erinnerung
+  info5 = signal(false); // VIP-Schwelle
 
-  colorForBooking(s: ReservationStatus): string { return this.statusColors.colorFor(this.bookingStatusToKey[s]); }
-  iconForBooking(s:  ReservationStatus): string { return this.statusColors.iconFor(this.bookingStatusToKey[s]);  }
-  labelForBooking(s: ReservationStatus): string { return this.statusColors.labelFor(this.bookingStatusToKey[s]); }
+  // ── Getränke-Erinnerung ──────────────────────────────────────────────────────
+  getraenkeOn      = signal<boolean>(this.getraenke.enabled());
+  getraenkeMinutes = signal<number>(this.getraenke.minutes());
 
-  textColorFor(hex: string): string {
-    if (!hex || !hex.startsWith('#')) return '#fff';
-    const c = hex.substring(1);
-    const rgb = parseInt(c.length === 3 ? c.split('').map(x => x + x).join('') : c, 16);
-    const r = (rgb >> 16) & 0xff;
-    const g = (rgb >>  8) & 0xff;
-    const b =  rgb        & 0xff;
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#000' : '#fff';
+  // ── No-Show Auto-Block ────────────────────────────────────────────────────────
+  noShowThreshold     = signal<number | null>(null);
+  savedNoShowThreshold = signal<boolean>(false);
+  readonly noShowPresets = [1, 2, 3, 5];
+
+  constructor() {
+    this.tenantSettings.load().subscribe(s => {
+      this.noShowThreshold.set(s.noShowAutoBlockThreshold ?? null);
+    });
   }
 
-  // ── Filter ────────────────────────────────────────────────────────────
-  filterDate   = '';
-  filterStatus = '';
-  actionError  = signal<string | null>(null);
+  readonly getraenkePresets = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
 
-  readonly statusOptions = [
-    { value: '',          label: 'Alle Status' },
-    { value: 'pending',   label: 'Ausstehend'  },
-    { value: 'confirmed', label: 'Bestätigt'   },
-    { value: 'cancelled', label: 'Storniert'   },
-    { value: 'no_show',   label: 'No-Show'     },
+  toggleGetraenke(): void { this.getraenkeOn.update(v => !v); }
+  setGetraenke(min: number): void { this.getraenkeMinutes.set(min); }
+
+  // ── VIP-Schwelle ─────────────────────────────────────────────────────────────
+  vipThreshold      = signal<number>(this.tenantSettings.snapshot?.vipThreshold ?? 5);
+  vipThresholdInput = this.tenantSettings.snapshot?.vipThreshold ?? 5;
+  savedVipThreshold = signal<boolean>(false);
+
+  // Speichern-Feedback pro Card
+  savedDuration   = signal<boolean>(false);
+  savedAutoExpire = signal<boolean>(false);
+  savedCleanup    = signal<boolean>(false);
+  savedGetraenke  = signal<boolean>(false);
+
+  // Praktische Presets, die Restaurants typischerweise verwenden.
+  readonly durationPresets: DurationPreset[] = [
+    { label: '60 min',  minutes: 60  },
+    { label: '90 min',  minutes: 90  },
+    { label: '2 Std.',  minutes: 120 },
+    { label: '2,5 Std.', minutes: 150 },
+    { label: '3 Std.',  minutes: 180 },
   ];
 
-  // ── Export-Modal ───────────────────────────────────────────────────────
-  exportModal     = signal(false);
-  exportMode:     'print' | 'pdf' = 'print';
-  exportRange:    'day' | 'range' = 'day';
-  exportFrom      = '';
-  exportTo        = '';
-  selectedStatuses: string[] = [];
+  readonly cleanupPresets: DurationPreset[] = [
+    { label: '10 min', minutes: 10 },
+    { label: '15 min', minutes: 15 },
+    { label: '20 min', minutes: 20 },
+    { label: '30 min', minutes: 30 },
+  ];
 
-  openExportModal(mode: 'print' | 'pdf'): void {
-    this.exportMode  = mode;
-    this.exportRange = 'day';
-    this.exportFrom  = this.filterDate;
-    this.exportTo    = this.filterDate;
-    this.selectedStatuses = [];
-    this.exportModal.set(true);
+  // Anschauliche Berechnung: bei einer 19:00-Reservierung wäre das …
+  readonly previewExample = computed(() => {
+    const start = new Date(); start.setHours(19, 0, 0, 0);
+    const endRes = new Date(start.getTime() + this.defaultDuration() * 60_000);
+    const endSlot = new Date(endRes.getTime() + (this.cleanupOn() ? this.cleanupMinutes() : 0) * 60_000);
+    const fmt = (d: Date) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return {
+      start:    fmt(start),
+      endRes:   fmt(endRes),
+      endSlot:  fmt(endSlot),
+    };
+  });
+
+  // ────────────────────────────────────────────────────────────────
+  //  Aktionen
+  // ────────────────────────────────────────────────────────────────
+  setDuration(min: number): void {
+    if (min < 15) min = 15;
+    if (min > 480) min = 480;
+    this.defaultDuration.set(Math.round(min));
   }
 
-  closeExportModal(): void { this.exportModal.set(false); }
-
-  toggleStatus(value: string): void {
-    this.selectedStatuses = this.selectedStatuses.includes(value)
-      ? this.selectedStatuses.filter(s => s !== value)
-      : [...this.selectedStatuses, value];
+  setCleanup(min: number): void {
+    if (min < 5) min = 5;
+    if (min > 120) min = 120;
+    this.cleanupMinutes.set(Math.round(min));
   }
 
-  // ── Daten für Export aufbereiten ───────────────────────────────────────
-  private getExportData(): Reservation[] {
-    let data = [...this.reservations()];
+  toggleAutoExpire(): void { this.autoExpire.update(v => !v); }
+  toggleCleanup():    void { this.cleanupOn.update(v => !v); }
 
-    if (this.exportRange === 'day') {
-      data = data.filter(r => r.starts_at.startsWith(this.exportFrom));
-    } else if (this.exportFrom && this.exportTo) {
-      data = data.filter(r => {
-        const d = r.starts_at.split('T')[0];
-        return d >= this.exportFrom && d <= this.exportTo;
-      });
-    }
-
-    if (this.selectedStatuses.length) {
-      data = data.filter(r => this.selectedStatuses.includes(r.status));
-    }
-
-    return data.sort((a, b) =>
-      new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
-    );
+  setNoShowThreshold(val: number | null): void {
+    this.noShowThreshold.set(val);
   }
 
-  dateLabel(): string {
-    if (this.exportRange === 'day') return this.exportFrom;
-    return `${this.exportFrom} – ${this.exportTo}`;
-  }
-
-  // ── Drucken ────────────────────────────────────────────────────────────
-  printReservations: Reservation[] = [];
-
-  runExport(): void {
-    const data = this.getExportData();
-    this.closeExportModal();
-
-    if (this.exportMode === 'print') {
-      this.printReservations = data;
-      setTimeout(() => {
-        window.print();
-        this.printReservations = [];
-      }, 120);
-      return;
-    }
-
-    // PDF: direkt als Datei herunterladen
-    this.downloadPdf(data);
-  }
-
-  private downloadPdf(data: Reservation[]): void {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text('Reservierungen', 14, 16);
-
-    doc.setFontSize(9);
-    doc.setTextColor(120, 120, 120);
-    doc.text(
-      `${this.dateLabel()}  ·  ${data.length} Einträge  ·  erstellt am ${new Date().toLocaleDateString('de-DE')}`,
-      14, 23,
-    );
-
-    autoTable(doc, {
-      startY: 28,
-      head: [['Zeit', 'Gast', 'Pers.', 'E-Mail', 'Telefon', 'Status', 'Notiz']],
-      body: data.map(r => [
-        `${this.formatTime(r.starts_at)} – ${this.formatTime(r.ends_at)}`,
-        r.guest_name,
-        String(r.party_size),
-        r.guest_email,
-        r.guest_phone ?? '—',
-        STATUS_LABELS[r.status as ReservationStatus] ?? r.status,
-        r.guest_notes ?? '',
-      ]),
-      styles:     { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [243, 244, 246], textColor: [50, 50, 50], fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-      columnStyles: { 2: { halign: 'center' } },
-    });
-
-    const filename = `Reservierungen_${this.dateLabel().replace(/\s/g, '')}.pdf`;
-    doc.save(filename);
-  }
-
-  // ── Laden ──────────────────────────────────────────────────────────────
-  ngOnInit(): void {
-    this.filterDate = this.getToday();
-    this.load();
-  }
-
-  private getToday(): string {
-    const d = new Date();
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString().split('T')[0];
-  }
-
-  load(): void {
-    this.actionError.set(null);
-    this.svc.load({
-      date:   this.filterDate   || undefined,
-      status: this.filterStatus || undefined,
+  saveNoShowThreshold(): void {
+    this.tenantSettings.save({
+      ...this.tenantSettings.snapshot,
+      noShowAutoBlockThreshold: this.noShowThreshold(),
     }).subscribe();
+    this.savedNoShowThreshold.set(true);
+    setTimeout(() => this.savedNoShowThreshold.set(false), 2000);
   }
 
-  resetToToday(): void {
-    this.filterDate = this.getToday();
-    this.load();
+  resetDefaults(): void {
+    this.defaultDuration.set(DEFAULT_RESERVATION_TIMING.defaultDurationMinutes);
+    this.autoExpire.set(    DEFAULT_RESERVATION_TIMING.autoExpireEnabled);
+    this.cleanupOn.set(     DEFAULT_RESERVATION_TIMING.cleanupEnabled);
+    this.cleanupMinutes.set(DEFAULT_RESERVATION_TIMING.cleanupMinutes);
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────
-  statusLabel(s: string): string {
-    return STATUS_LABELS[s as ReservationStatus] ?? s;
+  saveDuration(): void {
+    this.timing.save({ defaultDurationMinutes: this.defaultDuration() });
+    this.savedDuration.set(true);
+    setTimeout(() => this.savedDuration.set(false), 2000);
   }
 
-  formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  saveAutoExpire(): void {
+    this.timing.save({ autoExpireEnabled: this.autoExpire() });
+    this.savedAutoExpire.set(true);
+    setTimeout(() => this.savedAutoExpire.set(false), 2000);
+  }
+
+  saveCleanup(): void {
+    this.timing.save({ cleanupEnabled: this.cleanupOn(), cleanupMinutes: this.cleanupMinutes() });
+    this.savedCleanup.set(true);
+    setTimeout(() => this.savedCleanup.set(false), 2000);
+  }
+
+  saveGetraenke(): void {
+    this.getraenke.saveSettings({ enabled: this.getraenkeOn(), minutes: this.getraenkeMinutes() });
+    this.savedGetraenke.set(true);
+    setTimeout(() => this.savedGetraenke.set(false), 2000);
+  }
+
+  saveVipThreshold(): void {
+    const t = Math.max(1, Math.min(100, this.vipThresholdInput));
+    this.vipThreshold.set(t);
+    this.tenantSettings.save({ ...this.tenantSettings.snapshot, vipThreshold: t }).subscribe();
+    this.savedVipThreshold.set(true);
+    setTimeout(() => this.savedVipThreshold.set(false), 2000);
   }
 }

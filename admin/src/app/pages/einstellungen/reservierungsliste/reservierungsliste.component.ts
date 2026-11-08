@@ -27,7 +27,10 @@ export class ReservierungslisteComponent implements OnInit {
 
   private readonly bookingStatusToKey: Record<ReservationStatus, StatusKey> = {
     pending:   'waiting',
-    confirmed: 'active',
+    confirmed: 'confirmed',
+    seated:    'active',
+    cleanup:   'cleanup',
+    completed: 'completed',
     cancelled: 'cancelled',
     no_show:   'no_show',
   };

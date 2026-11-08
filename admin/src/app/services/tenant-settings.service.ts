@@ -80,6 +80,24 @@ export interface TenantUiSettings {
 
   /** Funktionale Widget-Einstellungen (Intervall, Räume, Pflichtfelder usw.). */
   widgetFunctional?: WidgetFunctionalSettings;
+
+  /** Rollen-Berechtigungsmatrix: role → permissionKey → boolean */
+  permissions?: Record<string, Record<string, boolean>>;
+
+  /** Getränke-Reminder Einstellungen (tenant-weit) */
+  getraenkeReminder?: { enabled: boolean; minutes: number };
+
+  /**
+   * Automatische Gast-Sperrung nach N No-Shows.
+   * null / undefined = Funktion deaktiviert.
+   */
+  noShowAutoBlockThreshold?: number | null;
+
+  /**
+   * Ab wie vielen Reservierungen gilt ein Gast als VIP?
+   * Standard: 5. Kann in Einstellungen → Kunden/CRM geändert werden.
+   */
+  vipThreshold?: number;
 }
 
 // ─── Widget-Functional-Typen ──────────────────────────────────────────────────

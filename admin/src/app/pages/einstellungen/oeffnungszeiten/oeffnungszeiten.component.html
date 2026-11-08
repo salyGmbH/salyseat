@@ -10,20 +10,6 @@
       </p>
     </div>
   </div>
-
-  <!-- Venue-Selektor (nur wenn mehrere) -->
-  @if (venues().length > 1) {
-    <div class="venue-tabs">
-      @for (v of venues(); track v.id) {
-        <button
-          class="venue-tab"
-          [class.venue-tab--active]="selectedVenueId() === v.id"
-          (click)="selectVenue(v.id)">
-          {{ v.name }}
-        </button>
-      }
-    </div>
-  }
 </div>
 
 <!-- ── Öffnungszeiten-Grid ────────────────────────────────────────────────── -->

@@ -7,8 +7,11 @@ export interface PeriodStats {
   guests: number;
   pending: number;
   confirmed: number;
+  seated: number;
+  seated_guests: number;
   cancelled: number;
   no_show: number;
+  completed: number;
 }
 
 export interface DashboardStats {

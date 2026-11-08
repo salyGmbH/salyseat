@@ -4,25 +4,22 @@ declare(strict_types=1);
 
 namespace App\Module\Dashboard\Application\Query;
 
-use App\Module\Reservation\Domain\Entity\Reservation;
-use App\Module\Venue\Domain\Entity\Venue;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Uid\Uuid;
+use Doctrine\DBAL\Connection;
 
 final class DashboardStatsHandler
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
+        private readonly Connection $dbal,
     ) {}
 
     public function __invoke(DashboardStatsQuery $query): array
     {
-        $tenantId     = Uuid::fromString($query->tenantId);
-        $todayStart   = new \DateTimeImmutable('today midnight');
+        $tenantId      = $query->tenantId;
+        $todayStart    = new \DateTimeImmutable('today midnight');
         $tomorrowStart = new \DateTimeImmutable('tomorrow midnight');
         $dayAfterStart = new \DateTimeImmutable('+2 days midnight');
-        $weekStart    = new \DateTimeImmutable('monday this week midnight');
-        $weekEnd      = (new \DateTimeImmutable('sunday this week midnight'))->modify('+1 day');
+        $weekStart     = new \DateTimeImmutable('monday this week midnight');
+        $weekEnd       = (new \DateTimeImmutable('sunday this week midnight'))->modify('+1 day');
 
         return [
             'today'    => $this->periodStats($tenantId, $todayStart, $tomorrowStart),
@@ -32,21 +29,24 @@ final class DashboardStatsHandler
         ];
     }
 
-    private function periodStats(Uuid $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    private function periodStats(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
-        $rows = $this->em->createQueryBuilder()
-            ->select('r.status, COUNT(r.id) as cnt, COALESCE(SUM(r.partySize), 0) as guests')
-            ->from(Reservation::class, 'r')
-            ->join('r.venue', 'v')
-            ->join('v.tenant', 't')
-            ->where('t.id = :tenantId')
-            ->andWhere('r.startsAt >= :from AND r.startsAt < :to')
-            ->groupBy('r.status')
-            ->setParameter('tenantId', $tenantId, 'uuid')
-            ->setParameter('from', $from)
-            ->setParameter('to', $to)
-            ->getQuery()
-            ->getResult();
+        $rows = $this->dbal->fetchAllAssociative(
+            'SELECT r.status,
+                    COUNT(r.id)                     AS cnt,
+                    COALESCE(SUM(r.party_size), 0)  AS guests
+               FROM reservations r
+               JOIN venues v ON v.id = r.venue_id
+              WHERE v.tenant_id = UNHEX(REPLACE(?, \'-\', \'\'))
+                AND r.starts_at >= ?
+                AND r.starts_at <  ?
+              GROUP BY r.status',
+            [
+                $tenantId,
+                $from->format('Y-m-d H:i:s'),
+                $to->format('Y-m-d H:i:s'),
+            ],
+        );
 
         $byStatus = [];
         foreach ($rows as $row) {
@@ -56,34 +56,39 @@ final class DashboardStatsHandler
             ];
         }
 
-        $active = ['pending', 'confirmed'];
+        // Gesamtzahl = alle sinnvollen Buchungen (ohne Stornierungen / No-Shows)
+        $countStatuses = ['pending', 'confirmed', 'seated', 'cleanup', 'completed'];
         $total  = 0;
         $guests = 0;
-        foreach ($active as $s) {
+        foreach ($countStatuses as $s) {
             $total  += $byStatus[$s]['count']  ?? 0;
             $guests += $byStatus[$s]['guests'] ?? 0;
         }
 
+        $seatedCount  = ($byStatus['seated']['count']  ?? 0) + ($byStatus['cleanup']['count']  ?? 0);
+        $seatedGuests = ($byStatus['seated']['guests'] ?? 0) + ($byStatus['cleanup']['guests'] ?? 0);
+
         return [
-            'total'     => $total,
-            'guests'    => $guests,
-            'pending'   => $byStatus['pending']['count']   ?? 0,
-            'confirmed' => $byStatus['confirmed']['count'] ?? 0,
-            'cancelled' => $byStatus['cancelled']['count'] ?? 0,
-            'no_show'   => $byStatus['no_show']['count']   ?? 0,
+            'total'         => $total,
+            'guests'        => $guests,
+            'pending'       => $byStatus['pending']['count']   ?? 0,
+            'confirmed'     => $byStatus['confirmed']['count'] ?? 0,
+            'seated'        => $seatedCount,
+            'seated_guests' => $seatedGuests,
+            'completed'     => $byStatus['completed']['count'] ?? 0,
+            'cancelled'     => $byStatus['cancelled']['count'] ?? 0,
+            'no_show'       => $byStatus['no_show']['count']   ?? 0,
         ];
     }
 
-    private function countVenues(Uuid $tenantId): int
+    private function countVenues(string $tenantId): int
     {
-        return (int) $this->em->createQueryBuilder()
-            ->select('COUNT(v.id)')
-            ->from(Venue::class, 'v')
-            ->join('v.tenant', 't')
-            ->where('t.id = :tenantId')
-            ->andWhere('v.active = true')
-            ->setParameter('tenantId', $tenantId, 'uuid')
-            ->getQuery()
-            ->getSingleScalarResult();
+        return (int) $this->dbal->fetchOne(
+            'SELECT COUNT(v.id)
+               FROM venues v
+              WHERE v.tenant_id = UNHEX(REPLACE(?, \'-\', \'\'))
+                AND v.active = 1',
+            [$tenantId],
+        );
     }
 }

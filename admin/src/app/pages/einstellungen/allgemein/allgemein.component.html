@@ -8,6 +8,7 @@
   <div class="module-grid">
 
     <div class="module-card"
+         [class.active]="module.active"
          *ngFor="let module of modules()">
 
       <div class="module-icon">

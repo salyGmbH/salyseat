@@ -11,7 +11,6 @@ import { MitarbeiterComponent } from './mitarbeiter/mitarbeiter.component';
 import { StatusFarbenComponent } from './status-farben/status-farben.component';
 
 import { PackagesComponent } from './packages/packages.component';
-import { DokumenteComponent } from './dokumente/dokumente.component';
 import { ReservierungenComponent } from './reservierungen/reservierungen.component';
 import { LoginComponent } from './login/login.component';
 import { StatistikenComponent } from './statistiken/statistiken.component';
@@ -51,7 +50,6 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'status-kennzeichnungen', component: StatusFarbenComponent },
 
       { path: 'packages',          component: PackagesComponent },
-      { path: 'dokumente',         component: DokumenteComponent },
       { path: 'reservierungen',    component: ReservierungenComponent },
       { path: 'login',             component: LoginComponent },
       { path: 'statistiken',       component: StatistikenComponent },

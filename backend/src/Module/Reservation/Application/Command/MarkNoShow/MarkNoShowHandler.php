@@ -26,10 +26,32 @@ final class MarkNoShowHandler
 
         $reservation->markAsNoShow();
 
-        // Gast-Counter ebenfalls hochzählen — beide Änderungen atomar flushen
+        // Gast-Counter hochzählen; ggf. automatisch sperren
         $guest = $reservation->getGuest();
         if ($guest !== null) {
             $guest->incrementNoShows();
+            $guest->updateLastVisitAt($reservation->getStartsAt());
+
+            $uiSettings = $reservation->getVenue()->getTenant()->getUiSettings() ?? [];
+            $threshold  = isset($uiSettings['noShowAutoBlockThreshold'])
+                ? (int) $uiSettings['noShowAutoBlockThreshold']
+                : null;
+
+            if ($threshold !== null && !$guest->isBlocked() && $guest->getNoShowCount() >= $threshold) {
+                $count = $guest->getNoShowCount();
+                $guest->block(
+                    'Automatisch gesperrt nach ' . $count . ' No-Show' . ($count !== 1 ? 's' : ''),
+                );
+            }
+
+            // Auto-Tag: ab 3 No-Shows gilt der Gast als unzuverlässig
+            if ($guest->getNoShowCount() >= 3) {
+                $hinweise = $guest->getHinweise();
+                if (!in_array('unzuverlaessig', $hinweise, true)) {
+                    $guest->setHinweise([...$hinweise, 'unzuverlaessig']);
+                }
+            }
+
             $this->em->persist($guest);
         }
 

@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import {
-  NotizenService, Notiz, CreateNotizDto
+  NotizenService, Notiz, CreateNotizDto, NotizCreatedBy
 } from '../../../services/notizen.service';
 import { NotizenStateService } from '../../../services/notizen-state.service';
 
@@ -323,6 +323,14 @@ export class NotizenComponent implements OnInit {
       text:   '',
       color:  'default',
     };
+  }
+
+  creatorLabel(createdBy: NotizCreatedBy | null): string {
+    if (!createdBy) return '';
+    const num = createdBy.employeeNumber !== null
+      ? `#${String(createdBy.employeeNumber).padStart(2, '0')} `
+      : '';
+    return `${num}${createdBy.name}`;
   }
 
   trackById(_: number, n: Notiz): string { return n.id; }

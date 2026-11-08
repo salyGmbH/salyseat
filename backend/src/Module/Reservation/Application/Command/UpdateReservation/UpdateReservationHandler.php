@@ -38,6 +38,10 @@ final class UpdateReservationHandler
             guestNotes: $cmd->guestNotes,
         );
 
+        if ($cmd->tableNumber !== false) {
+            $reservation->setTableNumber(is_int($cmd->tableNumber) ? $cmd->tableNumber : null);
+        }
+
         $this->reservations->save($reservation);
 
         return $reservation;

@@ -31,6 +31,7 @@ export interface FloorReservation {
   guestInternalNotes?: string;
   guestBlocked?: boolean;
   guestBlockedReason?: string;
+  guestNoShowCount?: number;
   createdAt: number;
   updatedAt: number;
 }

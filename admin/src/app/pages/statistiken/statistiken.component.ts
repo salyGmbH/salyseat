@@ -1,6 +1,8 @@
-import { Component, AfterViewInit } from '@angular/core';
+import { Component, AfterViewInit, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { DecimalPipe } from '@angular/common';
 import Chart from 'chart.js/auto';
+import { StatistikenService, StatsTotals, StatsTimeslot, StatsMonthly, StatsTopGuest } from '../../services/statistiken.service';
 
 // Inline-Plugin: Werte über den Balken rendern
 const topLabelsPlugin = {
@@ -27,13 +29,17 @@ const topLabelsPlugin = {
 @Component({
   selector: 'app-statistiken',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [MatIconModule, DecimalPipe],
   templateUrl: './statistiken.component.html',
   styleUrls: ['./statistiken.component.scss']
 })
 export class StatistikenComponent implements AfterViewInit {
+  private readonly svc = inject(StatistikenService);
 
-  // ─── KPI ────────────────────────────────────────────────────────────────────
+  // ─── KPI (real data) ────────────────────────────────────────────────────────
+  totals = signal<StatsTotals>({ reservations: 0, guests: 0, noShows: 0, auslastung: 0 });
+
+  // ─── KPI (static / not available from DB yet) ────────────────────────────────
   metrics = [
     { name: 'Reservierungsrate',    value: 90 },
     { name: 'Auslastung',           value: 75 },
@@ -42,13 +48,9 @@ export class StatistikenComponent implements AfterViewInit {
     { name: 'Wiederkehrende Gäste', value: 70 }
   ];
 
-  topUsers = [
-    { name: 'Max Mustermann', actions: 120, active: true  },
-    { name: 'Anna Schmidt',   actions:  80, active: false },
-    { name: 'John Doe',       actions: 200, active: true  },
-  ];
+  topGuests: StatsTopGuest[] = [];
 
-  // ─── Anlässe & Quellen ───────────────────────────────────────────────────────
+  // ─── Anlässe & Quellen (static — source not tracked in DB) ──────────────────
   anlassData = [
     { label: 'Barbereich',      value: 42, color: '#2979ff' },
     { label: 'Essen & Trinken', value: 35, color: '#ffb700' },
@@ -70,7 +72,7 @@ export class StatistikenComponent implements AfterViewInit {
   get anlassTotal(): number { return this.anlassData.reduce((s, d) => s + d.value, 0); }
   get quellenTotal(): number { return this.quellenData.reduce((s, d) => s + d.value, 0); }
 
-  // ─── Auslastung ──────────────────────────────────────────────────────────────
+  // ─── Auslastung (real data) ──────────────────────────────────────────────────
   auslastungFilter = 'ganzerTag';
   timeOptions = [
     { label: 'Ganzer Tag', value: 'ganzerTag' },
@@ -79,28 +81,23 @@ export class StatistikenComponent implements AfterViewInit {
   ];
 
   private auslastungAllData: Record<string, { labels: string[]; data: number[] }> = {
-    ganzerTag: {
-      labels: ['12:00','12:30','13:00','13:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'],
-      data:   [  20,    38,    55,    42,    9,    15,    35,    53,    68,    88,   105,   125,   141],
-    },
-    lunch: {
-      labels: ['11:30','12:00','12:30','13:00','13:30','14:00'],
-      data:   [  12,    20,    38,    55,    42,    18],
-    },
-    abend: {
-      labels: ['17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'],
-      data:   [   9,    15,    35,    53,    68,    88,   105,   125,   141,   156],
-    },
+    ganzerTag: { labels: [], data: [] },
+    lunch:     { labels: [], data: [] },
+    abend:     { labels: [], data: [] },
   };
 
   private auslastungChart?: Chart;
 
-  // ─── Gruppen-Heatmap ─────────────────────────────────────────────────────────
+  // ─── Monatliche Reservierungen (real data) ───────────────────────────────────
+  private monthlyLabels: string[] = [];
+  private monthlyCounts: number[] = [];
+  monthlyBadge = '';
+
+  // ─── Gruppen-Heatmap (static) ────────────────────────────────────────────────
   gruppenFilter = 'ganzerTag';
 
   gruppenLabels = ['17:00',':15',':30',':45','18:00',':15',':30',':45','19:00',':15',':30',':45','20:00',':15',':30',':45','21:00'];
 
-  // Jede Zeile = eine Buchungsebene; 0 = kein Eintrag
   gruppenRows: number[][] = [
     [20, 0,  2,  0, 20,  0, 20,  0,  2,  2,  2,  0,  0,  4,  0,  0, 14],
     [ 9, 0,  2,  0,  0,  2,  2,  2,  2,  2,  2,  4,  4,  4,  2,  2,  0],
@@ -111,11 +108,49 @@ export class StatistikenComponent implements AfterViewInit {
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
   ngAfterViewInit(): void {
-    this.createLineChart();
-    this.createDoughnutChart();
-    this.createAnlassChart();
-    this.createQuellenChart();
-    this.buildAuslastungChart();
+    this.svc.load().subscribe(data => {
+      this.totals.set(data.totals);
+      this.topGuests = data.topGuests;
+      this.processTimeslots(data.timeslots);
+      this.processMonthly(data.monthly);
+
+      this.createLineChart();
+      this.createDoughnutChart();
+      this.createAnlassChart();
+      this.createQuellenChart();
+      this.buildAuslastungChart();
+    });
+  }
+
+  // ─── Data processing ─────────────────────────────────────────────────────────
+  private processTimeslots(slots: StatsTimeslot[]): void {
+    const toChart = (arr: StatsTimeslot[]) => ({
+      labels: arr.map(s => s.time),
+      data:   arr.map(s => s.guests),
+    });
+
+    this.auslastungAllData = {
+      ganzerTag: toChart(slots),
+      lunch:     toChart(slots.filter(s => s.time >= '11:00' && s.time < '15:00')),
+      abend:     toChart(slots.filter(s => s.time >= '17:00' && s.time < '23:00')),
+    };
+  }
+
+  private processMonthly(monthly: StatsMonthly[]): void {
+    this.monthlyLabels = monthly.map(m => this.formatMonth(m.month));
+    this.monthlyCounts = monthly.map(m => m.count);
+
+    if (monthly.length > 0) {
+      const first = this.formatMonth(monthly[0].month);
+      const last  = this.formatMonth(monthly[monthly.length - 1].month);
+      this.monthlyBadge = first === last ? first : `${first} – ${last}`;
+    }
+  }
+
+  private formatMonth(ym: string): string {
+    const months = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    const [year, month] = ym.split('-');
+    return `${months[parseInt(month, 10) - 1]} ${year.slice(2)}`;
   }
 
   // ─── Heatmap helpers ─────────────────────────────────────────────────────────
@@ -144,13 +179,16 @@ export class StatistikenComponent implements AfterViewInit {
 
   // ─── Chart-Erstellung ────────────────────────────────────────────────────────
   private createLineChart(): void {
+    const labels = this.monthlyLabels.length ? this.monthlyLabels : ['–'];
+    const data   = this.monthlyCounts.length ? this.monthlyCounts : [0];
+
     new Chart('lineChart', {
       type: 'line',
       data: {
-        labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun'],
+        labels,
         datasets: [{
-          label: 'Umsatz (€)',
-          data: [1200, 1900, 3000, 2500, 3200, 4000],
+          label: 'Reservierungen',
+          data,
           borderColor: '#2979ff',
           backgroundColor: 'rgba(41,121,255,0.08)',
           fill: true,

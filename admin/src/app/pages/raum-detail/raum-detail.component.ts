@@ -6,8 +6,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { of, switchMap } from 'rxjs';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { combineLatest, of, startWith, switchMap, take } from 'rxjs';
 import { RoomsService } from '../../services/rooms.service';
 import { FloorReservationsService } from '../../services/floor-reservations.service';
 import { ReservationsService } from '../../services/reservations.service';
@@ -15,10 +15,12 @@ import { StatusColorsService } from '../../services/status-colors.service';
 import { ReservationTimingService } from '../../services/reservation-timing.service';
 import { GuestsService, Guest } from '../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../services/tenant-settings.service';
-import { PlacedTable, TableType, DecorType } from '../../services/room.types';
+import { OpeningHoursService } from '../../services/opening-hours.service';
+import { PlacedTable, TableType, DecorType, SavedRoom } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
 import { StatusIconComponent } from '../../shared/status-icon/status-icon.component';
+import { GetraenkeReminderService } from '../../services/getraenke-reminder.service';
 
 type StatusFilter = 'all' | 'active' | FloorReservationStatus;
 
@@ -46,8 +48,78 @@ export class RaumDetailComponent implements OnInit {
   private readonly timing              = inject(ReservationTimingService);
   private readonly guestsService       = inject(GuestsService);
   private readonly tenantSettings      = inject(TenantSettingsService);
+  private readonly ohService           = inject(OpeningHoursService);
   private readonly route               = inject(ActivatedRoute);
   private readonly router              = inject(Router);
+  readonly getraenke                   = inject(GetraenkeReminderService);
+
+  // ── Timeline-Übersicht ────────────────────────────────────────────────────
+  showTimeline = signal(false);
+
+  // 24px pro 30-Min-Slot, 08:00–22:00 = 28 Slots = 672px Gesamthöhe
+  readonly tlSlotPx   = 24;
+  readonly tlStartH   = 8;
+  readonly tlEndH     = 22;
+  readonly tlTotalPx  = (this.tlEndH - this.tlStartH) * 2 * 24; // 672
+
+  get tlHours(): string[] {
+    const a: string[] = [];
+    for (let h = this.tlStartH; h <= this.tlEndH; h++)
+      a.push(`${String(h).padStart(2,'0')}:00`);
+    return a;
+  }
+
+  get tlSlots(): string[] {
+    const a: string[] = [];
+    for (let h = this.tlStartH; h < this.tlEndH; h++) {
+      a.push(`${String(h).padStart(2,'0')}:00`);
+      a.push(`${String(h).padStart(2,'0')}:30`);
+    }
+    return a;
+  }
+
+  activeResForTable(tableId: number): FloorReservation[] {
+    return (this.reservationsByTable().get(tableId) ?? []).filter(r =>
+      r.status !== 'cancelled' && r.status !== 'no-show' && r.status !== 'completed'
+    );
+  }
+
+  resBlockTop(res: FloorReservation): number {
+    const [h, m] = res.time.split(':').map(Number);
+    return ((h - this.tlStartH) * 60 + m) / 30 * this.tlSlotPx;
+  }
+
+  resBlockHeight(res: FloorReservation): number {
+    return Math.max(this.tlSlotPx, res.durationMinutes / 30 * this.tlSlotPx);
+  }
+
+  readonly tlNowPx = computed(() => {
+    if (this.selectedDate() !== this.todayIsoPublic()) return -1;
+    const now = new Date(this.now());
+    const h = now.getHours(); const m = now.getMinutes();
+    if (h < this.tlStartH || h >= this.tlEndH) return -1;
+    return ((h - this.tlStartH) * 60 + m) / 30 * this.tlSlotPx;
+  });
+
+  readonly freeSlotsToday = computed(() => {
+    const tables = this.room()?.tables ?? [];
+    if (!tables.length) return [];
+    const result: Array<{time: string; freeCount: number}> = [];
+    for (const slot of this.tlSlots) {
+      const [sh, sm] = slot.split(':').map(Number);
+      const sStart = sh * 60 + sm;
+      const sEnd   = sStart + 30;
+      const free = tables.filter(t => {
+        return !this.activeResForTable(t.id).some(r => {
+          const [rh, rm] = r.time.split(':').map(Number);
+          const rStart = rh * 60 + rm;
+          return rStart < sEnd && (rStart + r.durationMinutes) > sStart;
+        });
+      }).length;
+      if (free > 0) result.push({ time: slot, freeCount: free });
+    }
+    return result;
+  });
 
   availableGasttypen = signal<ConfigItem[]>([]);
   availableHinweise  = signal<ConfigItem[]>([]);
@@ -76,6 +148,7 @@ export class RaumDetailComponent implements OnInit {
     const id = this.paramMap()?.get('id');
     return id ? this.roomsService.getRoom(id) : undefined;
   });
+
 
   /** Aktueller Timestamp (jede Minute aktualisiert) — für reaktive Minuten-Anzeige. */
   readonly now = this.timing.now;
@@ -124,10 +197,16 @@ export class RaumDetailComponent implements OnInit {
   }
 
   constructor() {
-    // Bei Datumswechsel Backend-Sync wiederholen.
-    // effect() muss im Konstruktor stehen (Injection-Context), nicht in ngOnInit.
+    // Hauptkalender-Datum → Backend-Sync
     effect(() => {
       const date = this.selectedDate();
+      const room = this.room();
+      if (room) this.syncFromBackend(room.id, date);
+    }, { allowSignalWrites: true });
+
+    // Dialog-Datum → Backend-Sync (kann vom Hauptkalender abweichen)
+    effect(() => {
+      const date = this.formDate();
       const room = this.room();
       if (room) this.syncFromBackend(room.id, date);
     }, { allowSignalWrites: true });
@@ -141,9 +220,11 @@ export class RaumDetailComponent implements OnInit {
       if (s.gasttypen?.length) this.availableGasttypen.set(s.gasttypen);
       if (s.hinweise?.length)  this.availableHinweise.set(s.hinweise);
     });
-
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
+    this.ohService.getHours(id).subscribe(days => {
+      this.closedWeekdays.set(days.filter(d => !d.open).map(d => d.weekday));
+    });
     this.layoutLoading.set(true);
 
     // Bei Direktaufruf von /raum/:id ist die Venue-Liste evtl. noch leer,
@@ -164,81 +245,50 @@ export class RaumDetailComponent implements OnInit {
   }
 
   private syncFromBackend(venueId: string, date: string): void {
-    this.apiReservations.loadForVenue(venueId, date).subscribe(backendList => {
-      for (const br of backendList) {
-        this.adoptBackendReservation(venueId, br);
-      }
+    this.reservationsService.loadForVenue(venueId, date).subscribe({
+      error: () => console.warn('Backend-Sync fehlgeschlagen'),
     });
   }
 
-  private adoptBackendReservation(venueId: string, br: Reservation): void {
-    // Uhrzeit direkt aus dem ISO-String extrahieren (vermeidet Timezone-Probleme)
-    const time = br.starts_at.substring(11, 16);
-    const date = br.starts_at.substring(0, 10);
-    const startsMs = new Date(br.starts_at).getTime();
-    const endsMs   = new Date(br.ends_at).getTime();
-    const durationMinutes = Math.round((endsMs - startsMs) / 60000);
+  // ── Öffnungszeiten ────────────────────────────────────────────────────
+  closedWeekdays = signal<number[]>([]);
 
-    const existing = this.reservationsService.reservations()
-      .find(r => r.backendId === br.id);
+  readonly isSelectedDayClosed = computed(() => {
+    const [y, m, d] = this.selectedDate().split('-').map(Number);
+    const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+    return this.closedWeekdays().includes(weekday);
+  });
 
-    const guestPatch = {
-      guestName:          br.guest_name,
-      partySize:          br.party_size,
-      time,
-      date,
-      durationMinutes,
-      phone:              br.guest_phone          ?? undefined,
-      notes:              br.guest_notes          ?? undefined,
-      gasttypen:          br.guest_gasttypen      ?? [],
-      hinweise:           br.guest_hinweise       ?? [],
-      guestId:            br.guest_id             ?? undefined,
-      guestEmail:         br.guest_email          ?? undefined,
-      guestInternalNotes: br.guest_internal_notes ?? undefined,
-      guestBlocked:       br.guest_blocked        ?? false,
-      guestBlockedReason: br.guest_blocked_reason ?? undefined,
-    };
-
-    if (existing) {
-      // Lokalen Status nur updaten wenn das Backend eine klare Statusänderung
-      // kennt (z.B. storniert, abgeschlossen) — "pending" belässt den lokalen Stand.
-      const mappedStatus = this.mapBackendStatus(br.status, existing);
-      this.reservationsService.update(existing.id, {
-        ...guestPatch,
-        status: mappedStatus,
-      });
-    } else {
-      this.reservationsService.add({
-        backendId: br.id,
-        roomId:    venueId,
-        status:    this.mapBackendStatus(br.status),
-        ...guestPatch,
-      });
-    }
-  }
-
-  private mapBackendStatus(
-    status: string,
-    existingLocal?: FloorReservation,
-  ): FloorReservationStatus {
-    if (status === 'confirmed') return 'seated';
-    if (status === 'completed') return 'completed';
-    if (status === 'cancelled') return 'cancelled';
-    if (status === 'no_show')   return 'no-show';
-    // Backend "pending" → lokal entweder "confirmed" (Tisch schon zugewiesen)
-    // oder "upcoming" (noch kein Tisch).
-    if (existingLocal) return existingLocal.status; // lokalen Status beibehalten
-    return 'upcoming';
-  }
+  readonly dateFilter = (d: Date | null): boolean => {
+    if (!d) return true;
+    const weekday = (d.getDay() + 6) % 7;
+    return !this.closedWeekdays().includes(weekday);
+  };
 
   // ── Reservierungs-State ────────────────────────────────────────────────
   selectedDate   = signal<string>(this.todayIso());
-  statusFilter   = signal<StatusFilter>('active');
+  statusFilter    = signal<StatusFilter>('active');
+  filterPanelOpen = signal(false);
 
   /** Datum im Neue-Reservierung-Dialog — kann vom Panel-Datum abweichen. */
   formDate     = signal<string>(this.todayIso());
   calendarYear  = signal<number>(new Date().getFullYear());
   calendarMonth = signal<number>(new Date().getMonth()); // 0-indexed
+
+  /**
+   * Aktive Reservierungen vom Backend für das aktuell gewählte Dialog-Datum.
+   * switchMap cancelt vorherige Requests automatisch, timezone-sicher über JS Date-Timestamps.
+   */
+  private readonly _backendResForFormDate = toSignal(
+    combineLatest([toObservable(this.room), toObservable(this.formDate)]).pipe(
+      switchMap(([room, date]) => {
+        if (!room || !date) return of<Reservation[]>([]);
+        return this.apiReservations.loadForVenue(room.id, date).pipe(
+          startWith([] as Reservation[]),
+        );
+      }),
+    ),
+  );
 
   /** Tage-Zellen für den Inline-Kalender (Mo–So, 6 Zeilen = 42 Zellen). */
   readonly calendarDays = computed(() => {
@@ -316,24 +366,71 @@ export class RaumDetailComponent implements OnInit {
   }
 
   /**
-   * Zeitslots für den Reservierungsdialog — wenn das gewählte Datum heute ist,
-   * werden vergangene Uhrzeiten ausgeblendet.
+   * Zeitslots für den Reservierungsdialog.
+   * - Vergangene Uhrzeiten werden heute ausgeblendet.
+   * - Slots wo alle Tische des Raums bereits belegt sind werden ausgeblendet.
    */
   readonly filteredTimeSlots = computed<string[]>(() => {
-    const step = this.tenantSettings.snapshot.widgetFunctional?.intervall ?? 30;
+    const step     = this.tenantSettings.snapshot.widgetFunctional?.intervall ?? 30;
+    const duration = this.formDurationMinutes();
+    const formDateVal = this.formDate();
+
     const all: string[] = [];
     for (let h = 8; h < 24; h++) {
       for (let m = 0; m < 60; m += step) {
         all.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
       }
     }
-    if (this.formDate() !== this.todayIso()) return all;
-    const now = new Date();
-    const cur = now.getHours() * 60 + now.getMinutes();
-    return all.filter(slot => {
-      const [h, m] = slot.split(':').map(Number);
-      return h * 60 + m > cur;
-    });
+
+    // Vergangene Slots heute ausblenden
+    let slots = all;
+    if (formDateVal === this.todayIso()) {
+      const now = new Date();
+      const cur = now.getHours() * 60 + now.getMinutes();
+      slots = slots.filter(slot => {
+        const [h, m] = slot.split(':').map(Number);
+        return h * 60 + m > cur;
+      });
+    }
+
+    // Vollständig belegte Slots ausblenden
+    const room        = this.room();
+    const totalTables = room?.tables?.length ?? 0;
+    if (totalTables > 0) {
+      // Alle lokalen Reservierungen — inkl. bereits bestätigter (backendId gesetzt).
+      // Verhindert das "Transition-Window"-Problem, wenn backendId gesetzt wird bevor
+      // _backendResForFormDate neu geladen hat.
+      const allLocal = room ? this.reservationsService
+        .forRoomAndDate(room.id, formDateVal)
+        .filter(r => !['cancelled', 'completed'].includes(r.status)) : [];
+
+      // Backend-Reservierungen aus anderen Sessions — nur die, die lokal nicht schon erfasst sind.
+      const localBackendIds = new Set(allLocal.map(r => r.backendId).filter((id): id is string => !!id));
+      const backendExtra = (this._backendResForFormDate() ?? [])
+        .filter(r => !['cancelled', 'completed'].includes(r.status) && !localBackendIds.has(r.id));
+
+      slots = slots.filter(slotTime => {
+        const slotStartMs = new Date(`${formDateVal}T${slotTime}:00`).getTime();
+        const slotEndMs   = slotStartMs + duration * 60_000;
+        let concurrent = 0;
+
+        for (const res of allLocal) {
+          const dur        = res.durationMinutes > 0 ? res.durationMinutes : duration;
+          const resStartMs = new Date(`${formDateVal}T${res.time}:00`).getTime();
+          const resEndMs   = resStartMs + dur * 60_000;
+          if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
+        }
+        for (const res of backendExtra) {
+          const resStartMs = new Date(res.starts_at).getTime();
+          const resEndMs   = new Date(res.ends_at).getTime();
+          if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
+        }
+
+        return concurrent < totalTables;
+      });
+    }
+
+    return slots;
   });
 
   // Dialoge
@@ -457,6 +554,9 @@ export class RaumDetailComponent implements OnInit {
     isWalkIn: false,
   };
 
+  /** Reaktives Signal für die Formulardauer — damit filteredTimeSlots darauf reagiert. */
+  readonly formDurationMinutes = signal<number>(90);
+
   // ── Abgeleitete Listen ────────────────────────────────────────────────
   allReservationsForDay = computed(() => {
     const r = this.room();
@@ -486,6 +586,29 @@ export class RaumDetailComponent implements OnInit {
       if (r.status !== 'upcoming' && r.status !== 'confirmed' && r.status !== 'late' &&
           r.status !== 'seated'   && r.status !== 'expired'  && r.status !== 'cleanup') continue;
       // Alle Tische dieser Reservierung eintragen (einzeln + kombiniert)
+      const ids = r.tableIds?.length ? r.tableIds : (r.tableId ? [r.tableId] : []);
+      for (const id of ids) {
+        const existing = map.get(id) ?? [];
+        existing.push(r);
+        map.set(id, existing);
+      }
+    }
+    return map;
+  });
+
+  /** Reservierungen für das Dialog-Datum (formDate) — unabhängig vom Haupt-Kalender. */
+  private readonly allReservationsForFormDay = computed(() => {
+    const room = this.room();
+    if (!room) return [];
+    this.reservationsService.reservations(); // Reaktivität sicherstellen
+    return this.reservationsService.forRoomAndDate(room.id, this.formDate());
+  });
+
+  private readonly reservationsByTableForForm = computed(() => {
+    const map = new Map<number, FloorReservation[]>();
+    for (const r of this.allReservationsForFormDay()) {
+      if (r.status !== 'upcoming' && r.status !== 'confirmed' && r.status !== 'late' &&
+          r.status !== 'seated'   && r.status !== 'expired'  && r.status !== 'cleanup') continue;
       const ids = r.tableIds?.length ? r.tableIds : (r.tableId ? [r.tableId] : []);
       for (const id of ids) {
         const existing = map.get(id) ?? [];
@@ -599,7 +722,11 @@ export class RaumDetailComponent implements OnInit {
   shiftDate(days: number) {
     const [y, m, d] = this.selectedDate().split('-').map(Number);
     const dt = new Date(y, m - 1, d);
-    dt.setDate(dt.getDate() + days);
+    const closed = this.closedWeekdays();
+    for (let i = 0; i < 14; i++) {
+      dt.setDate(dt.getDate() + days);
+      if (!closed.includes((dt.getDay() + 6) % 7)) break;
+    }
     const mm = String(dt.getMonth() + 1).padStart(2, '0');
     const dd = String(dt.getDate()).padStart(2, '0');
     this.selectedDate.set(`${dt.getFullYear()}-${mm}-${dd}`);
@@ -678,7 +805,7 @@ export class RaumDetailComponent implements OnInit {
       nachname:  '',
       guestEmail: '',
       partySize: 2,
-      time: this.nextSlot(),
+      time: this.filteredTimeSlots()[0] ?? this.nextSlot(),
       durationMinutes: this.timing.defaultDurationMinutes(),
       tableId: 0,
       tableIds: [] as number[],
@@ -695,6 +822,7 @@ export class RaumDetailComponent implements OnInit {
     if (this.form.guestName && !this.form.vorname) {
       this.form.vorname = this.form.guestName;
     }
+    this.formDurationMinutes.set(this.form.durationMinutes);
     this.formError.set(null);
     this.formSubmitAttempted.set(false);
     this.editingId.set(null);
@@ -780,6 +908,7 @@ export class RaumDetailComponent implements OnInit {
         return;
       }
       this.reservationsService.update(mode.reservationId, { tableId });
+      this.syncTableToBackend(mode.reservationId, tableId);
       this.reassignMode.set(null);
       return;
     }
@@ -792,6 +921,15 @@ export class RaumDetailComponent implements OnInit {
   }
 
   cancelReassign(): void { this.reassignMode.set(null); }
+
+  /** Schreibt die Tisch-Zuweisung einer lokalen Reservierung ins Backend (fire-and-forget). */
+  private syncTableToBackend(localId: string, tableId: number | null): void {
+    const backendId = this.reservationsService.reservations().find(r => r.id === localId)?.backendId;
+    if (!backendId) return;
+    this.apiReservations.update(backendId, { table_id: tableId }).subscribe({
+      error: () => console.warn('Tisch-Sync fehlgeschlagen für', backendId),
+    });
+  }
 
   /** Klick in den leeren Plan oder Escape → Umplatzierung abbrechen. */
   onCanvasClick(): void {
@@ -845,12 +983,14 @@ export class RaumDetailComponent implements OnInit {
     const tableId = this.splitPickerFor();
     if (!tableId) return;
     this.reservationsService.update(reservationId, { tableId });
+    this.syncTableToBackend(reservationId, tableId);
     this.splitPickerFor.set(null);
   }
 
   removeFromTable(reservationId: string, event: MouseEvent): void {
     event.stopPropagation();
-    this.reservationsService.update(reservationId, { tableId: 0 as any });
+    this.reservationsService.update(reservationId, { tableId: undefined, tableIds: [] });
+    this.syncTableToBackend(reservationId, null);
   }
 
   @HostListener('document:keyup.escape')
@@ -872,6 +1012,7 @@ export class RaumDetailComponent implements OnInit {
       notes: res.notes ?? '',
       isWalkIn: false,
     };
+    this.formDurationMinutes.set(res.durationMinutes);
     this.formError.set(null);
     this.formSubmitAttempted.set(false);
     this.editingId.set(res.id);
@@ -957,7 +1098,6 @@ export class RaumDetailComponent implements OnInit {
     if (!name) { this.formError.set('Bitte gib einen Namen ein.'); return; }
     if (this.form.partySize < 1) { this.formError.set('Personenanzahl muss mindestens 1 sein.'); return; }
     if (!/^\d{2}:\d{2}$/.test(this.form.time)) { this.formError.set('Bitte eine gültige Uhrzeit eingeben.'); return; }
-
     const editId  = this.editingId();
     const editing = this.editingReservation();
     // tableIds → tableId (erster Eintrag) synchronisieren
@@ -1003,52 +1143,117 @@ export class RaumDetailComponent implements OnInit {
 
       this.closeFormDialog();
     } else {
-      // Lokalen Floor-State anlegen.
-      // Walk-Ins starten direkt mit Status "seated" (Gast sitzt schon),
-      // alle anderen Reservierungen mit dem Default ("upcoming").
-      const isWalkIn = this.form.isWalkIn;
-      const local = this.reservationsService.add({
-        roomId:          room.id,
-        guestName:       name,
-        partySize:       this.form.partySize,
-        date:            this.formDate(),
-        time:            this.form.time,
-        durationMinutes: this.form.durationMinutes,
-        tableId:         primaryTableId || undefined,
-        tableIds:        this.form.tableIds.length ? this.form.tableIds : undefined,
-        phone:           this.form.phone.trim() || undefined,
-        notes:           this.form.notes.trim() || undefined,
-        status:          isWalkIn ? 'seated'
-                           : (primaryTableId || this.form.tableIds.length) ? 'confirmed'
-                           : 'upcoming',
-      });
+      // Vor dem Anlegen prüfen ob der Slot noch frei ist (frische Backend-Daten).
+      const formDateVal  = this.formDate();
+      const totalTables  = room.tables?.length ?? 0;
+      const slotStartMs  = new Date(`${formDateVal}T${this.form.time}:00`).getTime();
+      const slotEndMs    = slotStartMs + this.form.durationMinutes * 60_000;
 
-      // Im Backend persistieren und Backend-ID zurückschreiben.
-      // Bei Walk-In zusätzlich direkt confirmen, damit der Backend-Status
-      // ebenfalls auf "seated/confirmed" springt.
-      const startsAt = `${this.formDate()}T${this.form.time}:00`;
-      this.apiReservations.create({
-        venue_id:    room.id,
-        guest_name:  name,
-        guest_email: this.form.guestEmail.trim() || undefined,
-        guest_phone: this.form.phone.trim() || undefined,
-        party_size:  this.form.partySize,
-        starts_at:   startsAt,
-        notes:       this.form.notes.trim() || undefined,
-      }).subscribe({
-        next: res => {
-          this.reservationsService.update(local.id, { backendId: res.id });
-          if (isWalkIn) {
-            this.apiReservations.confirm(res.id).subscribe({
-              error: () => console.warn('Walk-In: Backend-Confirm fehlgeschlagen.'),
-            });
+      const doCreate = () => this.doCreateReservation(room, name, primaryTableId, formDateVal);
+
+      // Synchrone Lokalprüfungen — greifen immer, unabhängig vom Netzwerk.
+
+      // 1) Raum-weiter Concurrent-Check über alle lokalen Reservierungen des Datums
+      const localActive = this.reservationsService
+        .forRoomAndDate(room.id, formDateVal)
+        .filter(r => !['cancelled', 'completed'].includes(r.status));
+      const localConcurrent = localActive.filter(r => {
+        const dur = r.durationMinutes > 0 ? r.durationMinutes : this.form.durationMinutes;
+        const s   = new Date(`${formDateVal}T${r.time}:00`).getTime();
+        const e   = s + dur * 60_000;
+        return s < slotEndMs && e > slotStartMs;
+      }).length;
+      if (totalTables > 0 && localConcurrent >= totalTables) {
+        this.formError.set('Diese Uhrzeit ist nicht verfügbar — alle Tische sind zu dieser Zeit belegt.');
+        return;
+      }
+
+      // 2) Konkret gewählter Tisch bereits belegt?
+      if (primaryTableId && this.isTableOccupied(primaryTableId, this.form.time, this.form.durationMinutes)) {
+        this.formError.set('Dieser Tisch ist zu dieser Uhrzeit bereits belegt.');
+        return;
+      }
+
+      if (totalTables === 0) {
+        doCreate();
+        return;
+      }
+
+      this.apiReservations.loadForVenue(room.id, formDateVal).pipe(take(1)).subscribe({
+        next: (freshRes) => {
+          const active = freshRes.filter(r => !['cancelled', 'completed'].includes(r.status));
+
+          // Raum komplett voll?
+          const concurrent = active.filter(r => {
+            const s = new Date(r.starts_at).getTime();
+            const e = new Date(r.ends_at).getTime();
+            return s < slotEndMs && e > slotStartMs;
+          }).length;
+          if (concurrent >= totalTables) {
+            this.formError.set('Diese Uhrzeit ist nicht verfügbar — alle Tische sind zu dieser Zeit belegt.');
+            return;
           }
-        },
-        error: () => console.warn('Reservierung lokal gespeichert, Backend-Sync fehlgeschlagen.'),
-      });
 
-      this.closeFormDialog();
+          // Konkret gewählter Tisch bereits belegt?
+          if (primaryTableId) {
+            const tableOccupied = active.some(r => {
+              if (r.table_number !== primaryTableId) return false;
+              const s = new Date(r.starts_at).getTime();
+              const e = new Date(r.ends_at).getTime();
+              return s < slotEndMs && e > slotStartMs;
+            });
+            if (tableOccupied) {
+              this.formError.set('Dieser Tisch ist zu dieser Uhrzeit bereits belegt.');
+              return;
+            }
+          }
+
+          doCreate();
+        },
+        error: () => doCreate(), // bei Netzwerkfehler trotzdem anlegen
+      });
     }
+  }
+
+  private doCreateReservation(room: SavedRoom, name: string, primaryTableId: number, formDateVal: string) {
+    const isWalkIn = this.form.isWalkIn;
+    const local = this.reservationsService.add({
+      roomId:          room.id,
+      guestName:       name,
+      partySize:       this.form.partySize,
+      date:            formDateVal,
+      time:            this.form.time,
+      durationMinutes: this.form.durationMinutes,
+      tableId:         primaryTableId || undefined,
+      tableIds:        this.form.tableIds.length ? this.form.tableIds : undefined,
+      phone:           this.form.phone.trim() || undefined,
+      notes:           this.form.notes.trim() || undefined,
+      status:          isWalkIn ? 'seated'
+                         : (primaryTableId || this.form.tableIds.length) ? 'confirmed'
+                         : 'upcoming',
+    });
+
+    const startsAt = `${formDateVal}T${this.form.time}:00`;
+    this.apiReservations.create({
+      venue_id:         room.id,
+      guest_name:       name,
+      guest_email:      this.form.guestEmail.trim() || undefined,
+      guest_phone:      this.form.phone.trim() || undefined,
+      party_size:       this.form.partySize,
+      starts_at:        startsAt,
+      notes:            this.form.notes.trim() || undefined,
+      duration_minutes: this.form.durationMinutes,
+      table_id:         primaryTableId || undefined,
+    }).subscribe({
+      next: res => {
+        // backendId setzen, dann initialen Status ans Backend senden
+        this.reservationsService.update(local.id, { backendId: res.id });
+        this.reservationsService.setStatus(local.id, local.status);
+      },
+      error: () => console.warn('Reservierung lokal gespeichert, Backend-Sync fehlgeschlagen.'),
+    });
+
+    this.closeFormDialog();
   }
 
   // ── Status-Aktionen ───────────────────────────────────────────────────
@@ -1058,37 +1263,30 @@ export class RaumDetailComponent implements OnInit {
       return;
     }
     this.reservationsService.setStatus(res.id, 'seated');
-    if (res.backendId) {
-      this.apiReservations.confirm(res.backendId).subscribe({
-        error: () => console.warn('Check-in Backend-Sync fehlgeschlagen'),
-      });
-    }
+    this.getraenke.startTimer(res.id);
   }
 
   assignTableAndCheckIn(tableId: number) {
     const id = this.tablePickerFor();
     if (!id) return;
-    this.reservationsService.update(id, { tableId, status: 'seated' });
+    this.reservationsService.update(id, { tableId });
+    this.syncTableToBackend(id, tableId);
+    this.reservationsService.setStatus(id, 'seated');
+    this.getraenke.startTimer(id);
     this.tablePickerFor.set(null);
-    const backendId = this.reservationsService.reservations().find(r => r.id === id)?.backendId;
-    if (backendId) {
-      this.apiReservations.confirm(backendId).subscribe({
-        error: () => console.warn('Check-in Backend-Sync fehlgeschlagen'),
-      });
-    }
   }
 
   skipTableAndCheckIn() {
     const id = this.tablePickerFor();
     if (!id) return;
-    const res = this.reservationsService.reservations().find(r => r.id === id);
     this.reservationsService.setStatus(id, 'seated');
+    this.getraenke.startTimer(id);
     this.tablePickerFor.set(null);
-    if (res?.backendId) {
-      this.apiReservations.confirm(res.backendId).subscribe({
-        error: () => console.warn('Check-in Backend-Sync fehlgeschlagen'),
-      });
-    }
+  }
+
+  acknowledgeGetraenke(reservationId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.getraenke.acknowledgeAlert(reservationId);
   }
 
   closeTablePicker() { this.tablePickerFor.set(null); }
@@ -1097,65 +1295,39 @@ export class RaumDetailComponent implements OnInit {
    * Reservierung beenden:
    *   • Cleanup AN  → Status → 'cleanup' (Tisch bleibt visuell belegt,
    *     Heartbeat schaltet ihn nach Ablauf der Cleanup-Zeit auf 'completed').
-   *     Der Backend-Complete-Call wird erst beim Cleanup-Ende ausgelöst.
-   *   • Cleanup AUS → Status sofort auf 'completed' und Backend syncen.
+   *   • Cleanup AUS → Status sofort auf 'completed'.
    */
   markCompleted(res: FloorReservation) {
-    if (this.timing.cleanupEnabled()) {
-      this.reservationsService.setStatus(res.id, 'cleanup');
-      return;
-    }
-    this.reservationsService.setStatus(res.id, 'completed');
-    if (res.backendId) {
-      this.apiReservations.complete(res.backendId).subscribe({
-        error: () => console.warn('Complete Backend-Sync fehlgeschlagen'),
-      });
-    }
+    this.getraenke.cancelTimer(res.id);
+    this.reservationsService.setStatus(
+      res.id,
+      this.timing.cleanupEnabled() ? 'cleanup' : 'completed',
+    );
   }
 
-  /**
-   * Cleanup abbrechen / Tisch sofort als frei markieren — auch dann nutzbar,
-   * wenn der Service noch in der Cleanup-Phase steht aber der Tisch real
-   * schon wieder bereit ist.
-   */
+  /** Cleanup abbrechen / Tisch sofort als frei markieren. */
   markCleanupDone(res: FloorReservation) {
     this.reservationsService.setStatus(res.id, 'completed');
-    if (res.backendId) {
-      this.apiReservations.complete(res.backendId).subscribe({
-        error: () => console.warn('Complete Backend-Sync fehlgeschlagen'),
-      });
-    }
   }
 
   markNoShow(res: FloorReservation) {
+    this.getraenke.cancelTimer(res.id);
     this.reservationsService.setStatus(res.id, 'no-show');
-    if (res.backendId) {
-      this.apiReservations.markNoShow(res.backendId).subscribe({
-        error: () => console.warn('No-Show Backend-Sync fehlgeschlagen'),
-      });
-    }
   }
 
   cancel(res: FloorReservation) {
+    this.getraenke.cancelTimer(res.id);
     this.reservationsService.setStatus(res.id, 'cancelled');
-    if (res.backendId) {
-      this.apiReservations.cancel(res.backendId).subscribe({
-        error: () => console.warn('Cancel Backend-Sync fehlgeschlagen'),
-      });
-    }
   }
 
-  remove(res: FloorReservation) { this.reservationsService.remove(res.id); }
+  remove(res: FloorReservation) {
+    this.getraenke.cancelTimer(res.id);
+    this.reservationsService.remove(res.id);
+  }
 
   reopen(res: FloorReservation) {
-    // Hat die Reservierung bereits einen Tisch → confirmed, sonst Warteliste
     const hasTable = !!(res.tableId || res.tableIds?.length);
     this.reservationsService.setStatus(res.id, hasTable ? 'confirmed' : 'upcoming');
-    if (res.backendId) {
-      this.apiReservations.reopen(res.backendId).subscribe({
-        error: () => console.warn('Reopen Backend-Sync fehlgeschlagen'),
-      });
-    }
   }
 
   /**
@@ -1166,10 +1338,17 @@ export class RaumDetailComponent implements OnInit {
    */
   extendReservation(res: FloorReservation, addMinutes: number = 30) {
     const newDuration = (res.durationMinutes ?? 0) + addMinutes;
-    this.reservationsService.update(res.id, {
-      durationMinutes: newDuration,
-      status: 'seated',
-    });
+
+    // 1. Lokal: neue Dauer setzen + zurück auf "seated" (inkl. Backend-Sync /seat)
+    this.reservationsService.update(res.id, { durationMinutes: newDuration });
+    this.reservationsService.setStatus(res.id, 'seated');
+
+    // 2. Backend: neue Dauer persistieren (ends_at neu berechnen)
+    if (res.backendId) {
+      this.apiReservations.update(res.backendId, { duration_minutes: newDuration }).subscribe({
+        error: () => console.warn('Verlängerung konnte nicht synchronisiert werden'),
+      });
+    }
   }
 
   // ── Rendering-Helfer (aus restaurant-plan übernommen) ─────────────────
@@ -1417,14 +1596,29 @@ export class RaumDetailComponent implements OnInit {
   ): boolean {
     if (!time) return false;
     const newStart = this.toMin(time);
-    const newEnd   = newStart + (durationMinutes || 120);
-    for (const r of (this.reservationsByTable().get(tableId) ?? [])) {
+    for (const r of (this.reservationsByTableForForm().get(tableId) ?? [])) {
       if (excludeId && r.id === excludeId) continue;
       const resStart = this.toMin(r.time);
       const resEnd   = resStart + r.durationMinutes;
-      if (resStart < newEnd && newStart < resEnd) return true;
+      if (newStart >= resStart && newStart < resEnd) return true;
     }
     return false;
+  }
+
+  /** Gibt true zurück wenn mindestens einer der ausgewählten Tische
+   *  zum aktuell gewählten Zeitfenster bereits belegt ist.
+   */
+  isAnySelectedTableOccupied(): boolean {
+    return (this.form.tableIds ?? []).some(id =>
+      this.isTableOccupied(id, this.form.time, this.form.durationMinutes, this.editingId()),
+    );
+  }
+
+  /** ID des ersten ausgewählten, aber belegten Tisches — oder null. */
+  firstOccupiedSelectedTableId(): number | null {
+    return (this.form.tableIds ?? []).find(id =>
+      this.isTableOccupied(id, this.form.time, this.form.durationMinutes, this.editingId()),
+    ) ?? null;
   }
 
   /**
