@@ -3,6 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { TranslateModule } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
 import { PlacedTable, PlacedWall, PlacedDecor, SavedRoom, TableType, DecorType } from '../../services/room.types';
 
@@ -24,7 +25,7 @@ type ActiveDrag =
 @Component({
   selector: 'app-restaurant-plan',
   standalone: true,
-  imports: [MatIconModule, RouterLink, DatePipe],
+  imports: [MatIconModule, RouterLink, DatePipe, TranslateModule],
   templateUrl: './restaurant-plan.component.html',
   styleUrl: './restaurant-plan.component.scss'
 })
@@ -66,18 +67,18 @@ export class RestaurantPlanComponent implements OnInit {
 
   /** Lesbare Beschriftung pro Dekor-Typ. */
   readonly decorLabels: Record<DecorType, string> = {
-    plant:    'Pflanze',
-    pillar:   'Säule',
-    door:     'Tür',
-    window:   'Fenster',
-    stairs:   'Treppe',
-    wc:       'WC',
-    entrance: 'Eingang',
-    bar:      'Bar / Theke',
-    stage:    'Bühne',
-    coatrack: 'Garderobe',
-    sofa:     'Lounge / Sofa',
-    cashier:  'Kasse',
+    plant:    'restaurant_plan.plant',
+    pillar:   'restaurant_plan.pillar',
+    door:     'restaurant_plan.door',
+    window:   'restaurant_plan.window',
+    stairs:   'restaurant_plan.stairs',
+    wc:       'restaurant_plan.wc',
+    entrance: 'restaurant_plan.entrance',
+    bar:      'restaurant_plan.bar',
+    stage:    'restaurant_plan.stage',
+    coatrack: 'restaurant_plan.coatrack',
+    sofa:     'restaurant_plan.sofa',
+    cashier:  'restaurant_plan.cashier',
   };
 
   private readonly roomsService = inject(RoomsService);
@@ -275,13 +276,31 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Selektion ─────────────────────────────────────────────────────────────
 
-  onCanvasMouseDown(event: MouseEvent) {
-    if ((event.target as HTMLElement) === this.canvasRef.nativeElement) {
+  onCanvasMouseDown(event: PointerEvent) {
+    if ((event.target as HTMLElement) !== this.canvasRef.nativeElement) return;
+
+    const selectedTable = this.selectedTableId();
+    if (selectedTable !== null) {
+      // Ausgewählten Tisch zur angeklickten Stelle verschieben (zentriert)
+      const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+      const cx = event.clientX - rect.left;
+      const cy = event.clientY - rect.top;
+      this.placedTables.update(ts => ts.map(t => {
+        if (t.id !== selectedTable) return t;
+        const { w, h } = this.getTableSize(t.type);
+        return { ...t,
+          x: Math.max(0, cx - (w * t.scale) / 2),
+          y: Math.max(0, cy - (h * t.scale) / 2) };
+      }));
+      this.checkMerge(selectedTable);
       this.selectedTableId.set(null);
-      this.selectedWallId.set(null);
-      this.selectedDecorId.set(null);
-      this.editingSeatsId.set(null);
+      return;
     }
+
+    // Kein Tisch ausgewählt → alles deselektieren
+    this.selectedWallId.set(null);
+    this.selectedDecorId.set(null);
+    this.editingSeatsId.set(null);
   }
 
   // ── Tisch-Dimensionen ─────────────────────────────────────────────────────
@@ -364,7 +383,7 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Tisch: Verschieben ────────────────────────────────────────────────────
 
-  onTableMouseDown(event: MouseEvent, id: number) {
+  onTableMouseDown(event: PointerEvent, id: number) {
     event.preventDefault(); event.stopPropagation();
     this.selectedTableId.set(id);
     this.selectedWallId.set(null);
@@ -379,7 +398,7 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Tisch: Drehen & Skalieren ─────────────────────────────────────────────
 
-  onRotateHandleMouseDown(event: MouseEvent, id: number, kind: 'table' | 'wall' | 'decor') {
+  onRotateHandleMouseDown(event: PointerEvent, id: number, kind: 'table' | 'wall' | 'decor') {
     event.preventDefault(); event.stopPropagation();
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     let cx: number, cy: number, startRotation: number;
@@ -405,7 +424,7 @@ export class RestaurantPlanComponent implements OnInit {
       startRotation };
   }
 
-  onResizeHandleMouseDown(event: MouseEvent, id: number, kind: 'table' | 'decor' = 'table') {
+  onResizeHandleMouseDown(event: PointerEvent, id: number, kind: 'table' | 'decor' = 'table') {
     event.preventDefault(); event.stopPropagation();
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     let cx: number, cy: number, startScale: number;
@@ -429,7 +448,7 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Tisch: Entfernen & Sitzplätze ─────────────────────────────────────────
 
-  removeTable(event: MouseEvent, id: number) {
+  removeTable(event: Event, id: number) {
     event.stopPropagation();
     // Ggf. gemergten Partner lösen
     const table = this.placedTables().find(t => t.id === id);
@@ -442,7 +461,7 @@ export class RestaurantPlanComponent implements OnInit {
     this.selectedTableId.set(null);
   }
 
-  openSeatsEdit(event: MouseEvent, id: number) {
+  openSeatsEdit(event: Event, id: number) {
     event.stopPropagation();
     this.editingSeatsId.set(id);
     setTimeout(() => {
@@ -556,7 +575,13 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Auseinander stellen ───────────────────────────────────────────────────
 
-  onSplitClick(event: MouseEvent, tableId: number) {
+  onSplitClick(event: Event, tableId: number) {
+    event.stopPropagation();
+    this.splitDialog.set(tableId);
+  }
+
+  /** Split-Handle direkt am ausgewählten zusammengestellten Tisch */
+  onSplitHandleClick(event: Event, tableId: number) {
     event.stopPropagation();
     this.splitDialog.set(tableId);
   }
@@ -619,7 +644,7 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Wand ──────────────────────────────────────────────────────────────────
 
-  onWallMouseDown(event: MouseEvent, id: number) {
+  onWallMouseDown(event: PointerEvent, id: number) {
     event.preventDefault(); event.stopPropagation();
     this.selectedWallId.set(id);
     this.selectedTableId.set(null);
@@ -631,7 +656,7 @@ export class RestaurantPlanComponent implements OnInit {
       offsetY: event.clientY - rect.top  - wall.y };
   }
 
-  onWallEndMouseDown(event: MouseEvent, id: number, end: 'left' | 'right') {
+  onWallEndMouseDown(event: PointerEvent, id: number, end: 'left' | 'right') {
     event.preventDefault(); event.stopPropagation();
     const rect  = this.canvasRef.nativeElement.getBoundingClientRect();
     const wall  = this.placedWalls().find(w => w.id === id)!;
@@ -643,19 +668,19 @@ export class RestaurantPlanComponent implements OnInit {
     this.activeDrag = { mode: 'wall-len', id, fixedX, fixedY, axisX, axisY };
   }
 
-  removeWall(event: MouseEvent, id: number) {
+  removeWall(event: Event, id: number) {
     event.stopPropagation();
     this.placedWalls.update(ws => ws.filter(w => w.id !== id));
     this.selectedWallId.set(null);
   }
 
-  onRotateWallMouseDown(event: MouseEvent, id: number) {
+  onRotateWallMouseDown(event: PointerEvent, id: number) {
     this.onRotateHandleMouseDown(event, id, 'wall');
   }
 
   // ── Dekor-Element ─────────────────────────────────────────────────────────
 
-  onDecorMouseDown(event: MouseEvent, id: number) {
+  onDecorMouseDown(event: PointerEvent, id: number) {
     event.preventDefault(); event.stopPropagation();
     this.selectedDecorId.set(id);
     this.selectedTableId.set(null);
@@ -668,7 +693,7 @@ export class RestaurantPlanComponent implements OnInit {
       offsetY: event.clientY - rect.top  - decor.y };
   }
 
-  removeDecor(event: MouseEvent, id: number) {
+  removeDecor(event: Event, id: number) {
     event.stopPropagation();
     this.placedDecors.update(ds => ds.filter(d => d.id !== id));
     this.selectedDecorId.set(null);
@@ -676,8 +701,8 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Globale Maus-Events ───────────────────────────────────────────────────
 
-  @HostListener('document:mousemove', ['$event'])
-  onMouseMove(event: MouseEvent) {
+  @HostListener('document:pointermove', ['$event'])
+  onMouseMove(event: PointerEvent) {
     if (!this.activeDrag) return;
     const drag = this.activeDrag;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
@@ -746,7 +771,7 @@ export class RestaurantPlanComponent implements OnInit {
     }
   }
 
-  @HostListener('document:mouseup')
+  @HostListener('document:pointerup')
   onMouseUp() {
     if (this.activeDrag?.mode === 'move-table') {
       this.checkMerge(this.activeDrag.id);

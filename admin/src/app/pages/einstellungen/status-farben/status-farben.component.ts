@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { StatusColorsService } from '../../../services/status-colors.service';
 import { ReservationTimingService } from '../../../services/reservation-timing.service';
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
@@ -17,7 +18,7 @@ import {
 @Component({
   selector: 'app-status-farben',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, RouterLink, StatusIconComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, RouterLink, TranslateModule, StatusIconComponent],
   templateUrl: './status-farben.component.html',
   styleUrl: './status-farben.component.scss'
 })

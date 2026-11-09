@@ -7,16 +7,14 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">schedule</mat-icon>
-        Reservierungsintervall
+        {{ 'widget_einstellungen.interval' | translate }}
       </h2>
       <button class="info-button" [class.active]="info1()" (click)="info1.set(!info1())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info1()">
-      Legt den Zeitraster fest, in dem Gäste im Widget buchen können.
-      15 Minuten = sehr feingranular (z. B. 18:00, 18:15, 18:30 …),
-      60 Minuten = stündliche Slots. Empfohlen für die meisten Restaurants: <strong>30 Minuten</strong>.
+      {{ 'widget_einstellungen.interval_info' | translate }}
     </div>
 
     <div class="view-toggle view-toggle--wrap">
@@ -36,7 +34,7 @@
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved1()" (click)="saveBlock(1)">
-        {{ saved1() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved1() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -49,21 +47,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">menu_book</mat-icon>
-        Speisekarte anzeigen
+        {{ 'widget_einstellungen.speisekarte' | translate }}
       </h2>
       <button class="info-button" [class.active]="info2()" (click)="info2.set(!info2())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info2()">
-      Zeigt im Widget einen Link zur Speisekarte an, damit Gäste sich vor der Buchung
-      informieren können. Du kannst eine direkte URL oder eine PDF-Datei hinterlegen.
+      {{ 'widget_einstellungen.speisekarte_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Speisekarte aktivieren</span>
-        <small>Link zur Speisekarte im Widget einblenden</small>
+        <span>{{ 'widget_einstellungen.speisekarte_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.speisekarte_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.speisekarte">
@@ -79,26 +76,26 @@
       </button>
       <button [class.active]="settings.speisekarteType === 'pdf'"
               (click)="settings.speisekarteType = 'pdf'">
-        <mat-icon>picture_as_pdf</mat-icon> PDF hochladen
+        <mat-icon>picture_as_pdf</mat-icon> {{ 'widget_einstellungen.pdf_upload' | translate }}
       </button>
     </div>
 
     @if (settings.speisekarteType === 'url') {
       <div class="sub-field">
-        <label class="sub-field__label">URL zur Speisekarte</label>
+        <label class="sub-field__label">{{ 'widget_einstellungen.url_label' | translate }}</label>
         <input class="we-input" type="url" placeholder="https://…" [(ngModel)]="settings.speisekarteUrl">
       </div>
     }
 
     @if (settings.speisekarteType === 'pdf') {
       <div class="sub-field">
-        <label class="sub-field__label">PDF-Datei</label>
+        <label class="sub-field__label">{{ 'widget_einstellungen.pdf_file' | translate }}</label>
         @if (!settings.speisekartePdfName) {
           <label class="pdf-drop">
             <input type="file" accept=".pdf" (change)="onPdfSelected($event)" hidden>
             <mat-icon class="pdf-drop__icon">upload_file</mat-icon>
-            <span class="pdf-drop__text">PDF hier ablegen oder <strong>klicken zum Auswählen</strong></span>
-            <span class="pdf-drop__hint">Nur .pdf-Dateien, max. 10 MB</span>
+            <span class="pdf-drop__text">{{ 'widget_einstellungen.pdf_drop' | translate }}</span>
+            <span class="pdf-drop__hint">{{ 'widget_einstellungen.pdf_hint' | translate }}</span>
           </label>
         } @else {
           <div class="pdf-file">
@@ -114,7 +111,7 @@
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved2()" (click)="saveBlock(2)">
-        {{ saved2() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved2() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -127,22 +124,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">inventory_2</mat-icon>
-        Direkte Package-Buchung
+        {{ 'widget_einstellungen.package' | translate }}
       </h2>
       <button class="info-button" [class.active]="info3()" (click)="info3.set(!info3())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info3()">
-      Ermöglicht es Gästen, beim Buchen direkt ein Package (z. B. „Geburtstagsmenü",
-      „Business Lunch") auszuwählen und zu buchen. Packages müssen vorher unter
-      <strong>Einstellungen → Packages</strong> angelegt sein.
+      {{ 'widget_einstellungen.package_info' | translate }}
     </div>
 
     <div class="toggle-row toggle-row--no-border">
       <div class="toggle-row__label">
-        <span>Package-Buchung aktivieren</span>
-        <small>Gäste können beim Buchen ein Package wählen</small>
+        <span>{{ 'widget_einstellungen.package_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.package_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.packageBuchung">
@@ -152,7 +147,7 @@
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved3()" (click)="saveBlock(3)">
-        {{ saved3() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved3() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -165,23 +160,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">pending_actions</mat-icon>
-        Buchung mit ausstehender Bestätigung
+        {{ 'widget_einstellungen.pending' | translate }}
       </h2>
       <button class="info-button" [class.active]="info4()" (click)="info4.set(!info4())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info4()">
-      Ist diese Option aktiv, werden Buchungen nicht sofort bestätigt — der Gast erhält
-      zunächst eine Nachricht, dass seine Anfrage geprüft wird. Das Restaurant muss die
-      Buchung dann manuell bestätigen oder ablehnen. Gut geeignet für stark frequentierte
-      Tage oder besondere Veranstaltungen.
+      {{ 'widget_einstellungen.pending_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Ausstehende Bestätigung nutzen</span>
-        <small>Buchungen müssen manuell bestätigt werden</small>
+        <span>{{ 'widget_einstellungen.pending_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.pending_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.ausstehendBestaetigung">
@@ -192,22 +184,21 @@
     @if (settings.ausstehendBestaetigung) {
       <div class="info-hint info-hint--warn">
         <mat-icon>warning_amber</mat-icon>
-        Alle eingehenden Buchungen landen unter <strong>Ausstehend</strong> und müssen
-        aktiv bestätigt werden — achte darauf, zeitnah zu reagieren.
+        {{ 'widget_einstellungen.pending_warn' | translate }}
       </div>
     }
 
     <!-- ── Geltungsbereich ── -->
     <div class="scope-section">
-      <p class="scope-section__label">Wann gilt die Bestätigung?</p>
+      <p class="scope-section__label">{{ 'widget_einstellungen.scope_label' | translate }}</p>
       <div class="type-toggle">
         <button [class.active]="settings.ausstehendScope === 'immer'"
                 (click)="settings.ausstehendScope = 'immer'">
-          <mat-icon>all_inclusive</mat-icon> Immer
+          <mat-icon>all_inclusive</mat-icon> {{ 'widget_einstellungen.scope_always' | translate }}
         </button>
         <button [class.active]="settings.ausstehendScope === 'tage'"
                 (click)="settings.ausstehendScope = 'tage'">
-          <mat-icon>event</mat-icon> Nur an bestimmten Tagen
+          <mat-icon>event</mat-icon> {{ 'widget_einstellungen.scope_days' | translate }}
         </button>
       </div>
 
@@ -220,7 +211,7 @@
             [(ngModel)]="newDatum"
             (keydown.enter)="addDatum()">
           <button class="datum-add-btn" (click)="addDatum()" [disabled]="!newDatum">
-            <mat-icon>add</mat-icon> Hinzufügen
+            <mat-icon>add</mat-icon> {{ 'widget_einstellungen.add_date' | translate }}
           </button>
         </div>
 
@@ -237,7 +228,7 @@
             }
           </div>
         } @else {
-          <p class="datum-empty">Noch keine Tage ausgewählt.</p>
+          <p class="datum-empty">{{ 'widget_einstellungen.no_dates' | translate }}</p>
         }
       }
     </div>
@@ -246,8 +237,8 @@
     <div class="uhrzeit-section">
       <div class="toggle-row toggle-row--no-border toggle-row--compact">
         <div class="toggle-row__label">
-          <span>Nur in bestimmten Uhrzeiten</span>
-          <small>Mehrere Zeitfenster möglich</small>
+          <span>{{ 'widget_einstellungen.time_only' | translate }}</span>
+          <small>{{ 'widget_einstellungen.time_only_hint' | translate }}</small>
         </div>
         <label class="toggle">
           <input type="checkbox" [(ngModel)]="settings.ausstehendUhrzeitAktiv">
@@ -258,20 +249,20 @@
       <!-- Eingabezeile -->
       <div class="uhrzeit-row">
         <div class="uhrzeit-field">
-          <label class="uhrzeit-field__label">Von</label>
+          <label class="uhrzeit-field__label">{{ 'widget_einstellungen.from' | translate }}</label>
           <input class="we-input uhrzeit-input" type="time" [(ngModel)]="newUhrzeitVon"
                  [disabled]="!settings.ausstehendUhrzeitAktiv">
         </div>
         <mat-icon class="uhrzeit-arrow">arrow_forward</mat-icon>
         <div class="uhrzeit-field">
-          <label class="uhrzeit-field__label">Bis</label>
+          <label class="uhrzeit-field__label">{{ 'widget_einstellungen.to' | translate }}</label>
           <input class="we-input uhrzeit-input" type="time" [(ngModel)]="newUhrzeitBis"
                  [disabled]="!settings.ausstehendUhrzeitAktiv">
         </div>
         <button class="datum-add-btn uhrzeit-add-btn"
                 (click)="addUhrzeit()"
                 [disabled]="!settings.ausstehendUhrzeitAktiv || !newUhrzeitVon || !newUhrzeitBis">
-          <mat-icon>add</mat-icon> Hinzufügen
+          <mat-icon>add</mat-icon> {{ 'widget_einstellungen.add_date' | translate }}
         </button>
       </div>
 
@@ -289,13 +280,13 @@
           }
         </div>
       } @else if (settings.ausstehendUhrzeitAktiv) {
-        <p class="datum-empty">Noch keine Zeitfenster definiert.</p>
+        <p class="datum-empty">{{ 'widget_einstellungen.no_times' | translate }}</p>
       }
     </div>
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved4()" (click)="saveBlock(4)">
-        {{ saved4() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved4() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -308,22 +299,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">meeting_room</mat-icon>
-        Raumauswahl
+        {{ 'widget_einstellungen.rooms' | translate }}
       </h2>
       <button class="info-button" [class.active]="info5()" (click)="info5.set(!info5())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info5()">
-      Wenn aktiviert, können Gäste beim Buchen ihren bevorzugten Bereich oder Raum
-      auswählen (z. B. Terrasse, Innenraum, Bar). Die verfügbaren Räume werden aus
-      deinen angelegten Venues gezogen.
+      {{ 'widget_einstellungen.rooms_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Raumauswahl abfragen</span>
-        <small>Gäste können einen Bereich / Raum wählen</small>
+        <span>{{ 'widget_einstellungen.rooms_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.rooms_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.raumauswahl">
@@ -335,8 +324,8 @@
     @if (venues().length > 0) {
       <div class="raum-section">
         <p class="scope-section__label">
-          Räume im Widget verfügbar
-          <span class="raum-count">{{ aktiveRaumCount }} / {{ venues().length }} aktiv</span>
+          {{ 'widget_einstellungen.rooms_available' | translate }}
+          <span class="raum-count">{{ aktiveRaumCount }} / {{ venues().length }} {{ 'widget_einstellungen.rooms_active' | translate }}</span>
         </p>
 
         <div class="raum-grid">
@@ -361,20 +350,19 @@
         </div>
 
         @if (!settings.raumauswahl) {
-          <p class="datum-empty">Aktiviere die Raumauswahl um Räume zu konfigurieren.</p>
+          <p class="datum-empty">{{ 'widget_einstellungen.rooms_disabled' | translate }}</p>
         }
       </div>
     } @else {
       <div class="info-hint" style="margin-top: 12px">
         <mat-icon>info</mat-icon>
-        Noch keine Räume angelegt. Erstelle zuerst Räume unter
-        <strong>Einstellungen → Räume</strong>.
+        {{ 'widget_einstellungen.rooms_none' | translate }}
       </div>
     }
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved5()" (click)="saveBlock(5)">
-        {{ saved5() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved5() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -388,34 +376,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">table_restaurant</mat-icon>
-        Tisch-Auswahl im Widget
+        {{ 'widget_einstellungen.table_select' | translate }}
       </h2>
       <button class="info-button" [class.active]="info12()" (click)="info12.set(!info12())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info12()">
-      Lege fest, wie der Gast beim Buchen seinen Tisch / seine Tischart wählen kann.
-      Es gibt zwei Modi:
-      <strong>Tischarten-Auswahl</strong> (rund / eckig / lang) und
-      <strong>Restaurantplan</strong> (1:1-Abbild deiner Räume – der Gast klickt
-      direkt einen Wunschtisch an, ideal für Wünsche wie „am Fenster sitzen").
-      <br><br>
-      Wenn die Tisch-Auswahl <em>deaktiviert</em> ist, weist das System dem Gast
-      automatisch einen passenden Tisch zu – dann sieht er gar keinen Auswahl-Schritt.
-      <br><br>
-      Welche Räume online buchbar sind, steuerst du oben unter
-      <strong>„Raumauswahl"</strong> – alles was dort aktiv ist, wird auch im
-      Plan-Modus angezeigt.
+      {{ 'widget_einstellungen.table_select_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Tisch-Auswahl aktivieren</span>
-        <small>
-          Wenn aus, weist das System dem Gast automatisch einen passenden Tisch zu
-          (nach Personenzahl, Verfügbarkeit und Raum-Auswahl) – der Gast sieht keinen Auswahl-Schritt.
-        </small>
+        <span>{{ 'widget_einstellungen.table_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.table_activate_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.tischartenAktiv">
@@ -428,12 +402,8 @@
       <div class="auswahl-modus-section auswahl-modus-section--info">
         <mat-icon>auto_awesome</mat-icon>
         <div>
-          <strong>Automatische Tischzuweisung aktiv</strong>
-          <p>
-            Der Gast sieht keine Tisch-Auswahl. Sobald die Buchung eingeht,
-            wird automatisch ein passender Tisch entsprechend Personenzahl,
-            Verfügbarkeit und Raum-Auswahl zugewiesen.
-          </p>
+          <strong>{{ 'widget_einstellungen.auto_assign' | translate }}</strong>
+          <p>{{ 'widget_einstellungen.auto_assign_text' | translate }}</p>
         </div>
       </div>
     }
@@ -451,8 +421,8 @@
             <mat-icon>{{ m.icon }}</mat-icon>
           </div>
           <div class="auswahl-modus-card__body">
-            <span class="auswahl-modus-card__label">{{ m.label }}</span>
-            <small class="auswahl-modus-card__desc">{{ m.desc }}</small>
+            <span class="auswahl-modus-card__label">{{ m.label | translate }}</span>
+            <small class="auswahl-modus-card__desc">{{ m.desc | translate }}</small>
           </div>
           <mat-icon class="auswahl-modus-card__check">
             {{ settings.tischartenAuswahlModus === m.key ? 'check_circle' : 'radio_button_unchecked' }}
@@ -460,7 +430,6 @@
         </button>
       }
     </div>
-  </div>
 
     @if (settings.tischartenAktiv) {
       <!-- ── Modus „Tischarten-Liste" ──────────────────────────────── -->
@@ -468,16 +437,16 @@
         <div class="auswahl-modus-section">
           <div class="auswahl-modus-section__title">
             <mat-icon>view_list</mat-icon>
-            Welche Tischarten dürfen Gäste wählen?
+            {{ 'widget_einstellungen.table_types_question' | translate }}
           </div>
           <div class="tischart-grid">
-            @for (t of alleTischarten; track t.key) {
+            @for (t of verfuegbareTischarten; track t.key) {
               <button
                 class="tischart-card"
                 [class.tischart-card--active]="isTischartenAktiv(t.key)"
                 (click)="toggleTischart(t.key)">
                 <div class="tischart-card__visual tischart-card__visual--{{ t.shape }}"></div>
-                <span class="tischart-card__label">{{ t.label }}</span>
+                <span class="tischart-card__label">{{ t.label | translate }}</span>
                 <mat-icon class="tischart-card__check">
                   {{ isTischartenAktiv(t.key) ? 'check_circle' : 'radio_button_unchecked' }}
                 </mat-icon>
@@ -492,28 +461,32 @@
         <div class="auswahl-modus-section auswahl-modus-section--plan">
           <div class="auswahl-modus-section__title auswahl-modus-section__title--center">
             <mat-icon>map</mat-icon>
-            Vorschau: So wählt der Gast seinen Tisch im Widget
+            {{ 'widget_einstellungen.table_plan_preview' | translate }}
+          </div>
+
+          <!-- ── Info-Hinweis ───────────────────────────────────────── -->
+          <div class="plan-info-hint">
+            <mat-icon>info_outline</mat-icon>
+            <div>
+              <strong>{{ 'widget_einstellungen.plan_all_devices' | translate }}</strong>
+              <p>{{ 'widget_einstellungen.plan_all_devices_text' | translate }}</p>
+            </div>
           </div>
 
           @if (venues().length === 0) {
             <div class="plan-info-hint">
               <mat-icon>info</mat-icon>
               <div>
-                <strong>Noch keine Räume angelegt.</strong>
-                <p>Lege zuerst unter <em>Einstellungen → Räume</em> einen Raum
-                  mit Tischen an, dann erscheint hier die Vorschau.</p>
+                <strong>{{ 'widget_einstellungen.no_rooms_plan' | translate }}</strong>
+                <p>{{ 'widget_einstellungen.no_rooms_plan_hint' | translate }}</p>
               </div>
             </div>
           } @else if (aktivePlanRaeume().length === 0) {
             <div class="plan-info-hint plan-info-hint--warn">
               <mat-icon>warning_amber</mat-icon>
               <div>
-                <strong>Aktuell ist kein Raum online buchbar.</strong>
-                <p>
-                  Aktiviere mindestens einen Raum oben unter
-                  <strong>„Raumauswahl"</strong>, damit der Gast einen Tisch
-                  im Plan auswählen kann.
-                </p>
+                <strong>{{ 'widget_einstellungen.no_active_rooms' | translate }}</strong>
+                <p>{{ 'widget_einstellungen.no_active_rooms_hint' | translate }}</p>
               </div>
             </div>
           } @else {
@@ -599,26 +572,25 @@
                   @if (pr.tables.length === 0) {
                     <div class="plan-preview__empty">
                       <mat-icon>info</mat-icon>
-                      <span>Dieser Raum enthält noch keine Tische. Lege Tische im Restaurantplan an.</span>
+                      <span>{{ 'widget_einstellungen.no_tables' | translate }}</span>
                     </div>
                   }
                 </div>
 
                 <div class="plan-preview__footer">
                   @if (previewSelectedTableId(); as tid) {
-                    <span><mat-icon>chair</mat-icon>Tisch <strong>#{{ tid }}</strong> ausgewählt</span>
+                    <span><mat-icon>chair</mat-icon>{{ 'widget_einstellungen.tisch_table' | translate }} <strong>#{{ tid }}</strong> {{ 'widget_einstellungen.table_selected' | translate }}</span>
                   } @else {
-                    <span><mat-icon>touch_app</mat-icon>Klicke einen Tisch an, um die Auswahl zu testen.</span>
+                    <span><mat-icon>touch_app</mat-icon>{{ 'widget_einstellungen.click_table' | translate }}</span>
                   }
                 </div>
 
                 <p class="plan-source-hint">
                   <mat-icon>info</mat-icon>
-                  Die hier sichtbaren Räume entsprechen denen, die du oben im
-                  Block <strong>„Raumauswahl"</strong> aktiviert hast.
+                  {{ 'widget_einstellungen.plan_source_hint' | translate }}
                 </p>
               } @else {
-                <p class="datum-empty">Wähle mindestens einen Raum aus, um die Vorschau zu sehen.</p>
+                <p class="datum-empty">{{ 'widget_einstellungen.select_room' | translate }}</p>
               }
             </div>
           }
@@ -628,7 +600,7 @@
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved12()" (click)="saveBlock(12)">
-        {{ saved12() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved12() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -641,22 +613,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">announcement</mat-icon>
-        Hinweistext am Anfang
+        {{ 'widget_einstellungen.notice_text' | translate }}
       </h2>
       <button class="info-button" [class.active]="info6()" (click)="info6.set(!info6())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info6()">
-      Zeigt ganz am Anfang des Widgets einen frei definierbaren Hinweistext an —
-      z. B. Öffnungszeiten-Ausnahmen, Hinweise zu Feiertagen oder besondere
-      Buchungsbedingungen. Der Text wird prominent vor dem Buchungsformular angezeigt.
+      {{ 'widget_einstellungen.notice_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Hinweistext aktivieren</span>
-        <small>Einen Info-Text vor dem Buchungsformular einblenden</small>
+        <span>{{ 'widget_einstellungen.notice_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.notice_activate_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.hinweistext">
@@ -665,30 +635,30 @@
     </div>
 
     <div class="sub-field">
-      <label class="sub-field__label">Überschrift</label>
+      <label class="sub-field__label">{{ 'widget_einstellungen.heading_label' | translate }}</label>
       <input
         class="we-input"
         type="text"
-        placeholder="z. B. Wichtiger Hinweis"
+        [placeholder]="'widget_einstellungen.notice_heading_ph' | translate"
         [(ngModel)]="settings.hinweistextUeberschrift">
     </div>
 
     <div class="sub-field">
-      <label class="sub-field__label">Text</label>
+      <label class="sub-field__label">{{ 'widget_einstellungen.text_label' | translate }}</label>
       <textarea
         class="we-textarea"
         rows="3"
-        placeholder="z. B. Bitte beachte unsere geänderten Öffnungszeiten an Feiertagen …"
+        [placeholder]="'widget_einstellungen.notice_text_ph' | translate"
         [(ngModel)]="settings.hinweistextInhalt">
       </textarea>
     </div>
 
     <div class="sub-field">
-      <label class="sub-field__label">Footer-Text</label>
+      <label class="sub-field__label">{{ 'widget_einstellungen.footer_label' | translate }}</label>
       <input
         class="we-input"
         type="text"
-        placeholder="z. B. Bei Fragen erreichst du uns unter info@restaurant.de"
+        [placeholder]="'widget_einstellungen.notice_footer_ph' | translate"
         [(ngModel)]="settings.hinweistextFooter">
     </div>
 
@@ -711,7 +681,7 @@
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved6()" (click)="saveBlock(6)">
-        {{ saved6() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved6() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -724,16 +694,14 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">checklist</mat-icon>
-        Pflichtfelder
+        {{ 'widget_einstellungen.required_fields' | translate }}
       </h2>
       <button class="info-button" [class.active]="info7()" (click)="info7.set(!info7())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info7()">
-      Lege fest, welche Felder Gäste beim Buchen zwingend ausfüllen müssen.
-      Felder die aktiviert sind, sind im Widget als Pflichtfeld markiert —
-      ohne Ausfüllen kann die Buchung nicht abgeschickt werden.
+      {{ 'widget_einstellungen.required_info' | translate }}
     </div>
 
     <div class="pflicht-grid">
@@ -743,7 +711,7 @@
           [class.pflicht-chip--active]="isPflichtfeld(feld.key)"
           (click)="togglePflichtfeld(feld.key)">
           <mat-icon>{{ feld.icon }}</mat-icon>
-          <span>{{ feld.label }}</span>
+          <span>{{ feld.label | translate }}</span>
           <mat-icon class="pflicht-chip__check">
             {{ isPflichtfeld(feld.key) ? 'check_circle' : 'radio_button_unchecked' }}
           </mat-icon>
@@ -754,13 +722,13 @@
     @if (settings.pflichtfelder.length > 0) {
       <div class="info-hint">
         <mat-icon>info</mat-icon>
-        {{ settings.pflichtfelder.length }} Pflichtfeld{{ settings.pflichtfelder.length !== 1 ? 'er' : '' }} aktiv
+        {{ settings.pflichtfelder.length }} {{ settings.pflichtfelder.length !== 1 ? ('widget_einstellungen.required_active_pl' | translate) : ('widget_einstellungen.required_active' | translate) }}
       </div>
     }
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved7()" (click)="saveBlock(7)">
-        {{ saved7() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved7() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -773,28 +741,26 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">groups</mat-icon>
-        Maximale Personenanzahl
+        {{ 'widget_einstellungen.max_persons' | translate }}
       </h2>
       <button class="info-button" [class.active]="info8()" (click)="info8.set(!info8())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info8()">
-      Legt fest, bis zu welcher Personenzahl Gäste direkt online buchen können.
-      Wählt ein Gast mehr Personen, wird statt des Buchungsformulars ein Hinweis
-      mit deinen Kontaktdaten (Telefon &amp; E-Mail) eingeblendet.
+      {{ 'widget_einstellungen.max_persons_info' | translate }}
     </div>
 
     <div class="toggle-row toggle-row--no-border">
       <div class="toggle-row__label">
-        <span>Maximale Personenanzahl</span>
-        <small>Ab dieser Zahl wird kein Formular mehr angezeigt</small>
+        <span>{{ 'widget_einstellungen.max_persons_label' | translate }}</span>
+        <small>{{ 'widget_einstellungen.max_persons_hint' | translate }}</small>
       </div>
       <div class="we-number">
         <button (click)="settings.maxPersonen = settings.maxPersonen > 1 ? settings.maxPersonen - 1 : 1">
           <mat-icon>remove</mat-icon>
         </button>
-        <span>{{ settings.maxPersonen }} Pers.</span>
+        <span>{{ settings.maxPersonen }} {{ 'common.persons' | translate }}</span>
         <button (click)="settings.maxPersonen = settings.maxPersonen + 1">
           <mat-icon>add</mat-icon>
         </button>
@@ -802,11 +768,11 @@
     </div>
 
     <div class="sub-field">
-      <label class="sub-field__label">Hinweistext für Gruppen</label>
+      <label class="sub-field__label">{{ 'widget_einstellungen.group_notice' | translate }}</label>
       <textarea
         class="we-textarea"
         rows="2"
-        placeholder="z. B. Für Gruppen ab dieser Personenzahl bitten wir um Kontaktaufnahme."
+        [placeholder]="'widget_einstellungen.group_notice_ph' | translate"
         [(ngModel)]="settings.maxPersonenText">
       </textarea>
     </div>
@@ -814,17 +780,17 @@
     <div class="contact-row">
       <div class="contact-field">
         <mat-icon>call</mat-icon>
-        <input class="we-input" type="tel" placeholder="Telefonnummer" [(ngModel)]="settings.maxPersonenPhone">
+        <input class="we-input" type="tel" [placeholder]="'widget_einstellungen.phone_placeholder' | translate" [(ngModel)]="settings.maxPersonenPhone">
       </div>
       <div class="contact-field">
         <mat-icon>mail</mat-icon>
-        <input class="we-input" type="email" placeholder="E-Mail-Adresse" [(ngModel)]="settings.maxPersonenEmail">
+        <input class="we-input" type="email" [placeholder]="'widget_einstellungen.email_placeholder' | translate" [(ngModel)]="settings.maxPersonenEmail">
       </div>
     </div>
 
     <!-- Vorschau -->
     <div class="maxpers-preview">
-      <p class="maxpers-preview__hint">Vorschau im Widget</p>
+      <p class="maxpers-preview__hint">{{ 'widget_einstellungen.preview_widget' | translate }}</p>
       <div class="maxpers-preview__card">
         <mat-icon class="maxpers-preview__icon">groups</mat-icon>
         <p class="maxpers-preview__text">{{ settings.maxPersonenText }}</p>
@@ -843,7 +809,7 @@
           }
           @if (!settings.maxPersonenPhone && !settings.maxPersonenEmail) {
             <span class="maxpers-preview__placeholder">
-              <mat-icon>call</mat-icon> Telefon &nbsp;·&nbsp; <mat-icon>mail</mat-icon> E-Mail
+              <mat-icon>call</mat-icon> {{ 'widget_einstellungen.phone' | translate }} &nbsp;·&nbsp; <mat-icon>mail</mat-icon> {{ 'widget_einstellungen.email' | translate }}
             </span>
           }
         </div>
@@ -852,7 +818,7 @@
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved8()" (click)="saveBlock(8)">
-        {{ saved8() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved8() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -865,21 +831,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">child_care</mat-icon>
-        Kinderstühle
+        {{ 'widget_einstellungen.high_chairs' | translate }}
       </h2>
       <button class="info-button" [class.active]="info9()" (click)="info9.set(!info9())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info9()">
-      Lege fest, wie viele Kinderstühle das Restaurant insgesamt hat und wie viele
-      davon Gäste online reservieren können.
+      {{ 'widget_einstellungen.high_chairs_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Kinderstühle aktivieren</span>
-        <small>Kinderstühle im Widget zur Reservierung anbieten</small>
+        <span>{{ 'widget_einstellungen.high_chairs_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.high_chairs_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.kinderStuehleAktiv">
@@ -889,7 +854,7 @@
 
     <div class="stepper-grid" [class.stepper-grid--disabled]="!settings.kinderStuehleAktiv">
       <div class="stepper-card">
-        <span class="stepper-card__label">Vorhanden im Restaurant</span>
+        <span class="stepper-card__label">{{ 'widget_einstellungen.total_available' | translate }}</span>
         <div class="we-number">
           <button (click)="stepDown('kinderStuehleGesamt', 1, 0)" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>remove</mat-icon></button>
           <span>{{ settings.kinderStuehleGesamt }}</span>
@@ -897,7 +862,7 @@
         </div>
       </div>
       <div class="stepper-card">
-        <span class="stepper-card__label">Davon online buchbar</span>
+        <span class="stepper-card__label">{{ 'widget_einstellungen.online_bookable' | translate }}</span>
         <div class="we-number">
           <button (click)="stepDown('kinderStuehleOnline', 1, 0)" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>remove</mat-icon></button>
           <span>{{ settings.kinderStuehleOnline }}</span>
@@ -908,7 +873,7 @@
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved9()" (click)="saveBlock(9)">
-        {{ saved9() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved9() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -921,15 +886,14 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">date_range</mat-icon>
-        Vorausbuchungszeitraum
+        {{ 'widget_einstellungen.advance' | translate }}
       </h2>
       <button class="info-button" [class.active]="info10()" (click)="info10.set(!info10())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info10()">
-      Wie weit im Voraus dürfen Gäste online reservieren? Buchungsanfragen
-      außerhalb dieses Zeitraums werden im Widget nicht angeboten.
+      {{ 'widget_einstellungen.advance_info' | translate }}
     </div>
 
     <div class="voraus-row">
@@ -940,15 +904,15 @@
       </div>
       <div class="type-toggle type-toggle--small">
         <button [class.active]="settings.vorausbuchungEinheit === 'tage'"
-                (click)="settings.vorausbuchungEinheit = 'tage'">Tage</button>
+                (click)="settings.vorausbuchungEinheit = 'tage'">{{ 'widget_einstellungen.days' | translate }}</button>
         <button [class.active]="settings.vorausbuchungEinheit === 'monate'"
-                (click)="settings.vorausbuchungEinheit = 'monate'">Monate</button>
+                (click)="settings.vorausbuchungEinheit = 'monate'">{{ 'widget_einstellungen.months' | translate }}</button>
       </div>
     </div>
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved10()" (click)="saveBlock(10)">
-        {{ saved10() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved10() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -961,15 +925,14 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">hourglass_top</mat-icon>
-        Mindestvorlaufzeit
+        {{ 'widget_einstellungen.min_lead' | translate }}
       </h2>
       <button class="info-button" [class.active]="info11()" (click)="info11.set(!info11())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info11()">
-      Wie viele Minuten muss eine Buchung mindestens vor dem Reservierungszeitpunkt
-      eingehen? Verhindert Buchungen auf letzten Drücker.
+      {{ 'widget_einstellungen.min_lead_info' | translate }}
     </div>
 
     <div class="vorlauf-row">
@@ -978,12 +941,12 @@
         <span class="vorlauf-value">{{ formatMinuten(settings.mindestvorlaufMinuten) }}</span>
         <button (click)="stepUp('mindestvorlaufMinuten', 15)"><mat-icon>add</mat-icon></button>
       </div>
-      <span class="vorlauf-hint">vor Reservierungsbeginn</span>
+      <span class="vorlauf-hint">{{ 'widget_einstellungen.before_start' | translate }}</span>
     </div>
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved11()" (click)="saveBlock(11)">
-        {{ saved11() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved11() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -996,22 +959,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">edit_calendar</mat-icon>
-        Online Änderungen
+        {{ 'widget_einstellungen.online_changes' | translate }}
       </h2>
       <button class="info-button" [class.active]="info13()" (click)="info13.set(!info13())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info13()">
-      Erlaubt Gästen, ihre Buchung nachträglich online zu ändern (Datum, Uhrzeit,
-      Personenzahl). Lege fest, wie viele Minuten vor der Buchung eine Änderung
-      noch möglich ist.
+      {{ 'widget_einstellungen.online_changes_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Online Änderungen zulassen</span>
-        <small>Gäste können ihre Buchung selbst anpassen</small>
+        <span>{{ 'widget_einstellungen.allow_changes' | translate }}</span>
+        <small>{{ 'widget_einstellungen.allow_changes_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.onlineAenderungen">
@@ -1031,12 +992,12 @@
           <mat-icon>add</mat-icon>
         </button>
       </div>
-      <span class="vorlauf-hint">Mindestvorlaufzeit für Änderungen</span>
+      <span class="vorlauf-hint">{{ 'widget_einstellungen.min_lead_changes' | translate }}</span>
     </div>
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved13()" (click)="saveBlock(13)">
-        {{ saved13() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved13() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -1049,21 +1010,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">event_busy</mat-icon>
-        Online Stornierung
+        {{ 'widget_einstellungen.online_cancel' | translate }}
       </h2>
       <button class="info-button" [class.active]="info14()" (click)="info14.set(!info14())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info14()">
-      Erlaubt Gästen, ihre Buchung online zu stornieren. Lege fest, wie viele
-      Minuten vor der Buchung eine Stornierung noch möglich ist.
+      {{ 'widget_einstellungen.online_cancel_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Online Stornierung zulassen</span>
-        <small>Gäste können ihre Buchung selbst absagen</small>
+        <span>{{ 'widget_einstellungen.allow_cancel' | translate }}</span>
+        <small>{{ 'widget_einstellungen.allow_cancel_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.onlineStornierung">
@@ -1083,12 +1043,12 @@
           <mat-icon>add</mat-icon>
         </button>
       </div>
-      <span class="vorlauf-hint">Mindestvorlaufzeit für Stornierung</span>
+      <span class="vorlauf-hint">{{ 'widget_einstellungen.min_lead_cancel' | translate }}</span>
     </div>
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved14()" (click)="saveBlock(14)">
-        {{ saved14() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved14() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -1101,23 +1061,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">format_list_numbered</mat-icon>
-        Warteliste
+        {{ 'widget_einstellungen.waitlist' | translate }}
       </h2>
       <button class="info-button" [class.active]="info15()" (click)="info15.set(!info15())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info15()">
-      Wenn ein Zeitslot ausgebucht ist, können sich Gäste auf die Warteliste setzen lassen.
-      Das Restaurant wird benachrichtigt und kann bei einer Absage selbst entscheiden, wen es
-      von der Warteliste kontaktiert. Lege fest, wie viele Plätze pro Slot möglich sind,
-      über welchen Kanal der Gast informiert werden soll und wie lange er Zeit hat zu antworten.
+      {{ 'widget_einstellungen.waitlist_info' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Warteliste aktivieren</span>
-        <small>Ausgebuchte Slots zeigen eine „Auf Warteliste" Option im Widget</small>
+        <span>{{ 'widget_einstellungen.waitlist_activate' | translate }}</span>
+        <small>{{ 'widget_einstellungen.waitlist_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.wartelisteAktiv">
@@ -1128,7 +1085,7 @@
     <div [class.stepper-grid--disabled]="!settings.wartelisteAktiv">
       <div class="stepper-grid">
         <div class="stepper-card">
-          <span class="stepper-card__label">Max. Plätze pro Slot</span>
+          <span class="stepper-card__label">{{ 'widget_einstellungen.max_spots' | translate }}</span>
           <div class="we-number">
             <button (click)="stepDown('wartelisteMaxPlaetze', 1, 1)" [disabled]="!settings.wartelisteAktiv">
               <mat-icon>remove</mat-icon>
@@ -1140,52 +1097,53 @@
               <mat-icon>add</mat-icon>
             </button>
           </div>
-          <span class="stepper-card__sub">Personen auf der Warteliste</span>
+          <span class="stepper-card__sub">{{ 'widget_einstellungen.persons_waiting' | translate }}</span>
         </div>
 
         <div class="stepper-card">
-          <span class="stepper-card__label">Antwortzeit bei Freiplatz</span>
+          <span class="stepper-card__label">{{ 'widget_einstellungen.reply_time' | translate }}</span>
           <div class="we-number">
             <button (click)="stepDown('wartelisteAntwortStunden', 1, 1)" [disabled]="!settings.wartelisteAktiv">
               <mat-icon>remove</mat-icon>
             </button>
             <span class="stepper-card__value" [class.muted]="!settings.wartelisteAktiv">
-              {{ settings.wartelisteAntwortStunden }} Std
+              {{ settings.wartelisteAntwortStunden }} {{ 'widget_einstellungen.hours' | translate }}
             </span>
             <button (click)="stepUp('wartelisteAntwortStunden', 1)" [disabled]="!settings.wartelisteAktiv">
               <mat-icon>add</mat-icon>
             </button>
           </div>
-          <span class="stepper-card__sub">Zeit zum Reagieren auf Kontakt</span>
+          <span class="stepper-card__sub">{{ 'widget_einstellungen.reply_time_hint' | translate }}</span>
         </div>
       </div>
 
       <p class="field-label" [class.muted]="!settings.wartelisteAktiv">
-        Gast wird kontaktiert via
+        {{ 'widget_einstellungen.contact_via' | translate }}
       </p>
       <div class="view-toggle">
         <button [class.active]="settings.wartelisteKanal === 'email'"
                 [disabled]="!settings.wartelisteAktiv"
                 (click)="settings.wartelisteKanal = 'email'">
-          <mat-icon>mail</mat-icon> E-Mail
+          <mat-icon>mail</mat-icon> {{ 'widget_einstellungen.email' | translate }}
         </button>
         <button [class.active]="settings.wartelisteKanal === 'telefon'"
                 [disabled]="!settings.wartelisteAktiv"
                 (click)="settings.wartelisteKanal = 'telefon'">
-          <mat-icon>call</mat-icon> Telefon
+          <mat-icon>call</mat-icon> {{ 'widget_einstellungen.phone' | translate }}
         </button>
         <button [class.active]="settings.wartelisteKanal === 'beide'"
                 [disabled]="!settings.wartelisteAktiv"
                 (click)="settings.wartelisteKanal = 'beide'">
-          <mat-icon>contact_phone</mat-icon> Beides
+          <mat-icon>contact_phone</mat-icon> {{ 'widget_einstellungen.both' | translate }}
         </button>
       </div>
     </div>
 
     <div class="actions">
       <button class="save-button" [class.saved]="saved15()" (click)="saveBlock(15)">
-        {{ saved15() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved15() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
 
+</div>

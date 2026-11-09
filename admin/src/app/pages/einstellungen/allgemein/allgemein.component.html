@@ -2,7 +2,7 @@
 <div class="settings-block">
 
   <div class="section-header">
-    <h2 class="section-title">Gebuchte Module</h2>
+    <h2 class="section-title">{{ 'allgemein.booked_modules' | translate }}</h2>
   </div>
 
   <div class="module-grid">
@@ -27,7 +27,7 @@
 
       <div class="module-status"
            [class.active]="module.active">
-        {{ module.active ? 'Aktiv' : 'Inaktiv' }}
+        {{ module.active ? ('common.active' | translate) : ('common.inactive' | translate) }}
       </div>
 
     </div>
@@ -39,7 +39,7 @@
 <div class="settings-block">
 
   <div class="section-header">
-    <h2 class="section-title">Darstellung des Systems</h2>
+    <h2 class="section-title">{{ 'allgemein.display' | translate }}</h2>
 
     <div class="header-actions">
       <button class="info-button"
@@ -51,28 +51,25 @@
   </div>
 
   <div class="info-box" [class.open]="themeInfo()">
-    Wähle, ob das System im hellen, gedimmten oder dunklen Modus angezeigt wird.
-    „Gedimmt" ist ein warmer Mittelweg zwischen Hell und Dunkel — schont die Augen
-    und passt zur Abendstimmung. „System" übernimmt die Einstellung deines
-    Betriebssystems.
+    {{ 'allgemein.display_hint' | translate }}
   </div>
 
   <!-- 🔥 TOGGLE -->
   <div class="view-toggle">
     <button [class.active]="theme() === 'light'" (click)="setTheme('light')">
-      ☀️ Hell
+      ☀️ {{ 'allgemein.light' | translate }}
     </button>
 
     <button [class.active]="theme() === 'dim'" (click)="setTheme('dim')">
-      🌇 Gedimmt
+      🌇 {{ 'allgemein.dim' | translate }}
     </button>
 
     <button [class.active]="theme() === 'dark'" (click)="setTheme('dark')">
-      🌙 Dunkel
+      🌙 {{ 'allgemein.dark' | translate }}
     </button>
 
     <button [class.active]="theme() === 'system'" (click)="setTheme('system')">
-      💻 System
+      💻 {{ 'allgemein.system' | translate }}
     </button>
   </div>
 
@@ -80,8 +77,8 @@
     <div class="theme-effective">
       <mat-icon>info_outline</mat-icon>
       <span>
-        Aktuell folgt dein System:
-        <strong>{{ effective() === 'dark' ? 'Dunkel 🌙' : 'Hell ☀️' }}</strong>
+        {{ 'allgemein.system_follows' | translate }}
+        <strong>{{ effective() === 'dark' ? ('allgemein.dark' | translate) + ' 🌙' : ('allgemein.light' | translate) + ' ☀️' }}</strong>
       </span>
     </div>
   }
@@ -90,7 +87,7 @@
     <button class="save-button"
             [class.saved]="themeSaved()"
             (click)="saveTheme()">
-      {{ themeSaved() ? 'Gespeichert ✓' : 'Speichern' }}
+      {{ themeSaved() ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>
   </div>
 

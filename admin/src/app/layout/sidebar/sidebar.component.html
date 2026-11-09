@@ -16,34 +16,34 @@
 
   <nav class="sidebar__nav">
     <a routerLink="/raum" routerLinkActive="active" class="nav-item nav-item--featured"
-       [title]="collapsed() ? 'Raum Übersicht' : ''" (click)="layout.closeMobile()">
+       [title]="collapsed() ? ('nav.rooms' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>meeting_room</mat-icon>
-      @if (!collapsed()) { <span>Raum Übersicht</span> }
+      @if (!collapsed()) { <span>{{ 'nav.rooms' | translate }}</span> }
     </a>
     <a routerLink="/dashboard" routerLinkActive="active" class="nav-item"
-       [title]="collapsed() ? 'Dashboard' : ''" (click)="layout.closeMobile()">
+       [title]="collapsed() ? ('nav.dashboard' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>dashboard</mat-icon>
-      @if (!collapsed()) { <span>Dashboard</span> }
+      @if (!collapsed()) { <span>{{ 'nav.dashboard' | translate }}</span> }
     </a>
     <a routerLink="/restaurant-plan" routerLinkActive="active" class="nav-item"
-       [title]="collapsed() ? 'Restaurantplan' : ''" (click)="layout.closeMobile()">
+       [title]="collapsed() ? ('nav.floor_plan' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>table_restaurant</mat-icon>
-      @if (!collapsed()) { <span>Restaurantplan</span> }
+      @if (!collapsed()) { <span>{{ 'nav.floor_plan' | translate }}</span> }
     </a>
     <a routerLink="/statistiken" routerLinkActive="active" class="nav-item"
-       [title]="collapsed() ? 'Statistiken' : ''" (click)="layout.closeMobile()">
+       [title]="collapsed() ? ('nav.statistics' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>bar_chart</mat-icon>
-      @if (!collapsed()) { <span>Statistiken</span> }
+      @if (!collapsed()) { <span>{{ 'nav.statistics' | translate }}</span> }
     </a>
     <a routerLink="/einstellungen/notizen" routerLinkActive="active" class="nav-item"
-       [title]="collapsed() ? 'Notizen' : ''" (click)="layout.closeMobile()">
+       [title]="collapsed() ? ('nav.notes' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>sticky_note_2</mat-icon>
-      @if (!collapsed()) { <span>Notizen</span> }
+      @if (!collapsed()) { <span>{{ 'nav.notes' | translate }}</span> }
     </a>
     <a routerLink="/einstellungen" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item"
-       [title]="collapsed() ? 'Einstellungen' : ''" (click)="layout.closeMobile()">
+       [title]="collapsed() ? ('nav.settings' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>settings</mat-icon>
-      @if (!collapsed()) { <span>Einstellungen</span> }
+      @if (!collapsed()) { <span>{{ 'nav.settings' | translate }}</span> }
     </a>
   </nav>
 
@@ -54,7 +54,7 @@
       [class.sidebar__notiz-btn--unread]="notizenState.hasUnread() && !notizenState.floatDismissed()"
       [class.sidebar__notiz-btn--collapsed]="collapsed()"
       (click)="openNotizenPanel()"
-      [title]="collapsed() ? 'Notizen heute' : ''">
+      [title]="collapsed() ? ('sidebar.notes_today' | translate) : ''">
 
       <svg class="sidebar__notiz-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <rect x="3" y="2" width="14" height="17" rx="2" fill="currentColor" opacity=".18"/>
@@ -66,7 +66,7 @@
       </svg>
 
       @if (!collapsed()) {
-        <span class="sidebar__notiz-label">Notizen heute</span>
+        <span class="sidebar__notiz-label">{{ 'sidebar.notes_today' | translate }}</span>
         <span class="sidebar__notiz-count">{{ notizenState.totalToday() }}</span>
       } @else {
         <span class="sidebar__notiz-count sidebar__notiz-count--abs">{{ notizenState.totalToday() }}</span>
@@ -89,8 +89,6 @@
         </button>
       </div>
     } @else {
-      <!-- Eingeklappte Sidebar: Storefront-Icon selbst ist Menü-Trigger,
-           damit Restaurant-Wechsel und Abmelden weiterhin erreichbar sind. -->
       <button class="sidebar__restaurant sidebar__restaurant--trigger"
               [matMenuTriggerFor]="restaurantMenu"
               title="Restaurant wechseln / Abmelden">
@@ -98,12 +96,6 @@
       </button>
     }
 
-    <!--
-      Restaurant-Menü: Auswahl der Restaurants oben, dann Trenner, dann
-      "Abmelden" ganz unten (mit der Email als kleiner Subtext-Zeile).
-      Logout sitzt bewusst hier in einem Menü hinter zwei Klicks, damit
-      ein versehentlicher Logout in der Sidebar nicht mehr passieren kann.
-    -->
     <mat-menu #restaurantMenu="matMenu" class="sidebar-menu" panelClass="sidebar-menu-panel">
       @for (r of restaurants; track r) {
         <button mat-menu-item (click)="selectRestaurant(r)">
@@ -121,7 +113,7 @@
       <button mat-menu-item class="sidebar-menu__logout" (click)="logout()">
         <mat-icon>logout</mat-icon>
         <span class="sidebar-menu__logout-label">
-          <span class="sidebar-menu__logout-text">Abmelden</span>
+          <span class="sidebar-menu__logout-text">{{ 'sidebar.logout' | translate }}</span>
           @if (currentUserEmail()) {
             <span class="sidebar-menu__logout-email">{{ currentUserEmail() }}</span>
           }

@@ -2,10 +2,10 @@
 
   <div class="restaurant-plan">
     <div class="page-header">
-      <h1 class="page-title">Restaurantplan</h1>
+      <h1 class="page-title">{{ 'restaurant_plan.title' | translate }}</h1>
       @if (savedRooms().length > 0) {
         <button class="btn-primary btn-primary--small" (click)="openEditor()">
-          <mat-icon>add</mat-icon> Neuen Raum erstellen
+          <mat-icon>add</mat-icon> {{ 'restaurant_plan.new_room' | translate }}
         </button>
       }
     </div>
@@ -13,9 +13,9 @@
     @if (savedRooms().length === 0) {
       <div class="empty-state">
         <div class="empty-state__icon"><mat-icon>table_restaurant</mat-icon></div>
-        <h2 class="empty-state__title">Noch kein Restaurantplan vorhanden</h2>
-        <p class="empty-state__description">Erstelle deinen ersten Raum und leg los mit der Planung deines Restaurants.</p>
-        <button class="btn-primary" (click)="openEditor()"><mat-icon>add</mat-icon> Raum erstellen</button>
+        <h2 class="empty-state__title">{{ 'restaurant_plan.no_plan' | translate }}</h2>
+        <p class="empty-state__description">{{ 'restaurant_plan.no_plan_hint' | translate }}</p>
+        <button class="btn-primary" (click)="openEditor()"><mat-icon>add</mat-icon> {{ 'restaurant_plan.create_room' | translate }}</button>
       </div>
     } @else {
       <div class="rooms-grid">
@@ -25,10 +25,10 @@
             <div class="room-card__body">
               <h3 class="room-card__name">{{ room.name }}</h3>
               <div class="room-card__meta">
-                <span><mat-icon>table_restaurant</mat-icon>{{ room.tables.length }} Tische</span>
-                <span><mat-icon>person</mat-icon>{{ totalSeats(room) }} Plätze</span>
+                <span><mat-icon>table_restaurant</mat-icon>{{ room.tables.length }} {{ 'restaurant_plan.tables' | translate }}</span>
+                <span><mat-icon>person</mat-icon>{{ totalSeats(room) }} {{ 'raum.seats' | translate }}</span>
               </div>
-              <div class="room-card__date">Zuletzt geändert {{ room.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</div>
+              <div class="room-card__date">{{ 'restaurant_plan.last_modified' | translate }} {{ room.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</div>
             </div>
             <div class="room-card__action"><mat-icon>chevron_right</mat-icon></div>
           </button>
@@ -46,9 +46,9 @@
       <button class="btn-icon" (click)="askDiscardChanges()"><mat-icon>arrow_back</mat-icon></button>
       <span class="room-editor__title">
         @if (editingRoomId()) {
-          <span class="room-editor__edit-tag">Bearbeiten</span> {{ currentRoomName() }}
+          <span class="room-editor__edit-tag">{{ 'common.edit' | translate }}</span> {{ currentRoomName() }}
         } @else {
-          Neuen Raum gestalten
+          {{ 'restaurant_plan.design_room' | translate }}
         }
       </span>
       @if (saveFeedback(); as msg) {
@@ -57,13 +57,13 @@
         </span>
       }
       <button class="btn-primary btn-primary--small" (click)="openSaveDialog()">
-        <mat-icon>save</mat-icon> Speichern
+        <mat-icon>save</mat-icon> {{ 'common.save' | translate }}
       </button>
     </div>
 
     <!-- Palette -->
     <div class="palette">
-      <span class="palette__label">Tische</span>
+      <span class="palette__label">{{ 'restaurant_plan.tables' | translate }}</span>
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'round')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <circle cx="35" cy="5"  r="5" fill="#2979ff" opacity="0.8"/>
@@ -72,7 +72,7 @@
           <circle cx="65" cy="35" r="5" fill="#2979ff" opacity="0.8"/>
           <circle cx="35" cy="35" r="24" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
         </svg>
-        <span>Runder Tisch</span>
+        <span>{{ 'restaurant_plan.round_table' | translate }}</span>
       </div>
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'square')">
         <svg viewBox="0 0 70 70" class="table-svg">
@@ -82,7 +82,7 @@
           <rect x="59" y="25" width="10" height="20" rx="3" fill="#2979ff" opacity="0.8"/>
           <rect x="13" y="13" width="44" height="44" rx="5" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
         </svg>
-        <span>Eckiger Tisch</span>
+        <span>{{ 'restaurant_plan.square_table' | translate }}</span>
       </div>
       <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'long')">
         <svg viewBox="0 0 140 70" class="table-svg table-svg--wide">
@@ -94,15 +94,15 @@
           <rect x="102" y="58" width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
           <rect x="8"  y="13" width="124" height="44" rx="5" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
         </svg>
-        <span>Langer Tisch</span>
+        <span>{{ 'restaurant_plan.long_table' | translate }}</span>
       </div>
       <div class="palette__divider"></div>
-      <span class="palette__label">Raum</span>
+      <span class="palette__label">{{ 'restaurant_plan.room_divider' | translate }}</span>
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'wall')">
         <svg viewBox="0 0 70 24" class="wall-svg">
           <rect x="0" y="8" width="70" height="8" rx="2" fill="#546e7a" stroke="#78909c" stroke-width="1"/>
         </svg>
-        <span>Raumtrenner</span>
+        <span>{{ 'restaurant_plan.room_divider' | translate }}</span>
       </div>
       <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'window')">
         <svg viewBox="0 0 140 32" class="wall-svg table-svg--wide">
@@ -112,11 +112,11 @@
           <rect x="0"   y="6"  width="6" height="20" fill="#546e7a" stroke="#78909c" stroke-width="0.8"/>
           <rect x="134" y="6"  width="6" height="20" fill="#546e7a" stroke="#78909c" stroke-width="0.8"/>
         </svg>
-        <span>Fenster</span>
+        <span>{{ 'restaurant_plan.window' | translate }}</span>
       </div>
 
       <div class="palette__divider"></div>
-      <span class="palette__label">Dekor</span>
+      <span class="palette__label">{{ 'restaurant_plan.decor' | translate }}</span>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'entrance')">
         <svg viewBox="0 0 70 70" class="table-svg">
@@ -124,7 +124,7 @@
           <path d="M 18 35 L 50 35 M 42 27 L 50 35 L 42 43" fill="none" stroke="#ffb700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <line x1="56" y1="14" x2="56" y2="56" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.6"/>
         </svg>
-        <span>Eingang</span>
+        <span>{{ 'restaurant_plan.entrance' | translate }}</span>
       </div>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'cashier')">
@@ -139,7 +139,7 @@
             <rect x="36" y="40" width="6" height="6" rx="1"/><rect x="46" y="40" width="6" height="6" rx="1"/>
           </g>
         </svg>
-        <span>Kasse</span>
+        <span>{{ 'restaurant_plan.cashier' | translate }}</span>
       </div>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'plant')">
@@ -150,7 +150,7 @@
           <path d="M 35 50 Q 48 38, 52 22 Q 40 28, 35 42 Z" fill="#4caf50" fill-opacity="0.45" stroke="#4caf50" stroke-width="1.6"/>
           <path d="M 35 48 Q 35 30, 30 14 Q 38 22, 38 40 Z" fill="#66bb6a" fill-opacity="0.65" stroke="#66bb6a" stroke-width="1.6"/>
         </svg>
-        <span>Pflanze</span>
+        <span>{{ 'restaurant_plan.plant' | translate }}</span>
       </div>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'pillar')">
@@ -159,7 +159,7 @@
           <circle cx="35" cy="35" r="14" fill="none" stroke="#2979ff" stroke-opacity="0.5" stroke-width="1.4"/>
           <circle cx="35" cy="35" r="6"  fill="#2979ff" fill-opacity="0.35"/>
         </svg>
-        <span>Säule</span>
+        <span>{{ 'restaurant_plan.pillar' | translate }}</span>
       </div>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'door')">
@@ -169,7 +169,7 @@
           <rect x="20" y="38" width="30" height="20" rx="1.5" fill="none" stroke="#2979ff" stroke-opacity="0.55" stroke-width="1.4"/>
           <circle cx="48" cy="40" r="2.4" fill="#ffb700"/>
         </svg>
-        <span>Tür</span>
+        <span>{{ 'restaurant_plan.door' | translate }}</span>
       </div>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'wc')">
@@ -179,7 +179,7 @@
           <path d="M 25 50 Q 25 36, 35 36 Q 45 36, 45 50 Z" fill="#2979ff" opacity="0.85"/>
           <text x="35" y="58" text-anchor="middle" font-family="Roboto" font-size="8" font-weight="700" fill="#ffb700">WC</text>
         </svg>
-        <span>WC</span>
+        <span>{{ 'restaurant_plan.wc' | translate }}</span>
       </div>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'stairs')">
@@ -191,7 +191,7 @@
           <line x1="8" y1="50" x2="62" y2="50" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.4"/>
           <path d="M 35 56 L 35 14 M 30 19 L 35 14 L 40 19" fill="none" stroke="#ffb700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>Treppe</span>
+        <span>{{ 'restaurant_plan.stairs' | translate }}</span>
       </div>
 
       <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'coatrack')">
@@ -204,7 +204,7 @@
           <path d="M 35 18 Q 42 18, 42 24" fill="none" stroke="#2979ff" stroke-width="2" stroke-linecap="round"/>
           <path d="M 22 22 Q 18 36, 22 44" fill="none" stroke="#ffb700" stroke-width="1.6"/>
         </svg>
-        <span>Garderobe</span>
+        <span>{{ 'restaurant_plan.coatrack' | translate }}</span>
       </div>
 
       <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'bar')">
@@ -217,7 +217,7 @@
           <line x1="6" y1="22" x2="134" y2="22" stroke="#2979ff" stroke-opacity="0.5" stroke-width="1.4"/>
           <rect x="60" y="28" width="20" height="3" fill="#ffb700" opacity="0.85"/>
         </svg>
-        <span>Bar / Theke</span>
+        <span>{{ 'restaurant_plan.bar' | translate }}</span>
       </div>
 
       <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'stage')">
@@ -231,7 +231,7 @@
           <circle cx="70" cy="35" r="3" fill="#ffb700"/>
           <line x1="70" y1="38" x2="70" y2="50" stroke="#ffb700" stroke-width="1.4"/>
         </svg>
-        <span>Bühne</span>
+        <span>{{ 'restaurant_plan.stage' | translate }}</span>
       </div>
 
       <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'sofa')">
@@ -245,20 +245,20 @@
           <rect x="10"  y="54" width="6"  height="8" fill="#2979ff" opacity="0.8"/>
           <rect x="124" y="54" width="6"  height="8" fill="#2979ff" opacity="0.8"/>
         </svg>
-        <span>Lounge / Sofa</span>
+        <span>{{ 'restaurant_plan.sofa' | translate }}</span>
       </div>
     </div>
 
     <!-- Canvas -->
     <div class="room-canvas" #canvas
-         (mousedown)="onCanvasMouseDown($event)"
+         (pointerdown)="onCanvasMouseDown($event)"
          (dragover)="onCanvasDragOver($event)"
          (drop)="onCanvasDrop($event)">
 
       @if (placedTables().length === 0 && placedWalls().length === 0 && placedDecors().length === 0) {
         <div class="room-canvas__hint">
           <mat-icon>drag_indicator</mat-icon>
-          <span>Elemente aus der Leiste oben hierher ziehen</span>
+          <span>{{ 'restaurant_plan.drag_hint' | translate }}</span>
         </div>
       }
 
@@ -269,13 +269,13 @@
              [style.top.px]="wall.y - 8"
              [style.width.px]="wall.length"
              [style.transform]="'rotate(' + wall.rotation + 'deg)'"
-             (mousedown)="onWallMouseDown($event, wall.id)">
+             (pointerdown)="onWallMouseDown($event, wall.id)">
           <div class="wall-body"></div>
           @if (selectedWallId() === wall.id) {
-            <div class="handle handle--delete" (mousedown)="$event.stopPropagation()" (click)="removeWall($event, wall.id)"><mat-icon>close</mat-icon></div>
-            <div class="handle handle--rotate" (mousedown)="onRotateHandleMouseDown($event, wall.id, 'wall')"><mat-icon>refresh</mat-icon></div>
-            <div class="handle handle--wall-end handle--wall-end-left"  (mousedown)="onWallEndMouseDown($event, wall.id, 'left')"></div>
-            <div class="handle handle--wall-end handle--wall-end-right" (mousedown)="onWallEndMouseDown($event, wall.id, 'right')"></div>
+            <div class="handle handle--delete" (pointerdown)="$event.stopPropagation()" (click)="removeWall($event, wall.id)"><mat-icon>close</mat-icon></div>
+            <div class="handle handle--rotate" (pointerdown)="onRotateHandleMouseDown($event, wall.id, 'wall')"><mat-icon>refresh</mat-icon></div>
+            <div class="handle handle--wall-end handle--wall-end-left"  (pointerdown)="onWallEndMouseDown($event, wall.id, 'left')"></div>
+            <div class="handle handle--wall-end handle--wall-end-right" (pointerdown)="onWallEndMouseDown($event, wall.id, 'right')"></div>
           }
         </div>
       }
@@ -290,7 +290,7 @@
              [style.width.px]="getDecorSize(decor.type).w * decor.scale"
              [style.height.px]="getDecorSize(decor.type).h * decor.scale"
              [style.transform]="'rotate(' + decor.rotation + 'deg)'"
-             (mousedown)="onDecorMouseDown($event, decor.id)">
+             (pointerdown)="onDecorMouseDown($event, decor.id)">
 
           @switch (decor.type) {
             @case ('plant') {
@@ -413,9 +413,9 @@
           }
 
           @if (selectedDecorId() === decor.id) {
-            <div class="handle handle--delete" (mousedown)="$event.stopPropagation()" (click)="removeDecor($event, decor.id)"><mat-icon>close</mat-icon></div>
-            <div class="handle handle--rotate" (mousedown)="onRotateHandleMouseDown($event, decor.id, 'decor')"><mat-icon>refresh</mat-icon></div>
-            <div class="handle handle--resize" (mousedown)="onResizeHandleMouseDown($event, decor.id, 'decor')"></div>
+            <div class="handle handle--delete" (pointerdown)="$event.stopPropagation()" (click)="removeDecor($event, decor.id)"><mat-icon>close</mat-icon></div>
+            <div class="handle handle--rotate" (pointerdown)="onRotateHandleMouseDown($event, decor.id, 'decor')"><mat-icon>refresh</mat-icon></div>
+            <div class="handle handle--resize" (pointerdown)="onResizeHandleMouseDown($event, decor.id, 'decor')"></div>
           }
         </div>
       }
@@ -425,11 +425,11 @@
         <div class="merge-line" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
         <!-- Split-Button in der Mitte -->
         <div class="merge-badge" [style]="getMidpointStyle(pair.a, pair.b)"
-             (mousedown)="$event.stopPropagation()"
+             (pointerdown)="$event.stopPropagation()"
              (click)="onSplitClick($event, pair.a.id)"
-             title="Tische auseinander stellen">
+             [title]="'restaurant_plan.split_confirm' | translate">
           <mat-icon>link</mat-icon>
-          <span>2 Tische</span>
+          <span>{{ 'restaurant_plan.tables' | translate }}</span>
         </div>
       }
 
@@ -443,7 +443,7 @@
              [style.width.px]="getTableSize(table.type).w * table.scale"
              [style.height.px]="getTableSize(table.type).h * table.scale"
              [style.transform]="'rotate(' + table.rotation + 'deg)'"
-             (mousedown)="onTableMouseDown($event, table.id)">
+             (pointerdown)="onTableMouseDown($event, table.id)">
 
           @if (table.type === 'long') {
             <svg viewBox="0 0 140 70" class="table-svg">
@@ -470,12 +470,17 @@
           }
 
           @if (selectedTableId() === table.id) {
-            <div class="handle handle--delete" (mousedown)="$event.stopPropagation()" (click)="removeTable($event, table.id)"><mat-icon>close</mat-icon></div>
-            <div class="handle handle--rotate" (mousedown)="onRotateHandleMouseDown($event, table.id, 'table')"><mat-icon>refresh</mat-icon></div>
-            <div class="handle handle--seats"  (mousedown)="$event.stopPropagation()" (click)="openSeatsEdit($event, table.id)">
+            <div class="handle handle--delete" (pointerdown)="$event.stopPropagation()" (click)="removeTable($event, table.id)"><mat-icon>close</mat-icon></div>
+            <div class="handle handle--rotate" (pointerdown)="onRotateHandleMouseDown($event, table.id, 'table')"><mat-icon>refresh</mat-icon></div>
+            <div class="handle handle--seats"  (pointerdown)="$event.stopPropagation()" (click)="openSeatsEdit($event, table.id)">
               <mat-icon>person</mat-icon><span>{{ table.seats }}</span>
             </div>
-            <div class="handle handle--resize" (mousedown)="onResizeHandleMouseDown($event, table.id)"></div>
+            <div class="handle handle--resize" (pointerdown)="onResizeHandleMouseDown($event, table.id)"></div>
+            @if (table.mergedWith !== undefined) {
+              <div class="handle handle--split" (pointerdown)="$event.stopPropagation()" (click)="onSplitHandleClick($event, table.id)" title="Auseinander stellen">
+                <mat-icon>link_off</mat-icon>
+              </div>
+            }
           }
         </div>
 
@@ -483,9 +488,9 @@
           <div class="seats-popup"
                [style.left.px]="table.x + getTableSize(table.type).w * table.scale / 2"
                [style.top.px]="table.y - 68"
-               (mousedown)="$event.stopPropagation()">
+               (pointerdown)="$event.stopPropagation()">
             <mat-icon class="seats-popup__icon">person</mat-icon>
-            <span>Personen:</span>
+            <span>{{ 'restaurant_plan.persons_question' | translate }}</span>
             <input class="seats-popup__input" type="number" min="1" max="20" [value]="table.seats"
                    (keydown)="onSeatsKeydown($event, table.id)"
                    (blur)="onSeatsBlur($event, table.id)">
@@ -502,11 +507,11 @@
       @if (discardDialogOpen()) {
         <div class="dialog">
           <div class="dialog__icon dialog__icon--split"><mat-icon>warning</mat-icon></div>
-          <h3 class="dialog__title">Editor verlassen?</h3>
-          <p class="dialog__text">Nicht gespeicherte Änderungen gehen verloren.</p>
+          <h3 class="dialog__title">{{ 'restaurant_plan.leave_confirm' | translate }}</h3>
+          <p class="dialog__text">{{ 'restaurant_plan.leave_hint' | translate }}</p>
           <div class="dialog__actions">
-            <button class="dialog__btn dialog__btn--secondary" (click)="cancelDiscard()">Abbrechen</button>
-            <button class="dialog__btn dialog__btn--primary"   (click)="confirmDiscard()">Verlassen</button>
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelDiscard()">{{ 'common.cancel' | translate }}</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmDiscard()">{{ 'restaurant_plan.leave_yes' | translate }}</button>
           </div>
         </div>
       }
@@ -515,16 +520,16 @@
         <div class="dialog">
           <div class="dialog__icon dialog__icon--merge"><mat-icon>save</mat-icon></div>
           <h3 class="dialog__title">
-            @if (editingRoomId()) { Änderungen speichern } @else { Raum speichern }
+            @if (editingRoomId()) { {{ 'restaurant_plan.save_changes' | translate }} } @else { {{ 'restaurant_plan.room_name_question' | translate }} }
           </h3>
           <p class="dialog__text">
             @if (editingRoomId()) {
-              Du kannst den Namen anpassen oder einfach so speichern.
+              {{ 'restaurant_plan.room_name_hint' | translate }}
             } @else {
-              Wie soll dieser Raum heißen? (z.B. "Hauptraum", "Terrasse", "Wintergarten")
+              {{ 'restaurant_plan.room_name_question' | translate }}
             }
           </p>
-          <input class="dialog__name-input" type="text" maxlength="50" placeholder="Name des Raums"
+          <input class="dialog__name-input" type="text" maxlength="50" [placeholder]="'restaurant_plan.room_name_label' | translate"
                  [value]="roomNameInput"
                  (input)="roomNameInput = $any($event.target).value"
                  (keydown.enter)="confirmSaveRoom()">
@@ -532,9 +537,9 @@
             <p class="dialog__error">{{ saveError() }}</p>
           }
           <div class="dialog__actions">
-            <button class="dialog__btn dialog__btn--secondary" (click)="cancelSaveDialog()">Abbrechen</button>
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelSaveDialog()">{{ 'common.cancel' | translate }}</button>
             <button class="dialog__btn dialog__btn--primary"   (click)="confirmSaveRoom()">
-              @if (editingRoomId()) { Aktualisieren } @else { Speichern }
+              @if (editingRoomId()) { {{ 'restaurant_plan.update' | translate }} } @else { {{ 'common.save' | translate }} }
             </button>
           </div>
         </div>
@@ -543,11 +548,11 @@
       @if (mergeConfirmDialog()) {
         <div class="dialog">
           <div class="dialog__icon dialog__icon--merge"><mat-icon>table_restaurant</mat-icon></div>
-          <h3 class="dialog__title">Tische zusammenstellen?</h3>
-          <p class="dialog__text">Sollen die beiden Tische zu einem großen Tisch zusammengestellt werden?</p>
+          <h3 class="dialog__title">{{ 'restaurant_plan.merge_confirm' | translate }}</h3>
+          <p class="dialog__text">{{ 'restaurant_plan.merge_hint' | translate }}</p>
           <div class="dialog__actions">
-            <button class="dialog__btn dialog__btn--secondary" (click)="cancelMerge()">Nein</button>
-            <button class="dialog__btn dialog__btn--primary"   (click)="confirmMerge()">Ja, zusammenstellen</button>
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelMerge()">{{ 'common.no' | translate }}</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmMerge()">{{ 'restaurant_plan.merge_yes' | translate }}</button>
           </div>
         </div>
       }
@@ -555,15 +560,15 @@
       @if (mergeSeatsDialog()) {
         <div class="dialog">
           <div class="dialog__icon dialog__icon--people"><mat-icon>people</mat-icon></div>
-          <h3 class="dialog__title">Wie viele Personen?</h3>
-          <p class="dialog__text">Wie viele Personen sollen am zusammengestellten Tisch Platz haben?</p>
+          <h3 class="dialog__title">{{ 'restaurant_plan.persons_question' | translate }}</h3>
+          <p class="dialog__text">{{ 'restaurant_plan.persons_hint' | translate }}</p>
           <input class="dialog__seats-input" type="number" min="2" max="40"
                  [value]="mergeSeatsInput"
                  (input)="mergeSeatsInput = +$any($event.target).value"
                  (keydown.enter)="confirmMergeSeats()">
           <div class="dialog__actions">
-            <button class="dialog__btn dialog__btn--secondary" (click)="cancelMerge()">Abbrechen</button>
-            <button class="dialog__btn dialog__btn--primary"   (click)="confirmMergeSeats()">Bestätigen</button>
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelMerge()">{{ 'common.cancel' | translate }}</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmMergeSeats()">{{ 'common.confirm' | translate }}</button>
           </div>
         </div>
       }
@@ -571,11 +576,11 @@
       @if (splitDialog() !== null) {
         <div class="dialog">
           <div class="dialog__icon dialog__icon--split"><mat-icon>link_off</mat-icon></div>
-          <h3 class="dialog__title">Tische auseinander stellen?</h3>
-          <p class="dialog__text">Die beiden Tische werden wieder getrennt und auf ihre ursprüngliche Personenanzahl zurückgesetzt.</p>
+          <h3 class="dialog__title">{{ 'restaurant_plan.split_confirm' | translate }}</h3>
+          <p class="dialog__text">{{ 'restaurant_plan.split_hint' | translate }}</p>
           <div class="dialog__actions">
-            <button class="dialog__btn dialog__btn--secondary" (click)="cancelSplit()">Nein</button>
-            <button class="dialog__btn dialog__btn--primary"   (click)="confirmSplit()">Ja, trennen</button>
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelSplit()">{{ 'common.no' | translate }}</button>
+            <button class="dialog__btn dialog__btn--primary"   (click)="confirmSplit()">{{ 'restaurant_plan.split_yes' | translate }}</button>
           </div>
         </div>
       }

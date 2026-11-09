@@ -3,9 +3,9 @@
   <!-- Header -->
   <div class="page-header">
     <div class="page-header__left">
-      <h1 class="page-title">Reservierungen</h1>
+      <h1 class="page-title">{{ 'reservierungsliste.title' | translate }}</h1>
       @if (!loading()) {
-        <span class="total-badge">{{ total() }} gesamt</span>
+        <span class="total-badge">{{ total() }} {{ 'reservierungsliste.total' | translate }}</span>
       }
     </div>
   </div>
@@ -32,17 +32,17 @@
     </div>
 
     <div class="filter-bar__actions">
-      <button class="action-btn action-btn--pdf" (click)="openExportModal('pdf')" title="PDF exportieren">
+      <button class="action-btn action-btn--pdf" (click)="openExportModal('pdf')" [title]="'reservierungsliste.export_pdf' | translate">
         <mat-icon>picture_as_pdf</mat-icon>
         <span>PDF</span>
       </button>
 
-      <button class="action-btn action-btn--print" (click)="openExportModal('print')" title="Drucken">
+      <button class="action-btn action-btn--print" (click)="openExportModal('print')" [title]="'reservierungsliste.print' | translate">
         <mat-icon>print</mat-icon>
-        <span>Drucken</span>
+        <span>{{ 'reservierungsliste.print' | translate }}</span>
       </button>
 
-      <button class="action-btn action-btn--refresh" (click)="resetToToday()" [disabled]="loading()" title="Aktualisieren">
+      <button class="action-btn action-btn--refresh" (click)="resetToToday()" [disabled]="loading()" [title]="'reservierungsliste.refresh' | translate">
         <mat-icon>refresh</mat-icon>
       </button>
     </div>
@@ -55,7 +55,7 @@
 
         <div class="export-modal__header">
           <mat-icon>{{ exportMode === 'pdf' ? 'picture_as_pdf' : 'print' }}</mat-icon>
-          <h3>{{ exportMode === 'pdf' ? 'PDF exportieren' : 'Drucken' }}</h3>
+          <h3>{{ exportMode === 'pdf' ? ('reservierungsliste.export_pdf' | translate) : ('reservierungsliste.print' | translate) }}</h3>
           <button class="export-modal__close" (click)="closeExportModal()">
             <mat-icon>close</mat-icon>
           </button>
@@ -63,13 +63,13 @@
 
         <!-- Zeitraum -->
         <div class="export-section">
-          <span class="export-label">Zeitraum</span>
+          <span class="export-label">{{ 'reservierungsliste.period' | translate }}</span>
           <div class="export-range-tabs">
             <button [class.active]="exportRange === 'day'" (click)="exportRange = 'day'">
-              Tag
+              {{ 'reservierungsliste.day' | translate }}
             </button>
             <button [class.active]="exportRange === 'range'" (click)="exportRange = 'range'">
-              Zeitraum
+              {{ 'reservierungsliste.range' | translate }}
             </button>
           </div>
 
@@ -86,7 +86,7 @@
 
         <!-- Status -->
         <div class="export-section">
-          <span class="export-label">Status</span>
+          <span class="export-label">{{ 'reservierungsliste.status' | translate }}</span>
           <div class="export-chips">
             @for (opt of statusOptions; track opt.value) {
               @if (opt.value) {
@@ -100,16 +100,16 @@
             }
           </div>
           @if (selectedStatuses.length === 0) {
-            <span class="export-hint">Alle Status werden einbezogen</span>
+            <span class="export-hint">{{ 'reservierungsliste.all_statuses' | translate }}</span>
           }
         </div>
 
         <!-- Footer -->
         <div class="export-modal__footer">
-          <button class="btn-cancel" (click)="closeExportModal()">Abbrechen</button>
+          <button class="btn-cancel" (click)="closeExportModal()">{{ 'reservierungsliste.cancel' | translate }}</button>
           <button class="btn-run" (click)="runExport()">
             <mat-icon>{{ exportMode === 'pdf' ? 'download' : 'print' }}</mat-icon>
-            {{ exportMode === 'pdf' ? 'PDF erstellen' : 'Drucken' }}
+            {{ exportMode === 'pdf' ? ('reservierungsliste.create_pdf' | translate) : ('reservierungsliste.print' | translate) }}
           </button>
         </div>
 
@@ -129,7 +129,7 @@
   @if (loading()) {
     <div class="state-box">
       <div class="spinner"></div>
-      <span>Lade Reservierungen…</span>
+      <span>{{ 'reservierungsliste.loading' | translate }}</span>
     </div>
   }
 
@@ -137,7 +137,7 @@
   @if (!loading() && reservations().length === 0) {
     <div class="state-box">
       <mat-icon class="state-box__icon">event_busy</mat-icon>
-      <span>Keine Reservierungen für diesen Filter.</span>
+      <span>{{ 'reservierungsliste.empty' | translate }}</span>
     </div>
   }
 
@@ -148,7 +148,7 @@
 
       <!-- Print Header (nur beim Drucken sichtbar) -->
       <div class="print-header">
-        <h2>Reservierungen</h2>
+        <h2>{{ 'reservierungsliste.title' | translate }}</h2>
         <span>{{ dateLabel() }}</span>
       </div>
 

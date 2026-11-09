@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, of, tap } from 'rxjs';
+import { Observable, catchError, of, tap, throwError } from 'rxjs';
 import { StatusColor } from './status-colors.service';
 
 export interface ConfigItem {
@@ -18,6 +18,14 @@ export type FontFamilyKey     = 'system' | 'modern' | 'classic' | 'serif' | 'rou
 export type FontSizeKey       = 'compact' | 'standard' | 'large';
 export type CornerRadiusKey   = 'square' | 'soft' | 'pill';
 
+export type PageBackgroundType = 'color' | 'image';
+
+export interface PageBackground {
+  type:  PageBackgroundType;
+  /** Hex-Farbe (type=color) oder Upload-URL (type=image). */
+  value: string;
+}
+
 export interface WidgetDesignSettings {
   layout:           WidgetLayoutMode;
   /** Data-URL oder null. Ersetzt durch echten Upload-Endpoint, sobald verfügbar. */
@@ -31,6 +39,10 @@ export interface WidgetDesignSettings {
   colorPrimary:     string;
   colorText:        string;
   colorBackground:  string;
+  /** Hintergrundfarbe der Widget-Kachel (unabhängig von colorBackground). */
+  cardBackground:   string;
+  /** Hintergrund des gesamten Seiten-Body: Farbe oder Bild. */
+  pageBackground:   PageBackground;
   buttonLabel:      string;
   cornerRadius:     CornerRadiusKey;
 }
@@ -47,6 +59,8 @@ export const DEFAULT_WIDGET_DESIGN: WidgetDesignSettings = {
   colorPrimary:     '#2563eb',
   colorText:        '#1f2937',
   colorBackground:  '#ffffff',
+  cardBackground:   '#ffffff',
+  pageBackground:   { type: 'color', value: '#f4f5f7' },
   buttonLabel:      'Reservieren',
   cornerRadius:     'soft',
 };
@@ -266,7 +280,7 @@ export class TenantSettingsService {
         this.snapshot = s;
         if (s._publicKey) this.publicKey.set(s._publicKey);
       }),
-      catchError(() => of(settings))
+      catchError((err) => throwError(() => err))
     );
   }
 }

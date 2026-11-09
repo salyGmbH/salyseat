@@ -23,6 +23,8 @@ export interface Reservation {
   guest_blocked: boolean;
   guest_blocked_reason: string | null;
   guest_no_show_count: number;
+  // Herkunft der Reservierung — wird vom Backend später befüllt
+  source?: 'online' | 'admin' | 'walk_in';
 }
 
 export interface ReservationListResponse {

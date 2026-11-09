@@ -4,6 +4,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { TranslateModule } from '@ngx-translate/core';
 import { LayoutService } from '../layout.service';
 import { AuthService } from '../../services/auth.service';
 import { NotizenStateService } from '../../services/notizen-state.service';
@@ -12,7 +13,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatIconModule, MatMenuModule, MatDividerModule],
+  imports: [RouterLink, RouterLinkActive, MatIconModule, MatMenuModule, MatDividerModule, TranslateModule],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })

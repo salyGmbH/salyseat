@@ -1,7 +1,9 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable } from 'rxjs';
 import {
   DEFAULT_WIDGET_DESIGN,
   TenantSettingsService,
+  TenantUiSettings,
   WidgetDesignSettings,
 } from './tenant-settings.service';
 
@@ -22,14 +24,14 @@ export class WidgetDesignService {
     });
   }
 
-  save(patch: Partial<WidgetDesignSettings>): void {
+  save(patch: Partial<WidgetDesignSettings>): Observable<TenantUiSettings> {
     const next: WidgetDesignSettings = { ...this._settings(), ...patch };
     this._settings.set(next);
     // Zentralen Snapshot aus TenantSettingsService nutzen — immer aktuell.
-    this.tenantSettings.save({ ...this.tenantSettings.snapshot, widgetDesign: next }).subscribe();
+    return this.tenantSettings.save({ ...this.tenantSettings.snapshot, widgetDesign: next });
   }
 
   reset(): void {
-    this.save({ ...DEFAULT_WIDGET_DESIGN });
+    this.save({ ...DEFAULT_WIDGET_DESIGN }).subscribe({ error: () => {} });
   }
 }

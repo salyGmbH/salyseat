@@ -1294,6 +1294,19 @@
 
     mat-icon { color: rgb(217, 119, 6); }
   }
+
+  &--tablet {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.22);
+    margin-bottom: 4px;
+
+    mat-icon { color: rgb(99, 102, 241); }
+
+    p {
+      margin: 4px 0 0;
+      color: $color-text-muted;
+    }
+  }
 }
 
 .plan-source-hint {

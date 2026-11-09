@@ -1,1 +1,75 @@
-<p>sprachen works!</p>
+<div class="sprachen">
+
+  <div class="sprachen__header">
+    <h2 class="sprachen__title">{{ 'languages.title' | translate }}</h2>
+    <p class="sprachen__subtitle">{{ 'languages.subtitle' | translate }}</p>
+  </div>
+
+  <div class="sprachen__cards">
+
+    <!-- Deutsch -->
+    <button class="lang-card"
+            [class.lang-card--active]="current() === 'de'"
+            (click)="select('de')">
+      <div class="lang-card__flag">
+        <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="40" rx="6" fill="#222"/>
+          <rect y="13.3" width="60" height="13.4" fill="#DD0000"/>
+          <rect y="26.7" width="60" height="13.3" rx="0" fill="#FFCE00"/>
+          <rect width="60" height="13.3" rx="0" fill="#222"/>
+        </svg>
+      </div>
+      <div class="lang-card__info">
+        <span class="lang-card__label">{{ 'languages.de_label' | translate }}</span>
+        <span class="lang-card__sublabel">{{ 'languages.de_sublabel' | translate }}</span>
+      </div>
+      <div class="lang-card__check">
+        @if (current() === 'de') {
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+            <circle cx="10" cy="10" r="9" fill="currentColor" opacity=".15" stroke="currentColor" stroke-width="1.5"/>
+            <polyline points="5.5,10.5 8.5,13.5 14.5,7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        }
+      </div>
+    </button>
+
+    <!-- English -->
+    <button class="lang-card"
+            [class.lang-card--active]="current() === 'en'"
+            (click)="select('en')">
+      <div class="lang-card__flag">
+        <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="40" rx="6" fill="#012169"/>
+          <path d="M0,0 L60,40 M60,0 L0,40" stroke="#fff" stroke-width="6"/>
+          <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" stroke-width="3.5"/>
+          <path d="M30,0 V40 M0,20 H60" stroke="#fff" stroke-width="10"/>
+          <path d="M30,0 V40 M0,20 H60" stroke="#C8102E" stroke-width="6"/>
+        </svg>
+      </div>
+      <div class="lang-card__info">
+        <span class="lang-card__label">{{ 'languages.en_label' | translate }}</span>
+        <span class="lang-card__sublabel">{{ 'languages.en_sublabel' | translate }}</span>
+      </div>
+      <div class="lang-card__check">
+        @if (current() === 'en') {
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+            <circle cx="10" cy="10" r="9" fill="currentColor" opacity=".15" stroke="currentColor" stroke-width="1.5"/>
+            <polyline points="5.5,10.5 8.5,13.5 14.5,7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        }
+      </div>
+    </button>
+
+  </div>
+
+  @if (saved()) {
+    <div class="sprachen__saved">
+      <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+        <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <polyline points="5.5,10.5 8.5,13.5 14.5,7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      {{ 'languages.saved' | translate }}
+    </div>
+  }
+
+</div>

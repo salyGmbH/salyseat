@@ -372,6 +372,7 @@
   flex: 1;
   position: relative;
   overflow: hidden;
+  touch-action: none; // Pointer Events auf Touch-Geräten ohne Browser-Scroll-Interferenz
   // Eigener Stacking-Context, damit z-indizes von Tisch/Wand nur
   // innerhalb des Canvas wirken und nichts von außen mitspielt.
   isolation: isolate;
@@ -403,6 +404,7 @@
   position: absolute;
   cursor: grab;
   user-select: none;
+  touch-action: none; // Pointer Events: kein Browser-Scroll beim Verschieben
   transform-origin: center center;
   // Tische/Stühle MÜSSEN über Wänden liegen, sonst verschwinden sie,
   // sobald man eine Wand zwischen sie setzt. Wand = Hintergrund-
@@ -540,6 +542,19 @@
     border-right: 2px solid $color-dark;
     border-bottom: 2px solid $color-dark;
   }
+}
+
+// Zusammenstellung trennen — mittig oben am Tisch, orange/gelb
+.handle--split {
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ffb700;
+  cursor: pointer;
+
+  mat-icon { color: #111; }
+
+  &:hover { background-color: #e6a500; }
 }
 
 // ── Sitzplatz-Popup ───────────────────────────────────────────────────────────

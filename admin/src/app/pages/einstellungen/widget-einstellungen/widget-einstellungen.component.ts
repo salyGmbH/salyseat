@@ -2,6 +2,7 @@ import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, take, forkJoin, of } from 'rxjs';
 import { VenueService } from '../../../services/venue.service';
@@ -12,7 +13,7 @@ import { PlacedTable, PlacedWall, PlacedDecor, TableType } from '../../../servic
 @Component({
   selector: 'app-widget-einstellungen',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './widget-einstellungen.component.html',
   styleUrl: './widget-einstellungen.component.scss'
 })
@@ -21,6 +22,7 @@ export class WidgetEinstellungenComponent implements OnInit {
   private readonly venueService        = inject(VenueService);
   private readonly roomsService        = inject(RoomsService);
   private readonly widgetFunctionalSvc = inject(WidgetFunctionalService);
+  private readonly translate           = inject(TranslateService);
 
   constructor() {
     toObservable(this.widgetFunctionalSvc.isLoaded)
@@ -169,10 +171,23 @@ export class WidgetEinstellungenComponent implements OnInit {
 
   // ─── Tischarten ──────────────────────────────────────────────────────────────
   readonly alleTischarten = [
-    { key: 'round',  label: 'Runder Tisch',     icon: 'circle',      shape: 'round'  },
-    { key: 'square', label: 'Viereckiger Tisch', icon: 'crop_square', shape: 'square' },
-    { key: 'long',   label: 'Langer Tisch',      icon: 'table_rows',  shape: 'long'   },
+    { key: 'round',  label: 'widget_einstellungen.table_round',  icon: 'circle',      shape: 'round'  },
+    { key: 'square', label: 'widget_einstellungen.table_square', icon: 'crop_square', shape: 'square' },
+    { key: 'long',   label: 'widget_einstellungen.table_long',   icon: 'table_rows',  shape: 'long'   },
   ];
+
+  /** Nur Tischarten anzeigen, die in den aktiven Räumen auch wirklich vorhanden sind. */
+  get verfuegbareTischarten() {
+    const layouts   = this._layouts();
+    const activeIds = this.settings.raumauswahlAktiveIds;
+    const ids       = activeIds.length > 0 ? activeIds : Object.keys(layouts);
+    const types     = new Set<string>(
+      ids.flatMap(id => (layouts[id]?.tables ?? []).map(t => t.type as string))
+    );
+    return types.size > 0
+      ? this.alleTischarten.filter(t => types.has(t.key))
+      : this.alleTischarten; // Fallback solange Layouts noch laden
+  }
 
   isTischartenAktiv(key: string): boolean {
     return this.settings.tischartenAktiveTypes.includes(key);
@@ -188,18 +203,8 @@ export class WidgetEinstellungenComponent implements OnInit {
   // Hinweis: Wenn der Master-Toggle (tischartenAktiv) aus ist, weist das System
   // den Tisch automatisch zu — daher gibt es keinen separaten „Auto"-Modus.
   readonly auswahlModi = [
-    {
-      key: 'liste' as const,
-      icon: 'view_list',
-      label: 'Tischarten-Auswahl',
-      desc:  'Gast wählt eine bevorzugte Tischart (rund, eckig, lang).',
-    },
-    {
-      key: 'plan' as const,
-      icon: 'map',
-      label: 'Restaurantplan',
-      desc:  '1:1-Abbild des Plans – der Gast klickt direkt seinen Wunschtisch an (z. B. am Fenster).',
-    },
+    { key: 'liste' as const, icon: 'view_list', label: 'widget_einstellungen.mode_list', desc: 'widget_einstellungen.mode_list_desc' },
+    { key: 'plan'  as const, icon: 'map',       label: 'widget_einstellungen.mode_plan', desc: 'widget_einstellungen.mode_plan_desc' },
   ];
 
   setAuswahlModus(mode: 'liste' | 'plan'): void {
@@ -365,13 +370,13 @@ export class WidgetEinstellungenComponent implements OnInit {
 
   // ─── Pflichtfelder ───────────────────────────────────────────────────────────
   readonly alleFelder = [
-    { key: 'name',      label: 'Name',          icon: 'person'      },
-    { key: 'vorname',   label: 'Vorname',        icon: 'badge'       },
-    { key: 'email',     label: 'E-Mail',         icon: 'mail'        },
-    { key: 'phone',     label: 'Telefon',        icon: 'call'        },
-    { key: 'partySize', label: 'Personenanzahl', icon: 'group'       },
-    { key: 'notes',     label: 'Notiz',          icon: 'notes'       },
-    { key: 'anlass',    label: 'Anlass',         icon: 'celebration' },
+    { key: 'name',      label: 'widget_einstellungen.field_name',      icon: 'person'      },
+    { key: 'vorname',   label: 'widget_einstellungen.field_vorname',   icon: 'badge'       },
+    { key: 'email',     label: 'widget_einstellungen.field_email',     icon: 'mail'        },
+    { key: 'phone',     label: 'widget_einstellungen.field_phone',     icon: 'call'        },
+    { key: 'partySize', label: 'widget_einstellungen.field_partySize', icon: 'group'       },
+    { key: 'notes',     label: 'widget_einstellungen.field_notes',     icon: 'notes'       },
+    { key: 'anlass',    label: 'widget_einstellungen.field_anlass',    icon: 'celebration' },
   ];
 
   isPflichtfeld(key: string): boolean {
@@ -414,9 +419,11 @@ export class WidgetEinstellungenComponent implements OnInit {
   }
 
   formatMinuten(min: number): string {
-    if (min < 60) return `${min} Min`;
+    const minLabel = this.translate.instant('widget_einstellungen.min');
+    const stdLabel = this.translate.instant('widget_einstellungen.hours');
+    if (min < 60) return `${min} ${minLabel}`;
     const h = Math.floor(min / 60);
     const m = min % 60;
-    return m === 0 ? `${h} Std` : `${h} Std ${m} Min`;
+    return m === 0 ? `${h} ${stdLabel}` : `${h} ${stdLabel} ${m} ${minLabel}`;
   }
 }

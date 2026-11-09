@@ -1,2 +1,8 @@
-<!-- Hier wird die jeweilige Einstellungs-Unterseite angezeigt (Übersicht, Widget, Sicherheit, …) -->
-<router-outlet />
+<div class="settings-container">
+  <app-page-header
+    [title]="'settings.title' | translate"
+    [subtitle]="'settings.subtitle' | translate"
+  />
+
+  <router-outlet></router-outlet>
+</div>

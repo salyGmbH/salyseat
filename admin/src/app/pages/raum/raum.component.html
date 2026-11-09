@@ -1,21 +1,20 @@
 <div class="raum-page">
   <div class="page-header">
-    <h1 class="page-title">Räume</h1>
+    <h1 class="page-title">{{ 'raum.title' | translate }}</h1>
     <a class="btn-primary btn-primary--small" routerLink="/restaurant-plan">
-      <mat-icon>add</mat-icon> Neuen Raum erstellen
+      <mat-icon>add</mat-icon> {{ 'raum.new_room' | translate }}
     </a>
   </div>
 
   @if (rooms().length === 0) {
     <div class="empty-state">
       <div class="empty-state__icon"><mat-icon>meeting_room</mat-icon></div>
-      <h2 class="empty-state__title">Noch keine Räume vorhanden</h2>
+      <h2 class="empty-state__title">{{ 'raum.no_rooms' | translate }}</h2>
       <p class="empty-state__description">
-        Erstelle deinen ersten Raum im Restaurantplan-Editor und speichere ihn,
-        um ihn hier später für Kunden bereitzustellen.
+        {{ 'raum.no_rooms_hint' | translate }}
       </p>
       <a class="btn-primary" routerLink="/restaurant-plan">
-        <mat-icon>add</mat-icon> Raum im Restaurantplan erstellen
+        <mat-icon>add</mat-icon> {{ 'raum.create_in_plan' | translate }}
       </a>
     </div>
   } @else {
@@ -26,20 +25,20 @@
           <div class="room-card__body">
             <h3 class="room-card__name">{{ room.name }}</h3>
             <div class="room-card__meta">
-              <span class="meta-pill"><mat-icon>table_restaurant</mat-icon>{{ tableCount(room) }} Tische</span>
-              <span class="meta-pill"><mat-icon>person</mat-icon>{{ totalSeats(room) }} Plätze</span>
+              <span class="meta-pill"><mat-icon>table_restaurant</mat-icon>{{ tableCount(room) }} {{ 'raum.tables' | translate }}</span>
+              <span class="meta-pill"><mat-icon>person</mat-icon>{{ totalSeats(room) }} {{ 'raum.seats' | translate }}</span>
             </div>
-            <div class="room-card__date">Erstellt {{ room.createdAt | date:'dd.MM.yyyy, HH:mm' }}</div>
+            <div class="room-card__date">{{ 'raum.created' | translate }} {{ room.createdAt | date:'dd.MM.yyyy, HH:mm' }}</div>
           </div>
 
           @if (confirmDeleteId === room.id) {
             <div class="room-card__confirm" (click)="$event.stopPropagation(); $event.preventDefault()">
-              <span>Löschen?</span>
-              <button class="confirm-btn confirm-btn--no" (click)="cancelDelete($event)">Nein</button>
-              <button class="confirm-btn confirm-btn--yes" (click)="confirmDelete($event, room.id)">Ja</button>
+              <span>{{ 'raum.confirm_delete' | translate }}</span>
+              <button class="confirm-btn confirm-btn--no" (click)="cancelDelete($event)">{{ 'common.no' | translate }}</button>
+              <button class="confirm-btn confirm-btn--yes" (click)="confirmDelete($event, room.id)">{{ 'common.yes' | translate }}</button>
             </div>
           } @else {
-            <button class="room-card__delete" title="Raum löschen" (click)="askDelete($event, room.id)">
+            <button class="room-card__delete" [title]="'raum.delete_room' | translate" (click)="askDelete($event, room.id)">
               <mat-icon>delete</mat-icon>
             </button>
           }

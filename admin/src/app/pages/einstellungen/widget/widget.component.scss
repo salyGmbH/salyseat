@@ -268,20 +268,18 @@
 
   // Firefox
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+  scrollbar-color: $color-border transparent;
 
   // Custom Scrollbar (WebKit) — passt zur Admin-Optik
-  &::-webkit-scrollbar { width: 10px; }
+  &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track {
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.18);
+    background: $color-border;
     border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
 
-    &:hover { background-color: rgba(0, 0, 0, 0.32); background-clip: padding-box; }
+    &:hover { background: $color-text-muted; }
   }
 }
 
@@ -327,18 +325,24 @@
 .preview-frame {
   width: 100%;
 
-  background: #f6f7f9;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: $color-surface;
+  border: 1px solid $color-border;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+
+  // Das .preview-Kind soll mindestens 420px hoch sein, damit
+  // justify-content: center das Widget tatsächlich mittig platziert
+  > .preview {
+    min-height: 420px;
+  }
 
   &__bar {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #e7e9ee;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: $color-surface-soft;
+    border-bottom: 1px solid $color-border;
     padding: 8px 12px;
   }
 
@@ -346,7 +350,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.18);
+    background: rgba(var(--color-text-rgb), 0.15);
 
     &:nth-child(1) { background: #ff5f57; }
     &:nth-child(2) { background: #febc2e; }
@@ -357,8 +361,9 @@
     margin-left: 8px;
     padding: 3px 10px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.85);
-    color: #555;
+    background: rgba(var(--color-text-rgb), 0.06);
+    border: 1px solid $color-border;
+    color: $color-text-muted;
     font-size: 11px;
     letter-spacing: 0.2px;
   }
@@ -447,9 +452,9 @@
     > .preview { min-height: 100%; }
 
     // Schlanker Scrollbalken — wirkt nicht wie ein Desktop-Element
-    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar { width: 3px; }
     &::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.18);
+      background: rgba(128, 128, 128, 0.35);
       border-radius: 999px;
     }
   }
@@ -475,6 +480,7 @@
   --preview-muted:       #6b7280;
   --preview-border:      #e5e7eb;
   --preview-bg:          #ffffff;
+  --preview-card-bg:     #ffffff;
   --preview-soft:        #f9fafb;
   --preview-primary:     #2563eb;
   --preview-base:        14px;
@@ -484,11 +490,13 @@
   // Default-Aussehen: Klassischer Stil — die Variablen schlagen direkt durch.
   // Karten- und Hotel-Layouts überschreiben diese Werte weiter unten und
   // bauen ihre eigene Container-Optik.
-  background: var(--preview-bg);
+  background: var(--preview-card-bg);
   color: var(--preview-text);
   padding: 24px;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 18px;
 
   // Karten-, Hotel- & Cockpit-Stil bauen ihre Optik selbst — Wrapper bleibt neutral.
@@ -640,7 +648,7 @@
 //  KARTEN-STIL — Hero-Foto, zentrierter Titel, Stepper, Datum/Zeit, CTA
 // ─────────────────────────────────────────────────────────────────────────
 .preview-card {
-  background: var(--preview-bg);
+  background: var(--preview-card-bg);
   color: var(--preview-text);
   padding: 28px 24px 32px;
   display: flex;
@@ -1178,7 +1186,7 @@
     position: relative;
     z-index: 1;
     width: min(340px, 100%);
-    background: color-mix(in srgb, var(--preview-bg) 92%, transparent);
+    background: color-mix(in srgb, var(--preview-card-bg) 92%, transparent);
     backdrop-filter: blur(8px);
     color: var(--preview-text);
     padding: 24px 26px 22px;
@@ -1801,7 +1809,7 @@
 //       oder als Slide-In wie Hotel)
 // ─────────────────────────────────────────────────────────────────────────
 .preview-stacked {
-  background: var(--preview-bg);
+  background: var(--preview-card-bg);
   color: var(--preview-text);
   display: flex;
   flex-direction: column;
@@ -2591,7 +2599,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    background: color-mix(in srgb, var(--preview-text) 4%, var(--preview-bg));
+    background: color-mix(in srgb, var(--preview-text) 4%, var(--preview-card-bg));
     border: 1px solid var(--preview-border);
     border-radius: var(--preview-radius);
     padding: 12px;
@@ -3662,6 +3670,7 @@
   border-radius: 999px;
   padding: 8px 14px;
   font-family: inherit;
+  color: $color-text-on-dark;
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
@@ -3692,8 +3701,12 @@
 // ── Farben-Sektion ────────────────────────────────────────────────────
 .color-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+
+  @media (max-width: 540px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .color-row {
@@ -3795,6 +3808,110 @@
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15),
                   0 0 0 3px rgba(var(--color-accent-rgb), 0.25);
     }
+  }
+}
+
+.color-row--full {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+// ── Hintergrund-Typ-Toggle (Farbe | Bild) ────────────────────────────
+.bg-type-toggle {
+  display: inline-flex;
+  gap: 6px;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  padding: 4px;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: $color-text-muted;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.12s;
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+    &.is-active {
+      background: $color-surface;
+      color: $color-text-on-dark;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
+
+    &:hover:not(.is-active) { color: $color-text-on-dark; }
+  }
+}
+
+// ── Seiten-Hintergrundbild Preview ────────────────────────────────────
+.page-bg-image {
+  width: 100%;
+
+  &__preview {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid $color-border;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+  }
+
+  &__remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    appearance: none;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+    &:hover { background: rgba(0, 0, 0, 0.75); }
+  }
+}
+
+.image-upload__dropzone--sm {
+  padding: 16px 20px;
+  min-height: unset;
+  gap: 6px;
+
+  .image-upload__dropzone-icon { font-size: 24px; width: 24px; height: 24px; }
+}
+
+// ── Button-Sektion: Text + Ecken nebeneinander ────────────────────────
+.button-section-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+
+  @media (max-width: 540px) {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3947,6 +4064,47 @@
     font-size: 11px;
     color: $color-text-muted;
   }
+
+  // Upload-Spinner-Zustand
+  &__uploading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.04);
+    color: $color-text-muted;
+    font-size: 13px;
+  }
+
+  &__spin {
+    animation: spin 1s linear infinite;
+    color: $color-primary;
+  }
+
+  // Fehlermeldung
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #fff0f0;
+    color: #c0392b;
+    font-size: 12px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -3975,6 +4133,22 @@
     font-size: 12px;
     flex: 1;
     min-width: 200px;
+  }
+
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #c0392b;
+    font-size: 12px;
+    flex: 1;
+    min-width: 200px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
   }
 
   &__buttons {
@@ -4103,5 +4277,15 @@
   &.saved {
     background: #22c55e;
     color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
   }
 }

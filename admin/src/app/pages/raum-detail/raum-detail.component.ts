@@ -15,12 +15,13 @@ import { StatusColorsService } from '../../services/status-colors.service';
 import { ReservationTimingService } from '../../services/reservation-timing.service';
 import { GuestsService, Guest } from '../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../services/tenant-settings.service';
-import { OpeningHoursService } from '../../services/opening-hours.service';
+import { OpeningHoursService, DayHours } from '../../services/opening-hours.service';
 import { PlacedTable, TableType, DecorType, SavedRoom } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
 import { StatusIconComponent } from '../../shared/status-icon/status-icon.component';
 import { GetraenkeReminderService } from '../../services/getraenke-reminder.service';
+import { TranslateModule } from '@ngx-translate/core';
 
 type StatusFilter = 'all' | 'active' | FloorReservationStatus;
 
@@ -36,6 +37,7 @@ type StatusFilter = 'all' | 'active' | FloorReservationStatus;
     FormsModule,
     StatusIconComponent,
     DatePipe,
+    TranslateModule,
   ],
   templateUrl: './raum-detail.component.html',
   styleUrl: './raum-detail.component.scss'
@@ -56,17 +58,49 @@ export class RaumDetailComponent implements OnInit {
   // ── Timeline-Übersicht ────────────────────────────────────────────────────
   showTimeline = signal(false);
 
-  // 24px pro 30-Min-Slot, 08:00–22:00 = 28 Slots = 672px Gesamthöhe
-  readonly tlSlotPx   = 24;
-  readonly tlStartH   = 8;
-  readonly tlEndH     = 22;
-  readonly tlTotalPx  = (this.tlEndH - this.tlStartH) * 2 * 24; // 672
+  // 24px pro 30-Min-Slot
+  readonly tlSlotPx = 24;
 
-  get tlHours(): string[] {
-    const a: string[] = [];
-    for (let h = this.tlStartH; h <= this.tlEndH; h++)
-      a.push(`${String(h).padStart(2,'0')}:00`);
-    return a;
+  // Vollständige Öffnungszeiten – gesetzt sobald die API antwortet
+  allDayHours = signal<DayHours[]>([]);
+
+  // Dynamische Start-/Endstunde: exakt der früheste/späteste Öffnungszeitraum, kein Puffer
+  get tlStartH(): number {
+    const open = this.allDayHours().filter(d => d.open && d.open_time);
+    if (!open.length) return 8;
+    return Math.min(...open.map(d => parseInt(d.open_time!.split(':')[0])));
+  }
+
+  get tlEndH(): number {
+    const open = this.allDayHours().filter(d => d.open && d.close_time);
+    if (!open.length) return 23;
+    // Runde auf die nächste volle Stunde auf falls close_time nicht auf der Stunde liegt
+    return Math.min(24, Math.max(...open.map(d => {
+      const [h, m] = d.close_time!.split(':').map(Number);
+      return m > 0 ? h + 1 : h;
+    })));
+  }
+
+  get tlTotalPx(): number {
+    return (this.tlEndH - this.tlStartH) * 2 * this.tlSlotPx;
+  }
+
+  /** Gesamtzahl der 30-Min-Slots im sichtbaren Bereich */
+  get tlTotalSlots(): number {
+    return (this.tlEndH - this.tlStartH) * 2;
+  }
+
+  // Stunden-Markierungen für die Achse (von Start bis End inkl.) — prozentual
+  get tlHourMarkers(): { label: string; pct: number }[] {
+    const total = this.tlTotalSlots;
+    const markers: { label: string; pct: number }[] = [];
+    for (let h = this.tlStartH; h <= this.tlEndH; h++) {
+      markers.push({
+        label: `${String(h).padStart(2, '0')}:00`,
+        pct: (h - this.tlStartH) * 2 / total * 100,
+      });
+    }
+    return markers;
   }
 
   get tlSlots(): string[] {
@@ -78,10 +112,51 @@ export class RaumDetailComponent implements OnInit {
     return a;
   }
 
+  // Öffnungszeitraum des gewählten Tages in Pixeln (für Hintergrund-Hervorhebung)
+  readonly selectedDayHours = computed<DayHours | null>(() => {
+    const [y, mo, d] = this.selectedDate().split('-').map(Number);
+    const weekday = (new Date(y, mo - 1, d).getDay() + 6) % 7;
+    return this.allDayHours().find(h => h.weekday === weekday) ?? null;
+  });
+
+  readonly tlOpenPx = computed<{ from: number; to: number } | null>(() => {
+    const dh = this.selectedDayHours();
+    if (!dh?.open || !dh.open_time || !dh.close_time) return null;
+    const [oh, om] = dh.open_time.split(':').map(Number);
+    const [ch, cm] = dh.close_time.split(':').map(Number);
+    const from = ((oh - this.tlStartH) * 60 + om) / 30 * this.tlSlotPx;
+    const to   = ((ch - this.tlStartH) * 60 + cm) / 30 * this.tlSlotPx;
+    return { from: Math.max(0, from), to: Math.min(this.tlTotalPx, to) };
+  });
+
+  /** Öffnungszeiten-Zone in Prozent der Spalten-Höhe */
+  readonly tlOpenPct = computed<{ from: number; to: number } | null>(() => {
+    const px = this.tlOpenPx();
+    if (!px) return null;
+    const total = this.tlTotalPx;
+    return { from: px.from / total * 100, to: px.to / total * 100 };
+  });
+
+  /** True wenn das angezeigte Datum vor heute liegt */
+  readonly isSelectedDatePast = computed(() => this.selectedDate() < this.todayIso());
+
   activeResForTable(tableId: number): FloorReservation[] {
-    return (this.reservationsByTable().get(tableId) ?? []).filter(r =>
-      r.status !== 'cancelled' && r.status !== 'no-show' && r.status !== 'completed'
-    );
+    // Alle Status anzeigen — auch cancelled/no-show/completed, auch heute.
+    // Abgeblendet werden sie per isResHistoric() + CSS.
+    return this.allReservationsForDay().filter(r => {
+      const ids = r.tableIds?.length ? r.tableIds : (r.tableId ? [r.tableId] : []);
+      return ids.includes(tableId);
+    });
+  }
+
+  /**
+   * Reservation ist "historisch" → abgeblendet + gestreift.
+   * Gilt für: alle RVs auf vergangenen Tagen ODER
+   *           abgeschlossene/stornierte/no-show auf heutigem/zukünftigem Tag.
+   */
+  isResHistoric(res: FloorReservation): boolean {
+    if (this.isSelectedDatePast()) return true;
+    return res.status === 'cancelled' || res.status === 'no-show' || res.status === 'completed';
   }
 
   resBlockTop(res: FloorReservation): number {
@@ -93,12 +168,29 @@ export class RaumDetailComponent implements OnInit {
     return Math.max(this.tlSlotPx, res.durationMinutes / 30 * this.tlSlotPx);
   }
 
+  /** Reservierungs-Top in % der Spalten-Höhe */
+  resBlockTopPct(res: FloorReservation): number {
+    return this.resBlockTop(res) / this.tlTotalPx * 100;
+  }
+
+  /** Reservierungs-Höhe in % der Spalten-Höhe (mind. 1 Slot = 1/tlTotalSlots) */
+  resBlockHeightPct(res: FloorReservation): number {
+    return this.resBlockHeight(res) / this.tlTotalPx * 100;
+  }
+
   readonly tlNowPx = computed(() => {
     if (this.selectedDate() !== this.todayIsoPublic()) return -1;
     const now = new Date(this.now());
     const h = now.getHours(); const m = now.getMinutes();
     if (h < this.tlStartH || h >= this.tlEndH) return -1;
     return ((h - this.tlStartH) * 60 + m) / 30 * this.tlSlotPx;
+  });
+
+  /** Jetzt-Linie in % der Spalten-Höhe (-1 = nicht anzeigen) */
+  readonly tlNowPct = computed(() => {
+    const px = this.tlNowPx();
+    if (px < 0) return -1;
+    return px / this.tlTotalPx * 100;
   });
 
   readonly freeSlotsToday = computed(() => {
@@ -223,6 +315,7 @@ export class RaumDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
     this.ohService.getHours(id).subscribe(days => {
+      this.allDayHours.set(days);
       this.closedWeekdays.set(days.filter(d => !d.open).map(d => d.weekday));
     });
     this.layoutLoading.set(true);
@@ -463,6 +556,7 @@ export class RaumDetailComponent implements OnInit {
   gcEmail          = signal('');
   gcSaving         = signal(false);
   gcError          = signal<string | null>(null);
+  gcStatusLoading  = signal(false);
 
   openGuestCard(res: FloorReservation): void {
     this.guestCardRes.set(res);
@@ -479,6 +573,20 @@ export class RaumDetailComponent implements OnInit {
   }
 
   closeGuestCard(): void { this.guestCardOpen.set(false); }
+
+  /** Schnell-Statuswechsel direkt aus der Gästekarte */
+  gcDoStatus(action: string): void {
+    const res = this.guestCardRes();
+    if (!res || this.gcStatusLoading()) return;
+    const newStatus: FloorReservationStatus =
+      action === 'reopen'
+        ? (res.backendId ? 'confirmed' : 'upcoming')
+        : (action as FloorReservationStatus);
+    this.gcStatusLoading.set(true);
+    this.reservationsService.setStatus(res.id, newStatus);
+    this.guestCardRes.set({ ...res, status: newStatus });
+    this.gcStatusLoading.set(false);
+  }
 
   /** Gastkarte schließen und direkt den Bearbeitungs-Dialog öffnen. */
   editFromGuestCard(): void {
@@ -568,6 +676,8 @@ export class RaumDetailComponent implements OnInit {
 
   filteredReservations = computed(() => {
     const list = this.allReservationsForDay();
+    // Filter-Panel zugeklappt → kein Filter, alle RVs anzeigen
+    if (!this.filterPanelOpen()) return list;
     const f = this.statusFilter();
     if (f === 'all') return list;
     // 'active' = alles, was operativ noch im Restaurant ist:
@@ -633,6 +743,113 @@ export class RaumDetailComponent implements OnInit {
         .reduce((sum, r) => sum + r.partySize, 0),
     };
   });
+
+  // ── Timeline-Drag (Verschieben + Verlängern der Blöcke) ──────────────────
+
+  tlDrag: {
+    resId:        string;
+    type:         'move' | 'resize';
+    startClientY: number;
+    startValue:   number;  // Minuten ab Mitternacht (move) oder durationMinutes (resize)
+    colHeightPx:  number;
+    totalMinutes: number;
+    moved:        boolean;
+  } | null = null;
+
+  private tlDragLastSnapped = -1;
+  private suppressTlClick   = false;
+
+  onTlResPointerDown(event: PointerEvent, res: FloorReservation, type: 'move' | 'resize'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.isResHistoric(res)) return;
+
+    const col = (event.target as HTMLElement).closest<HTMLElement>('.tl-col');
+    if (!col) return;
+
+    // Pointer-Capture: stellt sicher dass alle pointermove-Events ankommen,
+    // auch wenn der Finger / die Maus das Element verlässt (wichtig für Trackpad)
+    try { (event.target as HTMLElement).setPointerCapture(event.pointerId); } catch { /* ignore */ }
+
+    const [h, m]  = res.time.split(':').map(Number);
+    const startValue = type === 'move' ? (h * 60 + m) : res.durationMinutes;
+
+    this.tlDrag = {
+      resId:        res.id,
+      type,
+      startClientY: event.clientY,
+      startValue,
+      colHeightPx:  col.getBoundingClientRect().height,
+      totalMinutes: (this.tlEndH - this.tlStartH) * 60,
+      moved:        type === 'resize', // Resize startet sofort, Move braucht Schwelle
+    };
+    this.tlDragLastSnapped = startValue;
+  }
+
+  @HostListener('document:pointermove', ['$event'])
+  onDocPointerMove(event: PointerEvent): void {
+    const drag = this.tlDrag;
+    if (!drag) return;
+    // Verhindert Browser-Scroll / Trackpad-Scroll während Drag
+    event.preventDefault();
+
+    const deltaY = event.clientY - drag.startClientY;
+
+    // Move: erst ab 4px-Schwelle als Drag erkennen
+    if (drag.type === 'move' && !drag.moved) {
+      if (Math.abs(deltaY) < 4) return;
+      drag.moved = true;
+    }
+
+    const deltaMin = (deltaY / drag.colHeightPx) * drag.totalMinutes;
+    const snapped  = Math.round(deltaMin / 15) * 15;
+    let   newValue = drag.startValue + snapped;
+
+    if (drag.type === 'resize') {
+      newValue = Math.max(30, newValue);
+    } else {
+      newValue = Math.max(this.tlStartH * 60,
+                 Math.min((this.tlEndH * 60) - 30, newValue));
+    }
+
+    if (newValue === this.tlDragLastSnapped) return;
+    this.tlDragLastSnapped = newValue;
+
+    if (drag.type === 'resize') {
+      this.reservationsService.update(drag.resId, { durationMinutes: newValue });
+    } else {
+      const hh   = Math.floor(newValue / 60);
+      const mm   = newValue % 60;
+      const time = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+      this.reservationsService.update(drag.resId, { time });
+    }
+  }
+
+  @HostListener('document:pointerup')
+  onDocPointerUp(): void {
+    const drag = this.tlDrag;
+    if (!drag) return;
+    if (drag.moved) this.suppressTlClick = true;
+    this.tlDrag = null;
+    if (!drag.moved) return;
+
+    const res = this.reservationsService.reservations().find(r => r.id === drag.resId);
+    if (!res?.backendId) return;
+
+    const startsAt = `${res.date}T${res.time}:00`;
+    this.apiReservations.update(res.backendId, {
+      starts_at:        startsAt,
+      duration_minutes: res.durationMinutes,
+    }).subscribe({ error: () => console.warn('Timeline-Drag-Sync fehlgeschlagen') });
+  }
+
+  @HostListener('document:pointercancel')
+  onDocPointerCancel(): void { this.tlDrag = null; }
+
+  onTlResClick(res: FloorReservation): void {
+    if (this.suppressTlClick) { this.suppressTlClick = false; return; }
+    this.openGuestCard(res);
+  }
 
   // ── Tagesverlauf (kleine Sparkline-Punkte pro Stunde) ─────────────────
   dayLoad = computed<Array<{ hour: number; count: number; isPeak: boolean; pct: number; loadLevel: 'empty' | 'green' | 'amber' | 'red' }>>(() => {
@@ -855,7 +1072,9 @@ export class RaumDetailComponent implements OnInit {
   }
 
   // ── Tisch-Umplatzierung per Long-Press ────────────────────────────────
-  reassignMode = signal<{ reservationId: string; sourceTableId: number } | null>(null);
+  reassignMode   = signal<{ reservationId: string; sourceTableId: number } | null>(null);
+  /** Ziel-Tisch gewählt — warten auf Wahl zwischen Umplatzieren und Splitten */
+  reassignChoice = signal<{ targetTableId: number } | null>(null);
   private longPressTimer: any = null;
   private suppressNextClick = false;
 
@@ -887,6 +1106,20 @@ export class RaumDetailComponent implements OnInit {
   }
 
   /**
+   * Klick auf einen Gäste-Chip am Tisch.
+   * Im Reassign-Modus → Tisch als Umplatzierungs-Ziel wählen (Chip darf Event nicht schlucken).
+   * Sonst → Gastkarte öffnen und Bubbling stoppen.
+   */
+  onGuestChipClick(tableId: number, res: FloorReservation, event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.reassignMode()) {
+      this.onTableClick(tableId, event);
+      return;
+    }
+    this.openGuestCard(res);
+  }
+
+  /**
    * Normaler Klick auf einen Tisch:
    *  – im Umplatzier-Modus: Ziel festlegen (oder bei Quelltisch abbrechen)
    *  – Tisch frei  → neue Reservierung mit vorausgewähltem Tisch
@@ -905,11 +1138,11 @@ export class RaumDetailComponent implements OnInit {
     if (mode) {
       if (tableId === mode.sourceTableId) {
         this.reassignMode.set(null);
+        this.reassignChoice.set(null);
         return;
       }
-      this.reservationsService.update(mode.reservationId, { tableId });
-      this.syncTableToBackend(mode.reservationId, tableId);
-      this.reassignMode.set(null);
+      // Ziel gewählt → Auswahlmenü anzeigen statt sofort handeln
+      this.reassignChoice.set({ targetTableId: tableId });
       return;
     }
 
@@ -920,7 +1153,81 @@ export class RaumDetailComponent implements OnInit {
     this.openNewDialog({ tableId, partySize: Math.min(seats, 4) });
   }
 
-  cancelReassign(): void { this.reassignMode.set(null); }
+  // Timeline-Slot-Klick: Tisch + Uhrzeit vorausgewählt
+  openFromSlot(tableId: number, time: string): void {
+    const t = this.room()?.tables.find(x => x.id === tableId);
+    const seats = t?.seats ?? 2;
+    this.openNewDialog({ tableId, time, partySize: Math.min(seats, 4) });
+  }
+
+  cancelReassign(): void {
+    this.reassignMode.set(null);
+    this.reassignChoice.set(null);
+  }
+
+  /** Reservierung auf den Ziel-Tisch umplatzieren (alten Tisch aufgeben). */
+  doReassign(): void {
+    const mode   = this.reassignMode();
+    const choice = this.reassignChoice();
+    if (!mode || !choice) return;
+    const tid = choice.targetTableId;
+    this.reservationsService.update(mode.reservationId, { tableId: tid, tableIds: [tid] });
+    this.syncTableToBackend(mode.reservationId, tid);
+    this.reassignChoice.set(null);
+    this.reassignMode.set(null);
+  }
+
+  /** Reservierung auf beide Tische aufteilen (Quell- + Zieltisch). */
+  doSplit(): void {
+    const mode   = this.reassignMode();
+    const choice = this.reassignChoice();
+    if (!mode || !choice) return;
+    const res = this.reservationsService.reservations().find(r => r.id === mode.reservationId);
+    const currentIds = res?.tableIds?.length ? res.tableIds : (res?.tableId ? [res.tableId] : []);
+    const newIds = [...new Set([...currentIds, choice.targetTableId])];
+    this.reservationsService.update(mode.reservationId, {
+      tableIds: newIds,
+      tableId:  currentIds[0] ?? choice.targetTableId,
+    });
+    this.syncTableToBackend(mode.reservationId, currentIds[0] ?? choice.targetTableId);
+    this.reassignChoice.set(null);
+    this.reassignMode.set(null);
+  }
+
+  /**
+   * Quelltisch aus dem Split entfernen — die restlichen Tische bleiben erhalten.
+   * Beispiel: Split [2, 3, 4], Quelltisch 3 auf Tisch 4 ziehen → bleibt [2, 4].
+   */
+  doMerge(): void {
+    const mode   = this.reassignMode();
+    const choice = this.reassignChoice();
+    if (!mode || !choice) return;
+    const res = this.reservationsService.reservations().find(r => r.id === mode.reservationId);
+    const currentIds = res?.tableIds?.length ? res.tableIds : (res?.tableId ? [res.tableId] : []);
+    const newIds = currentIds.filter(id => id !== mode.sourceTableId);
+    const primaryId = newIds[0] ?? choice.targetTableId;
+    this.reservationsService.update(mode.reservationId, {
+      tableId:  primaryId,
+      tableIds: newIds,
+    });
+    this.syncTableToBackend(mode.reservationId, primaryId);
+    this.reassignChoice.set(null);
+    this.reassignMode.set(null);
+  }
+
+  /**
+   * True wenn der Zieltisch bereits Teil des Splits ist.
+   * Nur dann soll "Zusammenführen" erscheinen — zieht man auf einen neuen Tisch,
+   * bleibt es "Splitten" (auch wenn die RV schon mehrere Tische hat).
+   */
+  get reassignResSplit(): boolean {
+    const mode   = this.reassignMode();
+    const choice = this.reassignChoice();
+    if (!mode || !choice) return false;
+    const res = this.reservationsService.reservations().find(r => r.id === mode.reservationId);
+    const ids = res?.tableIds?.length ? res.tableIds : (res?.tableId ? [res.tableId] : []);
+    return ids.length > 1 && ids.includes(choice.targetTableId);
+  }
 
   /** Schreibt die Tisch-Zuweisung einer lokalen Reservierung ins Backend (fire-and-forget). */
   private syncTableToBackend(localId: string, tableId: number | null): void {
@@ -938,7 +1245,37 @@ export class RaumDetailComponent implements OnInit {
   }
 
   // ── Tisch teilen (mehrere Reservierungen am gleichen Tisch) ──────────────
-  splitPickerFor = signal<number | null>(null);
+  splitPickerFor     = signal<number | null>(null);
+  /** Tisch-ID für den "Tische trennen"-Bestätigungsdialog im Tischplan */
+  splitRoomTableId   = signal<number | null>(null);
+
+  openRoomSplitDialog(tableId: number, event: Event): void {
+    event.stopPropagation();
+    this.splitRoomTableId.set(tableId);
+  }
+
+  confirmRoomSplit(): void {
+    const id    = this.splitRoomTableId();
+    const room  = this.room();
+    if (id === null || !room) return;
+    const table = room.tables.find(t => t.id === id);
+    if (!table) return;
+
+    const newTables = room.tables.map(t => {
+      if (t.id === id || t.id === table.mergedWith)
+        return { ...t, mergedWith: undefined as number | undefined,
+                       seats: (t as any).originalSeats ?? t.seats,
+                       originalSeats: undefined };
+      return t;
+    });
+
+    this.roomsService.updateRoom(room.id, { tables: newTables }).subscribe({
+      error: () => console.warn('Trennen konnte nicht gespeichert werden'),
+    });
+    this.splitRoomTableId.set(null);
+  }
+
+  cancelRoomSplit(): void { this.splitRoomTableId.set(null); }
 
   readonly unassignedForDay = computed(() =>
     this.allReservationsForDay().filter(r =>
@@ -994,7 +1331,10 @@ export class RaumDetailComponent implements OnInit {
   }
 
   @HostListener('document:keyup.escape')
-  onEscape(): void { if (this.reassignMode()) this.cancelReassign(); }
+  onEscape(): void {
+    if (this.reassignChoice()) { this.reassignChoice.set(null); return; }
+    if (this.reassignMode()) this.cancelReassign();
+  }
 
   openEditDialog(res: FloorReservation) {
     const ids = res.tableIds?.length ? res.tableIds : (res.tableId ? [res.tableId] : []);
@@ -1514,6 +1854,15 @@ export class RaumDetailComponent implements OnInit {
       }
     }
     return pairs;
+  }
+
+  getMidpointStyle(a: PlacedTable, b: PlacedTable): Record<string, string> {
+    const ca = this.getTableCenter(a);
+    const cb = this.getTableCenter(b);
+    return {
+      left: ((ca.x + cb.x) / 2) + 'px',
+      top:  ((ca.y + cb.y) / 2) + 'px',
+    };
   }
 
   getMergeLineStyle(a: PlacedTable, b: PlacedTable): Record<string, string> {

@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { ReservationTimingService } from '../../../services/reservation-timing.service';
 import {
   DEFAULT_RESERVATION_TIMING,
@@ -18,7 +19,7 @@ interface DurationPreset {
 @Component({
   selector: 'app-reservierungen',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './reservierungen.component.html',
   styleUrl: './reservierungen.component.scss'
 })

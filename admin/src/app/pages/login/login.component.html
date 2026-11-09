@@ -3,16 +3,16 @@
   <div class="login-card">
 
     <div class="login-card__logo">
-      <img src="images/salyseat-logo-dunkle-schrift.png" alt="Salyseat">
+      <img src="images/white-logo.png" alt="Salyseat Booking">
     </div>
 
-    <h1 class="login-card__title">Admin-Bereich</h1>
-    <p class="login-card__subtitle">Bitte melde dich an, um fortzufahren.</p>
+    <h1 class="login-card__title">{{ 'login_page.title' | translate }}</h1>
+    <p class="login-card__subtitle">{{ 'login_page.subtitle' | translate }}</p>
 
     <form #form="ngForm" class="login-form" (ngSubmit)="onSubmit(form)" novalidate>
 
       <label class="login-form__field">
-        <span class="login-form__label">E-Mail</span>
+        <span class="login-form__label">{{ 'login_page.email' | translate }}</span>
         <div class="login-form__input-wrap">
           <mat-icon class="login-form__icon">mail_outline</mat-icon>
           <input
@@ -21,7 +21,7 @@
             autocomplete="username"
             required
             email
-            placeholder="name@restaurant.de"
+            [placeholder]="'login_page.email_placeholder' | translate"
             [(ngModel)]="email"
             [disabled]="loading()"
             class="login-form__input"
@@ -30,7 +30,7 @@
       </label>
 
       <label class="login-form__field">
-        <span class="login-form__label">Passwort</span>
+        <span class="login-form__label">{{ 'login_page.password' | translate }}</span>
         <div class="login-form__input-wrap">
           <mat-icon class="login-form__icon">lock_outline</mat-icon>
           <input
@@ -39,7 +39,7 @@
             autocomplete="current-password"
             required
             minlength="4"
-            placeholder="••••••••"
+            [placeholder]="'login_page.password_placeholder' | translate"
             [(ngModel)]="password"
             [disabled]="loading()"
             class="login-form__input"
@@ -48,7 +48,7 @@
             type="button"
             class="login-form__toggle"
             (click)="togglePasswordVisibility()"
-            [attr.aria-label]="showPassword() ? 'Passwort verbergen' : 'Passwort anzeigen'"
+            [attr.aria-label]="showPassword() ? ('login_page.hide_password' | translate) : ('login_page.show_password' | translate)"
             tabindex="-1"
           >
             <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
@@ -70,15 +70,15 @@
       >
         @if (loading()) {
           <span class="login-form__spinner"></span>
-          <span>Einloggen…</span>
+          <span>{{ 'login_page.logging_in' | translate }}</span>
         } @else {
-          <span>Einloggen</span>
+          <span>{{ 'login_page.login' | translate }}</span>
         }
       </button>
 
     </form>
 
-    <p class="login-card__footer">© Salyseat</p>
+    <p class="login-card__footer">{{ 'login_page.footer' | translate }}</p>
 
   </div>
 

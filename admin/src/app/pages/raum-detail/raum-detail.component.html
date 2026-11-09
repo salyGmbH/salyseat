@@ -2,7 +2,7 @@
   <div class="raum-detail">
     <!-- ── Header ────────────────────────────────────────────────────── -->
     <div class="raum-detail__header">
-      <a class="btn-icon" routerLink="/raum" title="Zurück zur Übersicht">
+      <a class="btn-icon" routerLink="/raum" [title]="'raum_detail.back' | translate">
         <mat-icon>arrow_back</mat-icon>
       </a>
       <div class="raum-detail__title-wrap">
@@ -16,7 +16,7 @@
       <button class="btn-view-toggle"
               [class.btn-view-toggle--active]="showTimeline()"
               (click)="showTimeline.set(!showTimeline())"
-              [title]="showTimeline() ? 'Zurück zum Tischplan' : 'Tagesübersicht anzeigen'">
+              [title]="showTimeline() ? ('raum_detail.back_to_plan' | translate) : ('raum_detail.view_timeline' | translate)">
         @if (!showTimeline()) {
           <!-- Timeline-Icon: Gantt-Balken -->
           <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -28,7 +28,7 @@
             <rect x="6" y="8" width="6.5" height="3" rx="1.5" fill="currentColor" opacity=".55"/>
             <rect x="6" y="12" width="8.5" height="3" rx="1.5" fill="currentColor" opacity=".85"/>
           </svg>
-          <span>Übersicht</span>
+          <span>{{ 'raum_detail.overview' | translate }}</span>
         } @else {
           <!-- Tischplan-Icon: Grundriss-Raster -->
           <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -37,12 +37,12 @@
             <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
             <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
           </svg>
-          <span>Tischplan</span>
+          <span>{{ 'raum_detail.floor_plan' | translate }}</span>
         }
       </button>
 
       <a class="btn-secondary" [routerLink]="['/restaurant-plan', r.id]">
-        <mat-icon>edit</mat-icon> Plan bearbeiten
+        <mat-icon>edit</mat-icon> {{ 'raum_detail.edit_plan' | translate }}
       </a>
     </div>
 
@@ -55,11 +55,11 @@
         <!-- Datum-Karte -->
         <div class="date-card">
           <div class="date-card__row">
-            <button class="btn-icon btn-icon--ghost" (click)="shiftDate(-1)" title="Vorheriger Tag">
+            <button class="btn-icon btn-icon--ghost" (click)="shiftDate(-1)" [title]="'raum_detail.prev_day' | translate">
               <mat-icon>chevron_left</mat-icon>
             </button>
             <button type="button" class="date-card__middle" (click)="picker.open()"
-                    title="Anderes Datum wählen">
+                    [title]="'raum_detail.pick_date' | translate">
               <div class="date-card__label">
                 <mat-icon class="date-card__label-icon">event</mat-icon>
                 {{ formatDateLabel() }}
@@ -69,7 +69,7 @@
                 · {{ stats().guests }} Gäste
               </div>
             </button>
-            <button class="btn-icon btn-icon--ghost" (click)="shiftDate(1)" title="Nächster Tag">
+            <button class="btn-icon btn-icon--ghost" (click)="shiftDate(1)" [title]="'raum_detail.next_day' | translate">
               <mat-icon>chevron_right</mat-icon>
             </button>
           </div>
@@ -84,13 +84,13 @@
           @if (isSelectedDayClosed()) {
             <div class="date-card__closed-banner">
               <mat-icon>block</mat-icon>
-              Geschlossen – keine Reservierungen möglich
+              {{ 'raum_detail.closed' | translate }}
             </div>
           }
 
           @if (selectedDate() !== todayIsoPublic()) {
             <button class="date-card__today-link" (click)="goToday()">
-              <mat-icon>today</mat-icon> Zurück zu heute
+              <mat-icon>today</mat-icon> {{ 'raum_detail.back_today' | translate }}
             </button>
           }
         </div>
@@ -99,12 +99,36 @@
         <div class="btn-row">
           <button class="btn-new" [disabled]="isSelectedDayClosed()" (click)="openNewDialog()">
             <mat-icon>add</mat-icon>
-            <span>Neue Reservierung</span>
+            <span>{{ 'raum_detail.new_reservation' | translate }}</span>
           </button>
           <button class="btn-new btn-new--walkin" [disabled]="isSelectedDayClosed()" (click)="openWalkInDialog()">
             <mat-icon>directions_walk</mat-icon>
-            <span>Walk-In</span>
+            <span>{{ 'raum_detail.walk_in' | translate }}</span>
           </button>
+        </div>
+
+        <!-- Status-Bar (immer sichtbar, außerhalb des Filters) -->
+        <div class="status-bar">
+          <div class="status-bar__chips">
+            <button class="sub-filter__chip"
+                    [class.sub-filter__chip--active]="statusFilter() === 'active'"
+                    (click)="statusFilter.set('active')">
+              {{ 'raum_detail.active' | translate }}
+              @if (stats().upcoming + stats().seated > 0) {
+                <span class="filter-panel__count">{{ stats().upcoming + stats().seated }}</span>
+              }
+            </button>
+            <button class="sub-filter__chip"
+                    [class.sub-filter__chip--active]="statusFilter() === 'all'"
+                    (click)="statusFilter.set('all')">
+              {{ 'raum_detail.all' | translate }}
+            </button>
+            <button class="sub-filter__chip"
+                    [class.sub-filter__chip--active]="statusFilter() === 'completed'"
+                    (click)="statusFilter.set('completed')">
+              {{ 'raum_detail.completed' | translate }}
+            </button>
+          </div>
         </div>
 
         <!-- Filter-Button -->
@@ -113,10 +137,7 @@
                   [class.filter-toggle-btn--open]="filterPanelOpen()"
                   (click)="filterPanelOpen.set(!filterPanelOpen())">
             <mat-icon>filter_list</mat-icon>
-            <span>Filter</span>
-            @if (statusFilter() !== 'active') {
-              <span class="filter-toggle-btn__badge">1</span>
-            }
+            <span>{{ 'raum_detail.filter' | translate }}</span>
             <mat-icon class="filter-toggle-btn__arrow">
               {{ filterPanelOpen() ? 'expand_less' : 'expand_more' }}
             </mat-icon>
@@ -126,40 +147,16 @@
         @if (filterPanelOpen()) {
           <div class="filter-panel">
             <div class="filter-panel__group">
-              <span class="filter-panel__label">Status</span>
+              <span class="filter-panel__label">{{ 'raum_detail.sort_display' | translate }}</span>
               <div class="filter-panel__chips">
-                <button class="sub-filter__chip"
-                        [class.sub-filter__chip--active]="statusFilter() === 'active'"
-                        (click)="statusFilter.set('active')">
-                  Aktiv
-                  @if (stats().upcoming + stats().seated > 0) {
-                    <span class="filter-panel__count">{{ stats().upcoming + stats().seated }}</span>
-                  }
-                </button>
-                <button class="sub-filter__chip"
-                        [class.sub-filter__chip--active]="statusFilter() === 'all'"
-                        (click)="statusFilter.set('all')">
-                  Alle
-                </button>
-                <button class="sub-filter__chip"
-                        [class.sub-filter__chip--active]="statusFilter() === 'completed'"
-                        (click)="statusFilter.set('completed')">
-                  Beendet
-                </button>
-              </div>
-            </div>
-
-            <div class="filter-panel__group">
-              <span class="filter-panel__label">Sortierung &amp; Anzeige</span>
-              <div class="filter-panel__chips">
-                <button class="sub-filter__chip sub-filter__chip--active">Uhrzeit ↑</button>
-                <button class="sub-filter__chip">Uhrzeit ↓</button>
-                <button class="sub-filter__chip">No-Shows</button>
-                <button class="sub-filter__chip">Storniert</button>
-                <button class="sub-filter__chip">Verspätet</button>
-                <button class="sub-filter__chip">Bevorstehend</button>
-                <button class="sub-filter__chip">Warteliste</button>
-                <button class="sub-filter__chip">Walk-In</button>
+                <button class="sub-filter__chip sub-filter__chip--active">{{ 'raum_detail.time_asc' | translate }}</button>
+                <button class="sub-filter__chip">{{ 'raum_detail.time_desc' | translate }}</button>
+                <button class="sub-filter__chip">{{ 'raum_detail.no_shows' | translate }}</button>
+                <button class="sub-filter__chip">{{ 'raum_detail.cancelled' | translate }}</button>
+                <button class="sub-filter__chip">{{ 'raum_detail.late' | translate }}</button>
+                <button class="sub-filter__chip">{{ 'raum_detail.upcoming' | translate }}</button>
+                <button class="sub-filter__chip">{{ 'raum_detail.waitlist' | translate }}</button>
+                <button class="sub-filter__chip">{{ 'raum_detail.walk_in' | translate }}</button>
               </div>
             </div>
           </div>
@@ -170,8 +167,8 @@
           @if (filteredReservations().length === 0) {
             <div class="res-empty">
               <mat-icon>event_available</mat-icon>
-              <p>Keine Reservierungen</p>
-              <small>Leg eine neue Reservierung an, um loszulegen.</small>
+              <p>{{ 'raum_detail.no_reservations' | translate }}</p>
+              <small>{{ 'raum_detail.no_reservations_hint' | translate }}</small>
             </div>
           } @else {
             @for (group of timeGroups(); track group.hour) {
@@ -211,7 +208,7 @@
                           @if (getraenke.activeAlerts().has(res.id)) {
                             <button class="drinks-alert"
                                     (click)="acknowledgeGetraenke(res.id, $event)"
-                                    title="Getränke bringen — Klick zum Bestätigen">
+                                    [title]="'raum_detail.drinks_alert' | translate">
                               <svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" class="drinks-alert__svg">
                                 <ellipse cx="14" cy="25.5" rx="8.5" ry="1.5" fill="rgba(0,0,0,0.18)"/>
                                 <path d="M7 5 L9 23 Q9 24 10 24 L18 24 Q19 24 19 23 L21 5 Z"
@@ -254,7 +251,7 @@
                           } @else if (res.tableId) {
                             <span><mat-icon>table_restaurant</mat-icon>Tisch #{{ res.tableId }}</span>
                           } @else {
-                            <span class="warn"><mat-icon>help_outline</mat-icon>Ohne Tisch</span>
+                            <span class="warn"><mat-icon>help_outline</mat-icon>{{ 'raum_detail.no_table' | translate }}</span>
                           }
                           @if (res.status === 'completed' || res.status === 'cancelled' || res.status === 'no-show') {
                             <span class="muted">· {{ statusLabel(res.status) }}@if (res.status === 'no-show' && (res.guestNoShowCount ?? 0) > 1) { <span class="no-show-count">({{ res.guestNoShowCount }})</span>}</span>
@@ -288,70 +285,70 @@
                       <div class="res-row__actions">
                         @switch (res.status) {
                           @case ('upcoming') {
-                            <button class="action action--primary" (click)="checkIn(res)" title="Einchecken">
+                            <button class="action action--primary" (click)="checkIn(res)" [title]="'raum_detail.check_in' | translate">
                               <mat-icon>login</mat-icon>
                             </button>
                           }
                           @case ('confirmed') {
-                            <button class="action action--checkin-confirmed" (click)="checkIn(res)" title="Check in">
+                            <button class="action action--checkin-confirmed" (click)="checkIn(res)" [title]="'raum_detail.check_in_confirmed' | translate">
                               <mat-icon>how_to_reg</mat-icon>
                             </button>
                           }
                           @case ('late') {
-                            <button class="action action--checkin-late" (click)="checkIn(res)" title="Check in">
+                            <button class="action action--checkin-late" (click)="checkIn(res)" [title]="'raum_detail.check_in_confirmed' | translate">
                               <mat-icon>how_to_reg</mat-icon>
                             </button>
                           }
                           @case ('seated') {
-                            <button class="action action--success" (click)="markCompleted(res)" title="Beenden">
+                            <button class="action action--success" (click)="markCompleted(res)" [title]="'raum_detail.complete' | translate">
                               <mat-icon>logout</mat-icon>
                             </button>
                           }
                           @case ('expired') {
-                            <button class="action action--success" (click)="markCompleted(res)" title="Beenden">
+                            <button class="action action--success" (click)="markCompleted(res)" [title]="'raum_detail.complete' | translate">
                               <mat-icon>logout</mat-icon>
                             </button>
                           }
                           @case ('cleanup') {
-                            <button class="action action--cleanup" (click)="markCleanupDone(res)" title="Tisch jetzt frei">
+                            <button class="action action--cleanup" (click)="markCleanupDone(res)" [title]="'raum_detail.table_free' | translate">
                               <mat-icon>cleaning_services</mat-icon>
                             </button>
                           }
                           @default {
-                            <button class="action" (click)="reopen(res)" title="Wieder aktivieren">
+                            <button class="action" (click)="reopen(res)" [title]="'raum_detail.reopen' | translate">
                               <mat-icon>replay</mat-icon>
                             </button>
                           }
                         }
                         <div class="kebab-wrap">
-                          <button class="action" (click)="toggleMenu($event, res.id)" title="Mehr">
+                          <button class="action" (click)="toggleMenu($event, res.id)" [title]="'raum_detail.more' | translate">
                             <mat-icon>more_vert</mat-icon>
                           </button>
                           @if (openMenuId() === res.id) {
                             <div class="kebab-menu" (click)="$event.stopPropagation()">
                               <button class="kebab-menu__item" (click)="openEditDialog(res); closeMenu()">
-                                <mat-icon>edit</mat-icon> Bearbeiten
+                                <mat-icon>edit</mat-icon> {{ 'common.edit' | translate }}
                               </button>
                               @if (res.status === 'upcoming' || res.status === 'confirmed' || res.status === 'seated' || res.status === 'expired' || res.status === 'cleanup') {
                                 @if (res.status === 'expired') {
                                   <button class="kebab-menu__item" (click)="extendReservation(res); closeMenu()">
-                                    <mat-icon>more_time</mat-icon> Um 30 min verlängern
+                                    <mat-icon>more_time</mat-icon> {{ 'raum_detail.extend_30' | translate }}
                                   </button>
                                 }
                                 @if (res.status === 'cleanup') {
                                   <button class="kebab-menu__item" (click)="markCleanupDone(res); closeMenu()">
-                                    <mat-icon>task_alt</mat-icon> Tisch jetzt frei
+                                    <mat-icon>task_alt</mat-icon> {{ 'raum_detail.table_free' | translate }}
                                   </button>
                                 }
                                 <button class="kebab-menu__item" (click)="markNoShow(res); closeMenu()">
-                                  <mat-icon>person_off</mat-icon> Nicht erschienen
+                                  <mat-icon>person_off</mat-icon> {{ 'raum_detail.mark_no_show' | translate }}
                                 </button>
                                 <button class="kebab-menu__item kebab-menu__item--danger" (click)="cancel(res); closeMenu()">
-                                  <mat-icon>cancel</mat-icon> Stornieren
+                                  <mat-icon>cancel</mat-icon> {{ 'raum_detail.cancel_res' | translate }}
                                 </button>
                               } @else {
                                 <button class="kebab-menu__item kebab-menu__item--danger" (click)="remove(res); closeMenu()">
-                                  <mat-icon>delete</mat-icon> Löschen
+                                  <mat-icon>delete</mat-icon> {{ 'common.delete' | translate }}
                                 </button>
                               }
                             </div>
@@ -393,41 +390,60 @@
 
                 <!-- Content: Zeitachse + Spalten -->
                 <div class="tl-content">
-                  <!-- Zeitachse links (sticky left) -->
+                  <!-- Zeitachse links (sticky left) — absolut positionierte Labels (%) -->
                   <div class="tl-axis">
-                    @for (hour of tlHours; track hour) {
-                      <div class="tl-axis__label" [style.height.px]="tlSlotPx * 2">{{ hour }}</div>
+                    @for (m of tlHourMarkers; track m.label) {
+                      <div class="tl-axis__label" [style.top.%]="m.pct">{{ m.label }}</div>
                     }
                   </div>
 
                   <!-- Spalten pro Tisch -->
-                  <div class="tl-columns">
+                  <div class="tl-columns" [class.tl-columns--dragging]="!!tlDrag">
                     @for (table of r.tables; track table.id) {
-                      <div class="tl-col" [style.height.px]="tlTotalPx">
+                      <div class="tl-col">
 
-                        <!-- Hintergrund-Raster -->
+                        <!-- Öffnungszeiten-Zone (heller Hintergrund) — prozentual -->
+                        @if (tlOpenPct()) {
+                          <div class="tl-col__open-zone"
+                               [style.top.%]="tlOpenPct()!.from"
+                               [style.height.%]="tlOpenPct()!.to - tlOpenPct()!.from">
+                          </div>
+                        }
+
+                        <!-- Hintergrund-Raster (klickbar → neue Reservierung) -->
                         @for (slot of tlSlots; track slot; let i = $index) {
                           <div class="tl-col__slot"
                                [class.tl-col__slot--hour]="i % 2 === 0"
-                               [style.height.px]="tlSlotPx"></div>
+                               [title]="slot + ' · Tisch #' + table.id"
+                               (click)="openFromSlot(table.id, slot)">
+                          </div>
                         }
 
-                        <!-- Jetzt-Linie -->
-                        @if (tlNowPx() >= 0) {
-                          <div class="tl-now-line" [style.top.px]="tlNowPx()"></div>
+                        <!-- Jetzt-Linie — prozentual -->
+                        @if (tlNowPct() >= 0) {
+                          <div class="tl-now-line" [style.top.%]="tlNowPct()"></div>
                         }
 
-                        <!-- Reservierungs-Blöcke -->
+                        <!-- Reservierungs-Blöcke — prozentual -->
                         @for (res of activeResForTable(table.id); track res.id) {
                           <div class="tl-res"
-                               [style.top.px]="resBlockTop(res)"
-                               [style.height.px]="resBlockHeight(res)"
+                               [class.tl-res--historic]="isResHistoric(res)"
+                               [class.tl-res--dragging]="tlDrag?.resId === res.id && tlDrag?.moved"
+                               [style.top.%]="resBlockTopPct(res)"
+                               [style.height.%]="resBlockHeightPct(res)"
                                [style.background]="colorFor(res.status)"
-                               (click)="openGuestCard(res)"
+                               (pointerdown)="onTlResPointerDown($event, res, 'move')"
+                               (click)="onTlResClick(res)"
                                [title]="res.guestName + ' · ' + res.partySize + ' Pers.'">
                             <span class="tl-res__name">{{ res.guestName }}</span>
-                            @if (resBlockHeight(res) >= tlSlotPx * 2) {
+                            @if (res.durationMinutes >= 60) {
                               <span class="tl-res__meta">{{ res.partySize }} P. · {{ res.durationMinutes }} min</span>
+                            }
+                            @if (!isResHistoric(res)) {
+                              <div class="tl-res__resize-handle"
+                                   (pointerdown)="onTlResPointerDown($event, res, 'resize'); $event.stopPropagation()"
+                                   (click)="$event.stopPropagation()">
+                              </div>
                             }
                           </div>
                         }
@@ -444,7 +460,7 @@
           <div class="tl-free-panel">
             <div class="tl-free-panel__head">
               <mat-icon>event_available</mat-icon>
-              Freie Slots heute
+              {{ 'raum_detail.free_slots' | translate }}
             </div>
             <div class="tl-free-panel__list">
               @for (s of freeSlotsToday(); track s.time) {
@@ -453,13 +469,13 @@
                   <span class="tl-free-slot__time">{{ s.time }}</span>
                   <span class="tl-free-slot__count">{{ s.freeCount }} Tisch{{ s.freeCount !== 1 ? 'e' : '' }}</span>
                   <button class="tl-free-slot__btn"
-                          (click)="openNewDialog({time: s.time})">Buchen</button>
+                          (click)="openNewDialog({time: s.time})">{{ 'raum_detail.book' | translate }}</button>
                 </div>
               }
               @if (freeSlotsToday().length === 0) {
                 <div class="tl-free-panel__empty">
                   <mat-icon>event_busy</mat-icon>
-                  <span>Keine freien Slots</span>
+                  <span>{{ 'raum_detail.no_free_slots' | translate }}</span>
                 </div>
               }
             </div>
@@ -475,9 +491,9 @@
         <div class="day-load-bar">
           <div class="day-load-bar__header">
             <span class="day-load-bar__title">
-              <mat-icon>query_stats</mat-icon> Tagesverlauf
+              <mat-icon>query_stats</mat-icon> {{ 'raum_detail.day_load' | translate }}
             </span>
-            <span class="day-load-bar__hint">Balkenhöhe = Reservierungen pro Stunde</span>
+            <span class="day-load-bar__hint">{{ 'raum_detail.day_load_hint' | translate }}</span>
           </div>
           <div class="day-load">
             @for (bucket of dayLoad(); track bucket.hour) {
@@ -508,10 +524,49 @@
         @if (reassignMode()) {
           <div class="reassign-hint" (click)="$event.stopPropagation()">
             <mat-icon>swap_horiz</mat-icon>
-            <span>Wähle einen Zieltisch, um die Reservierung umzusetzen.</span>
-            <button class="reassign-hint__close" (click)="cancelReassign()" title="Abbrechen (Esc)">
+            <span>{{ 'raum_detail.reassign_hint' | translate }}</span>
+            <button class="reassign-hint__close" (click)="cancelReassign()" [title]="'raum_detail.cancel_esc' | translate">
               <mat-icon>close</mat-icon>
             </button>
+          </div>
+        }
+
+        <!-- Umplatzieren-oder-Splitten-Auswahl -->
+        @if (reassignChoice()) {
+          <div class="reassign-choice-backdrop" (click)="reassignChoice.set(null)">
+            <div class="reassign-choice" (click)="$event.stopPropagation()">
+              <p class="reassign-choice__title">
+                <mat-icon>help_outline</mat-icon>
+                Tisch {{ reassignMode()?.sourceTableId }} → Tisch {{ reassignChoice()?.targetTableId }}
+              </p>
+              <div class="reassign-choice__options">
+                <button class="reassign-choice__opt reassign-choice__opt--move" (click)="doReassign()">
+                  <mat-icon>swap_horiz</mat-icon>
+                  <div>
+                    <strong>Tisch Umplatzieren</strong>
+                    <span>Reservierung wechselt vollständig zu Tisch {{ reassignChoice()?.targetTableId }}</span>
+                  </div>
+                </button>
+                @if (reassignResSplit) {
+                  <button class="reassign-choice__opt reassign-choice__opt--merge" (click)="doMerge()">
+                    <mat-icon>merge</mat-icon>
+                    <div>
+                      <strong>Tische zusammenführen</strong>
+                      <span>Split aufheben — Reservierung nur noch auf Tisch {{ reassignChoice()?.targetTableId }}</span>
+                    </div>
+                  </button>
+                } @else {
+                  <button class="reassign-choice__opt reassign-choice__opt--split" (click)="doSplit()">
+                    <mat-icon>call_split</mat-icon>
+                    <div>
+                      <strong>Tisch Splitten</strong>
+                      <span>Reservierung gilt für Tisch {{ reassignMode()?.sourceTableId }} und {{ reassignChoice()?.targetTableId }}</span>
+                    </div>
+                  </button>
+                }
+              </div>
+              <button class="reassign-choice__cancel" (click)="reassignChoice.set(null)">Abbrechen</button>
+            </div>
           </div>
         }
 
@@ -657,9 +712,35 @@
           </div>
         }
 
-        <!-- Merge-Verbindungslinien (permanente Raum-Merges) -->
+        <!-- Merge-Verbindungslinien + Badge (permanente Raum-Merges) -->
         @for (pair of getMergedPairs(); track pair.a.id) {
           <div class="merge-line" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
+          <div class="merge-badge"
+               [style]="getMidpointStyle(pair.a, pair.b)"
+               (pointerdown)="$event.stopPropagation()"
+               (click)="openRoomSplitDialog(pair.a.id, $event)"
+               title="Tische wieder trennen">
+            <mat-icon>link</mat-icon>
+          </div>
+        }
+
+        <!-- Bestätigungsdialog: Tische trennen -->
+        @if (splitRoomTableId() !== null) {
+          <div class="room-split-backdrop" (click)="cancelRoomSplit()">
+            <div class="room-split-dialog" (click)="$event.stopPropagation()">
+              <div class="room-split-dialog__icon"><mat-icon>link_off</mat-icon></div>
+              <h3 class="room-split-dialog__title">Tische trennen?</h3>
+              <p class="room-split-dialog__text">Die zusammengestellten Tische werden wieder getrennt und auf ihre ursprüngliche Sitzplatzzahl zurückgesetzt.</p>
+              <div class="room-split-dialog__actions">
+                <button class="room-split-dialog__btn room-split-dialog__btn--confirm" (click)="confirmRoomSplit()">
+                  <mat-icon>link_off</mat-icon> Ja, trennen
+                </button>
+                <button class="room-split-dialog__btn room-split-dialog__btn--cancel" (click)="cancelRoomSplit()">
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </div>
         }
         <!-- Merge-Verbindungslinien (Reservierungs-Tischgruppen) -->
         @for (pair of getReservationMergePairs(); track pair.a.id + '-' + pair.b.id) {
@@ -683,9 +764,9 @@
                (click)="onTableClick(table.id, $event)"
                [title]="reassignMode()
                           ? (reassignMode()?.sourceTableId === table.id
-                               ? 'Abbrechen'
-                               : 'Hierhin umsetzen')
-                          : 'Neue Reservierung auf Tisch #' + table.id">
+                               ? ('common.cancel' | translate)
+                               : ('raum_detail.reassign_here' | translate))
+                          : ('raum_detail.new_res_table' | translate: { id: table.id })">
 
             @if (table.type === 'long') {
               <svg viewBox="0 0 140 70" class="table-svg">
@@ -723,8 +804,8 @@
                 @for (res of visibleGuestReservations(table.id); track res.id) {
                   <div class="placed-table__guest"
                        [class.is-multi]="tableAllActiveReservations(table.id).length > 1"
-                       (click)="openGuestCard(res); $event.stopPropagation()"
-                       title="Klick: Gastkartei öffnen"
+                       (click)="onGuestChipClick(table.id, res, $event)"
+                       [title]="reassignMode() ? ('raum_detail.reassign_here' | translate) : 'Klick: Gastkartei öffnen'"
                        style="cursor: pointer;">
                     <mat-icon>person</mat-icon>
                     <span>{{ res.guestName }}</span>
@@ -759,7 +840,7 @@
           <div class="split-picker-backdrop" (click)="splitPickerFor.set(null)">
             <div class="split-picker" (click)="$event.stopPropagation()">
               <div class="split-picker__header">
-                <span>Tisch {{ splitPickerFor() }} teilen — Gast hinzufügen</span>
+                <span>{{ 'raum_detail.split_table' | translate: { id: splitPickerFor() } }}</span>
                 <button class="split-picker__close" (click)="splitPickerFor.set(null)">
                   <mat-icon>close</mat-icon>
                 </button>
@@ -799,11 +880,11 @@
       <div class="dialog dialog--form">
         <div class="dialog__title-row">
           <h3 class="dialog__title">
-            @if (editDialogOpen()) { Reservierung bearbeiten }
-            @else if (form.isWalkIn) { Walk-In anlegen }
-            @else { Neue Reservierung }
+            @if (editDialogOpen()) { {{ 'raum_detail.edit_reservation' | translate }} }
+            @else if (form.isWalkIn) { {{ 'raum_detail.new_walk_in' | translate }} }
+            @else { {{ 'raum_detail.new_reservation' | translate }} }
           </h3>
-          <button type="button" class="dialog__close" (click)="closeFormDialog()" title="Schließen">
+          <button type="button" class="dialog__close" (click)="closeFormDialog()" [title]="'common.close' | translate">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -816,7 +897,7 @@
                     [class.is-done]="mobileStep() > 1"
                     (click)="mobileStep.set(1)">
               <span class="rf-mob-indicator__num">1</span>
-              <span class="rf-mob-indicator__lbl">Datum</span>
+              <span class="rf-mob-indicator__lbl">{{ 'raum_detail.date_step' | translate }}</span>
             </button>
             <div class="rf-mob-indicator__line" [class.is-done]="mobileStep() > 1"></div>
             <button type="button" class="rf-mob-indicator__step"
@@ -824,7 +905,7 @@
                     [class.is-done]="mobileStep() > 2"
                     (click)="mobileStep() > 1 && mobileStep.set(2)">
               <span class="rf-mob-indicator__num">2</span>
-              <span class="rf-mob-indicator__lbl">Uhrzeit</span>
+              <span class="rf-mob-indicator__lbl">{{ 'raum_detail.time_step' | translate }}</span>
             </button>
             <div class="rf-mob-indicator__line" [class.is-done]="mobileStep() > 2"></div>
             <button type="button" class="rf-mob-indicator__step"
@@ -832,14 +913,14 @@
                     [class.is-done]="mobileStep() > 3"
                     (click)="mobileStep() > 2 && mobileStep.set(3)">
               <span class="rf-mob-indicator__num">3</span>
-              <span class="rf-mob-indicator__lbl">Details</span>
+              <span class="rf-mob-indicator__lbl">{{ 'raum_detail.details_step' | translate }}</span>
             </button>
             <div class="rf-mob-indicator__line" [class.is-done]="mobileStep() > 3"></div>
             <button type="button" class="rf-mob-indicator__step"
                     [class.is-active]="mobileStep() === 4"
                     (click)="mobileStep() > 3 && mobileStep.set(4)">
               <span class="rf-mob-indicator__num">4</span>
-              <span class="rf-mob-indicator__lbl">Tisch</span>
+              <span class="rf-mob-indicator__lbl">{{ 'raum_detail.table_step' | translate }}</span>
             </button>
           </div>
         }
@@ -859,7 +940,7 @@
                   <rect x="5" y="10" width="3" height="3" rx="0.8" fill="currentColor" opacity=".7"/>
                   <rect x="9" y="10" width="3" height="3" rx="0.8" fill="currentColor" opacity=".7"/>
                 </svg>
-                Reservierungsdetails
+                {{ 'raum_detail.details_step' | translate }}
               </div>
 
               @if (!editDialogOpen()) {
@@ -893,15 +974,15 @@
 
               <div class="field">
                 <span class="field__label">
-                  Vor- und Nachname
+                  {{ 'raum_detail.full_name' | translate }}
                   @if (formSubmitAttempted() && !form.vorname.trim()) {
-                    <span class="field__required-hint">Pflichtfeld</span>
+                    <span class="field__required-hint">{{ 'common.required' | translate }}</span>
                   }
                 </span>
                 <div class="guest-autocomplete">
                   <input class="field__input reservation-form__name-input"
                          name="vorname" type="text" maxlength="80"
-                         placeholder="z. B. Max Mustermann" autocomplete="off"
+                         [placeholder]="'raum_detail.name_placeholder' | translate" autocomplete="off"
                          [(ngModel)]="form.vorname"
                          (ngModelChange)="newDialogOpen() && onVornameInput($event)"
                          (blur)="hideSuggestionsDelayed()"
@@ -924,7 +1005,7 @@
               </div>
 
               <label class="field">
-                <span class="field__label">Dauer</span>
+                <span class="field__label">{{ 'raum_detail.duration' | translate }}</span>
                 <select class="field__input field__input--select" name="duration" [(ngModel)]="form.durationMinutes" (ngModelChange)="formDurationMinutes.set(+$event)">
                   <option [value]="30">30 min</option><option [value]="45">45 min</option>
                   <option [value]="60">1 Std.</option><option [value]="75">1 Std. 15</option>
@@ -937,19 +1018,19 @@
               </label>
 
               <label class="field">
-                <span class="field__label">E-Mail (optional)</span>
-                <input class="field__input" name="guestEmail" type="email" placeholder="gast@beispiel.de" [(ngModel)]="form.guestEmail">
+                <span class="field__label">{{ 'raum_detail.email_optional' | translate }}</span>
+                <input class="field__input" name="guestEmail" type="email" [placeholder]="'raum_detail.email_placeholder' | translate" [(ngModel)]="form.guestEmail">
               </label>
 
               <label class="field">
-                <span class="field__label">Telefon (optional)</span>
-                <input class="field__input" name="phone" type="tel" placeholder="+49 123 456789" [(ngModel)]="form.phone">
+                <span class="field__label">{{ 'raum_detail.phone_optional' | translate }}</span>
+                <input class="field__input" name="phone" type="tel" [placeholder]="'raum_detail.phone_placeholder' | translate" [(ngModel)]="form.phone">
               </label>
 
               <label class="field rf-notes">
-                <span class="field__label">Notiz (optional)</span>
+                <span class="field__label">{{ 'raum_detail.note_optional' | translate }}</span>
                 <textarea class="field__input field__input--area" rows="4"
-                          name="notes" placeholder="Allergien, Geburtstag, Wünsche…"
+                          name="notes" [placeholder]="'raum_detail.note_placeholder' | translate"
                           [(ngModel)]="form.notes"></textarea>
               </label>
             </div>
@@ -971,7 +1052,7 @@
                     <circle cx="3"  cy="10" r=".8" fill="currentColor" opacity=".5"/>
                     <circle cx="17" cy="10" r=".8" fill="currentColor" opacity=".5"/>
                   </svg>
-                  Datum &amp; Uhrzeit
+                  {{ 'raum_detail.date_step' | translate }} &amp; {{ 'raum_detail.time_step' | translate }}
                 </div>
 
                 <div class="rf-datetime">
@@ -988,8 +1069,8 @@
                         </button>
                       </div>
                       <div class="inline-cal__weekdays">
-                        <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span>
-                        <span>Fr</span><span>Sa</span><span>So</span>
+                        <span>{{ 'common.days_short.mon' | translate }}</span><span>{{ 'common.days_short.tue' | translate }}</span><span>{{ 'common.days_short.wed' | translate }}</span><span>{{ 'common.days_short.thu' | translate }}</span>
+                        <span>{{ 'common.days_short.fri' | translate }}</span><span>{{ 'common.days_short.sat' | translate }}</span><span>{{ 'common.days_short.sun' | translate }}</span>
                       </div>
                       <div class="inline-cal__grid">
                         @for (cell of calendarDays(); track cell.iso) {
@@ -1010,9 +1091,9 @@
                   <!-- Uhrzeit + Personen — Step 2 auf Mobile -->
                   <div class="rf-time-persons rf-mob-time">
                     <div class="rf-section-label">
-                      Uhrzeit
+                      {{ 'raum_detail.time_step' | translate }}
                       @if (formSubmitAttempted() && !form.time) {
-                        <span class="field__required-hint">Pflichtfeld</span>
+                        <span class="field__required-hint">{{ 'common.required' | translate }}</span>
                       }
                     </div>
                     <div class="rf-time-slots">
@@ -1035,9 +1116,9 @@
                         <circle cx="13" cy="6" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
                         <path d="M6.5 17.5 Q6.5 12 13 12 Q19.5 12 19.5 17.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
                       </svg>
-                      Personen
+                      {{ 'raum_detail.persons' | translate }}
                       @if (formSubmitAttempted() && form.partySize < 1) {
-                        <span class="field__required-hint">Pflichtfeld</span>
+                        <span class="field__required-hint">{{ 'common.required' | translate }}</span>
                       }
                     </div>
                     <div class="picker-row" [class.picker-row--invalid]="formSubmitAttempted() && form.partySize < 1">
@@ -1071,7 +1152,7 @@
                     <rect x="1.5" y="4" width="4" height="3.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/>
                     <rect x="14.5" y="4" width="4" height="3.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/>
                   </svg>
-                  Tisch auswählen
+                  {{ 'raum_detail.select_table' | translate }}
                   @if (form.tableIds.length > 0) {
                     <span class="rf-seats-info"
                           [class.rf-seats-info--ok]="selectedSeatsTotal() >= form.partySize"
@@ -1115,7 +1196,7 @@
                             [class.table-inline__card--selected]="isTableSelected(0)"
                             (click)="toggleTableSelection(0)">
                       <mat-icon class="table-inline__icon">block</mat-icon>
-                      <span class="table-inline__num">Kein</span>
+                      <span class="table-inline__num">{{ 'raum_detail.no_table_opt' | translate }}</span>
                     </button>
                     @for (t of availableTables(); track t.id) {
                       @let actuallyOccupied = isTableOccupied(t.id, form.time, form.durationMinutes, editingId());
@@ -1136,9 +1217,9 @@
                         <span class="table-inline__num">#{{ t.id }}</span>
                         <span class="table-inline__lbl">{{ tableLabel(t.id) }}</span>
                         @if (occupied || selectedOccupied) {
-                          <span class="table-inline__badge">Besetzt</span>
+                          <span class="table-inline__badge">{{ 'raum_detail.occupied' | translate }}</span>
                         } @else if (isSuggested) {
-                          <span class="table-inline__badge table-inline__badge--suggested">Beste Kombi</span>
+                          <span class="table-inline__badge table-inline__badge--suggested">{{ 'raum_detail.best_combo' | translate }}</span>
                         } @else if (tooSmall) {
                           <span class="table-inline__badge table-inline__badge--small">+ Kombinieren</span>
                         } @else if (isTableSelected(t.id) && form.tableIds.length > 1) {
@@ -1161,9 +1242,9 @@
           <!-- Desktop-Buttons (immer sichtbar auf Desktop) -->
           <div class="dialog__actions dialog__actions--bottom-right rf-desktop-actions"
                [hidden]="isMobile()">
-            <button type="button" class="dialog__btn dialog__btn--secondary" (click)="closeFormDialog()">Abbrechen</button>
+            <button type="button" class="dialog__btn dialog__btn--secondary" (click)="closeFormDialog()">{{ 'common.cancel' | translate }}</button>
             <button type="submit" class="dialog__btn dialog__btn--primary">
-              @if (editDialogOpen()) { Speichern } @else { Anlegen }
+              @if (editDialogOpen()) { {{ 'common.save' | translate }} } @else { Anlegen }
             </button>
           </div>
 
@@ -1172,23 +1253,23 @@
             <div class="rf-mob-nav" [hidden]="!isMobile()">
               @if (mobileStep() > 1) {
                 <button type="button" class="rf-mob-nav__back" (click)="prevMobileStep()">
-                  <mat-icon>arrow_back</mat-icon> Zurück
+                  <mat-icon>arrow_back</mat-icon> {{ 'common.back' | translate }}
                 </button>
               } @else {
-                <button type="button" class="rf-mob-nav__back" (click)="closeFormDialog()">Abbrechen</button>
+                <button type="button" class="rf-mob-nav__back" (click)="closeFormDialog()">{{ 'common.cancel' | translate }}</button>
               }
               @if (mobileStep() < mobileStepMax) {
                 <button type="button" class="rf-mob-nav__next" (click)="nextMobileStep()">
-                  Weiter <mat-icon>arrow_forward</mat-icon>
+                  {{ 'common.next' | translate }} <mat-icon>arrow_forward</mat-icon>
                 </button>
               } @else {
-                <button type="submit" class="rf-mob-nav__submit">Anlegen</button>
+                <button type="submit" class="rf-mob-nav__submit">{{ 'common.create' | translate }}</button>
               }
             </div>
           } @else {
             <div class="rf-mob-nav" [hidden]="!isMobile()">
-              <button type="button" class="rf-mob-nav__back" (click)="closeFormDialog()">Abbrechen</button>
-              <button type="submit" class="rf-mob-nav__submit">Speichern</button>
+              <button type="button" class="rf-mob-nav__back" (click)="closeFormDialog()">{{ 'common.cancel' | translate }}</button>
+              <button type="submit" class="rf-mob-nav__submit">{{ 'common.save' | translate }}</button>
             </div>
           }
         </form>
@@ -1197,8 +1278,8 @@
 
     @if (tablePickerFor()) {
       <div class="dialog dialog--table-picker">
-        <h3 class="dialog__title">Tisch zuweisen</h3>
-        <p class="dialog__text">Welcher Tisch soll für diese Reservierung belegt werden?</p>
+        <h3 class="dialog__title">{{ 'raum_detail.assign_table' | translate }}</h3>
+        <p class="dialog__text">{{ 'raum_detail.assign_table_hint' | translate }}</p>
 
         <div class="table-picker">
           @for (t of availableTables(); track t.id) {
@@ -1211,15 +1292,15 @@
               <span class="table-picker__num">#{{ t.id }}</span>
               <span class="table-picker__lbl">{{ tableLabel(t.id) }}</span>
               @if (isFull) {
-                <span class="table-picker__full-badge">Besetzt</span>
+                <span class="table-picker__full-badge">{{ 'raum_detail.occupied' | translate }}</span>
               }
             </button>
           }
         </div>
 
         <div class="dialog__actions">
-          <button class="dialog__btn dialog__btn--secondary" (click)="closeTablePicker()">Abbrechen</button>
-          <button class="dialog__btn dialog__btn--primary"   (click)="skipTableAndCheckIn()">Ohne Tisch einchecken</button>
+          <button class="dialog__btn dialog__btn--secondary" (click)="closeTablePicker()">{{ 'common.cancel' | translate }}</button>
+          <button class="dialog__btn dialog__btn--primary"   (click)="skipTableAndCheckIn()">{{ 'raum_detail.checkin_no_table' | translate }}</button>
         </div>
       </div>
     }
@@ -1227,176 +1308,220 @@
     <!-- ── Kundenkarte ──────────────────────────────────────────────────── -->
     @if (guestCardOpen()) {
       <div class="dialog-backdrop" (click)="closeGuestCard()"></div>
-      <div class="dialog dialog--form">
+      <div class="dialog dialog--gc">
 
+        <!-- ── Kopfzeile ──────────────────────────────────────────────── -->
         <div class="gc-header">
-          <div class="gc-avatar">{{ guestInitials(gcName()) }}</div>
-          <div>
-            <h3 class="dialog__title">{{ guestCardRes()?.guestName }}</h3>
-            <div class="gc-email">{{ guestCardRes()?.guestEmail }}</div>
+          <div class="gc-avatar" [class.gc-avatar--warn]="(guestCardRes()?.guestNoShowCount ?? 0) >= 2">
+            {{ guestInitials(gcName()) }}
           </div>
-          <button class="gc-close" (click)="closeGuestCard()" title="Schließen">
+          <div class="gc-identity">
+            <h3 class="gc-name">{{ guestCardRes()?.guestName }}</h3>
+            <div class="gc-contact-row">
+              @if (guestCardRes()?.guestEmail) {
+                <a class="gc-contact-link" [href]="'mailto:' + guestCardRes()!.guestEmail">
+                  <mat-icon>mail_outline</mat-icon>{{ guestCardRes()!.guestEmail }}
+                </a>
+              }
+              @if (guestCardRes()?.phone) {
+                <a class="gc-contact-link" [href]="'tel:' + guestCardRes()!.phone">
+                  <mat-icon>call</mat-icon>{{ guestCardRes()!.phone }}
+                </a>
+              }
+            </div>
+            @if ((guestCardRes()?.guestNoShowCount ?? 0) > 0) {
+              <span class="gc-noshow-badge">
+                <mat-icon>warning</mat-icon>
+                {{ guestCardRes()!.guestNoShowCount }}× No-Show
+              </span>
+            }
+          </div>
+          <button class="gc-close" (click)="closeGuestCard()" [title]="'common.close' | translate">
             <mat-icon>close</mat-icon>
           </button>
         </div>
 
-        <!-- Reservierungsübersicht -->
         @if (guestCardRes(); as res) {
-          <div class="gc-reservation-info">
-            <div class="gc-res-top-row">
-              <div class="gc-res-status"
-                   [style.background]="colorFor(res.status) + '22'"
-                   [style.border-color]="colorFor(res.status) + '55'"
-                   [style.color]="colorFor(res.status)">
-                {{ labelFor(res.status) }}
+
+          <!-- ── Status-Aktionsleiste ──────────────────────────────────── -->
+          <div class="gc-actions-bar">
+            @if (res.status === 'upcoming' || res.status === 'late' || res.status === 'expired') {
+              <button class="gc-action gc-action--confirm" (click)="gcDoStatus('confirmed')" [disabled]="gcStatusLoading()">
+                <mat-icon>check_circle</mat-icon>Bestätigen
+              </button>
+            }
+            @if (res.status === 'confirmed' || res.status === 'late') {
+              <button class="gc-action gc-action--seat" (click)="gcDoStatus('seated')" [disabled]="gcStatusLoading()">
+                <mat-icon>airline_seat_recline_normal</mat-icon>Eingecheckt
+              </button>
+            }
+            @if (res.status === 'seated' || res.status === 'cleanup') {
+              <button class="gc-action gc-action--complete" (click)="gcDoStatus('completed')" [disabled]="gcStatusLoading()">
+                <mat-icon>task_alt</mat-icon>Abschließen
+              </button>
+            }
+            @if (res.status !== 'completed' && res.status !== 'cancelled' && res.status !== 'no-show') {
+              <button class="gc-action gc-action--noshow" (click)="gcDoStatus('no-show')" [disabled]="gcStatusLoading()">
+                <mat-icon>person_off</mat-icon>No-Show
+              </button>
+              <button class="gc-action gc-action--cancel" (click)="gcDoStatus('cancelled')" [disabled]="gcStatusLoading()">
+                <mat-icon>cancel</mat-icon>Stornieren
+              </button>
+            }
+            @if (res.status === 'completed' || res.status === 'cancelled' || res.status === 'no-show') {
+              <button class="gc-action gc-action--reopen" (click)="gcDoStatus('reopen')" [disabled]="gcStatusLoading()">
+                <mat-icon>restart_alt</mat-icon>Wiedereröffnen
+              </button>
+            }
+          </div>
+
+          <!-- ── Zweispaltiger Body ─────────────────────────────────────── -->
+          <div class="gc-body">
+
+            <!-- Links: Reservierungsdetails -->
+            <div class="gc-res-panel">
+              <div class="gc-section-head">
+                <span class="gc-section-title">Reservierung</span>
+                <span class="gc-status-pill"
+                      [style.background]="colorFor(res.status) + '22'"
+                      [style.border-color]="colorFor(res.status) + '66'"
+                      [style.color]="colorFor(res.status)">
+                  {{ labelFor(res.status) }}
+                </span>
               </div>
-              <button class="gc-edit-btn" (click)="editFromGuestCard()" title="Reservierung bearbeiten">
-                <mat-icon>edit</mat-icon>
-                Bearbeiten
+              <div class="gc-detail-list">
+                <div class="gc-detail">
+                  <mat-icon>calendar_today</mat-icon>
+                  <span>{{ res.date | date:'dd.MM.yyyy' }}</span>
+                </div>
+                <div class="gc-detail">
+                  <mat-icon>schedule</mat-icon>
+                  <span>{{ res.time }} Uhr · {{ res.durationMinutes }} min</span>
+                </div>
+                <div class="gc-detail">
+                  <mat-icon>group</mat-icon>
+                  <span>{{ res.partySize }} Person{{ res.partySize !== 1 ? 'en' : '' }}</span>
+                </div>
+                @if ((res.tableIds?.length ?? 0) > 1) {
+                  <div class="gc-detail">
+                    <mat-icon>table_restaurant</mat-icon>
+                    <span>Tische @for (id of res.tableIds!; track id; let last = $last) {#{{ id }}@if (!last) { + }}</span>
+                  </div>
+                } @else if (res.tableId) {
+                  <div class="gc-detail">
+                    <mat-icon>table_restaurant</mat-icon>
+                    <span>Tisch #{{ res.tableId }}</span>
+                  </div>
+                }
+                @if (res.notes) {
+                  <div class="gc-detail gc-detail--notes">
+                    <mat-icon>sticky_note_2</mat-icon>
+                    <span>{{ res.notes }}</span>
+                  </div>
+                }
+              </div>
+              <button class="gc-edit-btn" (click)="editFromGuestCard()" [title]="'raum_detail.edit_reservation' | translate">
+                <mat-icon>edit</mat-icon>{{ 'common.edit' | translate }}
               </button>
             </div>
-            <div class="gc-res-details">
-              <span class="gc-res-detail">
-                <mat-icon>calendar_today</mat-icon>
-                {{ res.date | date:'dd.MM.yyyy' }}
-              </span>
-              <span class="gc-res-detail">
-                <mat-icon>schedule</mat-icon>
-                {{ res.time }} Uhr · {{ res.durationMinutes }} min
-              </span>
-              <span class="gc-res-detail">
-                <mat-icon>group</mat-icon>
-                {{ res.partySize }} Person{{ res.partySize !== 1 ? 'en' : '' }}
-              </span>
-              @if ((res.tableIds?.length ?? 0) > 1) {
-                <span class="gc-res-detail">
-                  <mat-icon>table_restaurant</mat-icon>
-                  Tische @for (id of res.tableIds!; track id; let last = $last) {
-                    #{{ id }}@if (!last) { + }
+
+            <!-- Rechts: Gastkarte (editierbar) -->
+            <div class="gc-profile-panel">
+              @if (!res.guestId) {
+                <div class="gc-no-profile">
+                  <mat-icon>person_off</mat-icon>
+                  <span>Kein Gastkartei-Eintrag</span>
+                  <small>Gast wurde ohne Kundenkonto angelegt</small>
+                </div>
+              } @else {
+                <div class="gc-section-head">
+                  <span class="gc-section-title">Gastkarte</span>
+                </div>
+                <div class="gc-profile-fields">
+                  <label class="field">
+                    <span class="field__label">Name</span>
+                    <input class="field__input" type="text"
+                           [ngModel]="gcName()" (ngModelChange)="gcName.set($event)" />
+                  </label>
+                  <div class="gc-two-col">
+                    <label class="field">
+                      <span class="field__label">Telefon</span>
+                      <input class="field__input" type="tel" placeholder="+49 …"
+                             [ngModel]="gcPhone()" (ngModelChange)="gcPhone.set($event)" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">E-Mail</span>
+                      <input class="field__input" type="email"
+                             [ngModel]="gcEmail()" (ngModelChange)="gcEmail.set($event)" />
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field__label">Interne Notiz</span>
+                    <textarea class="field__input field__input--area" rows="2"
+                              placeholder="Fenstertisch bevorzugt …"
+                              [ngModel]="gcNotes()" (ngModelChange)="gcNotes.set($event)"></textarea>
+                  </label>
+                  @if (availableGasttypen().length) {
+                    <div class="field">
+                      <span class="field__label">Gasttyp</span>
+                      <div class="gc-tags">
+                        @for (t of availableGasttypen(); track t.key) {
+                          <button type="button" class="gc-tag"
+                                  [class.gc-tag--active]="gcGasttypen().includes(t.key)"
+                                  [style.--tc]="t.color"
+                                  (click)="toggleGcGasttyp(t.key)">{{ t.label }}</button>
+                        }
+                      </div>
+                    </div>
                   }
-                </span>
-              } @else if (res.tableId) {
-                <span class="gc-res-detail">
-                  <mat-icon>table_restaurant</mat-icon>
-                  Tisch #{{ res.tableId }}
-                </span>
-              }
-              @if (res.guestEmail) {
-                <span class="gc-res-detail">
-                  <mat-icon>mail_outline</mat-icon>
-                  {{ res.guestEmail }}
-                </span>
-              }
-              @if (res.phone) {
-                <span class="gc-res-detail">
-                  <mat-icon>call</mat-icon>
-                  {{ res.phone }}
-                </span>
-              }
-              @if (res.notes) {
-                <span class="gc-res-detail gc-res-detail--notes">
-                  <mat-icon>sticky_note_2</mat-icon>
-                  {{ res.notes }}
-                </span>
+                  @if (availableHinweise().length) {
+                    <div class="field">
+                      <span class="field__label">Hinweise</span>
+                      <div class="gc-tags">
+                        @for (h of availableHinweise(); track h.key) {
+                          <button type="button" class="gc-tag"
+                                  [class.gc-tag--active]="gcHinweise().includes(h.key)"
+                                  [style.--tc]="h.color"
+                                  (click)="toggleGcHinweis(h.key)">{{ h.label }}</button>
+                        }
+                      </div>
+                    </div>
+                  }
+                  <div class="gc-blocked-row">
+                    <div class="gc-blocked-label">
+                      <mat-icon>block</mat-icon>
+                      <span class="field__label">Gesperrt</span>
+                    </div>
+                    <label class="gc-switch">
+                      <input type="checkbox" [checked]="gcBlocked()" (change)="gcBlocked.set(!gcBlocked())" />
+                      <span class="gc-slider"></span>
+                    </label>
+                  </div>
+                  @if (gcBlocked()) {
+                    <label class="field">
+                      <span class="field__label">Sperr-Grund</span>
+                      <input class="field__input" type="text" placeholder="z. B. 3× No-Show"
+                             [ngModel]="gcReason()" (ngModelChange)="gcReason.set($event)" />
+                    </label>
+                  }
+                </div>
               }
             </div>
-          </div>
+
+          </div><!-- /gc-body -->
         }
 
-        @if (!guestCardRes()?.guestId) {
-          <div class="gc-no-profile">
-            <mat-icon>person_off</mat-icon>
-            Kein Gastkartei-Eintrag vorhanden.<br>
-            <small>Dieser Gast wurde ohne Kundenkonto angelegt.</small>
-          </div>
-        } @else {
-        <div class="reservation-form">
+        @if (gcError()) {
+          <p class="dialog__error dialog__error--bottom">{{ gcError() }}</p>
+        }
 
-          <div class="gc-fields-row">
-            <label class="field">
-              <span class="field__label">Name</span>
-              <input class="field__input" type="text"
-                     [ngModel]="gcName()" (ngModelChange)="gcName.set($event)" />
-            </label>
-
-            <label class="field">
-              <span class="field__label">Telefon</span>
-              <input class="field__input" type="tel" placeholder="+49 …"
-                     [ngModel]="gcPhone()" (ngModelChange)="gcPhone.set($event)" />
-            </label>
-
-            <label class="field">
-              <span class="field__label">E-Mail</span>
-              <input class="field__input" type="email" placeholder="gast@beispiel.de"
-                     [ngModel]="gcEmail()" (ngModelChange)="gcEmail.set($event)" />
-            </label>
-          </div>
-
-          <label class="field">
-            <span class="field__label">Interne Notiz</span>
-            <textarea class="field__input field__input--area" rows="2"
-                      placeholder="Fenstertisch bevorzugt, Vegetarier …"
-                      [ngModel]="gcNotes()" (ngModelChange)="gcNotes.set($event)"></textarea>
-          </label>
-
-          @if (availableGasttypen().length) {
-            <div class="field">
-              <span class="field__label">Gasttyp</span>
-              <div class="gc-tags">
-                @for (t of availableGasttypen(); track t.key) {
-                  <button type="button" class="gc-tag"
-                          [class.gc-tag--active]="gcGasttypen().includes(t.key)"
-                          [style.--tc]="t.color"
-                          (click)="toggleGcGasttyp(t.key)">{{ t.label }}</button>
-                }
-              </div>
-            </div>
-          }
-
-          @if (availableHinweise().length) {
-            <div class="field">
-              <span class="field__label">Hinweise</span>
-              <div class="gc-tags">
-                @for (h of availableHinweise(); track h.key) {
-                  <button type="button" class="gc-tag"
-                          [class.gc-tag--active]="gcHinweise().includes(h.key)"
-                          [style.--tc]="h.color"
-                          (click)="toggleGcHinweis(h.key)">{{ h.label }}</button>
-                }
-              </div>
-            </div>
-          }
-
-          <div class="gc-blocked-row">
-            <span class="field__label">Gesperrt</span>
-            <label class="gc-switch">
-              <input type="checkbox" [checked]="gcBlocked()" (change)="gcBlocked.set(!gcBlocked())" />
-              <span class="gc-slider"></span>
-            </label>
-          </div>
-
-          @if (gcBlocked()) {
-            <label class="field">
-              <span class="field__label">Sperr-Grund</span>
-              <input class="field__input" type="text" placeholder="z. B. 3× No-Show"
-                     [ngModel]="gcReason()" (ngModelChange)="gcReason.set($event)" />
-            </label>
-          }
-
-          @if (gcError()) {
-            <p class="dialog__error">{{ gcError() }}</p>
-          }
-
-        </div>
-        } <!-- end @else guestId -->
-
-        <div class="dialog__actions">
-          <button class="dialog__btn dialog__btn--secondary" (click)="closeGuestCard()">Schließen</button>
+        <div class="dialog__actions dialog__actions--bottom-right">
+          <button class="dialog__btn dialog__btn--secondary" (click)="closeGuestCard()">{{ 'common.close' | translate }}</button>
           @if (guestCardRes()?.guestId) {
             <button class="dialog__btn dialog__btn--primary"
                     [disabled]="!gcName().trim() || gcSaving()"
                     (click)="saveGuestCard()">
-              {{ gcSaving() ? 'Wird gespeichert …' : 'Speichern' }}
+              {{ gcSaving() ? ('common.saving' | translate) : ('common.save' | translate) }}
             </button>
           }
         </div>
@@ -1408,13 +1533,13 @@
 } @else if (!venuesLoaded()) {
   <div class="raum-detail raum-detail--loading">
     <mat-icon class="raum-detail__spinner">hourglass_top</mat-icon>
-    <p>Raum wird geladen…</p>
+    <p>{{ 'raum_detail.loading' | translate }}</p>
   </div>
 } @else {
   <div class="raum-detail raum-detail--missing">
     <mat-icon>error_outline</mat-icon>
-    <h2>Raum nicht gefunden</h2>
-    <p>Der angeforderte Raum existiert nicht (mehr).</p>
-    <a class="btn-primary" routerLink="/raum">Zurück zur Übersicht</a>
+    <h2>{{ 'raum_detail.not_found' | translate }}</h2>
+    <p>{{ 'raum_detail.not_found_hint' | translate }}</p>
+    <a class="btn-primary" routerLink="/raum">{{ 'raum_detail.back' | translate }}</a>
   </div>
 }

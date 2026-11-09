@@ -2,13 +2,14 @@ import { Component, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { NotizenStateService } from '../../services/notizen-state.service';
 import { NotizenService, Notiz } from '../../services/notizen.service';
 
 @Component({
   selector: 'app-notiz-float',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, TranslateModule],
   templateUrl: './notiz-float.component.html',
   styleUrl: './notiz-float.component.scss',
 })

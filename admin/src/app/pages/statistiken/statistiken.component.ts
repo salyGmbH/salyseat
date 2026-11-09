@@ -1,6 +1,7 @@
 import { Component, AfterViewInit, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
+import { TranslateModule } from '@ngx-translate/core';
 import Chart from 'chart.js/auto';
 import { StatistikenService, StatsTotals, StatsTimeslot, StatsMonthly, StatsTopGuest } from '../../services/statistiken.service';
 
@@ -29,7 +30,7 @@ const topLabelsPlugin = {
 @Component({
   selector: 'app-statistiken',
   standalone: true,
-  imports: [MatIconModule, DecimalPipe],
+  imports: [MatIconModule, DecimalPipe, TranslateModule],
   templateUrl: './statistiken.component.html',
   styleUrls: ['./statistiken.component.scss']
 })

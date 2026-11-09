@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { PermissionsService } from '../../../services/permissions.service';
 import { CurrentUserService } from '../../../services/current-user.service';
@@ -13,7 +14,7 @@ import {
 @Component({
   selector: 'app-rechte',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, TranslateModule],
   templateUrl: './rechte.component.html',
   styleUrl: './rechte.component.scss'
 })

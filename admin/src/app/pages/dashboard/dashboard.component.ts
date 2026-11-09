@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { NgClass, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { Subscription, interval, forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { TranslateModule } from '@ngx-translate/core';
 import { DashboardService, DashboardStats } from '../../services/dashboard.service';
 import { ReservationsService } from '../../services/reservations.service';
 import { Reservation, ReservationStatus, STATUS_LABELS } from '../../services/reservation.types';
@@ -14,7 +15,7 @@ const REFRESH_INTERVAL_MS = 60_000; // 60 Sekunden
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [MatIconModule, RouterLink, NgClass],
+  imports: [MatIconModule, RouterLink, NgClass, TranslateModule, DecimalPipe],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -41,20 +42,59 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().split('T')[0];
   })();
 
-  /** Heutige Reservierungen chronologisch sortiert, aktive zuerst, max. 10 */
+  /** Heutige Reservierungen chronologisch sortiert, aktive zuerst — alle außer cancelled/no_show */
   readonly upcomingRes = computed(() =>
     this.todayRes()
       .filter(r => r.status !== 'cancelled' && r.status !== 'no_show')
       .sort((a, b) => {
-        // Aktive zuerst (seated/cleanup), dann nach Uhrzeit
         const activeStatuses = ['seated', 'cleanup'];
         const aActive = activeStatuses.includes(a.status) ? 0 : 1;
         const bActive = activeStatuses.includes(b.status) ? 0 : 1;
         if (aActive !== bActive) return aActive - bActive;
         return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
-      })
-      .slice(0, 10),
+      }),
   );
+
+  /** Herkunfts-Aufschlüsselung der heutigen Reservierungen */
+  readonly sourceBreakdown = computed(() => {
+    const res = this.todayRes().filter(r => r.status !== 'cancelled');
+    return {
+      online:  res.filter(r => r.source === 'online').length,
+      admin:   res.filter(r => r.source === 'admin' || !r.source).length,
+      walk_in: res.filter(r => r.source === 'walk_in').length,
+    };
+  });
+
+  /** No-Show-Rate heute in % */
+  readonly noShowRate = computed(() => {
+    const s = this.stats();
+    if (!s || s.today.total === 0) return 0;
+    return Math.round((s.today.no_show / s.today.total) * 100);
+  });
+
+  /** Auslastung in % (abgeschlossene + aktive / gesamt) */
+  readonly utilizationRate = computed(() => {
+    const s = this.stats();
+    if (!s || s.today.total === 0) return 0;
+    return Math.round(((s.today.seated + s.today.completed) / s.today.total) * 100);
+  });
+
+  /** Wochentag-Insight (einziger angezeigter Chip) */
+  readonly insights = computed((): { icon: string; text: string; type: 'info' | 'warn' | 'success' }[] => {
+    const s = this.stats();
+    if (!s || s.week.total === 0) return [];
+
+    const weekday = new Date().toLocaleDateString('de-DE', { weekday: 'long' });
+    const avgPerDay = s.week.total / 7;
+
+    if (s.today.total > avgPerDay * 1.3) {
+      return [{ icon: 'trending_up', text: `${weekday} ist ein starker Tag — heute ${s.today.total} Reservierungen`, type: 'success' }];
+    }
+    if (s.today.total > 0 && s.today.total < avgPerDay * 0.6) {
+      return [{ icon: 'info', text: `Ruhiger ${weekday} — heute ${s.today.total} Reservierungen`, type: 'info' }];
+    }
+    return [];
+  });
 
   ngOnInit(): void {
     this.fetchAll(true);

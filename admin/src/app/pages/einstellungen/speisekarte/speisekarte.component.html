@@ -1,0 +1,398 @@
+<div class="settings-container">
+
+  <!-- ── Design ────────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">palette</mat-icon>
+        Design
+      </h2>
+      <button class="info-button" [class.active]="bgInfo" (click)="bgInfo = !bgInfo">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="bgInfo">
+      Wählen Sie eine Hintergrundfarbe oder laden Sie ein Hintergrundbild hoch.
+      Textfarbe und Akzentfarbe bestimmen das Aussehen der Speisekarte.
+    </div>
+
+    <div class="form-grid">
+
+      <!-- Hintergrundfarbe -->
+      <div class="form-row form-row--color">
+        <label class="form-row__color-label">
+          <span class="form-row__label">Hintergrundfarbe</span>
+          <span class="color-swatch-wrap">
+            <input type="color" [(ngModel)]="bgColor" class="color-swatch">
+            <span class="color-swatch__value">{{ bgColor }}</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- Textfarbe -->
+      <div class="form-row form-row--color">
+        <label class="form-row__color-label">
+          <span class="form-row__label">Textfarbe</span>
+          <span class="color-swatch-wrap">
+            <input type="color" [(ngModel)]="textColor" class="color-swatch">
+            <span class="color-swatch__value">{{ textColor }}</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- Akzentfarbe -->
+      <div class="form-row form-row--color">
+        <label class="form-row__color-label">
+          <span class="form-row__label">Akzentfarbe (Überschriften)</span>
+          <span class="color-swatch-wrap">
+            <input type="color" [(ngModel)]="accentColor" class="color-swatch">
+            <span class="color-swatch__value">{{ accentColor }}</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- Schriftart -->
+      <div class="form-row form-row--full">
+        <span class="form-row__label">Schriftart</span>
+        <div class="font-grid">
+          <button
+            type="button"
+            class="font-card"
+            *ngFor="let f of fontFamilyOptions"
+            [class.is-active]="fontFamilyKey === f.key"
+            [style.font-family]="f.stack"
+            (click)="fontFamilyKey = f.key">
+            <div class="font-card__sample">Aa</div>
+            <div class="font-card__body">
+              <div class="font-card__head">
+                <span class="font-card__label">{{ f.label }}</span>
+                <mat-icon class="font-card__check" *ngIf="fontFamilyKey === f.key">check_circle</mat-icon>
+              </div>
+              <div class="font-card__hint" [innerHTML]="f.hint"></div>
+              <div class="font-card__preview">Speisekarte</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hintergrundbild -->
+      <div class="form-row form-row--full">
+        <span class="form-row__label">Hintergrundbild
+          <span class="field-hint">überschreibt die Hintergrundfarbe</span>
+        </span>
+        <div class="bg-image-row">
+          <label class="upload-btn">
+            <mat-icon>image</mat-icon>
+            <span>{{ bgImage ? 'Bild ändern' : 'Bild hochladen' }}</span>
+            <input type="file" accept="image/*" (change)="onBgImageUpload($event)" hidden>
+          </label>
+          <button class="remove-btn" *ngIf="bgImage" (click)="removeBgImage()">
+            <mat-icon>delete</mat-icon>
+            <span>Entfernen</span>
+          </button>
+        </div>
+        <div class="bg-preview" *ngIf="bgImage">
+          <img [src]="bgImage" alt="Hintergrund">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Speisekarte Builder ────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">menu_book</mat-icon>
+        Abschnitte &amp; Gerichte
+      </h2>
+      <button class="add-section-btn" (click)="addSection()">
+        <mat-icon>add</mat-icon>
+        Abschnitt
+      </button>
+    </div>
+
+    <!-- Leerer Zustand -->
+    <div class="empty-state" *ngIf="sections.length === 0">
+      <mat-icon>menu_book</mat-icon>
+      <p>Noch keine Abschnitte. Klicken Sie auf „+ Abschnitt" um zu beginnen.</p>
+    </div>
+
+    <!-- Abschnitte -->
+    <div class="menu-sections">
+      <div class="menu-section" *ngFor="let section of sections; let si = index">
+
+        <!-- Abschnitt-Header -->
+        <div class="menu-section__header" (click)="toggleCollapse(section.id)">
+          <div class="menu-section__header-left">
+            <mat-icon class="collapse-icon" [class.rotated]="!section.collapsed">
+              chevron_right
+            </mat-icon>
+            <input
+              class="section-title-input"
+              [(ngModel)]="section.title"
+              placeholder="Abschnitt-Titel (z. B. Nudelgerichte)"
+              (click)="$event.stopPropagation()">
+          </div>
+          <div class="menu-section__header-right">
+            <span class="section-count">{{ section.gerichte.length }} Gericht(e)</span>
+            <button class="icon-btn" [disabled]="si === 0" (click)="$event.stopPropagation(); moveSectionUp(si)">
+              <mat-icon>keyboard_arrow_up</mat-icon>
+            </button>
+            <button class="icon-btn" [disabled]="si === sections.length - 1" (click)="$event.stopPropagation(); moveSectionDown(si)">
+              <mat-icon>keyboard_arrow_down</mat-icon>
+            </button>
+            <button class="icon-btn icon-btn--danger" (click)="$event.stopPropagation(); removeSection(section.id)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Gerichte (aufgeklappt) -->
+        <div class="menu-section__body" [class.collapsed]="section.collapsed">
+
+          <!-- Gericht-Karten -->
+          <div class="gericht-item" *ngFor="let gericht of section.gerichte; let gi = index">
+
+            <!-- Zeile 1: Name + Preis + Aktionen -->
+            <div class="gericht-item__top">
+              <input
+                class="dish-input dish-input--name"
+                [(ngModel)]="gericht.name"
+                placeholder="Gerichtsname">
+              <div class="price-wrap">
+                <input
+                  class="dish-input dish-input--price"
+                  [(ngModel)]="gericht.price"
+                  placeholder="0,00">
+                <span class="price-unit">€</span>
+              </div>
+              <div class="dish-actions">
+                <button class="icon-btn" [disabled]="gi === 0" (click)="moveDishUp(section, gi)">
+                  <mat-icon>keyboard_arrow_up</mat-icon>
+                </button>
+                <button class="icon-btn" [disabled]="gi === section.gerichte.length - 1" (click)="moveDishDown(section, gi)">
+                  <mat-icon>keyboard_arrow_down</mat-icon>
+                </button>
+                <button class="icon-btn icon-btn--danger" (click)="removeDish(section, gericht.id)">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Zeile 2: Beschreibung -->
+            <textarea
+              class="dish-desc"
+              [(ngModel)]="gericht.description"
+              placeholder="Kurze Beschreibung (optional) …"
+              rows="2"></textarea>
+
+            <!-- Zeile 3: Zusatzstoffe -->
+            <div class="chip-row">
+              <span class="chip-row__label">Zusatzstoffe:</span>
+              <div class="chips">
+                <button
+                  class="chip chip--zusatz"
+                  *ngFor="let z of allZusatzstoffe"
+                  [class.active]="hasZusatzstoff(gericht, z.id)"
+                  (click)="toggleZusatzstoff(gericht, z.id)"
+                  [title]="z.label">
+                  {{ z.id }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Zeile 4: Allergene -->
+            <div class="chip-row">
+              <span class="chip-row__label">Allergene:</span>
+              <div class="chips chips--allergen">
+                <button
+                  class="chip chip--allergen"
+                  *ngFor="let a of allergene"
+                  [class.active]="hasAllergen(gericht, a.key)"
+                  (click)="toggleAllergen(gericht, a.key)"
+                  [title]="a.label">
+                  <app-allergen-icon [key]="a.key" [color]="a.color" [size]="18"></app-allergen-icon>
+                  <span class="chip--allergen__letter">{{ a.letter }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Zeile 5: Vorschau-Tag des Gerichts -->
+            <div class="dish-tag-preview" *ngIf="gericht.name || gericht.price">
+              <span class="dish-tag-preview__name">{{ gericht.name || '—' }}</span>
+              <span class="dish-tag-preview__markers" *ngIf="gericht.zusatzstoffe.length">
+                <sup>{{ zusatzstoffLabel(gericht.zusatzstoffe) }}</sup>
+              </span>
+              <span class="dish-tag-preview__sep" *ngIf="gericht.allergene.length">·</span>
+              <span class="dish-tag-preview__allergen" *ngIf="gericht.allergene.length">
+                {{ allergenLetters(gericht.allergene) }}
+              </span>
+              <span class="dish-tag-preview__price" *ngIf="gericht.price">{{ gericht.price }} €</span>
+            </div>
+
+          </div><!-- /gericht-item -->
+
+          <!-- + Gericht -->
+          <button class="add-dish-btn" (click)="addDish(section)">
+            <mat-icon>add</mat-icon>
+            Gericht hinzufügen
+          </button>
+
+        </div><!-- /menu-section__body -->
+
+      </div><!-- /menu-section -->
+    </div><!-- /menu-sections -->
+
+  </div>
+
+  <!-- ── Fußnoten Zusatzstoffe ──────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">format_list_numbered</mat-icon>
+        Fußnoten — Zusatzstoffe
+      </h2>
+    </div>
+    <p class="block-hint">
+      Automatisch aus den verwendeten Zusatzstoffen generiert.
+      Erscheint am Ende der Speisekarte.
+    </p>
+
+    <div class="empty-hint" *ngIf="usedZusatzstoffe.length === 0">
+      Noch keine Zusatzstoffe vergeben.
+    </div>
+    <div class="footnote-list" *ngIf="usedZusatzstoffe.length > 0">
+      <div class="footnote-item" *ngFor="let z of usedZusatzstoffe">
+        <span class="footnote-item__num">{{ z.id }}</span>
+        <span class="footnote-item__text">{{ z.label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Allergene Legende ───────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">warning_amber</mat-icon>
+        Allergen-Legende
+      </h2>
+    </div>
+    <p class="block-hint">
+      Alle verwendeten Allergene — alphabetisch sortiert. Erscheint als Legende am Ende der Speisekarte.
+    </p>
+
+    <div class="empty-hint" *ngIf="usedAllergene.length === 0">
+      Noch keine Allergene vergeben.
+    </div>
+    <div class="allergen-legend" *ngIf="usedAllergene.length > 0">
+      <div class="allergen-legend-item" *ngFor="let a of usedAllergene">
+        <app-allergen-icon [key]="a.key" [color]="a.color" [size]="28"></app-allergen-icon>
+        <span class="allergen-legend-item__letter">{{ a.letter }}</span>
+        <span class="allergen-legend-item__label">{{ a.label }}</span>
+      </div>
+    </div>
+
+    <!-- Alle 14 (ausgegraut wenn nicht verwendet) -->
+    <div class="allergen-full-legend">
+      <span class="allergen-full-legend__label">Vollständige Liste:</span>
+      <div class="allergen-full-grid">
+        <div class="allergen-full-item"
+          *ngFor="let a of allergene"
+          [class.used]="usedAllergene.includes(a)"
+          [title]="a.label">
+          <app-allergen-icon [key]="a.key" [color]="a.color" [size]="22"></app-allergen-icon>
+          <span>{{ a.letter }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Vorschau ───────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">visibility</mat-icon>
+        Vorschau
+      </h2>
+    </div>
+
+    <div class="menu-preview-wrap">
+      <div class="menu-preview"
+        [style.background-color]="bgColor"
+        [style.background-image]="bgImage ? 'url(' + bgImage + ')' : 'none'"
+        [style.color]="textColor"
+        [style.font-family]="currentFontStack">
+
+        <!-- Abschnitte -->
+        <ng-container *ngFor="let section of sections">
+          <div class="mp-section" *ngIf="section.gerichte.length > 0 || section.title">
+
+            <!-- Abschnitts-Überschrift -->
+            <h3 class="mp-section-title" [style.color]="accentColor">
+              {{ section.title }}
+            </h3>
+            <div class="mp-divider" [style.border-color]="accentColor + '55'"></div>
+
+            <!-- Gerichte -->
+            <ng-container *ngFor="let gericht of section.gerichte">
+            <div class="mp-dish" *ngIf="gericht.name">
+              <div class="mp-dish__head">
+                <span class="mp-dish__name">
+                  {{ gericht.name }}<sup
+                    *ngIf="gericht.zusatzstoffe.length"
+                    class="mp-dish__sup"
+                    [style.color]="accentColor">{{ zusatzstoffLabel(gericht.zusatzstoffe) }}</sup>
+                </span>
+                <span class="mp-dish__allergen" *ngIf="gericht.allergene.length">
+                  <span *ngFor="let key of gericht.allergene" class="mp-allergen-badge">
+                    <app-allergen-icon
+                      [key]="key"
+                      [color]="allergenByKey(key)?.color || '#888'"
+                      [size]="14">
+                    </app-allergen-icon>
+                  </span>
+                  {{ allergenLetters(gericht.allergene) }}
+                </span>
+                <span class="mp-dish__price" [style.color]="accentColor">
+                  {{ gericht.price ? gericht.price + ' €' : '' }}
+                </span>
+              </div>
+              <p class="mp-dish__desc" *ngIf="gericht.description">{{ gericht.description }}</p>
+            </div>
+            </ng-container>
+
+          </div>
+        </ng-container>
+
+        <!-- Fußnoten Zusatzstoffe -->
+        <div class="mp-footnotes" *ngIf="usedZusatzstoffe.length > 0">
+          <div class="mp-footnote-line" *ngFor="let z of usedZusatzstoffe">
+            <sup [style.color]="accentColor">{{ z.id }}</sup> {{ z.label }}
+          </div>
+        </div>
+
+        <!-- Allergen-Legende -->
+        <div class="mp-allergen-legend" *ngIf="usedAllergene.length > 0">
+          <p class="mp-allergen-legend__title">Allergene</p>
+          <div class="mp-allergen-legend__grid">
+            <div class="mp-allergen-legend__item" *ngFor="let a of usedAllergene">
+              <app-allergen-icon [key]="a.key" [color]="a.color" [size]="18"></app-allergen-icon>
+              <span>{{ a.letter }} = {{ a.label }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Speichern ──────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <button class="save-btn" [class.save-btn--saved]="saved" (click)="save()">
+      <mat-icon>{{ saved ? 'check' : 'save' }}</mat-icon>
+      {{ saved ? 'Gespeichert' : 'Speisekarte speichern' }}
+    </button>
+  </div>
+
+</div>

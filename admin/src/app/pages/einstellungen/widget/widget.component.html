@@ -7,8 +7,8 @@
     <div class="page-intro__title">
       <mat-icon>dashboard_customize</mat-icon>
       <div>
-        <h2>Widget-Designer</h2>
-        <p>Stelle dein Buchungs-Widget so zusammen, wie es zu deinem Restaurant passt.</p>
+        <h2>{{ 'widget.title' | translate }}</h2>
+        <p>{{ 'widget.subtitle' | translate }}</p>
       </div>
     </div>
   </div>
@@ -20,9 +20,9 @@
     <div class="section-header">
       <h3 class="section-title">
         <span class="section-title__index">01</span>
-        Layout
+        {{ 'widget.layout' | translate }}
       </h3>
-      <span class="section-title__hint">Welche optische Stilrichtung soll das Widget haben?</span>
+      <span class="section-title__hint">{{ 'widget.layout_hint' | translate }}</span>
     </div>
 
     <div class="layout-grid">
@@ -107,13 +107,13 @@
 
           <div class="layout-card__body">
             <div class="layout-card__head">
-              <span class="layout-card__label">{{ opt.label }}</span>
+              <span class="layout-card__label">{{ opt.label | translate }}</span>
               @if (selectedLayout() === opt.key) {
                 <mat-icon class="layout-card__check">check_circle</mat-icon>
               }
             </div>
-            <div class="layout-card__tagline">{{ opt.tagline }}</div>
-            <div class="layout-card__description">{{ opt.description }}</div>
+            <div class="layout-card__tagline">{{ opt.tagline | translate }}</div>
+            <div class="layout-card__description">{{ opt.description | translate }}</div>
           </div>
         </button>
       }
@@ -128,24 +128,29 @@
       <div class="section-header">
         <h3 class="section-title">
           <span class="section-title__index">02</span>
-          Bild
+          {{ 'widget.image' | translate }}
         </h3>
         <span class="section-title__hint">
           @if (selectedLayout() === 'card') {
-            Hero-Foto, das groß im Karten-Stil oben angezeigt wird.
+            {{ 'widget.image_hint_card' | translate }}
           } @else {
-            Hintergrundbild, über dem die schmale Buchungs-Karte schwebt.
+            {{ 'widget.image_hint_side' | translate }}
           }
         </span>
       </div>
 
       <div class="image-upload">
-        @if (imageUrl()) {
+        @if (imageUploading()) {
+          <div class="image-upload__uploading">
+            <mat-icon class="image-upload__spin">autorenew</mat-icon>
+            <span>{{ 'widget.uploading' | translate }}</span>
+          </div>
+        } @else if (imageUrl()) {
           <div class="image-upload__preview">
             <img [src]="imageUrl()!" alt="Vorschau">
             <button type="button" class="image-upload__remove" (click)="clearImage()">
               <mat-icon>close</mat-icon>
-              Entfernen
+              {{ 'widget.remove' | translate }}
             </button>
           </div>
         } @else {
@@ -154,14 +159,16 @@
                    accept="image/*"
                    (change)="onImageSelected($event)">
             <mat-icon class="image-upload__dropzone-icon">add_photo_alternate</mat-icon>
-            <span class="image-upload__dropzone-title">Bild auswählen</span>
-            <span class="image-upload__dropzone-hint">JPG, PNG oder WebP — bis 5&nbsp;MB</span>
+            <span class="image-upload__dropzone-title">{{ 'widget.choose_image' | translate }}</span>
+            <span class="image-upload__dropzone-hint">{{ 'widget.image_formats' | translate }}</span>
           </label>
         }
-        <p class="image-upload__note">
-          Wird aktuell nur lokal in der Vorschau gespeichert. Sobald die Persistenz
-          steht, wird das Bild auf den Server hochgeladen.
-        </p>
+        @if (imageUploadError()) {
+          <p class="image-upload__error">
+            <mat-icon>error_outline</mat-icon>
+            {{ imageUploadError() }}
+          </p>
+        }
       </div>
     </div>
   }
@@ -173,35 +180,35 @@
     <div class="section-header">
       <h3 class="section-title">
         <span class="section-title__index">03</span>
-        Überschrift &amp; Texte
+        {{ 'widget.heading' | translate }}
       </h3>
-      <span class="section-title__hint">Was steht oben im Widget?</span>
+      <span class="section-title__hint">{{ 'widget.heading_hint' | translate }}</span>
     </div>
 
     <div class="form-grid">
 
       <!-- Titel -->
       <div class="form-row">
-        <label class="form-row__label">Titel</label>
+        <label class="form-row__label">{{ 'widget.title_label' | translate }}</label>
         <input type="text"
                class="form-row__input"
                [ngModel]="headingTitle()"
                (ngModelChange)="headingTitle.set($event)"
-               placeholder="z.B. Tisch reservieren"
+               [placeholder]="'widget.heading_title_ph' | translate"
                maxlength="60">
-        <span class="form-row__hint">Erscheint groß als Überschrift im Widget.</span>
+        <span class="form-row__hint">{{ 'widget.title_hint' | translate }}</span>
       </div>
 
       <!-- Untertitel -->
       <div class="form-row">
         <label class="form-row__label">
-          Untertitel
+          {{ 'widget.subtitle_label' | translate }}
           <label class="toggle">
             <input type="checkbox"
                    [checked]="showSubtitle()"
                    (change)="showSubtitle.set(!showSubtitle())">
             <span class="toggle__track"><span class="toggle__thumb"></span></span>
-            <span class="toggle__label">{{ showSubtitle() ? 'sichtbar' : 'ausgeblendet' }}</span>
+            <span class="toggle__label">{{ showSubtitle() ? ('widget.visible' | translate) : ('widget.hidden' | translate) }}</span>
           </label>
         </label>
         <input type="text"
@@ -209,14 +216,14 @@
                [disabled]="!showSubtitle()"
                [ngModel]="headingSubtitle()"
                (ngModelChange)="headingSubtitle.set($event)"
-               placeholder="z.B. bei Restaurant Bella Vista"
+               [placeholder]="'widget.heading_subtitle_ph' | translate"
                maxlength="80">
-        <span class="form-row__hint">Steht kleiner unter dem Titel.</span>
+        <span class="form-row__hint">{{ 'widget.subtitle_hint' | translate }}</span>
       </div>
 
       <!-- Ausrichtung -->
       <div class="form-row form-row--full">
-        <label class="form-row__label">Ausrichtung</label>
+        <label class="form-row__label">{{ 'widget.alignment' | translate }}</label>
         <div class="align-toggle">
           @for (a of alignmentOptions; track a.key) {
             <button type="button"
@@ -224,11 +231,11 @@
                     [class.is-active]="headingAlignment() === a.key"
                     (click)="setHeadingAlignment(a.key)">
               <mat-icon>{{ a.icon }}</mat-icon>
-              <span>{{ a.label }}</span>
+              <span>{{ a.label | translate }}</span>
             </button>
           }
         </div>
-        <span class="form-row__hint">Bestimmt, wo Titel und Untertitel im Widget stehen.</span>
+        <span class="form-row__hint">{{ 'widget.alignment_hint' | translate }}</span>
       </div>
     </div>
   </div>
@@ -240,13 +247,13 @@
     <div class="section-header">
       <h3 class="section-title">
         <span class="section-title__index">04</span>
-        Typografie
+        {{ 'widget.typography' | translate }}
       </h3>
-      <span class="section-title__hint">Welche Schrift und welche Größe?</span>
+      <span class="section-title__hint">{{ 'widget.typography_hint' | translate }}</span>
     </div>
 
     <!-- Font-Familie als visuelle Karten -->
-    <div class="sub-section-title">Schriftart</div>
+    <div class="sub-section-title">{{ 'widget.font_family' | translate }}</div>
     <div class="font-grid">
       @for (f of fontFamilyOptions; track f.key) {
         <button type="button"
@@ -257,12 +264,12 @@
           <div class="font-card__sample">Aa</div>
           <div class="font-card__body">
             <div class="font-card__head">
-              <span class="font-card__label">{{ f.label }}</span>
+              <span class="font-card__label">{{ f.label | translate }}</span>
               @if (selectedFontFamily() === f.key) {
                 <mat-icon class="font-card__check">check_circle</mat-icon>
               }
             </div>
-            <div class="font-card__hint">{{ f.hint }}</div>
+            <div class="font-card__hint">{{ f.hint | translate }}</div>
             <div class="font-card__preview">Tisch reservieren</div>
           </div>
         </button>
@@ -270,15 +277,15 @@
     </div>
 
     <!-- Schriftgröße als Pillen -->
-    <div class="sub-section-title sub-section-title--spaced">Schriftgröße</div>
+    <div class="sub-section-title sub-section-title--spaced">{{ 'widget.font_size' | translate }}</div>
     <div class="pill-row">
       @for (s of fontSizeOptions; track s.key) {
         <button type="button"
                 class="pill"
                 [class.is-active]="selectedFontSize() === s.key"
                 (click)="setFontSize(s.key)">
-          <span class="pill__label">{{ s.label }}</span>
-          <span class="pill__hint">{{ s.hint }}</span>
+          <span class="pill__label">{{ s.label | translate }}</span>
+          <span class="pill__hint">{{ s.hint | translate }}</span>
         </button>
       }
     </div>
@@ -291,9 +298,9 @@
     <div class="section-header">
       <h3 class="section-title">
         <span class="section-title__index">05</span>
-        Farben
+        {{ 'widget.colors' | translate }}
       </h3>
-      <span class="section-title__hint">Markenfarbe, Text und Hintergrund.</span>
+      <span class="section-title__hint">{{ 'widget.colors_hint' | translate }}</span>
     </div>
 
     <div class="color-grid">
@@ -301,8 +308,8 @@
       <!-- Primärfarbe -->
       <div class="color-row">
         <div class="color-row__head">
-          <span class="color-row__label">Markenfarbe</span>
-          <span class="color-row__hint">Wird für den Buchen-Button verwendet.</span>
+          <span class="color-row__label">{{ 'widget.brand_color' | translate }}</span>
+          <span class="color-row__hint">{{ 'widget.brand_color_hint' | translate }}</span>
         </div>
         <div class="color-row__controls">
           <label class="color-input">
@@ -328,8 +335,8 @@
       <!-- Textfarbe -->
       <div class="color-row">
         <div class="color-row__head">
-          <span class="color-row__label">Textfarbe</span>
-          <span class="color-row__hint">Haupt-Schriftfarbe im Widget.</span>
+          <span class="color-row__label">{{ 'widget.text_color' | translate }}</span>
+          <span class="color-row__hint">{{ 'widget.text_color_hint' | translate }}</span>
         </div>
         <div class="color-row__controls">
           <label class="color-input">
@@ -339,35 +346,138 @@
             <span class="color-input__swatch" [style.background]="colorText()"></span>
             <span class="color-input__hex">{{ colorText() }}</span>
           </label>
-        </div>
-      </div>
-
-      <!-- Hintergrund -->
-      <div class="color-row">
-        <div class="color-row__head">
-          <span class="color-row__label">Hintergrund</span>
-          <span class="color-row__hint">Karten-Farbe des Widgets. Dunkle Farben = Dark Mode.</span>
-        </div>
-        <div class="color-row__controls">
-          <label class="color-input">
-            <input type="color"
-                   [value]="colorBackground()"
-                   (input)="setColorBackground($any($event.target).value)">
-            <span class="color-input__swatch" [style.background]="colorBackground()"></span>
-            <span class="color-input__hex">{{ colorBackground() }}</span>
-          </label>
           <div class="color-presets">
-            @for (c of backgroundPresets; track c) {
+            @for (c of textPresets; track c) {
               <button type="button"
                       class="color-presets__swatch"
-                      [class.is-active]="colorBackground().toLowerCase() === c.toLowerCase()"
+                      [class.is-active]="colorText().toLowerCase() === c.toLowerCase()"
                       [style.background]="c"
                       [attr.aria-label]="c"
-                      (click)="setColorBackground(c)"></button>
+                      (click)="setColorText(c)"></button>
             }
           </div>
         </div>
       </div>
+
+    </div>
+  </div>
+
+
+  <!-- ===================== 05  HINTERGRÜNDE ===================== -->
+  <div class="settings-block">
+
+    <div class="section-header">
+      <h3 class="section-title">
+        <span class="section-title__index">05</span>
+        {{ 'widget.backgrounds' | translate }}
+      </h3>
+      <span class="section-title__hint">{{ 'widget.backgrounds_hint' | translate }}</span>
+    </div>
+
+    <div class="form-grid">
+
+      <!-- Kachel-Hintergrund -->
+      <div class="color-row">
+        <div class="color-row__head">
+          <span class="color-row__label">{{ 'widget.card_bg' | translate }}</span>
+          <span class="color-row__hint">{{ 'widget.card_bg_hint' | translate }}</span>
+        </div>
+        <div class="color-row__controls">
+          <label class="color-input">
+            <input type="color"
+                   [value]="cardBackground()"
+                   (input)="setCardBackground($any($event.target).value)">
+            <span class="color-input__swatch" [style.background]="cardBackground()"></span>
+            <span class="color-input__hex">{{ cardBackground() }}</span>
+          </label>
+          <div class="color-presets">
+            @for (c of cardBgPresets; track c) {
+              <button type="button"
+                      class="color-presets__swatch"
+                      [class.is-active]="cardBackground().toLowerCase() === c.toLowerCase()"
+                      [style.background]="c"
+                      [attr.aria-label]="c"
+                      (click)="setCardBackground(c)"></button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Seiten-Hintergrund -->
+      <div class="color-row color-row--full">
+        <div class="color-row__head">
+          <span class="color-row__label">{{ 'widget.page_bg' | translate }}</span>
+          <span class="color-row__hint">{{ 'widget.page_bg_hint' | translate }}</span>
+        </div>
+
+        <!-- Toggle Farbe / Bild -->
+        <div class="bg-type-toggle">
+          <button type="button"
+                  class="bg-type-toggle__btn"
+                  [class.is-active]="pageBackground().type === 'color'"
+                  (click)="setPageBgType('color')">
+            <mat-icon>palette</mat-icon> {{ 'widget.bg_color' | translate }}
+          </button>
+          <button type="button"
+                  class="bg-type-toggle__btn"
+                  [class.is-active]="pageBackground().type === 'image'"
+                  (click)="setPageBgType('image')">
+            <mat-icon>image</mat-icon> {{ 'widget.bg_image' | translate }}
+          </button>
+        </div>
+
+        @if (pageBackground().type === 'color') {
+          <div class="color-row__controls" style="margin-top:10px">
+            <label class="color-input">
+              <input type="color"
+                     [value]="pageBackground().value"
+                     (input)="setPageBgColor($any($event.target).value)">
+              <span class="color-input__swatch" [style.background]="pageBackground().value"></span>
+              <span class="color-input__hex">{{ pageBackground().value }}</span>
+            </label>
+            <div class="color-presets">
+              @for (c of pageBgPresets; track c) {
+                <button type="button"
+                        class="color-presets__swatch"
+                        [class.is-active]="pageBackground().value.toLowerCase() === c.toLowerCase()"
+                        [style.background]="c"
+                        [attr.aria-label]="c"
+                        (click)="setPageBgColor(c)"></button>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="page-bg-image" style="margin-top:10px">
+            @if (pageBgUploading()) {
+              <div class="image-upload__uploading">
+                <mat-icon class="image-upload__spin">autorenew</mat-icon>
+                <span>{{ 'widget.uploading' | translate }}</span>
+              </div>
+            } @else if (pageBackground().value) {
+              <div class="page-bg-image__preview">
+                <img [src]="pageBackground().value" alt="Seitenhintergrund">
+                <button type="button" class="page-bg-image__remove" (click)="clearPageBgImage()">
+                  <mat-icon>close</mat-icon> {{ 'widget.remove' | translate }}
+                </button>
+              </div>
+            } @else {
+              <label class="image-upload__dropzone image-upload__dropzone--sm">
+                <input type="file" accept="image/*" (change)="onPageBgImageSelected($event)">
+                <mat-icon class="image-upload__dropzone-icon">add_photo_alternate</mat-icon>
+                <span class="image-upload__dropzone-title">{{ 'widget.bg_image_label' | translate }}</span>
+                <span class="image-upload__dropzone-hint">{{ 'widget.image_formats' | translate }}</span>
+              </label>
+            }
+            @if (pageBgUploadError()) {
+              <p class="image-upload__error">
+                <mat-icon>error_outline</mat-icon>
+                {{ pageBgUploadError() }}
+              </p>
+            }
+          </div>
+        }
+      </div>
+
     </div>
   </div>
 
@@ -378,28 +488,28 @@
     <div class="section-header">
       <h3 class="section-title">
         <span class="section-title__index">06</span>
-        Button
+        {{ 'widget.button' | translate }}
       </h3>
-      <span class="section-title__hint">Beschriftung und Form des Buchen-Buttons.</span>
+      <span class="section-title__hint">{{ 'widget.button_hint' | translate }}</span>
     </div>
 
-    <div class="form-grid">
+    <div class="button-section-grid">
 
       <!-- Button-Text -->
-      <div class="form-row form-row--full">
-        <label class="form-row__label">Button-Text</label>
+      <div class="form-row">
+        <label class="form-row__label">{{ 'widget.button_text' | translate }}</label>
         <input type="text"
                class="form-row__input"
                [ngModel]="buttonLabel()"
                (ngModelChange)="buttonLabel.set($event)"
-               placeholder="z.B. Reservieren"
+               [placeholder]="'widget.button_text_ph' | translate"
                maxlength="40">
-        <span class="form-row__hint">Was soll auf dem grossen Button unten im Widget stehen?</span>
+        <span class="form-row__hint">{{ 'widget.button_text_hint' | translate }}</span>
       </div>
 
       <!-- Eckenradius -->
-      <div class="form-row form-row--full">
-        <label class="form-row__label">Ecken-Stil</label>
+      <div class="form-row">
+        <label class="form-row__label">{{ 'widget.corner_style' | translate }}</label>
         <div class="radius-row">
           @for (r of radiusOptions; track r.key) {
             <button type="button"
@@ -408,12 +518,13 @@
                     (click)="setRadius(r.key)">
               <span class="radius-card__sketch"
                     [style.border-radius.px]="r.px > 30 ? 30 : r.px"></span>
-              <span class="radius-card__label">{{ r.label }}</span>
+              <span class="radius-card__label">{{ r.label | translate }}</span>
             </button>
           }
         </div>
-        <span class="form-row__hint">Bestimmt die Rundung von Karten, Inputs und Button.</span>
+        <span class="form-row__hint">{{ 'widget.corner_style_hint' | translate }}</span>
       </div>
+
     </div>
   </div>
 
@@ -424,9 +535,9 @@
     <div class="section-header">
       <h3 class="section-title">
         <span class="section-title__index">07</span>
-        Live-Vorschau
+        {{ 'widget.live_preview' | translate }}
       </h3>
-      <span class="section-title__hint">So sieht dein Widget gerade aus.</span>
+      <span class="section-title__hint">{{ 'widget.live_preview_hint' | translate }}</span>
     </div>
 
     <div class="preview-stage">
@@ -441,7 +552,7 @@
       <div class="preview-device preview-device--desktop">
         <div class="preview-device__head">
           <mat-icon>desktop_windows</mat-icon>
-          <span>Desktop</span>
+          <span>{{ 'widget.desktop' | translate }}</span>
         </div>
 
         <div class="preview-frame">
@@ -467,7 +578,7 @@
       <div class="preview-device preview-device--mobile">
         <div class="preview-device__head">
           <mat-icon>smartphone</mat-icon>
-          <span>Mobil</span>
+          <span>{{ 'widget.mobile' | translate }}</span>
         </div>
 
         <div class="preview-phone">
@@ -1683,9 +1794,9 @@
     <div class="section-header">
       <h3 class="section-title">
         <span class="section-title__index"><mat-icon>code</mat-icon></span>
-        Widget einbinden
+        {{ 'widget.embed' | translate }}
       </h3>
-      <span class="section-title__hint">Kopiere diesen Code auf deine Website — jeder Kunde hat seinen eigenen Link.</span>
+      <span class="section-title__hint">{{ 'widget.embed_hint' | translate }}</span>
     </div>
     <div class="embed-block">
       <pre class="embed-code">{{ embedCode() }}</pre>
@@ -1696,28 +1807,38 @@
     @if (publicKey()) {
       <p class="embed-key-hint">
         <mat-icon>vpn_key</mat-icon>
-        Dein Public Key: <code>{{ publicKey() }}</code>
+        {{ 'widget.public_key' | translate }} <code>{{ publicKey() }}</code>
       </p>
     }
   </div>
 
   <!-- ===================== ACTIONS ===================== -->
   <div class="settings-actions">
-    <span class="settings-actions__hint">
-      Einstellungen werden in deinem Restaurant-Konto gespeichert.
-    </span>
+    @if (saveError()) {
+      <span class="settings-actions__error">
+        <mat-icon>error_outline</mat-icon>
+        {{ saveError() }}
+      </span>
+    } @else {
+      <span class="settings-actions__hint">
+        {{ 'widget.save_hint' | translate }}
+      </span>
+    }
     <div class="settings-actions__buttons">
-      <button type="button" class="reset-button" (click)="resetAll()">
-        <mat-icon>restart_alt</mat-icon> Zurücksetzen
+      <button type="button" class="reset-button" (click)="resetAll()" [disabled]="isSaving()">
+        <mat-icon>restart_alt</mat-icon> {{ 'widget.reset' | translate }}
       </button>
       <button type="button"
               class="save-button"
               [class.saved]="savedFlash()"
+              [disabled]="isSaving()"
               (click)="save()">
-        @if (savedFlash()) {
-          <mat-icon>check</mat-icon> Gespeichert
+        @if (isSaving()) {
+          <mat-icon class="spin">autorenew</mat-icon> {{ 'widget.saving' | translate }}
+        } @else if (savedFlash()) {
+          <mat-icon>check</mat-icon> {{ 'widget.saved' | translate }}
         } @else {
-          <mat-icon>save</mat-icon> Speichern
+          <mat-icon>save</mat-icon> {{ 'common.save' | translate }}
         }
       </button>
     </div>

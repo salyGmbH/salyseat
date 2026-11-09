@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { ThemeMode, ThemeService } from '../../../services/theme.service';
 
@@ -16,7 +17,8 @@ type ModuleItem = {
   standalone: true,
   imports: [
     CommonModule,
-    MatIconModule
+    MatIconModule,
+    TranslateModule
   ],
   templateUrl: './allgemein.component.html',
   styleUrl: './allgemein.component.scss'

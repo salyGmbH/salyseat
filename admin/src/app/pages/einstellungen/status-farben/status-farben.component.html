@@ -2,11 +2,11 @@
 <div class="settings-block">
 
   <div class="section-header">
-    <h2 class="section-title">Status</h2>
+    <h2 class="section-title">{{ 'status_farben.status' | translate }}</h2>
 
     <div class="header-actions">
       <button class="reset-button" (click)="resetStatusColors()">
-        Standard
+        {{ 'status_farben.standard' | translate }}
       </button>
 
       <button class="info-button"
@@ -18,7 +18,7 @@
   </div>
 
   <div class="info-box" [class.open]="statusInfo">
-    Definiere hier die Farben und Darstellung der Reservierungsstatus.
+    {{ 'status_farben.info_status' | translate }}
   </div>
 
   <!--
@@ -29,8 +29,7 @@
   <div class="status-time-hint">
     <mat-icon class="status-time-hint__icon">schedule</mat-icon>
     <div class="status-time-hint__text">
-      <strong>„Zeit abgelaufen" und „Wird gereinigt"</strong> sind zeitgesteuerte
-      Status. Aktuell:
+      {{ 'status_farben.time_hint' | translate }}
       <span class="status-time-hint__pill">Reservierung {{ timing.defaultDurationMinutes() }} min</span>
       <span class="status-time-hint__pill"
             [class.is-off]="!timing.cleanupEnabled()">
@@ -38,25 +37,25 @@
         @if (timing.cleanupEnabled()) {
           {{ timing.cleanupMinutes() }} min
         } @else {
-          aus
+          {{ 'status_farben.cleanup_off' | translate }}
         }
       </span>
     </div>
     <a class="status-time-hint__link" routerLink="/einstellungen/reservierungen">
-      Zeiten anpassen <mat-icon>arrow_forward</mat-icon>
+      {{ 'status_farben.times_adjust' | translate }} <mat-icon>arrow_forward</mat-icon>
     </a>
   </div>
 
   <div class="view-toggle">
-    <button [class.active]="statusView === 'card'" (click)="statusView = 'card'">Farbe</button>
-    <button [class.active]="statusView === 'text'" (click)="statusView = 'text'">Text</button>
-    <button [class.active]="statusView === 'svg'" (click)="statusView = 'svg'">Icons</button>
+    <button [class.active]="statusView === 'card'" (click)="statusView = 'card'">{{ 'status_farben.view_color' | translate }}</button>
+    <button [class.active]="statusView === 'text'" (click)="statusView = 'text'">{{ 'status_farben.view_text' | translate }}</button>
+    <button [class.active]="statusView === 'svg'" (click)="statusView = 'svg'">{{ 'status_farben.view_icons' | translate }}</button>
   </div>
 
   <!-- ───── 1) FARBE-VORSCHAU: Beispiel-Reservierungen wie in der Raumübersicht ───── -->
   <ng-container *ngIf="statusView === 'card'">
     <p class="preview-hint">
-      So sehen die Status in deiner Raumübersicht aus — Klick auf die Farbe ändert sie.
+      {{ 'status_farben.preview_color' | translate }}
     </p>
 
     <div class="sample-list">
@@ -90,7 +89,7 @@
   <!-- ───── 2) TEXT-VORSCHAU: Beispiel-Reservierungen mit Text-Status ───── -->
   <ng-container *ngIf="statusView === 'text'">
     <p class="preview-hint">
-      Status wird als farbiges Text-Label angezeigt — Klick aufs Label ändert die Farbe.
+      {{ 'status_farben.preview_text' | translate }}
     </p>
 
     <div class="sample-list">
@@ -126,7 +125,7 @@
   <!-- ───── 3) ICONS-VORSCHAU: Beispiel-Reservierungen mit Icon + Picker ───── -->
   <ng-container *ngIf="statusView === 'svg'">
     <p class="preview-hint">
-      Status wird als Icon angezeigt — Klick aufs Icon, um ein passendes Symbol zu wählen.
+      {{ 'status_farben.preview_icon' | translate }}
     </p>
 
     <div class="sample-list">
@@ -163,7 +162,7 @@
              *ngIf="iconPickerOpenFor === sample.key"
              [style.--status-color]="getStatusByKey(sample.key)?.color">
           <div class="icon-picker-section-title">
-            Empfohlen für „{{ getStatusByKey(sample.key)?.label }}"
+            {{ 'status_farben.recommended_for' | translate }} „{{ getStatusByKey(sample.key)?.label }}"
           </div>
           <div class="icon-picker-grid">
             <button type="button"
@@ -175,7 +174,7 @@
               <app-status-icon [name]="id" [size]="22"></app-status-icon>
             </button>
           </div>
-          <div class="icon-picker-section-title">Weitere</div>
+          <div class="icon-picker-section-title">{{ 'status_farben.more_icons' | translate }}</div>
           <div class="icon-picker-grid">
             <button type="button"
                     *ngFor="let id of getOtherIcons(sample.key)"
@@ -193,12 +192,12 @@
 
   <div class="icon-hint">
     <mat-icon>palette</mat-icon>
-    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
+    <span>{{ 'status_farben.tip_palette' | translate }}</span>
   </div>
 
   <div class="actions">
     <button class="save-button" [class.saved]="statusSaved" (click)="saveStatus()">
-      {{ statusSaved ? 'Gespeichert ✓' : 'Speichern' }}
+      {{ statusSaved ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>
   </div>
 
@@ -209,10 +208,10 @@
 <div class="settings-block">
 
   <div class="section-header">
-    <h2 class="section-title">Hinweise</h2>
+    <h2 class="section-title">{{ 'status_farben.hinweise' | translate }}</h2>
 
     <div class="header-actions">
-      <button class="reset-button" (click)="resetHinweiseColors()">Standard</button>
+      <button class="reset-button" (click)="resetHinweiseColors()">{{ 'status_farben.standard' | translate }}</button>
 
       <button class="info-button"
               [class.active]="hinweisInfo"
@@ -223,12 +222,12 @@
   </div>
 
   <div class="info-box" [class.open]="hinweisInfo">
-    Lege fest, wie Hinweise dargestellt werden.
+    {{ 'status_farben.info_hinweise' | translate }}
   </div>
 
   <div class="view-toggle">
-    <button [class.active]="hinweisView === 'text'" (click)="hinweisView = 'text'">Text</button>
-    <button [class.active]="hinweisView === 'svg'" (click)="hinweisView = 'svg'">Icons</button>
+    <button [class.active]="hinweisView === 'text'" (click)="hinweisView = 'text'">{{ 'status_farben.view_text' | translate }}</button>
+    <button [class.active]="hinweisView === 'svg'" (click)="hinweisView = 'svg'">{{ 'status_farben.view_icons' | translate }}</button>
   </div>
 
   <div class="status-grid icon-grid">
@@ -305,13 +304,13 @@
 
   <div class="icon-hint">
     <mat-icon>palette</mat-icon>
-    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
+    <span>{{ 'status_farben.tip_palette' | translate }}</span>
   </div>
 
   <!-- ✅ NEU: SAVE BUTTON -->
   <div class="actions">
     <button class="save-button" [class.saved]="hinweisSaved" (click)="saveHinweise()">
-      {{ hinweisSaved ? 'Gespeichert ✓' : 'Speichern' }}
+      {{ hinweisSaved ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>
   </div>
 
@@ -322,10 +321,10 @@
 <div class="settings-block">
 
   <div class="section-header">
-    <h2 class="section-title">Gäste-Typen</h2>
+    <h2 class="section-title">{{ 'status_farben.gaeste_typen' | translate }}</h2>
 
     <div class="header-actions">
-      <button class="reset-button" (click)="resetGasttypenColors()">Standard</button>
+      <button class="reset-button" (click)="resetGasttypenColors()">{{ 'status_farben.standard' | translate }}</button>
 
       <button class="info-button"
               [class.active]="gastInfo"
@@ -336,12 +335,12 @@
   </div>
 
   <div class="info-box" [class.open]="gastInfo">
-    Definiere Kategorien wie VIP oder Stammgast.
+    {{ 'status_farben.info_gaeste' | translate }}
   </div>
 
   <div class="view-toggle">
-    <button [class.active]="gastView === 'text'" (click)="gastView = 'text'">Text</button>
-    <button [class.active]="gastView === 'svg'" (click)="gastView = 'svg'">Icons</button>
+    <button [class.active]="gastView === 'text'" (click)="gastView = 'text'">{{ 'status_farben.view_text' | translate }}</button>
+    <button [class.active]="gastView === 'svg'" (click)="gastView = 'svg'">{{ 'status_farben.view_icons' | translate }}</button>
   </div>
 
   <div class="status-grid icon-grid">
@@ -435,13 +434,13 @@
 
   <div class="icon-hint">
     <mat-icon>palette</mat-icon>
-    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
+    <span>{{ 'status_farben.tip_palette' | translate }}</span>
   </div>
 
   <!-- ✅ NEU: SAVE BUTTON -->
   <div class="actions">
     <button class="save-button" [class.saved]="gastSaved" (click)="saveGasttypen()">
-      {{ gastSaved ? 'Gespeichert ✓' : 'Speichern' }}
+      {{ gastSaved ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>
   </div>
 
@@ -452,10 +451,10 @@
 <div class="settings-block">
 
   <div class="section-header">
-    <h2 class="section-title">Allergene</h2>
+    <h2 class="section-title">{{ 'status_farben.allergene' | translate }}</h2>
 
     <div class="header-actions">
-      <button class="reset-button" (click)="resetAllergeneColors()">Standard</button>
+      <button class="reset-button" (click)="resetAllergeneColors()">{{ 'status_farben.standard' | translate }}</button>
 
       <button class="info-button"
               [class.active]="allergenInfo"
@@ -466,14 +465,12 @@
   </div>
 
   <div class="info-box" [class.open]="allergenInfo">
-    Lege fest, welche Allergene erfasst werden können und wie sie dargestellt werden.
-    Reservierungen mit Allergie-Hinweis können dann konkret markiert werden
-    (z. B. „Gluten" oder „Nüsse" statt nur „Allergie").
+    {{ 'status_farben.info_allergene' | translate }}
   </div>
 
   <div class="view-toggle">
-    <button [class.active]="allergenView === 'text'" (click)="allergenView = 'text'">Text</button>
-    <button [class.active]="allergenView === 'svg'" (click)="allergenView = 'svg'">Icons</button>
+    <button [class.active]="allergenView === 'text'" (click)="allergenView = 'text'">{{ 'status_farben.view_text' | translate }}</button>
+    <button [class.active]="allergenView === 'svg'" (click)="allergenView = 'svg'">{{ 'status_farben.view_icons' | translate }}</button>
   </div>
 
   <div class="status-grid icon-grid">
@@ -647,12 +644,12 @@
 
   <div class="icon-hint">
     <mat-icon>palette</mat-icon>
-    <span>Tipp: Klick auf ein Symbol passt die Hintergrundfarbe an.</span>
+    <span>{{ 'status_farben.tip_palette' | translate }}</span>
   </div>
 
   <div class="actions">
     <button class="save-button" [class.saved]="allergenSaved" (click)="saveAllergene()">
-      {{ allergenSaved ? 'Gespeichert ✓' : 'Speichern' }}
+      {{ allergenSaved ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>
   </div>
 
@@ -663,7 +660,7 @@
 <div class="settings-block">
 
   <div class="section-header">
-    <h2 class="section-title">Sortierung</h2>
+    <h2 class="section-title">{{ 'status_farben.sortierung' | translate }}</h2>
 
     <div class="header-actions">
       <button class="info-button"
@@ -675,24 +672,24 @@
   </div>
 
   <div class="info-box" [class.open]="sortInfo">
-    Bestimme, wie Reservierungen sortiert werden.
+    {{ 'status_farben.info_sortierung' | translate }}
   </div>
 
   <div class="view-toggle">
     <button [class.active]="sortMode === 'status'" (click)="setSortMode('status')">
-      Status
+      {{ 'status_farben.sort_status' | translate }}
     </button>
     <button [class.active]="sortMode === 'time'" (click)="setSortMode('time')">
-      Zeit
+      {{ 'status_farben.sort_time' | translate }}
     </button>
     <button [class.active]="sortMode === 'combined'" (click)="setSortMode('combined')">
-      Kombiniert
+      {{ 'status_farben.sort_combined' | translate }}
     </button>
   </div>
 
   <div class="actions">
     <button class="save-button" [class.saved]="sortSaved" (click)="saveSort()">
-      {{ sortSaved ? 'Gespeichert ✓' : 'Speichern' }}
+      {{ sortSaved ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>
   </div>
 
@@ -705,7 +702,7 @@
 
     <h3>{{ modalTitle }}</h3>
 
-    <input type="text" placeholder="Bezeichnung" [(ngModel)]="newItem.label" />
+    <input type="text" [placeholder]="'status_farben.modal_label' | translate" [(ngModel)]="newItem.label" />
     <input type="color" [(ngModel)]="newItem.color" />
 
     <select [(ngModel)]="newItem.icon">
@@ -717,8 +714,8 @@
     </select>
 
     <div class="modal-actions">
-      <button (click)="closeModal()">Abbrechen</button>
-      <button (click)="addItem()">Speichern</button>
+      <button (click)="closeModal()">{{ 'status_farben.modal_cancel' | translate }}</button>
+      <button (click)="addItem()">{{ 'common.save' | translate }}</button>
     </div>
 
   </div>

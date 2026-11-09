@@ -4,6 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import {
   NotizenService, Notiz, CreateNotizDto, NotizCreatedBy
 } from '../../../services/notizen.service';
@@ -36,7 +37,7 @@ const WEEKDAYS_SHORT = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 @Component({
   selector: 'app-notizen',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './notizen.component.html',
   styleUrl:    './notizen.component.scss',
 })

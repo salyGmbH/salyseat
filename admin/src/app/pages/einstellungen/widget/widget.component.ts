@@ -2,13 +2,17 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, take } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import {
   CornerRadiusKey,
   DEFAULT_WIDGET_DESIGN,
   FontFamilyKey,
   FontSizeKey,
+  PageBackground,
+  PageBackgroundType,
   TextAlignment,
   WidgetLayoutMode,
 } from '../../../services/tenant-settings.service';
@@ -67,7 +71,7 @@ interface AlignmentOption {
 @Component({
   selector: 'app-widget',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './widget.component.html',
   styleUrl: './widget.component.scss',
 })
@@ -75,6 +79,8 @@ export class WidgetComponent {
 
   private readonly widgetDesign    = inject(WidgetDesignService);
   private readonly tenantSettings  = inject(TenantSettingsService);
+  private readonly http            = inject(HttpClient);
+  private readonly translate       = inject(TranslateService);
 
   /** Public Key des aktuellen Tenants — für den Embed-Code. */
   readonly publicKey = this.tenantSettings.publicKey;
@@ -113,6 +119,8 @@ export class WidgetComponent {
         this.colorPrimary.set(s.colorPrimary);
         this.colorText.set(s.colorText);
         this.colorBackground.set(s.colorBackground);
+        this.cardBackground.set(s.cardBackground ?? s.colorBackground);
+        this.pageBackground.set(s.pageBackground ?? { type: 'color', value: '#f4f5f7' });
         this.buttonLabel.set(s.buttonLabel);
         this.selectedRadius.set(s.cornerRadius);
       });
@@ -122,40 +130,10 @@ export class WidgetComponent {
   //  01  Layout (optische Stilrichtung)
   // ──────────────────────────────────────────────────────────────────────
   readonly layoutOptions: LayoutOption[] = [
-    {
-      key: 'card',
-      label: 'Karten-Stil',
-      tagline: 'Hoch & einladend',
-      description:
-        'Großes Hero-Foto oben, zentrierter Titel, kompaktes Formular '
-        + 'darunter. Wirkt warm und persönlich — wie ein Stück Speisekarte.',
-    },
-    {
-      key: 'sidebar',
-      label: 'Hotel-Stil',
-      tagline: 'Schmal & elegant',
-      description:
-        'Sidebar-Karte über einem großen Hintergrundbild, mit gestapelter '
-        + '"BUCHEN"-Headline und Linien-Inputs. Wirkt edel — passt zu Fine '
-        + 'Dining oder Boutique-Marken.',
-    },
-    {
-      key: 'stacked',
-      label: 'Klassisch',
-      tagline: 'Bewährt & klar',
-      description:
-        'Standard-Buchungsformular: Titel oben, klare Felder darunter, '
-        + 'großer Buchen-Button unten. Schnell verständlich für jeden Gast.',
-    },
-    {
-      key: 'planner',
-      label: 'Planer-Stil',
-      tagline: 'Direkt & modern',
-      description:
-        'Drei Spalten nebeneinander: Mini-Kalender, anklickbare Uhrzeit- '
-        + 'und Personen-Chips. Kein Dropdown, alles auf einen Blick — '
-        + 'sehr schnell zu bedienen.',
-    },
+    { key: 'card',    label: 'widget.layout_card',    tagline: 'widget.layout_card_tagline',    description: 'widget.layout_card_desc'    },
+    { key: 'sidebar', label: 'widget.layout_sidebar', tagline: 'widget.layout_sidebar_tagline', description: 'widget.layout_sidebar_desc' },
+    { key: 'stacked', label: 'widget.layout_stacked', tagline: 'widget.layout_stacked_tagline', description: 'widget.layout_stacked_desc' },
+    { key: 'planner', label: 'widget.layout_planner', tagline: 'widget.layout_planner_tagline', description: 'widget.layout_planner_desc' },
   ];
 
   readonly selectedLayout = signal<WidgetLayoutMode>('card');
@@ -195,7 +173,8 @@ export class WidgetComponent {
   /** DSGVO-Einwilligung für Layout-4-Daten-Step. Pflichtfeld vor Submit. */
   readonly plannerConsent       = signal<boolean>(false);
 
-  readonly plannerCalendarMonth = signal<number>(4);   // 0 = Jan, 4 = Mai
+
+  readonly plannerCalendarMonth = signal<number>(4);  
   readonly plannerCalendarYear  = signal<number>(2026);
   readonly plannerCalendarMonthLabel = computed(() => {
     const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -622,35 +601,51 @@ export class WidgetComponent {
 
   /**
    * Bild-URL für die Vorschau. Wird im Karten-Stil als Hero-Foto und im
-   * Hotel-Stil als Hintergrund eingesetzt. Aktuell wird das Bild als
-   * Data-URL im Browser gehalten (FileReader). Sobald das Backend einen
-   * echten Upload-Endpoint hat, wird hier eine richtige URL stehen.
+   * Hotel-Stil als Hintergrund eingesetzt. Gespeichert als relativer Pfad
+   * z.B. /uploads/widget/{tenantId}/{filename}.
    */
-  readonly imageUrl = signal<string | null>(null);
+  readonly imageUrl        = signal<string | null>(null);
+  readonly imageUploading  = signal<boolean>(false);
+  readonly imageUploadError = signal<string | null>(null);
 
-  /** Datei-Upload aus dem <input type="file"> übernehmen. */
+  /** Datei-Upload an den Backend-Endpoint senden. */
   onImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file  = input.files?.[0];
     if (!file) return;
 
-    // Bilder bis ~5 MB reichen für Demo-Zwecke. Größere lehnen wir ab,
-    // damit der Browser nicht in die Knie geht.
     if (file.size > 5 * 1024 * 1024) {
-      alert('Bitte wähle ein Bild bis maximal 5 MB.');
+      this.imageUploadError.set(this.translate.instant('widget.upload_size_error'));
       input.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => this.imageUrl.set(reader.result as string);
-    reader.readAsDataURL(file);
+    this.imageUploadError.set(null);
+    this.imageUploading.set(true);
 
-    // Damit das gleiche File auch nochmal hochgeladen werden kann
+    const body = new FormData();
+    body.append('image', file);
+
+    this.http.post<{ url: string }>('/api/v1/admin/upload/image', body).subscribe({
+      next: (res) => {
+        this.imageUrl.set(res.url);
+        this.imageUploading.set(false);
+      },
+      error: (err) => {
+        const msg = err?.error?.error ?? this.translate.instant('widget.upload_error');
+        this.imageUploadError.set(msg);
+        this.imageUploading.set(false);
+      },
+    });
+
+    // Damit dasselbe File auch nochmal gewählt werden kann
     input.value = '';
   }
 
-  clearImage(): void { this.imageUrl.set(null); }
+  clearImage(): void {
+    this.imageUrl.set(null);
+    this.imageUploadError.set(null);
+  }
 
   // ──────────────────────────────────────────────────────────────────────
   //  03  Überschrift / Texte
@@ -659,9 +654,9 @@ export class WidgetComponent {
   readonly headingSubtitle = signal<string>('bei Restaurant');
 
   readonly alignmentOptions: AlignmentOption[] = [
-    { key: 'left',   label: 'Links',  icon: 'format_align_left'   },
-    { key: 'center', label: 'Mitte',  icon: 'format_align_center' },
-    { key: 'right',  label: 'Rechts', icon: 'format_align_right'  },
+    { key: 'left',   label: 'widget.align_left',   icon: 'format_align_left'   },
+    { key: 'center', label: 'widget.align_center',  icon: 'format_align_center' },
+    { key: 'right',  label: 'widget.align_right',   icon: 'format_align_right'  },
   ];
   readonly headingAlignment = signal<TextAlignment>('center');
   setHeadingAlignment(a: TextAlignment): void { this.headingAlignment.set(a); }
@@ -673,49 +668,18 @@ export class WidgetComponent {
   //  03  Typografie
   // ──────────────────────────────────────────────────────────────────────
   readonly fontFamilyOptions: FontFamilyOption[] = [
-    {
-      key: 'system',
-      label: 'System (Standard)',
-      stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, '
-           + '"Helvetica Neue", Arial, sans-serif',
-      hint:  'Schlicht, neutral, gut lesbar.',
-    },
-    {
-      key: 'modern',
-      label: 'Modern',
-      stack: '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif',
-      hint:  'Geometrisch & freundlich.',
-    },
-    {
-      key: 'classic',
-      label: 'Klassisch',
-      stack: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-      hint:  'Zeitlos & sachlich.',
-    },
-    {
-      key: 'serif',
-      label: 'Serifen',
-      stack: 'Georgia, "Times New Roman", Times, serif',
-      hint:  'Edel & traditionell — passt zu Fine Dining.',
-    },
-    {
-      key: 'rounded',
-      label: 'Rund',
-      stack: '"Avenir Next", "Avenir", "Nunito", sans-serif',
-      hint:  'Weich & einladend — passt zu Cafés/Bistros.',
-    },
-    {
-      key: 'mono',
-      label: 'Mono',
-      stack: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
-      hint:  'Schreibmaschine — markant & retro.',
-    },
+    { key: 'system',  label: 'widget.font_system',  stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', hint: 'widget.font_system_hint' },
+    { key: 'modern',  label: 'widget.font_modern',  stack: '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif', hint: 'widget.font_modern_hint' },
+    { key: 'classic', label: 'widget.font_classic', stack: '"Helvetica Neue", Helvetica, Arial, sans-serif', hint: 'widget.font_classic_hint' },
+    { key: 'serif',   label: 'widget.font_serif',   stack: 'Georgia, "Times New Roman", Times, serif', hint: 'widget.font_serif_hint' },
+    { key: 'rounded', label: 'widget.font_rounded', stack: '"Avenir Next", "Avenir", "Nunito", sans-serif', hint: 'widget.font_rounded_hint' },
+    { key: 'mono',    label: 'widget.font_mono',    stack: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace', hint: 'widget.font_mono_hint' },
   ];
 
   readonly fontSizeOptions: FontSizeOption[] = [
-    { key: 'compact',  label: 'Kompakt',  hint: 'Mehr Felder auf weniger Platz.', basePx: 12 },
-    { key: 'standard', label: 'Standard', hint: 'Empfohlene Größe.',              basePx: 14 },
-    { key: 'large',    label: 'Groß',     hint: 'Sehr gut lesbar.',               basePx: 16 },
+    { key: 'compact',  label: 'widget.size_compact',  hint: 'widget.size_compact_hint',  basePx: 12 },
+    { key: 'standard', label: 'widget.size_standard', hint: 'widget.size_standard_hint', basePx: 14 },
+    { key: 'large',    label: 'widget.size_large',    hint: 'widget.size_large_hint',    basePx: 16 },
   ];
 
   readonly selectedFontFamily = signal<FontFamilyKey>('system');
@@ -756,6 +720,18 @@ export class WidgetComponent {
     '#db2777', // Pink
   ];
 
+  /** Schnellauswahl-Paletten für die Textfarbe. */
+  readonly textPresets: string[] = [
+    '#1f2937', // Dunkelgrau (Default)
+    '#000000', // Schwarz
+    '#111827', // Fast Schwarz
+    '#374151', // Mittelgrau
+    '#6b7280', // Hellgrau
+    '#ffffff', // Weiß
+    '#f9fafb', // Fast Weiß
+    '#e5e7eb', // Hellgrau/Weiß
+  ];
+
   /** Schnellauswahl-Paletten für die Karten-Farbe. */
   readonly backgroundPresets: string[] = [
     '#ffffff', // Weiß
@@ -766,9 +742,71 @@ export class WidgetComponent {
     '#1e293b', // Dunkel-Slate
   ];
 
+  /** Hintergrundfarbe der Widget-Kachel. */
+  readonly cardBackground = signal<string>('#ffffff');
+  /** Seiten-Hintergrund: Farbe oder Bild. */
+  readonly pageBackground = signal<PageBackground>({ type: 'color', value: '#f4f5f7' });
+
+  /** Presets für Kachel- und Seiten-Hintergrund. */
+  readonly cardBgPresets: string[] = [
+    '#ffffff', '#f9fafb', '#f3f4f6', '#fefce8',
+    '#0f172a', '#1e293b', '#1a1a2e', '#111827',
+  ];
+  readonly pageBgPresets: string[] = [
+    '#f4f5f7', '#ffffff', '#e2e8f0', '#fef9ef',
+    '#0a0a0a', '#0f172a', '#1e293b', '#18181b',
+  ];
+
+  /** Upload-State für Seiten-Hintergrundbild. */
+  readonly pageBgUploading  = signal<boolean>(false);
+  readonly pageBgUploadError = signal<string | null>(null);
+
   setColorPrimary(c: string):    void { this.colorPrimary.set(c); }
   setColorText(c: string):       void { this.colorText.set(c); }
   setColorBackground(c: string): void { this.colorBackground.set(c); }
+  setCardBackground(c: string):  void { this.cardBackground.set(c); }
+
+  setPageBgType(t: PageBackgroundType): void {
+    // Bei Wechsel zu 'image' value leeren, damit der Upload-Dropzone erscheint
+    const currentValue = this.pageBackground().value;
+    const newValue = t === 'image' ? '' : (currentValue || '#f4f5f7');
+    this.pageBackground.set({ type: t, value: newValue });
+    this.pageBgUploadError.set(null);
+  }
+  setPageBgColor(c: string): void {
+    this.pageBackground.set({ type: 'color', value: c });
+  }
+
+  onPageBgImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      this.pageBgUploadError.set(this.translate.instant('widget.upload_size_error'));
+      input.value = '';
+      return;
+    }
+    this.pageBgUploadError.set(null);
+    this.pageBgUploading.set(true);
+    const body = new FormData();
+    body.append('image', file);
+    this.http.post<{ url: string }>('/api/v1/admin/upload/image', body).subscribe({
+      next: (res) => {
+        this.pageBackground.set({ type: 'image', value: res.url });
+        this.pageBgUploading.set(false);
+      },
+      error: (err) => {
+        this.pageBgUploadError.set(err?.error?.error ?? this.translate.instant('widget.upload_error'));
+        this.pageBgUploading.set(false);
+      },
+    });
+    input.value = '';
+  }
+
+  clearPageBgImage(): void {
+    this.pageBackground.set({ type: 'image', value: '' });
+    this.pageBgUploadError.set(null);
+  }
 
   /**
    * Berechnet einen lesbaren Muted-/Border-/Soft-Ton, je nachdem ob die
@@ -802,9 +840,9 @@ export class WidgetComponent {
   readonly buttonLabel  = signal<string>('Reservieren');
 
   readonly radiusOptions: RadiusOption[] = [
-    { key: 'square', label: 'Eckig',   px: 4   },
-    { key: 'soft',   label: 'Weich',   px: 10  },
-    { key: 'pill',   label: 'Pille',   px: 999 },
+    { key: 'square', label: 'widget.radius_square', px: 4   },
+    { key: 'soft',   label: 'widget.radius_soft',   px: 10  },
+    { key: 'pill',   label: 'widget.radius_pill',   px: 999 },
   ];
   readonly selectedRadius = signal<CornerRadiusKey>('soft');
   setRadius(k: CornerRadiusKey): void { this.selectedRadius.set(k); }
@@ -818,29 +856,42 @@ export class WidgetComponent {
   // ──────────────────────────────────────────────────────────────────────
   readonly previewStyle = computed<Record<string, string>>(() => {
     const radius = this.currentRadiusPx();
+    const pb = this.pageBackground();
+    const pageBgStyle = pb.type === 'image' && pb.value
+      ? `url(${pb.value}) center/cover no-repeat`
+      : pb.value;
     return {
-      '--preview-text':       this.colorText(),
-      '--preview-bg':         this.colorBackground(),
-      '--preview-primary':    this.colorPrimary(),
-      '--preview-muted':      this.previewMutedColor(),
-      '--preview-border':     this.previewBorderColor(),
-      '--preview-soft':       this.previewSoftColor(),
-      '--preview-font':       this.currentFontStack(),
-      '--preview-base':       `${this.currentBasePx()}px`,
-      '--preview-radius':     `${Math.min(radius, 14)}px`,
-      '--preview-radius-cta': `${radius}px`,
+      '--preview-text':        this.colorText(),
+      '--preview-bg':          this.colorBackground(),
+      '--preview-card-bg':     this.cardBackground(),
+      '--preview-page-bg':     pb.type === 'color' ? pb.value : 'transparent',
+      '--preview-page-image':  pb.type === 'image' && pb.value ? `url(${pb.value})` : 'none',
+      '--preview-primary':     this.colorPrimary(),
+      '--preview-muted':       this.previewMutedColor(),
+      '--preview-border':      this.previewBorderColor(),
+      '--preview-soft':        this.previewSoftColor(),
+      '--preview-font':        this.currentFontStack(),
+      '--preview-base':        `${this.currentBasePx()}px`,
+      '--preview-radius':      `${Math.min(radius, 14)}px`,
+      '--preview-radius-cta':  `${radius}px`,
+      // Seiten-Hintergrund direkt am Preview-Wrapper
+      'background':            pageBgStyle,
       // font-family/size am Wrapper, damit alle Layouts inheriten
-      'font-family':          this.currentFontStack(),
-      'font-size':            `${this.currentBasePx()}px`,
+      'font-family':           this.currentFontStack(),
+      'font-size':             `${this.currentBasePx()}px`,
     };
   });
 
   // ──────────────────────────────────────────────────────────────────────
   //  Speichern + Reset
   // ──────────────────────────────────────────────────────────────────────
-  readonly savedFlash = signal<boolean>(false);
+  readonly savedFlash  = signal<boolean>(false);
+  readonly saveError   = signal<string | null>(null);
+  readonly isSaving    = signal<boolean>(false);
 
   save(): void {
+    this.saveError.set(null);
+    this.isSaving.set(true);
     this.widgetDesign.save({
       layout:           this.selectedLayout(),
       imageUrl:         this.imageUrl(),
@@ -853,11 +904,23 @@ export class WidgetComponent {
       colorPrimary:     this.colorPrimary(),
       colorText:        this.colorText(),
       colorBackground:  this.colorBackground(),
+      cardBackground:   this.cardBackground(),
+      pageBackground:   this.pageBackground(),
       buttonLabel:      this.buttonLabel(),
       cornerRadius:     this.selectedRadius(),
+    }).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.savedFlash.set(true);
+        setTimeout(() => this.savedFlash.set(false), 1800);
+      },
+      error: (err) => {
+        this.isSaving.set(false);
+        const msg = err?.error?.detail ?? err?.message ?? 'Einstellungen konnten nicht gespeichert werden.';
+        this.saveError.set(msg);
+        setTimeout(() => this.saveError.set(null), 5000);
+      },
     });
-    this.savedFlash.set(true);
-    setTimeout(() => this.savedFlash.set(false), 1800);
   }
 
   resetAll(): void {
@@ -874,6 +937,8 @@ export class WidgetComponent {
     this.colorPrimary.set(d.colorPrimary);
     this.colorText.set(d.colorText);
     this.colorBackground.set(d.colorBackground);
+    this.cardBackground.set(d.cardBackground);
+    this.pageBackground.set(d.pageBackground);
     this.buttonLabel.set(d.buttonLabel);
     this.selectedRadius.set(d.cornerRadius);
     this.widgetDesign.reset();

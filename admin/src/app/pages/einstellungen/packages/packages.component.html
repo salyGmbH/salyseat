@@ -5,37 +5,26 @@
   <div class="page-hero">
     <div class="page-hero__icon"><mat-icon>inventory_2</mat-icon></div>
     <div class="page-hero__text">
-      <h2 class="page-hero__title">Packages</h2>
-      <p class="page-hero__sub">
-        Feste Angebote, die Gäste direkt bei der Reservierung mitbuchen können —
-        <strong>Menüs</strong>, <strong>Events</strong>, <strong>Feiern</strong> oder
-        andere Sonderaktionen. Du definierst Preis, Personenzahl und Inhalt,
-        Gäste sehen das im Buchungs-Widget.
-      </p>
+      <h2 class="page-hero__title">{{ 'packages.title' | translate }}</h2>
+      <p class="page-hero__sub">{{ 'packages.subtitle' | translate }}</p>
     </div>
     <div class="page-hero__actions">
       <button class="ghost-button"
               [class.active]="infoOpen"
               (click)="toggleInfo()"
-              title="Beispiele">
+              [title]="'packages.examples' | translate">
         <mat-icon>info</mat-icon>
       </button>
       <button class="primary-button" (click)="openAdd()">
         <mat-icon>add</mat-icon>
-        <span>Neues Package</span>
+        <span>{{ 'packages.new_package' | translate }}</span>
       </button>
     </div>
   </div>
 
   <!-- Info-Box -->
   <div class="info-box" [class.open]="infoOpen">
-    <strong>Beispiele:</strong>
-    „Sommerabend-Menü" (89&nbsp;€&nbsp;p.P., 2–12&nbsp;Gäste, 2,5&nbsp;h),
-    „Silvester-Gala" (195&nbsp;€&nbsp;p.P., Event),
-    „Geburtstags-Feier" (65&nbsp;€&nbsp;p.P., ab 6&nbsp;Personen).
-    <br>
-    Inaktive Packages werden im Widget ausgeblendet — du kannst sie trotzdem
-    später wieder aktivieren.
+    {{ 'packages.info_text' | translate }}
   </div>
 
   <!-- Kategorie-Filter -->
@@ -46,7 +35,7 @@
               [class.active]="filter === null"
               (click)="setFilter(null)">
         <mat-icon>apps</mat-icon>
-        <span>Alle</span>
+        <span>{{ 'common.all' | translate }}</span>
         <em>{{ packages.length }}</em>
       </button>
 
@@ -86,7 +75,7 @@
           @if (!pkg.active) {
             <div class="package-card__inactive-badge">
               <mat-icon>visibility_off</mat-icon>
-              Inaktiv
+              {{ 'common.inactive' | translate }}
             </div>
           }
         </div>
@@ -102,7 +91,7 @@
           <div class="package-card__meta">
             <span class="meta-item meta-item--price">
               {{ pkg.pricePerPerson }}&nbsp;€
-              <small>pro Person</small>
+              <small>{{ 'packages.per_person' | translate }}</small>
             </span>
             <span class="meta-item">
               <mat-icon>group</mat-icon>
@@ -125,7 +114,7 @@
                 </li>
               }
               @if (pkg.includes.length > 4) {
-                <li class="more">+ {{ pkg.includes.length - 4 }} weitere</li>
+                <li class="more">+ {{ pkg.includes.length - 4 }} {{ 'packages.more' | translate }}</li>
               }
             </ul>
           }
@@ -133,7 +122,7 @@
 
         <!-- Footer -->
         <div class="package-card__footer">
-          <label class="switch" title="Aktiv / Inaktiv">
+          <label class="switch" [title]="'packages.active_inactive' | translate">
             <input type="checkbox"
                    [checked]="pkg.active"
                    (change)="toggleActive(pkg)">
@@ -143,17 +132,17 @@
           <div class="package-card__actions">
             <button class="icon-button"
                     (click)="duplicate(pkg)"
-                    title="Duplizieren">
+                    [title]="'packages.duplicate' | translate">
               <mat-icon>content_copy</mat-icon>
             </button>
             <button class="icon-button"
                     (click)="openEdit(pkg)"
-                    title="Bearbeiten">
+                    [title]="'common.edit' | translate">
               <mat-icon>edit</mat-icon>
             </button>
             <button class="icon-button danger"
                     (click)="removePackage(pkg)"
-                    title="Löschen">
+                    [title]="'common.delete' | translate">
               <mat-icon>delete_outline</mat-icon>
             </button>
           </div>
@@ -164,20 +153,18 @@
     @if (!packages.length) {
       <div class="empty-state">
         <div class="empty-state__icon"><mat-icon>inventory_2</mat-icon></div>
-        <div class="empty-state__title">Noch keine Packages</div>
-        <div class="empty-state__sub">
-          Lege dein erstes Angebot an — z. B. ein Mehrgang-Menü oder ein Event-Paket.
-        </div>
+        <div class="empty-state__title">{{ 'packages.empty' | translate }}</div>
+        <div class="empty-state__sub">{{ 'packages.empty_hint' | translate }}</div>
         <button class="primary-button" (click)="openAdd()">
           <mat-icon>add</mat-icon>
-          <span>Erstes Package erstellen</span>
+          <span>{{ 'packages.first_package' | translate }}</span>
         </button>
       </div>
     } @else if (!visiblePackages.length) {
       <div class="empty-state empty-state--filter">
         <div class="empty-state__icon"><mat-icon>filter_alt_off</mat-icon></div>
-        <div class="empty-state__title">Keine Packages in dieser Kategorie</div>
-        <button class="btn-secondary" (click)="setFilter(null)">Filter zurücksetzen</button>
+        <div class="empty-state__title">{{ 'packages.none_in_cat' | translate }}</div>
+        <button class="btn-secondary" (click)="setFilter(null)">{{ 'packages.reset_filter' | translate }}</button>
       </div>
     }
   </div>
@@ -186,7 +173,7 @@
   @if (packages.length) {
     <div class="actions">
       <button class="save-button" [class.saved]="saved" (click)="save()">
-        {{ saved ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   }
@@ -199,8 +186,8 @@
     <div class="modal" (click)="$event.stopPropagation()">
 
       <div class="modal__header">
-        <h3>{{ editingId ? 'Package bearbeiten' : 'Neues Package erstellen' }}</h3>
-        <button class="icon-button" (click)="closeModal()" title="Schließen">
+        <h3>{{ editingId ? ('packages.edit_title' | translate) : ('packages.create_title' | translate) }}</h3>
+        <button class="icon-button" (click)="closeModal()" [title]="'common.close' | translate">
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -211,7 +198,7 @@
         <div class="section">
           <div class="section__title">
             <span class="section__num">1</span>
-            Kategorie
+            {{ 'packages.category' | translate }}
           </div>
           <div class="category-picker">
             @for (c of categories; track c.key) {
@@ -235,22 +222,21 @@
         <div class="section">
           <div class="section__title">
             <span class="section__num">2</span>
-            Grunddaten
+            {{ 'packages.basics' | translate }}
           </div>
 
           <label class="field">
-            <span class="field__label">Name</span>
+            <span class="field__label">{{ 'packages.name' | translate }}</span>
             <input type="text"
                    [(ngModel)]="draft.name"
-                   placeholder="z. B. Sommerabend-Menü">
+                   [placeholder]="'packages.name_ph' | translate">
           </label>
 
           <label class="field">
-            <span class="field__label">Beschreibung</span>
+            <span class="field__label">{{ 'packages.description' | translate }}</span>
             <textarea [(ngModel)]="draft.description"
                       rows="3"
-                      placeholder="Kurz erklären, was Gäste erwartet…"></textarea>
-            <span class="field__hint">Sichtbar für Gäste im Buchungs-Widget.</span>
+                      [placeholder]="'packages.desc_ph' | translate"></textarea>
           </label>
         </div>
 
@@ -258,19 +244,19 @@
         <div class="section">
           <div class="section__title">
             <span class="section__num">3</span>
-            Preis & Personen
+            {{ 'packages.price_persons' | translate }}
           </div>
 
           <div class="field-row">
             <label class="field">
-              <span class="field__label">Preis pro Person (€)</span>
+              <span class="field__label">{{ 'packages.price_ph' | translate }}</span>
               <input type="number"
                      [(ngModel)]="draft.pricePerPerson"
                      min="0"
                      step="1">
             </label>
             <label class="field">
-              <span class="field__label">Dauer (Stunden)</span>
+              <span class="field__label">{{ 'packages.duration_h' | translate }}</span>
               <input type="number"
                      [(ngModel)]="draft.durationHours"
                      min="0"
@@ -281,11 +267,11 @@
 
           <div class="field-row">
             <label class="field">
-              <span class="field__label">Min. Personen</span>
+              <span class="field__label">{{ 'packages.min_persons' | translate }}</span>
               <input type="number" [(ngModel)]="draft.minPeople" min="1">
             </label>
             <label class="field">
-              <span class="field__label">Max. Personen</span>
+              <span class="field__label">{{ 'packages.max_persons' | translate }}</span>
               <input type="number" [(ngModel)]="draft.maxPeople" min="1">
             </label>
           </div>
@@ -295,18 +281,18 @@
         <div class="section">
           <div class="section__title">
             <span class="section__num">4</span>
-            Was ist inkludiert
+            {{ 'packages.included' | translate }}
             <span class="section__optional">optional</span>
           </div>
 
           <div class="include-input">
             <input type="text"
                    [(ngModel)]="newIncludeItem"
-                   placeholder="z. B. Aperitif, Vorspeise, Weinbegleitung …"
+                   [placeholder]="'packages.included_ph' | translate"
                    (keydown.enter)="addInclude(); $event.preventDefault()">
             <button type="button" class="btn-secondary" (click)="addInclude()">
               <mat-icon>add</mat-icon>
-              Hinzufügen
+              {{ 'common.add' | translate }}
             </button>
           </div>
 
@@ -319,7 +305,7 @@
                   <button type="button"
                           class="include-list__remove"
                           (click)="removeInclude($index)"
-                          title="Entfernen">
+                          [title]="'common.delete' | translate">
                     <mat-icon>close</mat-icon>
                   </button>
                 </li>
@@ -327,7 +313,7 @@
             </ul>
           } @else {
             <div class="include-empty">
-              Noch nichts hinzugefügt. Tipp: Enter drücken, um einen Punkt hinzuzufügen.
+              {{ 'packages.include_empty' | translate }}
             </div>
           }
         </div>
@@ -336,7 +322,7 @@
         <div class="section">
           <div class="section__title">
             <span class="section__num">5</span>
-            Bild
+            {{ 'packages.image' | translate }}
             <span class="section__optional">optional</span>
           </div>
 
@@ -355,8 +341,8 @@
                      hidden>
               <mat-icon>add_photo_alternate</mat-icon>
               <div class="image-upload__text">
-                <div class="image-upload__title">Bild hochladen</div>
-                <div class="image-upload__hint">PNG oder JPG — wird im Widget angezeigt</div>
+                <div class="image-upload__title">{{ 'packages.upload_image' | translate }}</div>
+                <div class="image-upload__hint">{{ 'packages.upload_hint' | translate }}</div>
               </div>
             </label>
           }
@@ -365,11 +351,11 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn-secondary" (click)="closeModal()">Abbrechen</button>
+        <button class="btn-secondary" (click)="closeModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn-primary"
                 (click)="submitDraft()"
                 [disabled]="!draft.name.trim()">
-          {{ editingId ? 'Änderungen speichern' : 'Package erstellen' }}
+          {{ editingId ? ('packages.save_changes' | translate) : ('packages.create_package' | translate) }}
         </button>
       </div>
 

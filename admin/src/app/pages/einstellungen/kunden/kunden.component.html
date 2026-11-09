@@ -3,12 +3,8 @@
   <div class="page-hero">
     <div class="page-hero__icon"><mat-icon>groups</mat-icon></div>
     <div>
-      <h2 class="page-hero__title">Kunden / CRM</h2>
-      <p class="page-hero__sub">
-        Deine Gäste in einer zentralen Übersicht — mit Historie, Tags, Vorlieben
-        und Kennzahlen. So erkennst du Stammgäste beim Einchecken und kannst
-        gezielt kommunizieren.
-      </p>
+      <h2 class="page-hero__title">{{ 'kunden.title' | translate }}</h2>
+      <p class="page-hero__sub">{{ 'kunden.subtitle' | translate }}</p>
     </div>
   </div>
 </div>
@@ -28,7 +24,7 @@
       </svg>
     </span>
     <div class="birthday-alert__text">
-      <strong>Heute Geburtstag:</strong>
+      <strong>{{ 'kunden.birthday_today' | translate }}</strong>
       @for (g of birthdayGuests(); track g.id; let last = $last) {
         <span class="birthday-alert__name" (click)="openEdit(g)">{{ g.name }}</span>@if (!last) { <span>, </span> }
       }
@@ -48,7 +44,7 @@
       </svg>
     </span>
     <div class="birthday-alert__text">
-      <strong>Heute Jahrestag:</strong>
+      <strong>{{ 'kunden.anniversary_today' | translate }}</strong>
       @for (g of weddingGuests(); track g.id; let last = $last) {
         <span class="birthday-alert__name" (click)="openEdit(g)">{{ g.name }}</span>@if (!last) { <span>, </span> }
       }
@@ -62,12 +58,12 @@
   <!-- ── Topbar: Titel + Suche ──────────────────────────────────────────── -->
   <div class="guest-topbar">
     <div class="guest-topbar__left">
-      <h2 class="guest-topbar__title">Alle Kunden</h2>
+      <h2 class="guest-topbar__title">{{ 'kunden.all_customers' | translate }}</h2>
       @if (!loading()) {
         <span class="guest-count">
           {{ filteredGuests().length }}
           @if (activeFilter() !== 'alle') { <span class="guest-count__of">von {{ total() }}</span> }
-          Einträge
+          {{ 'kunden.entries' | translate }}
         </span>
       }
     </div>
@@ -77,7 +73,7 @@
       <input
         class="guest-search__input"
         type="text"
-        placeholder="Name oder E-Mail suchen…"
+        [placeholder]="'kunden.search_ph' | translate"
         [(ngModel)]="searchInput"
         (keyup.enter)="onSearch()"
         (input)="onSearch()" />
@@ -96,7 +92,7 @@
             [class.filter-chip--active]="activeFilter() === 'alle'"
             (click)="activeFilter.set('alle')">
       <mat-icon>people</mat-icon>
-      Alle
+      {{ 'common.all' | translate }}
       <span class="filter-chip__count">{{ filterCounts().alle }}</span>
     </button>
 
@@ -104,7 +100,7 @@
             [class.filter-chip--active]="activeFilter() === 'vip'"
             (click)="activeFilter.set('vip')">
       <mat-icon>workspace_premium</mat-icon>
-      VIP
+      {{ 'kunden.vip' | translate }}
       <span class="filter-chip__count">{{ filterCounts().vip }}</span>
     </button>
 
@@ -112,7 +108,7 @@
             [class.filter-chip--active]="activeFilter() === 'stammgast'"
             (click)="activeFilter.set('stammgast')">
       <mat-icon>star</mat-icon>
-      Stammgäste
+      {{ 'kunden.regulars' | translate }}
       <span class="filter-chip__count">{{ filterCounts().stammgast }}</span>
     </button>
 
@@ -120,7 +116,7 @@
             [class.filter-chip--active]="activeFilter() === 'neukunde'"
             (click)="activeFilter.set('neukunde')">
       <mat-icon>person_add</mat-icon>
-      Neukunden
+      {{ 'kunden.new_customers' | translate }}
       <span class="filter-chip__count">{{ filterCounts().neukunde }}</span>
     </button>
 
@@ -128,7 +124,7 @@
             [class.filter-chip--active]="activeFilter() === 'noshows'"
             (click)="activeFilter.set('noshows')">
       <mat-icon>event_busy</mat-icon>
-      No-Shows
+      {{ 'kunden.no_shows' | translate }}
       <span class="filter-chip__count">{{ filterCounts().noshows }}</span>
     </button>
 
@@ -136,7 +132,7 @@
             [class.filter-chip--active]="activeFilter() === 'gesperrt'"
             (click)="activeFilter.set('gesperrt')">
       <mat-icon>block</mat-icon>
-      Gesperrt
+      {{ 'kunden.blocked' | translate }}
       <span class="filter-chip__count">{{ filterCounts().gesperrt }}</span>
     </button>
 
@@ -145,7 +141,7 @@
               [class.filter-chip--active]="activeFilter() === 'geburtstag'"
               (click)="activeFilter.set('geburtstag')">
         <mat-icon>cake</mat-icon>
-        Geburtstag heute
+        {{ 'kunden.birthday_label' | translate }}
         <span class="filter-chip__count">{{ filterCounts().geburtstag }}</span>
       </button>
     }
@@ -155,7 +151,7 @@
               [class.filter-chip--active]="activeFilter() === 'jahrestag'"
               (click)="activeFilter.set('jahrestag')">
         <mat-icon>favorite</mat-icon>
-        Jahrestag heute
+        {{ 'kunden.anniversary_label' | translate }}
         <span class="filter-chip__count">{{ filterCounts().jahrestag }}</span>
       </button>
     }
@@ -164,14 +160,14 @@
 
   @if (loading()) {
     <div class="guest-loading">
-      <span class="spinner"></span> Wird geladen…
+      <span class="spinner"></span> {{ 'common.loading' | translate }}
     </div>
   }
 
   @if (!loading() && filteredGuests().length === 0) {
     <div class="guest-empty">
       <mat-icon>{{ activeFilter() === 'alle' ? 'person_off' : 'filter_list_off' }}</mat-icon>
-      <p>{{ activeFilter() === 'alle' ? 'Noch keine Kunden gefunden.' : 'Keine Gäste für diesen Filter.' }}</p>
+      <p>{{ activeFilter() === 'alle' ? ('kunden.no_customers' | translate) : ('kunden.no_filter_results' | translate) }}</p>
     </div>
   }
 
@@ -180,14 +176,14 @@
       <table class="guest-table">
         <thead>
           <tr>
-            <th>Gast</th>
-            <th>Kontakt</th>
-            <th>Tags</th>
-            <th class="col-num">Buchungen</th>
-            <th class="col-num">No-Shows</th>
-            <th class="col-num">Zuverlässigkeit</th>
-            <th>Status</th>
-            <th>Seit</th>
+            <th>{{ 'kunden.guest' | translate }}</th>
+            <th>{{ 'kunden.contact' | translate }}</th>
+            <th>{{ 'kunden.tags' | translate }}</th>
+            <th class="col-num">{{ 'kunden.bookings' | translate }}</th>
+            <th class="col-num">{{ 'kunden.no_shows' | translate }}</th>
+            <th class="col-num">{{ 'kunden.reliability' | translate }}</th>
+            <th>{{ 'kunden.status' | translate }}</th>
+            <th>{{ 'kunden.since' | translate }}</th>
             <th></th>
           </tr>
         </thead>
@@ -270,22 +266,22 @@
                 @if (g.blocked) {
                   <span class="status-pill status-pill--blocked">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 5h2v6h-2zm0 8h2v2h-2z"/></svg>
-                    Gesperrt
+                    {{ 'kunden.blocked_label' | translate }}
                   </span>
                 } @else if (isVip(g)) {
                   <span class="status-pill status-pill--vip">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L9.5 8.5H2l6 4.5-2.5 7.5L12 16l6.5 4.5-2.5-7.5 6-4.5h-7.5z"/></svg>
-                    VIP
+                    {{ 'kunden.vip' | translate }}
                   </span>
                 } @else if (isRegular(g)) {
                   <span class="status-pill status-pill--ok">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                    Stammgast
+                    {{ 'kunden.regulars' | translate }}
                   </span>
                 } @else {
                   <span class="status-pill status-pill--new">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-                    Neukunde
+                    {{ 'kunden.new_customers' | translate }}
                   </span>
                 }
               </td>
@@ -295,7 +291,7 @@
 
               <!-- Aktionen -->
               <td class="col-actions" (click)="$event.stopPropagation()">
-                <button class="icon-button" (click)="openEdit(g)" title="Bearbeiten">
+                <button class="icon-button" (click)="openEdit(g)" [title]="'common.edit' | translate">
                   <mat-icon>edit</mat-icon>
                 </button>
               </td>
@@ -318,7 +314,7 @@
       <!-- ── Modal-Header mit Avatar + Stats ──────────────────────────────── -->
       <div class="profile-header" [class.profile-header--blocked]="editTarget()?.blocked">
 
-        <button class="profile-close" (click)="closeEdit()" title="Schließen">
+        <button class="profile-close" (click)="closeEdit()" [title]="'common.close' | translate">
           <mat-icon>close</mat-icon>
         </button>
 
@@ -349,21 +345,21 @@
             <div class="profile-badges">
               @if (editTarget()?.blocked) {
                 <span class="profile-badge profile-badge--blocked">
-                  <mat-icon>block</mat-icon> Gesperrt
+                  <mat-icon>block</mat-icon> {{ 'kunden.blocked_label' | translate }}
                 </span>
               } @else if (isVip(editTarget()!)) {
                 <span class="profile-badge profile-badge--vip">
-                  <mat-icon>workspace_premium</mat-icon> VIP
+                  <mat-icon>workspace_premium</mat-icon> {{ 'kunden.vip' | translate }}
                 </span>
               } @else if (isRegular(editTarget()!)) {
                 <span class="profile-badge profile-badge--regular">
-                  <mat-icon>star</mat-icon> Stammgast
+                  <mat-icon>star</mat-icon> {{ 'kunden.regulars' | translate }}
                 </span>
               } @else {
-                <span class="profile-badge profile-badge--new">Neukunde</span>
+                <span class="profile-badge profile-badge--new">{{ 'kunden.new_customers' | translate }}</span>
               }
               <span class="profile-badge profile-badge--since">
-                <mat-icon>calendar_today</mat-icon> seit {{ editTarget()?.created_at }}
+                <mat-icon>calendar_today</mat-icon> {{ 'kunden.since' | translate }} {{ editTarget()?.created_at }}
               </span>
             </div>
           </div>
@@ -377,7 +373,7 @@
             </span>
             <div class="stat-card__body">
               <span class="stat-card__value">{{ editTarget()?.total_reservations }}</span>
-              <span class="stat-card__label">Reservierungen</span>
+              <span class="stat-card__label">{{ 'kunden.bookings' | translate }}</span>
             </div>
           </div>
           <div class="stat-card" [class.stat-card--warn]="(editTarget()?.no_show_count ?? 0) > 0">
@@ -386,7 +382,7 @@
             </span>
             <div class="stat-card__body">
               <span class="stat-card__value">{{ editTarget()?.no_show_count }}</span>
-              <span class="stat-card__label">No-Shows</span>
+              <span class="stat-card__label">{{ 'kunden.no_shows' | translate }}</span>
             </div>
           </div>
           <div class="stat-card">
@@ -395,7 +391,7 @@
             </span>
             <div class="stat-card__body">
               <span class="stat-card__value">{{ editTarget()?.cancellation_rate ?? 0 }}%</span>
-              <span class="stat-card__label">Stornierungen</span>
+              <span class="stat-card__label">{{ 'kunden.cancellations' | translate }}</span>
             </div>
           </div>
           <div class="stat-card">
@@ -404,7 +400,7 @@
             </span>
             <div class="stat-card__body">
               <span class="stat-card__value">{{ formatRevenue(editTarget()?.total_revenue_cents ?? 0) }}</span>
-              <span class="stat-card__label">Umsatz</span>
+              <span class="stat-card__label">{{ 'kunden.revenue' | translate }}</span>
             </div>
           </div>
           <div class="stat-card">
@@ -419,7 +415,7 @@
               <span class="stat-card__value" [class]="reliabilityClass(editTarget()?.reliability_score ?? 100)">
                 {{ editTarget()?.reliability_score }}%
               </span>
-              <span class="stat-card__label">Zuverlässigkeit</span>
+              <span class="stat-card__label">{{ 'kunden.reliability' | translate }}</span>
             </div>
           </div>
           <div class="stat-card">
@@ -428,7 +424,7 @@
             </span>
             <div class="stat-card__body">
               <span class="stat-card__value">{{ formatDate(editTarget()?.last_visit_at ?? null) }}</span>
-              <span class="stat-card__label">Letzter Besuch</span>
+              <span class="stat-card__label">{{ 'kunden.last_visit' | translate }}</span>
             </div>
           </div>
           <div class="stat-card">
@@ -437,7 +433,7 @@
             </span>
             <div class="stat-card__body">
               <span class="stat-card__value">{{ formatAvgPartySize(avgPartySize()) }}</span>
-              <span class="stat-card__label">Ø Gruppengröße</span>
+              <span class="stat-card__label">{{ 'kunden.avg_group_size' | translate }}</span>
             </div>
           </div>
         </div>
@@ -447,16 +443,16 @@
       <!-- ── Tabs ──────────────────────────────────────────────────────────── -->
       <div class="profile-tabs">
         <button class="profile-tab" [class.profile-tab--active]="activeTab() === 'profil'" (click)="setTab('profil')">
-          <mat-icon>person</mat-icon> Profil
+          <mat-icon>person</mat-icon> {{ 'kunden.profile_tab' | translate }}
         </button>
         <button class="profile-tab" [class.profile-tab--active]="activeTab() === 'hinweise'" (click)="setTab('hinweise')">
-          <mat-icon>label</mat-icon> Tags & Hinweise
+          <mat-icon>label</mat-icon> {{ 'kunden.tags_tab' | translate }}
           @if ((editTarget()?.hinweise?.length ?? 0) + (editTarget()?.gasttypen?.length ?? 0) + (editTarget()?.allergene?.length ?? 0) > 0) {
             <span class="tab-badge">{{ (editTarget()?.hinweise?.length ?? 0) + (editTarget()?.gasttypen?.length ?? 0) + (editTarget()?.allergene?.length ?? 0) }}</span>
           }
         </button>
         <button class="profile-tab" [class.profile-tab--active]="activeTab() === 'reservierungen'" (click)="setTab('reservierungen')">
-          <mat-icon>calendar_month</mat-icon> Reservierungen
+          <mat-icon>calendar_month</mat-icon> {{ 'kunden.reservations_tab' | translate }}
           @if (editTarget()?.total_reservations) {
             <span class="tab-badge">{{ editTarget()?.total_reservations }}</span>
           }
@@ -475,7 +471,7 @@
               <!-- Name -->
               <label class="field field--full">
                 <span class="field__label">Name *</span>
-                <input type="text" placeholder="Vor- und Nachname"
+                <input type="text" [placeholder]="'kunden.search_placeholder' | translate"
                        [ngModel]="editName()" (ngModelChange)="editName.set($event)" />
               </label>
 
@@ -487,7 +483,7 @@
 
               <!-- Telefon -->
               <label class="field field--full">
-                <span class="field__label">Telefon</span>
+                <span class="field__label">{{ 'kunden.phone' | translate }}</span>
                 <input type="tel" placeholder="+49 123 456789"
                        [ngModel]="editPhone()" (ngModelChange)="editPhone.set($event)" />
               </label>
@@ -495,7 +491,7 @@
               <!-- Geburtstag -->
               <label class="field">
                 <span class="field__label field__label--icon">
-                  <mat-icon>cake</mat-icon> Geburtstag
+                  <mat-icon>cake</mat-icon> {{ 'kunden.birthday' | translate }}
                 </span>
                 <input type="date"
                        [ngModel]="editBirthday()" (ngModelChange)="editBirthday.set($event)" />
@@ -504,7 +500,7 @@
               <!-- Hochzeitstag -->
               <label class="field">
                 <span class="field__label field__label--icon">
-                  <mat-icon>favorite</mat-icon> Hochzeitstag / Jahrestag
+                  <mat-icon>favorite</mat-icon> {{ 'kunden.anniversary' | translate }}
                 </span>
                 <input type="date"
                        [ngModel]="editWeddingDate()" (ngModelChange)="editWeddingDate.set($event)" />
@@ -514,8 +510,8 @@
 
             <!-- Interne Notiz -->
             <label class="field field--full" style="margin-top: 4px;">
-              <span class="field__label">Interne Notiz</span>
-              <textarea rows="3" placeholder="z. B. Fenstertisch bevorzugt, Vegetarier, Sonderanfragen…"
+              <span class="field__label">{{ 'kunden.hints_notes' | translate }}</span>
+              <textarea rows="3" [placeholder]="'kunden.hints_hint' | translate"
                         [ngModel]="editNotes()" (ngModelChange)="editNotes.set($event)"></textarea>
             </label>
 
@@ -524,8 +520,8 @@
               <div class="toggle-info">
                 <mat-icon [class.toggle-icon--blocked]="editBlocked()">block</mat-icon>
                 <div>
-                  <span class="field__label">Gast sperren</span>
-                  <span class="field__sub">Gesperrte Gäste können nicht mehr buchen</span>
+                  <span class="field__label">{{ 'kunden.block_guest' | translate }}</span>
+                  <span class="field__sub">{{ 'kunden.blocked_label' | translate }}</span>
                 </div>
               </div>
               <label class="switch">
@@ -538,8 +534,8 @@
 
             @if (editBlocked()) {
               <label class="field field--full">
-                <span class="field__label">Sperr-Grund</span>
-                <input type="text" placeholder="z. B. 3× No-Show ohne Entschuldigung"
+                <span class="field__label">{{ 'kunden.block_reason' | translate }}</span>
+                <input type="text" [placeholder]="'kunden.block_reason' | translate"
                        [ngModel]="editReason()" (ngModelChange)="editReason.set($event)" />
               </label>
             }
@@ -554,7 +550,7 @@
             <!-- Gasttypen -->
             @if (availableGasttypen().length > 0) {
               <div class="hints-section">
-                <h4 class="hints-section__title">Gasttyp</h4>
+                <h4 class="hints-section__title">{{ 'kunden.guest_type' | translate }}</h4>
                 <div class="hints-grid">
                   @for (t of availableGasttypen(); track t.key) {
                     <button type="button"
@@ -577,8 +573,8 @@
             <!-- Hinweise -->
             @if (availableHinweise().length > 0) {
               <div class="hints-section">
-                <h4 class="hints-section__title">Hinweise & Anmerkungen</h4>
-                <p class="hints-section__sub">Aktive Hinweise werden farbig hervorgehoben und in der Gästeliste angezeigt.</p>
+                <h4 class="hints-section__title">{{ 'kunden.hints_notes' | translate }}</h4>
+                <p class="hints-section__sub">{{ 'kunden.hints_hint' | translate }}</p>
                 <div class="hints-grid">
                   @for (h of availableHinweise(); track h.key) {
                     <button type="button"
@@ -601,8 +597,8 @@
             @if (availableGasttypen().length === 0 && availableHinweise().length === 0) {
               <div class="empty-hints">
                 <mat-icon>label_off</mat-icon>
-                <p>Noch keine Tags oder Hinweise konfiguriert.</p>
-                <span>Gehe zu Einstellungen → Gasttypen / Hinweise.</span>
+                <p>{{ 'kunden.no_tags' | translate }}</p>
+                <span>{{ 'kunden.no_tags_hint' | translate }}</span>
               </div>
             }
 
@@ -610,10 +606,10 @@
             <div class="hints-section">
               <h4 class="hints-section__title hints-section__title--allergen">
                 <mat-icon>warning_amber</mat-icon>
-                Allergien & Unverträglichkeiten
+                {{ 'kunden.allergies' | translate }}
               </h4>
               @if (availableAllergene().length > 0) {
-                <p class="hints-section__sub">Aktive Allergene werden beim Einchecken und in der Gästeliste angezeigt.</p>
+                <p class="hints-section__sub">{{ 'kunden.allergies_hint' | translate }}</p>
                 <div class="hints-grid">
                   @for (a of availableAllergene(); track a.key) {
                     <button type="button"
@@ -631,13 +627,13 @@
                   }
                 </div>
               } @else {
-                <p class="hints-section__sub">Noch keine Allergene konfiguriert. Gehe zu <strong>Einstellungen → Allergene</strong> um sie anzulegen.</p>
+                <p class="hints-section__sub">{{ 'kunden.no_allergens' | translate }}</p>
               }
               <!-- Zusatznotiz für nicht erfasste Allergene -->
               <textarea
                 class="allergies-textarea"
                 rows="2"
-                placeholder="Sonstige Hinweise zu Allergien / Unverträglichkeiten…"
+                [placeholder]="'kunden.other_hints' | translate"
                 [ngModel]="editAllergies()"
                 (ngModelChange)="editAllergies.set($event)">
               </textarea>
@@ -652,7 +648,7 @@
 
             <!-- Filter-Leiste -->
             <div class="res-filter">
-              <span class="res-filter__label">Nur zukünftige</span>
+              <span class="res-filter__label">{{ 'kunden.future_only' | translate }}</span>
               <label class="switch">
                 <input type="checkbox"
                        [checked]="reservationsUpcomingOnly()"
@@ -666,14 +662,14 @@
 
             @if (reservationsLoading()) {
               <div class="res-loading">
-                <span class="spinner"></span> Wird geladen…
+                <span class="spinner"></span> {{ 'common.loading' | translate }}
               </div>
             }
 
             @if (!reservationsLoading() && filteredReservations().length === 0) {
               <div class="res-empty">
                 <mat-icon>event_busy</mat-icon>
-                <p>Keine Reservierungen gefunden.</p>
+                <p>{{ 'kunden.no_reservations' | translate }}</p>
               </div>
             }
 
@@ -695,13 +691,13 @@
                       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span class="res-venue">{{ r.venue_name }}</span>
                         @if (isUpcoming(r.starts_at)) {
-                          <span class="res-upcoming-badge">● Bevorstehend</span>
+                          <span class="res-upcoming-badge">● {{ 'kunden.upcoming' | translate }}</span>
                         }
                       </div>
                       <div class="res-details">
-                        <span><mat-icon>group</mat-icon> {{ r.party_size }} Personen</span>
+                        <span><mat-icon>group</mat-icon> {{ r.party_size }} {{ 'raum_detail.persons' | translate }}</span>
                         @if (r.table_number) {
-                          <span><mat-icon>table_restaurant</mat-icon> Tisch {{ r.table_number }}</span>
+                          <span><mat-icon>table_restaurant</mat-icon> {{ 'common.table' | translate }} {{ r.table_number }}</span>
                         }
                       </div>
                       @if (r.guest_notes) {
@@ -735,12 +731,12 @@
           </div>
         }
         <div class="modal-actions">
-          <button class="btn-secondary" (click)="closeEdit()">Abbrechen</button>
+          <button class="btn-secondary" (click)="closeEdit()">{{ 'common.close' | translate }}</button>
           <button class="btn-primary"
                   [disabled]="!editName().trim() || editSaving()"
                   (click)="saveEdit()">
             <mat-icon>{{ editSaving() ? 'hourglass_empty' : 'save' }}</mat-icon>
-            {{ editSaving() ? 'Wird gespeichert…' : 'Speichern' }}
+            {{ 'common.save' | translate }}
           </button>
         </div>
       }

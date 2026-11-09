@@ -4,11 +4,11 @@
   <!-- Header -->
   <div class="section-header">
     <div class="section-header__left">
-      <h2 class="section-title">Rollen & Berechtigungen</h2>
+      <h2 class="section-title">{{ 'rechte.title' | translate }}</h2>
       @if (!isAdmin()) {
         <span class="readonly-pill">
           <mat-icon>lock</mat-icon>
-          Nur lesen
+          {{ 'rechte.read_only' | translate }}
         </span>
       }
     </div>
@@ -22,7 +22,7 @@
       </button>
 
       @if (isAdmin()) {
-        <button class="ghost-button danger" (click)="reset()" title="Auf Standard zurücksetzen">
+        <button class="ghost-button danger" (click)="reset()" [title]="'rechte.reset' | translate">
           <mat-icon>restart_alt</mat-icon>
         </button>
       }
@@ -31,10 +31,7 @@
 
   <!-- Info -->
   <div class="info-box" [class.open]="infoOpen()">
-    Steuere fein, was jede Rolle im System darf.
-    <strong>Admin</strong> hat grundsätzlich alle Rechte und kann als einziger
-    diese Einstellung ändern. Für <strong>Manager</strong> und <strong>Staff</strong>
-    lassen sich Rechte pro Bereich einzeln setzen.
+    {{ 'rechte.subtitle' | translate }}
   </div>
 
   <!-- Admin-Only-Warnung wenn kein Admin -->
@@ -42,9 +39,9 @@
     <div class="admin-only-warning">
       <mat-icon>lock</mat-icon>
       <div>
-        <div class="admin-only-warning__title">Nur Admins dürfen Berechtigungen ändern.</div>
+        <div class="admin-only-warning__title">{{ 'rechte.admin_only' | translate }}</div>
         <div class="admin-only-warning__sub">
-          Du siehst die aktuelle Konfiguration, kannst sie aber nicht bearbeiten.
+          {{ 'rechte.admin_only' | translate }}
         </div>
       </div>
     </div>
@@ -57,7 +54,7 @@
     <div class="matrix__header">
       <div class="matrix__corner">
         <mat-icon>tune</mat-icon>
-        <span>Berechtigung</span>
+        <span>{{ 'rechte.permission' | translate }}</span>
       </div>
 
       @for (r of roles; track r.key) {
@@ -121,7 +118,7 @@
   @if (isAdmin()) {
     <div class="actions">
       <button class="save-button" [class.saved]="saved()" (click)="save()">
-        {{ saved() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ saved() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   }

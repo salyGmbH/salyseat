@@ -180,29 +180,36 @@
   overflow: hidden;
 }
 
+// Grid-Wrap scrollt selbst (X + Y) — kein verschachtelter tl-scroll mehr nötig
 .tl-grid-wrap {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-width: 0;
-  overflow: hidden;
-}
-
-// Einziger Scroll-Container (X + Y) — Header und Body teilen sich den Scroll
-.tl-scroll {
-  flex: 1;
-  overflow: auto;
   min-height: 0;
+  overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: $color-primary transparent;
 }
 
-// Innerer Wrapper: min-width: max-content sorgt dafür, dass Header und Body
-// immer gleich breit sind → Spalten fluchten immer mit den Tisch-Headers
+// tl-scroll: min-width Wrapper, füllt volle Höhe des Scroll-Containers
+.tl-scroll {
+  min-width: max-content;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%; // füllt tl-grid-wrap komplett aus
+}
+
+// Innerer Wrapper — flex: 1 damit er den Leerraum unterhalb der Slots auffüllt
 .tl-inner {
   display: flex;
   flex-direction: column;
   min-width: max-content;
+  flex: 1; // streckt sich auf volle Höhe
+}
+
+// Content-Reihe (Achse + Spalten) dehnt sich auf verbleibende Höhe aus
+.tl-content {
+  display: flex;
+  flex: 1; // übernimmt Leerraum nach dem Header
 }
 
 // Sticky Header (Tisch-Nummern): scrollt horizontal MIT dem Inhalt,
@@ -252,11 +259,6 @@
   }
 }
 
-// Content-Reihe: Zeitachse + Spalten
-.tl-content {
-  display: flex;
-}
-
 // Zeit-Achse links (sticky left — bleibt sichtbar beim horizontalen Scrollen)
 .tl-axis {
   width: 52px;
@@ -267,43 +269,93 @@
   position: sticky;
   left: 0;
   z-index: 5;
+  // Höhe = volle Container-Höhe via flex stretch; Labels absolut mit top in %
 
   &__label {
-    display: flex;
-    align-items: flex-start;
-    padding: 4px 6px 0;
+    position: absolute;
+    left: 0;
+    right: 0;
+    // top wird per [style.top.%] gesetzt
+    padding: 2px 6px 0;
     font-size: 10px;
     font-weight: 500;
     color: $color-text-muted;
     font-variant-numeric: tabular-nums;
     border-top: 1px solid $color-border;
+    line-height: 1.2;
+    pointer-events: none;
   }
 }
 
-// Spalten-Container
+// Spalten-Container — dehnt sich auf volle Höhe
 .tl-columns {
   flex: 1;
   display: flex;
+  align-items: stretch;
+
+  &--dragging {
+    user-select: none; // kein Textselect während Drag (Trackpad-Fix)
+
+    .tl-col__slot {
+      pointer-events: none; // Neue-RV-Dialog während Drag nicht öffnen
+    }
+  }
 }
 
-// Eine Tisch-Spalte
+// Eine Tisch-Spalte — min-height statt fixer height, füllt immer den Container
 .tl-col {
   flex: 1;
   min-width: 80px; // gleich wie tl-header__col → perfekte Ausrichtung
   border-right: 1px solid $color-border;
   position: relative;
+  display: flex;
+  flex-direction: column;
+
+  // Öffnungszeiten-Zone — heller Hintergrund für geöffnete Stunden
+  &__open-zone {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.045);
+    pointer-events: none;
+    z-index: 0;
+  }
 
   &__slot {
+    flex: 1;           // gleichmäßige Höhe: alle Slots teilen sich die volle Höhe
     box-sizing: border-box;
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+    transition: background 0.1s;
+
+    &:hover {
+      background: rgba($color-primary, 0.15);
+
+      &::after {
+        content: '+';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        color: $color-primary;
+        opacity: 0.7;
+        pointer-events: none;
+      }
+    }
 
     &--hour {
-      border-top: 1px solid rgba(var(--color-text-rgb), 0.1);
+      border-top: 1px solid rgba(var(--color-text-rgb), 0.12);
     }
 
     &:not(&--hour) {
       border-top: 1px solid rgba(var(--color-text-rgb), 0.04);
     }
   }
+
 }
 
 // Reservierungs-Block
@@ -314,11 +366,48 @@
   border-radius: 5px;
   padding: 3px 6px;
   overflow: hidden;
-  cursor: pointer;
-  transition: opacity .15s, transform .1s;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;       // verhindert Textauswahl die Drag abbricht
+  -webkit-user-drag: none; // verhindert Browser-eigenes Drag-Verhalten
+  transition: opacity .15s, transform .1s, box-shadow .15s;
   box-shadow: 0 1px 4px rgba(0,0,0,.3);
 
   &:hover { opacity: 0.88; transform: scaleX(0.97); }
+
+  &--dragging {
+    cursor: grabbing;
+    opacity: 0.9;
+    transform: scaleX(1) !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,.5);
+    z-index: 10;
+    transition: none; // kein Lag während Drag
+  }
+
+  &__resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    cursor: ns-resize;
+    touch-action: none;
+    user-select: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 22px;
+      height: 2px;
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    &:hover::after { background: rgba(255, 255, 255, 0.9); }
+  }
 
   &__name {
     display: block;
@@ -337,6 +426,20 @@
     font-size: 9px;
     color: rgba(255,255,255,.8);
     margin-top: 1px;
+  }
+
+  // Vergangener Tag: alle RVs → abgeblendet + gestreift, aber noch klickbar
+  &--historic {
+    opacity: 0.45;
+    filter: saturate(0.35);
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      rgba(0,0,0,0.12) 4px,
+      rgba(0,0,0,0.12) 5px
+    ) !important;
+    cursor: pointer; // Gastkarte öffnen bleibt möglich
   }
 }
 
@@ -362,15 +465,16 @@
   }
 }
 
-// Freie Slots Panel (rechte Sidebar)
+// Freie Slots Panel (rechte Sidebar) — volle Höhe, eigene Scroll-Liste
 .tl-free-panel {
-  width: 210px;
+  width: 220px;
   flex-shrink: 0;
   border-left: 1px solid $color-border;
   background: $color-dark;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  align-self: stretch; // immer volle Höhe von .tl-view
 
   &__head {
     display: flex;
@@ -1597,6 +1701,111 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+// ── Umplatzieren-oder-Splitten-Popup ─────────────────────────────────────────
+.reassign-choice-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+  animation: reassign-hint-in 0.15s ease-out;
+}
+
+.reassign-choice {
+  background: $color-dark;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 20px;
+  width: 300px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    text-align: center;
+    justify-content: center;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; color: $color-text-muted; }
+  }
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    border-radius: 10px;
+    border: 1.5px solid $color-border;
+    background: rgba(255, 255, 255, 0.03);
+    color: $color-text-on-dark;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+
+    &:hover { transform: translateY(-1px); }
+
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      strong { font-size: 13px; font-weight: 600; }
+      span   { font-size: 11px; color: $color-text-muted; line-height: 1.4; }
+    }
+
+    &--move {
+      &:hover { background: rgba(41, 121, 255, 0.12); border-color: $color-primary; }
+      mat-icon { color: $color-primary; }
+    }
+
+    &--split {
+      &:hover { background: rgba(255, 152, 0, 0.12); border-color: #ff9800; }
+      mat-icon { color: #ff9800; }
+    }
+
+    &--merge {
+      &:hover { background: rgba(76, 175, 80, 0.12); border-color: #4caf50; }
+      mat-icon { color: #4caf50; }
+    }
+  }
+
+  &__cancel {
+    background: none;
+    border: none;
+    color: $color-text-muted;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: center;
+    padding: 2px;
+    transition: color 0.15s;
+
+    &:hover { color: $color-text-on-dark; }
+  }
+}
+
 .merge-line {
   position: absolute;
   height: 4px;
@@ -1615,6 +1824,126 @@
       inset: -3px;
       border-radius: 4px;
       background: rgba(var(--color-accent-rgb), 0.15);
+    }
+  }
+}
+
+// ── Merge-Badge (nur Icon in gelb, kein Hintergrund) ─────────────────────
+.merge-badge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  z-index: 20;
+  user-select: none;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #ffb700;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+    transition: transform 0.15s, color 0.15s;
+  }
+
+  &:hover mat-icon {
+    color: #ffe066;
+    transform: scale(1.25);
+  }
+}
+
+// ── Tische-trennen-Dialog im Canvas ──────────────────────────────────────
+.room-split-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+  animation: reassign-hint-in 0.15s ease-out;
+}
+
+.room-split-dialog {
+  background: $color-dark;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 24px 20px 20px;
+  width: 290px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+
+  &__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 183, 0, 0.15);
+    border: 1.5px solid #ffb700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon { color: #ffb700; font-size: 22px; width: 22px; height: 22px; }
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: 12px;
+    color: $color-text-muted;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  &__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1.5px solid $color-border;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+    &--confirm {
+      background: rgba(255, 183, 0, 0.12);
+      border-color: #ffb700;
+      color: #ffb700;
+      &:hover { background: rgba(255, 183, 0, 0.22); }
+    }
+
+    &--cancel {
+      background: transparent;
+      color: $color-text-muted;
+      &:hover { color: $color-text-on-dark; background: rgba(255,255,255,0.05); }
     }
   }
 }
@@ -1774,6 +2103,7 @@
   gap: 14px;
 
   &--form { width: 920px; max-height: 90vh; overflow-y: auto; }
+  &--gc   { width: 780px; max-height: 92vh; overflow-y: auto; padding: 0; gap: 0; }
   &--table-picker { width: 420px; }
 
   &__title-row {
@@ -2487,119 +2817,87 @@
 }
 
 // ── Kundenkarte-Modal ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Gästekarte (dialog--gc)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Kopfzeile ─────────────────────────────────────────────────────────────
 .gc-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 14px;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 20px 16px;
   border-bottom: 1px solid $color-border;
-}
-
-// ── Reservierungsinfo-Block in der Gastkarte ─────────────────────────────
-.gc-reservation-info {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 0 14px;
-  border-bottom: 1px solid $color-border;
-  margin-bottom: 4px;
-}
-
-.gc-res-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.gc-res-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 10px;
-  border: 1px solid;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-.gc-edit-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(41, 121, 255, 0.45);
-  background: rgba(41, 121, 255, 0.1);
-  color: $color-primary;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-
-  mat-icon { font-size: 14px; width: 14px; height: 14px; }
-
-  &:hover {
-    background: rgba(41, 121, 255, 0.2);
-    border-color: rgba(41, 121, 255, 0.7);
-  }
-}
-
-.gc-res-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-
-.gc-res-detail {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: $color-text-muted;
-
-  mat-icon { font-size: 14px; width: 14px; height: 14px; color: $color-text-muted; }
-
-  &--notes {
-    width: 100%;
-    color: $color-text-on-dark;
-    opacity: 0.75;
-  }
-}
-
-// Kein Gastkartei-Eintrag
-.gc-no-profile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 20px 0;
-  text-align: center;
-  color: $color-text-muted;
-  font-size: 13px;
-
-  mat-icon { font-size: 32px; width: 32px; height: 32px; opacity: 0.4; }
-  small { font-size: 11px; opacity: 0.7; }
 }
 
 .gc-avatar {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: $color-primary;
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+
+  &--warn {
+    background: #e53935; // Rot wenn ≥ 2× No-Show
+    box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.25);
+  }
 }
 
-.gc-email {
+.gc-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gc-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: $color-text-on-dark;
+  line-height: 1.2;
+}
+
+.gc-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.gc-contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   color: $color-text-muted;
-  margin-top: 2px;
+  text-decoration: none;
+  transition: color .15s;
+
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+  &:hover { color: $color-primary; }
+}
+
+.gc-noshow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.12);
+  border: 1px solid rgba(229, 57, 53, 0.3);
+  border-radius: 20px;
+  padding: 2px 8px;
+  width: fit-content;
+
+  mat-icon { font-size: 12px; width: 12px; height: 12px; }
 }
 
 .gc-close {
@@ -2611,15 +2909,201 @@
   display: flex;
   padding: 4px;
   border-radius: 6px;
+  flex-shrink: 0;
   &:hover { background: rgba(var(--color-text-rgb), .08); color: $color-text-on-dark; }
   mat-icon { font-size: 20px; }
 }
 
-// Name / Telefon / E-Mail nebeneinander (3 Spalten)
-.gc-fields-row {
+// ── Status-Aktionsleiste ───────────────────────────────────────────────────
+.gc-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(var(--color-text-rgb), .03);
+  border-bottom: 1px solid $color-border;
+}
+
+.gc-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, opacity .15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:disabled { opacity: .5; cursor: default; }
+
+  &--confirm {
+    background: rgba(67, 160, 71, .15);
+    border-color: rgba(67, 160, 71, .4);
+    color: #43a047;
+    &:hover:not(:disabled) { background: rgba(67, 160, 71, .25); }
+  }
+  &--seat {
+    background: rgba(41, 121, 255, .12);
+    border-color: rgba(41, 121, 255, .4);
+    color: $color-primary;
+    &:hover:not(:disabled) { background: rgba(41, 121, 255, .22); }
+  }
+  &--complete {
+    background: rgba(0, 150, 136, .12);
+    border-color: rgba(0, 150, 136, .4);
+    color: #009688;
+    &:hover:not(:disabled) { background: rgba(0, 150, 136, .22); }
+  }
+  &--noshow {
+    background: rgba(255, 152, 0, .12);
+    border-color: rgba(255, 152, 0, .4);
+    color: #ff9800;
+    &:hover:not(:disabled) { background: rgba(255, 152, 0, .22); }
+  }
+  &--cancel {
+    background: rgba(229, 57, 53, .12);
+    border-color: rgba(229, 57, 53, .4);
+    color: #e53935;
+    &:hover:not(:disabled) { background: rgba(229, 57, 53, .22); }
+  }
+  &--reopen {
+    background: rgba(var(--color-text-rgb), .08);
+    border-color: $color-border;
+    color: $color-text-muted;
+    &:hover:not(:disabled) { background: rgba(var(--color-text-rgb), .14); color: $color-text-on-dark; }
+  }
+}
+
+// ── Zweispaltiger Body ─────────────────────────────────────────────────────
+.gc-body {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: 0;
+}
+
+// ── Linke Spalte: Reservierungsdetails ────────────────────────────────────
+.gc-res-panel {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  padding: 16px 20px;
+  border-right: 1px solid $color-border;
+}
+
+// ── Rechte Spalte: Gastkarte ──────────────────────────────────────────────
+.gc-profile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.gc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gc-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: $color-text-muted;
+}
+
+.gc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gc-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.gc-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: $color-text-on-dark;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    color: $color-text-muted;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  &--notes {
+    color: $color-text-muted;
+    font-size: 12px;
+    font-style: italic;
+  }
+}
+
+.gc-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(41, 121, 255, 0.4);
+  background: rgba(41, 121, 255, 0.08);
+  color: $color-primary;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background .15s;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  &:hover { background: rgba(41, 121, 255, 0.18); }
+}
+
+// Kein Gastkartei-Eintrag
+.gc-no-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  min-height: 120px;
+  text-align: center;
+  color: $color-text-muted;
+  font-size: 13px;
+
+  mat-icon { font-size: 32px; width: 32px; height: 32px; opacity: 0.35; }
+  small { font-size: 11px; opacity: 0.7; }
+}
+
+.gc-profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gc-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .gc-blocked-row {
@@ -2628,6 +3112,23 @@
   justify-content: space-between;
 }
 
+.gc-blocked-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: $color-text-muted;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+// Footer-Trennlinie
+.dialog--gc .dialog__actions {
+  padding: 14px 20px;
+  margin-top: 0;
+  border-top: 1px solid $color-border;
+}
+
+// ── Tags ──────────────────────────────────────────────────────────────────
 .gc-tags {
   display: flex;
   flex-wrap: wrap;
@@ -2656,6 +3157,7 @@
   }
 }
 
+// ── Toggle-Switch ─────────────────────────────────────────────────────────
 .gc-switch {
   position: relative;
   display: inline-block;
@@ -2938,7 +3440,7 @@
 
 .sub-filter__chip {
   font-size: 12px;
-  padding: 6px 10px;
+  padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
@@ -3498,5 +4000,113 @@
       cursor: pointer;
       font-family: inherit;
     }
+  }
+}
+
+// ── Status-Bar (immer sichtbar, außerhalb des Filters) ───────────────────────
+.status-bar {
+  padding: 0 14px 16px;
+
+  &__chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+// ── Filter-Toggle ────────────────────────────────────────────────────────────
+.filter-toggle-wrap {
+  padding: 0 14px 6px;
+}
+
+.filter-toggle-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), 0.04);
+  color: $color-text-muted;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  > span { flex: 1; text-align: left; }
+
+  &:hover {
+    background: rgba(var(--color-primary-rgb), 0.08);
+    border-color: rgba(var(--color-primary-rgb), 0.35);
+    color: $color-primary;
+  }
+
+  &--open {
+    background: rgba(var(--color-primary-rgb), 0.12);
+    border-color: rgba(var(--color-primary-rgb), 0.4);
+    color: $color-primary;
+    box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.15);
+  }
+
+  &__arrow {
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin-left: auto;
+    transition: transform 0.2s ease;
+  }
+}
+
+// ── Filter-Panel ─────────────────────────────────────────────────────────────
+.filter-panel {
+  margin: 0 14px 8px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid $color-border;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  &__label {
+    font-size: 10px;
+    font-weight: 700;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 10px;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__count {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(var(--color-accent-rgb), 0.22);
+    color: $color-accent;
+    padding: 0 5px;
+    border-radius: 999px;
+    margin-left: 4px;
+    line-height: 1.7;
   }
 }

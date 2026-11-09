@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { VenueService } from '../../../services/venue.service';
+import { TranslateModule } from '@ngx-translate/core';
 import {
   OpeningHoursService,
   DayHours,
@@ -35,7 +36,7 @@ const WEEKDAY_LABELS = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','S
 @Component({
   selector: 'app-oeffnungszeiten',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './oeffnungszeiten.component.html',
   styleUrl: './oeffnungszeiten.component.scss',
 })

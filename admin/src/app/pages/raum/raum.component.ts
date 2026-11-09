@@ -2,13 +2,14 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { TranslateModule } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
 import { SavedRoom } from '../../services/room.types';
 
 @Component({
   selector: 'app-raum',
   standalone: true,
-  imports: [MatIconModule, RouterLink, DatePipe],
+  imports: [MatIconModule, RouterLink, DatePipe, TranslateModule],
   templateUrl: './raum.component.html',
   styleUrl: './raum.component.scss'
 })

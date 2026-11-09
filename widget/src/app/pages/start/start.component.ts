@@ -11,7 +11,11 @@ import {
   WidgetDesignConfig,
   WidgetFunctionalConfig,
   WidgetVenue,
+  WidgetVenueTable,
+  WidgetVenueWall,
+  WidgetVenueDecor,
   DayAvailability,
+  BookedPeriod,
   Break,
   toAtomDateTime,
 } from '../../services/reservations.service';
@@ -111,12 +115,24 @@ export class StartComponent implements OnInit {
   vorausbuchungWert    = signal<number>(12);
 
   // ─── Mindestvorlauf ──────────────────────────────────────────────────────
-  mindestvorlaufMinuten = signal<number>(60);
+  mindestvorlaufMinuten     = signal<number>(60);
+  defaultDurationMinutes    = signal<number>(120);
 
   // ─── Tischarten ──────────────────────────────────────────────────────────
   tischartenAktiv      = signal<boolean>(false);
   tischartenAktiveTypes = signal<string[]>(['round', 'square', 'long']);
   selectedTischart     = signal<string>('');
+  tischartenModus      = signal<string>('liste');
+  selectedTableId      = signal<number | null>(null);
+
+  // ─── Tischplan-Zwischenschritt (Tablet+) ─────────────────────────────────
+  windowWidth            = signal(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  readonly isTablet      = computed(() => this.windowWidth() >= 768);
+  tischwahlActive        = signal(false);   // Zwischenschritt-Overlay: auto vs. selbst
+  tischplanOverlayOpen   = signal(false);   // Vollbild-Tischplan-Overlay
+
+  // ─── Geschlossene Wochentage (0=Mo … 6=So) ───────────────────────────────
+  closedWeekdays = signal<number[]>([]);
 
   // ─── Online Änderungen / Stornierung ─────────────────────────────────────
   onlineAenderungen        = signal<boolean>(false);
@@ -162,15 +178,17 @@ export class StartComponent implements OnInit {
   plannerStep    = signal<1 | 2 | 3 | 4>(1);
   plannerConsent = signal(false);
 
-  // ─── Öffnungszeiten — via toObservable + switchMap ────────────────────────
-  readonly availability = toSignal<DayAvailability | null>(
+  // ─── Tag-Verfügbarkeit (ohne Zeit) — für Slot-Filterung ──────────────────
+  // Reagiert nur auf Venue + Datum, NICHT auf Zeit. Liefert bookedPeriods +
+  // totalTables damit vollständig belegte Slots ausgeblendet werden können.
+  readonly dayAvail = toSignal<DayAvailability | null>(
     combineLatest([
       toObservable(this.selectedVenue),
       toObservable(this.date),
     ]).pipe(
       switchMap(([venue, date]) => {
         if (!venue || !date) {
-          return of<DayAvailability>({ open: true, open_time: null, close_time: null, breaks: [], reason: null });
+          return of<DayAvailability>({ open: true, open_time: null, close_time: null, breaks: [], reason: null, bookedTableNumbers: [], bookedPeriods: [], totalTables: 0 });
         }
         return this.reservations.checkAvailability(venue.id, date);
       }),
@@ -178,7 +196,24 @@ export class StartComponent implements OnInit {
     { initialValue: null },
   );
 
-  readonly isClosedDay = computed(() => this.availability()?.open === false);
+  // ─── Slot-Verfügbarkeit (mit Zeit) — für konkret gewählten Slot ──────────
+  readonly availability = toSignal<DayAvailability | null>(
+    combineLatest([
+      toObservable(this.selectedVenue),
+      toObservable(this.date),
+      toObservable(this.time),
+    ]).pipe(
+      switchMap(([venue, date, time]) => {
+        if (!venue || !date) {
+          return of<DayAvailability>({ open: true, open_time: null, close_time: null, breaks: [], reason: null, bookedTableNumbers: [], bookedPeriods: [], totalTables: 0 });
+        }
+        return this.reservations.checkAvailability(venue.id, date, time || undefined);
+      }),
+    ),
+    { initialValue: null },
+  );
+
+  readonly isClosedDay = computed(() => this.dayAvail()?.open === false);
 
   readonly showMaxPersonenWarning = computed(() => this.people() >= this.maxPeople());
 
@@ -194,12 +229,14 @@ export class StartComponent implements OnInit {
   });
 
   readonly timeSlots = computed<string[]>(() => {
-    const avail = this.availability();
+    const avail = this.dayAvail();
     if (avail?.open === false) return [];
     const from   = avail?.open_time  ?? DEFAULT_FROM;
     const to     = avail?.close_time ?? DEFAULT_TO;
     const breaks = avail?.breaks     ?? [];
     let slots = buildSlots(from, to, this.stepMinutes(), breaks);
+
+    // Vergangene Slots heute ausblenden
     if (this.date() === this.today) {
       const now = new Date();
       const cutoff = now.getHours() * 60 + now.getMinutes() + this.mindestvorlaufMinuten();
@@ -208,6 +245,30 @@ export class StartComponent implements OnInit {
         return h * 60 + mm >= cutoff;
       });
     }
+
+    // Slots ausblenden wo ALLE Tische im Raum belegt sind
+    const periods    = avail?.bookedPeriods ?? [];
+    const totalTables = avail?.totalTables ?? 0;
+    const duration   = this.defaultDurationMinutes();
+
+    if (totalTables > 0 && periods.length > 0) {
+      slots = slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;
+        const slotEnd   = slotStart + duration;
+
+        let concurrent = 0;
+        for (const p of periods) {
+          const [fh, fm] = p.from.split(':').map(Number);
+          const [th, tm] = p.to.split(':').map(Number);
+          const pStart = fh * 60 + fm;
+          const pEnd   = th * 60 + tm;
+          if (pStart < slotEnd && pEnd > slotStart) concurrent++;
+        }
+        return concurrent < totalTables;
+      });
+    }
+
     return slots;
   });
 
@@ -245,7 +306,7 @@ export class StartComponent implements OnInit {
       this.emailLooksOk() &&
       (!req.includes('phone') || this.guestPhone().trim().length > 0) &&
       (!req.includes('notes') || this.notes().trim().length > 0) &&
-      (!this.tischartenAktiv() || !!this.selectedTischart()) &&
+      (!this.tischartenAktiv() || this.tischartenModus() !== 'liste' || !!this.selectedTischart()) &&
       consent &&
       this.state() !== 'submitting';
   });
@@ -286,11 +347,13 @@ export class StartComponent implements OnInit {
       maxD.setMonth(maxD.getMonth() + this.vorausbuchungWert());
     }
     maxD.setHours(23, 59, 59, 999);
+    const closed = this.closedWeekdays();
     const cells: { day: number | null; isToday: boolean; isSelected: boolean; isDisabled: boolean }[] = [];
     for (let i = 0; i < monthStartWeekday; i++) cells.push({ day: null, isToday: false, isSelected: false, isDisabled: false });
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(y, m, d);
-      const isDisabled = cellDate < todayStart || cellDate > maxD;
+      const weekday = (cellDate.getDay() + 6) % 7;
+      const isDisabled = cellDate < todayStart || cellDate > maxD || closed.includes(weekday);
       cells.push({ day: d, isToday: isCurrentMonth && d === todayDay, isSelected: d === sel, isDisabled });
     }
     return cells;
@@ -428,7 +491,8 @@ export class StartComponent implements OnInit {
       maxD.setMonth(maxD.getMonth() + this.vorausbuchungWert());
     }
     maxD.setHours(23, 59, 59, 999);
-    if (cellDate < todayStart || cellDate > maxD) return;
+    const weekday = (cellDate.getDay() + 6) % 7;
+    if (cellDate < todayStart || cellDate > maxD || this.closedWeekdays().includes(weekday)) return;
     const mStr = (m + 1).toString().padStart(2, '0');
     const dStr = day.toString().padStart(2, '0');
     this.date.set(`${y}-${mStr}-${dStr}`);
@@ -439,7 +503,14 @@ export class StartComponent implements OnInit {
     this.cardOpenPicker.set(this.cardOpenPicker() === p ? null : p);
   }
   cardClosePicker(): void { this.cardOpenPicker.set(null); }
-  cardNextStep(): void { this.cardClosePicker(); this.cardStep.set(2); }
+  cardNextStep(): void {
+    this.cardClosePicker();
+    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
+      this.tischwahlActive.set(true);
+    } else {
+      this.cardStep.set(2);
+    }
+  }
   cardPrevStep(): void { this.cardStep.set(1); }
   cardToggleConsent(): void { this.cardConsent.update(v => !v); }
   cardDecSeats(): void { this.people.update(n => Math.max(1, n - 1)); }
@@ -453,7 +524,14 @@ export class StartComponent implements OnInit {
     this.sidebarOpenPicker.set(this.sidebarOpenPicker() === p ? null : p);
   }
   sidebarClosePicker(): void { this.sidebarOpenPicker.set(null); }
-  sidebarNextStep(): void { this.sidebarClosePicker(); this.sidebarStep.set(2); }
+  sidebarNextStep(): void {
+    this.sidebarClosePicker();
+    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
+      this.tischwahlActive.set(true);
+    } else {
+      this.sidebarStep.set(2);
+    }
+  }
   sidebarPrevStep(): void { this.sidebarStep.set(1); }
   sidebarToggleConsent(): void { this.sidebarConsent.update(v => !v); }
   sidebarSelectDay(day: number): void { this.selectDay(day); this.sidebarClosePicker(); }
@@ -465,7 +543,14 @@ export class StartComponent implements OnInit {
     this.stackedOpenPicker.set(this.stackedOpenPicker() === p ? null : p);
   }
   stackedClosePicker(): void { this.stackedOpenPicker.set(null); }
-  stackedNextStep(): void { this.stackedClosePicker(); this.stackedStep.set(2); }
+  stackedNextStep(): void {
+    this.stackedClosePicker();
+    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
+      this.tischwahlActive.set(true);
+    } else {
+      this.stackedStep.set(2);
+    }
+  }
   stackedPrevStep(): void { this.stackedStep.set(1); }
   stackedToggleConsent(): void { this.stackedConsent.update(v => !v); }
   stackedSelectDay(day: number): void { this.selectDay(day); this.stackedClosePicker(); }
@@ -479,9 +564,93 @@ export class StartComponent implements OnInit {
     { key: 'long',   label: 'Langer Tisch',      icon: '▬'  },
   ];
 
-  readonly availableTischarten = computed(() =>
-    this.alleTischarten.filter(t => this.tischartenAktiveTypes().includes(t.key))
+  readonly availableTischarten = computed(() => {
+    const activeTypes  = this.tischartenAktiveTypes();
+    const venueTypes   = new Set<string>(this.venueTables().map(t => t.type));
+    return this.alleTischarten.filter(t => activeTypes.includes(t.key) && venueTypes.has(t.key));
+  });
+
+  readonly venueTables = computed<WidgetVenueTable[]>(() =>
+    this.selectedVenue()?.tables ?? []
   );
+
+  readonly venueWalls = computed<WidgetVenueWall[]>(() =>
+    this.selectedVenue()?.walls ?? []
+  );
+
+  readonly venueDecors = computed<WidgetVenueDecor[]>(() =>
+    this.selectedVenue()?.decors ?? []
+  );
+
+  readonly availableTables = computed<WidgetVenueTable[]>(() => {
+    const booked = this.availability()?.bookedTableNumbers ?? [];
+    return this.venueTables().filter(t => !booked.includes(t.id));
+  });
+
+  // Tische die zur Personenzahl passen (für Vollbild-Overlay).
+  // Zeigt nur die kleinste passende Tischgröße (engste Passung).
+  // Fallback auf nächstgrößere Stufe wenn die engste Passung vergriffen ist.
+  readonly suitableTables = computed<WidgetVenueTable[]>(() => {
+    const all    = this.availableTables();
+    const needed = this.people();
+
+    // Alle Tische die groß genug sind, aufsteigend nach Sitzplätzen.
+    const fitting = all.filter(t => t.seats >= needed).sort((a, b) => a.seats - b.seats);
+
+    // Kein Tisch passt → leeres Array (keine Selbstauswahl anzeigen).
+    if (fitting.length === 0) return [];
+
+    // Engste Passung: nur die kleinste Tischgröße die noch ausreicht.
+    // Größere Tische bleiben für Gruppen die sie wirklich brauchen reserviert.
+    const minSeats = fitting[0].seats;
+    return fitting.filter(t => t.seats === minSeats);
+  });
+
+  // How many tables are dimmed (not suitable for the selected party size)
+  readonly hiddenTableCount = computed<number>(() => {
+    return this.venueTables().length - this.suitableTables().length;
+  });
+
+  readonly planViewBox = computed<string>(() => {
+    const tables = this.venueTables();
+    const walls  = this.venueWalls();
+    const decors = this.venueDecors();
+    if (!tables.length && !walls.length && !decors.length) return '0 0 800 500';
+    const pad = 40;
+    const pts: { minX: number; minY: number; maxX: number; maxY: number }[] = [];
+
+    tables.forEach(t => {
+      const w = t.type === 'long' ? 140 * t.scale : 70 * t.scale;
+      const h = 70 * t.scale;
+      pts.push({ minX: t.x - pad, minY: t.y - pad, maxX: t.x + w + pad, maxY: t.y + h + pad });
+    });
+
+    walls.forEach(w => {
+      // Wall is centered at (w.x, w.y) with half-length in each direction
+      const half = w.length / 2;
+      pts.push({ minX: w.x - half - pad, minY: w.y - 12 - pad, maxX: w.x + half + pad, maxY: w.y + 12 + pad });
+    });
+
+    decors.forEach(d => {
+      const isWide = ['bar', 'stage', 'sofa'].includes(d.type);
+      const isWindow = d.type === 'window';
+      const baseW = (isWide || isWindow) ? 140 : 70;
+      const baseH = isWindow ? 32 : 70;
+      const w = baseW * d.scale;
+      const h = baseH * d.scale;
+      pts.push({ minX: d.x - pad, minY: d.y - pad, maxX: d.x + w + pad, maxY: d.y + h + pad });
+    });
+
+    const minX = Math.min(...pts.map(p => p.minX));
+    const minY = Math.min(...pts.map(p => p.minY));
+    const maxX = Math.max(...pts.map(p => p.maxX));
+    const maxY = Math.max(...pts.map(p => p.maxY));
+    return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
+  });
+
+  selectTable(id: number): void {
+    this.selectedTableId.set(this.selectedTableId() === id ? null : id);
+  }
 
   // ─── Kinderstühle helpers ─────────────────────────────────────────────────
   incKinderStuehle(): void { this.kinderStuehle.update(n => Math.min(this.kinderStuehleOnline(), n + 1)); }
@@ -508,7 +677,45 @@ export class StartComponent implements OnInit {
   plannerToggleConsent(): void { this.plannerConsent.update(v => !v); }
   selectPlannerDay(day: number): void { this.selectDay(day); this.setPlannerStep(2); }
   selectPlannerTime(t: string): void { this.time.set(t); this.setPlannerStep(3); }
-  selectPlannerSeats(n: number): void { this.people.set(n); this.setPlannerStep(4); }
+  selectPlannerSeats(n: number): void {
+    this.people.set(n);
+    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
+      this.tischwahlActive.set(true);
+    } else {
+      this.setPlannerStep(4);
+    }
+  }
+
+  // ─── Tischplan-Zwischenschritt-Methoden ───────────────────────────────────
+  tischwahlAutoAssign(): void {
+    this.selectedTableId.set(null);
+    this.tischwahlActive.set(false);
+    this.proceedAfterTischwahl();
+  }
+
+  tischwahlSelbst(): void {
+    this.tischwahlActive.set(false);
+    this.tischplanOverlayOpen.set(true);
+  }
+
+  tischplanOverlayConfirm(): void {
+    this.tischplanOverlayOpen.set(false);
+    this.proceedAfterTischwahl();
+  }
+
+  tischplanOverlayBack(): void {
+    this.tischplanOverlayOpen.set(false);
+    this.tischwahlActive.set(true);
+  }
+
+  private proceedAfterTischwahl(): void {
+    switch (this.layout()) {
+      case 'card':    this.cardStep.set(2);     break;
+      case 'sidebar': this.sidebarStep.set(2);  break;
+      case 'stacked': this.stackedStep.set(2);  break;
+      case 'planner': this.setPlannerStep(4);   break;
+    }
+  }
 
   ngOnInit(): void {
     const publicKey = this.route.snapshot.queryParamMap.get('key') ?? environment.publicKey;
@@ -531,6 +738,9 @@ export class StartComponent implements OnInit {
       if (!document.hidden) reloadIfIdle();
     });
     window.addEventListener('focus', reloadIfIdle);
+
+    // Fensterbreite für Tablet-Erkennung tracken
+    window.addEventListener('resize', () => this.windowWidth.set(window.innerWidth));
   }
 
   private loadConfig(publicKey: string): void {
@@ -540,8 +750,38 @@ export class StartComponent implements OnInit {
       this.applyDesign(config.widgetDesign);
       this.applyFunctional(config.widgetFunctional);
 
+      const closed = config.closedWeekdays ?? [];
+      this.closedWeekdays.set(closed);
+
+      // Find the first selectable day: not a closed weekday, and if it's today
+      // still has time slots left (current time + mindestvorlauf < latest slot).
+      {
+        const now = new Date();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const cutoff = nowMinutes + this.mindestvorlaufMinuten();
+        // Conservative latest slot: 23:00 = 1380 min. If cutoff >= that, today has no slots.
+        const latestSlotMinutes = 23 * 60;
+
+        let d = new Date(this.today + 'T00:00:00');
+        for (let i = 0; i < 60; i++) {
+          const wd = (d.getDay() + 6) % 7;
+          const isToday = d.toISOString().slice(0, 10) === this.today;
+          if (closed.includes(wd)) { d.setDate(d.getDate() + 1); continue; }
+          if (isToday && cutoff >= latestSlotMinutes) { d.setDate(d.getDate() + 1); continue; }
+          break;
+        }
+        const iso = d.toISOString().slice(0, 10);
+        if (iso !== this.date()) {
+          this.date.set(iso);
+          this.calendarMonth.set(d.getMonth());
+          this.calendarYear.set(d.getFullYear());
+        }
+      }
+
       const filtered = this.filteredVenues();
-      if (filtered.length === 1) {
+      // Always pre-select the first venue so availability is checked immediately.
+      // When raumauswahl is true the chips still show and the user can switch rooms.
+      if (filtered.length > 0) {
         this.selectedVenue.set(filtered[0]);
       }
 
@@ -606,6 +846,21 @@ export class StartComponent implements OnInit {
     if (design.colorText)       root.style.setProperty('--preview-text', design.colorText);
     if (design.colorBackground) root.style.setProperty('--preview-bg', design.colorBackground);
 
+    // Kachel-Hintergrund (fällt auf colorBackground zurück wenn nicht gesetzt)
+    const cardBg = design.cardBackground ?? design.colorBackground ?? '#ffffff';
+    root.style.setProperty('--preview-card-bg', cardBg);
+
+    // Seiten-Hintergrund auf body anwenden
+    const body = document.body;
+    const pb = design.pageBackground;
+    if (pb) {
+      if (pb.type === 'color' && pb.value) {
+        body.style.background = pb.value;
+      } else if (pb.type === 'image' && pb.value) {
+        body.style.background = `url(${pb.value}) center/cover no-repeat fixed`;
+      }
+    }
+
     const isDark = this.isDarkBackground(design.colorBackground ?? '#ffffff');
     root.style.setProperty('--preview-muted',  isDark ? 'rgba(255,255,255,0.6)' : '#6b7280');
     root.style.setProperty('--preview-border', isDark ? 'rgba(255,255,255,0.14)' : '#e5e7eb');
@@ -651,9 +906,11 @@ export class StartComponent implements OnInit {
     if (typeof func.kinderStuehleOnline === 'number')  this.kinderStuehleOnline.set(func.kinderStuehleOnline);
     if (func.vorausbuchungEinheit)                     this.vorausbuchungEinheit.set(func.vorausbuchungEinheit);
     if (typeof func.vorausbuchungWert === 'number')    this.vorausbuchungWert.set(func.vorausbuchungWert);
-    if (typeof func.mindestvorlaufMinuten === 'number') this.mindestvorlaufMinuten.set(func.mindestvorlaufMinuten);
+    if (typeof func.mindestvorlaufMinuten === 'number')  this.mindestvorlaufMinuten.set(func.mindestvorlaufMinuten);
+    if (typeof func.defaultDurationMinutes === 'number') this.defaultDurationMinutes.set(func.defaultDurationMinutes);
     if (typeof func.tischartenAktiv === 'boolean')     this.tischartenAktiv.set(func.tischartenAktiv);
     if (Array.isArray(func.tischartenAktiveTypes))     this.tischartenAktiveTypes.set(func.tischartenAktiveTypes);
+    if (func.tischartenAuswahlModus)                   this.tischartenModus.set(func.tischartenAuswahlModus);
     if (typeof func.onlineAenderungen === 'boolean')   this.onlineAenderungen.set(func.onlineAenderungen);
     if (typeof func.onlineAenderungenMinuten === 'number') this.onlineAenderungenMinuten.set(func.onlineAenderungenMinuten);
     if (typeof func.onlineStornierung === 'boolean')   this.onlineStornierung.set(func.onlineStornierung);
@@ -693,6 +950,12 @@ export class StartComponent implements OnInit {
     this.selectedVenue.set(venue);
   }
 
+  // Raumwechsel direkt im Tischplan-Overlay — setzt Tischauswahl zurück
+  selectVenueInPlan(venue: WidgetVenue): void {
+    this.selectedVenue.set(venue);
+    this.selectedTableId.set(null);
+  }
+
   onTimeChange(val: string): void {
     this.time.set(val);
   }
@@ -709,20 +972,35 @@ export class StartComponent implements OnInit {
     if (this.kinderStuehleAktiv() && this.kinderStuehle() > 0) {
       notesText = [notesText, `Kinderstühle: ${this.kinderStuehle()}`].filter(Boolean).join(' | ');
     }
-    if (this.tischartenAktiv() && this.selectedTischart()) {
+    if (this.tischartenAktiv() && this.tischartenModus() === 'liste' && this.selectedTischart()) {
       const found = this.alleTischarten.find(t => t.key === this.selectedTischart());
       const label = found ? found.label : this.selectedTischart();
       notesText = [notesText, `Tischart: ${label}`].filter(Boolean).join(' | ');
     }
 
+    let tableId: number | undefined;
+    if (this.tischartenAktiv()) {
+      if (this.tischartenModus() === 'plan') {
+        tableId = this.selectedTableId() ?? undefined;
+      } else if (this.tischartenModus() === 'liste' && this.selectedTischart()) {
+        // Best-fit: smallest available table of selected type with enough seats
+        const match = this.availableTables()
+          .filter(t => t.type === this.selectedTischart() && t.seats >= this.people())
+          .sort((a, b) => a.seats - b.seats)[0];
+        tableId = match?.id;
+      }
+    }
+
     this.reservations.create({
-      venue_id:    venue.id,
-      guest_name:  this.guestName().trim(),
-      guest_email: this.guestEmail().trim(),
-      guest_phone: this.guestPhone().trim() || undefined,
-      party_size:  this.people(),
-      starts_at:   toAtomDateTime(this.date(), time),
-      notes:       notesText || undefined,
+      venue_id:          venue.id,
+      guest_name:        this.guestName().trim(),
+      guest_email:       this.guestEmail().trim(),
+      guest_phone:       this.guestPhone().trim() || undefined,
+      party_size:        this.people(),
+      starts_at:         toAtomDateTime(this.date(), time),
+      notes:             notesText || undefined,
+      table_id:          tableId,
+      duration_minutes:  this.defaultDurationMinutes(),
     }).subscribe({
       next: () => {
         this.state.set('success');
@@ -768,9 +1046,14 @@ export class StartComponent implements OnInit {
     this.stackedConsent.set(false);
     this.plannerStep.set(1);
     this.plannerConsent.set(false);
-    if (this.venues().length > 1) this.selectedVenue.set(null);
+    if (this.filteredVenues().length > 0) {
+      this.selectedVenue.set(this.filteredVenues()[0]);
+    }
     this.kinderStuehle.set(0);
     this.selectedTischart.set('');
+    this.selectedTableId.set(null);
+    this.tischwahlActive.set(false);
+    this.tischplanOverlayOpen.set(false);
   }
 
   formatDate(iso: string): string {

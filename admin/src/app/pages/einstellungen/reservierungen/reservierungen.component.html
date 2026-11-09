@@ -10,7 +10,7 @@
         <div class="section-icon-wrap section-icon-wrap--primary">
           <mat-icon>schedule</mat-icon>
         </div>
-        Standard-Reservierungsdauer
+        {{ 'reservierungen_settings.default_duration' | translate }}
       </h2>
       <button class="info-button" [class.active]="info1()" (click)="info1.set(!info1())">
         <mat-icon>info</mat-icon>
@@ -18,14 +18,11 @@
     </div>
 
     <div class="info-box" [class.open]="info1()">
-      Legt fest, wie lange ein Tisch ab Reservierungsbeginn als belegt gilt.
-      Dieser Wert wird im <strong>Widget</strong> verwendet, um freie Zeitslots zu berechnen,
-      und im <strong>Raum-Detail</strong>, um den Status automatisch auf
-      „Zeit abgelaufen" zu wechseln. Empfohlen: <strong>90–120 Minuten</strong> für die meisten Restaurants.
+      {{ 'reservierungen_settings.info_duration' | translate }}
     </div>
 
     <p class="section-subtitle">
-      Wie lange ein Tisch ab Reservierungsbeginn belegt ist.
+      {{ 'reservierungen_settings.subtitle_auto_expire' | translate }}
     </p>
 
     <div class="preset-row">
@@ -40,7 +37,7 @@
     </div>
 
     <label class="custom-input">
-      <span class="custom-input__label">oder eigener Wert (Min.)</span>
+      <span class="custom-input__label">{{ 'reservierungen_settings.custom_value' | translate }}</span>
       <div class="custom-input__field">
         <input type="number"
                min="15" max="480" step="15"
@@ -52,7 +49,7 @@
 
     <div class="actions">
       <button type="button" class="save-button" [class.saved]="savedDuration()" (click)="saveDuration()">
-        {{ savedDuration() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ savedDuration() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -67,7 +64,7 @@
         <div class="section-icon-wrap section-icon-wrap--warning">
           <mat-icon>timer_off</mat-icon>
         </div>
-        Status-Auto-Wechsel
+        {{ 'reservierungen_settings.status_auto' | translate }}
       </h2>
       <div class="section-header__right">
         <button class="info-button" [class.active]="info2()" (click)="info2.set(!info2())" >
@@ -81,29 +78,25 @@
     </div>
 
     <div class="info-box" [class.open]="info2()">
-      Wenn aktiv, wechselt der Status eines eingecheckten Gastes automatisch auf
-      <strong>„Zeit abgelaufen"</strong>, sobald die Standard-Reservierungsdauer verstrichen ist.
-      Der Heartbeat läuft jede Minute — so sieht das Service-Team sofort,
-      wo nachgefragt werden sollte. Wenn deaktiviert, muss der Status manuell auf „Beendet" gesetzt werden.
+      {{ 'reservierungen_settings.info_auto_expire' | translate }}
     </div>
 
     <p class="section-subtitle">
-      Sobald die Reservierungsdauer abgelaufen ist, wechselt der Status
-      eingecheckter Gäste automatisch auf <strong>„Zeit abgelaufen"</strong>.
+      {{ 'reservierungen_settings.subtitle_auto_expire' | translate }}
     </p>
 
     <div class="status-hint" [class.status-hint--active]="autoExpire()">
       <mat-icon>{{ autoExpire() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
       @if (autoExpire()) {
-        Aktiv — Reservierungen werden jede Minute geprüft.
+        {{ 'reservierungen_settings.auto_expire_on' | translate }}
       } @else {
-        Deaktiviert — Status muss manuell auf „Beendet" gesetzt werden.
+        {{ 'reservierungen_settings.auto_expire_off' | translate }}
       }
     </div>
 
     <div class="actions">
       <button type="button" class="save-button" [class.saved]="savedAutoExpire()" (click)="saveAutoExpire()">
-        {{ savedAutoExpire() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ savedAutoExpire() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -118,7 +111,7 @@
         <div class="section-icon-wrap section-icon-wrap--accent">
           <mat-icon>cleaning_services</mat-icon>
         </div>
-        Clean-up-Zeit
+        {{ 'reservierungen_settings.cleanup_time' | translate }}
       </h2>
       <div class="section-header__right">
         <button class="info-button" [class.active]="info3()" (click)="info3.set(!info3())" >
@@ -132,15 +125,11 @@
     </div>
 
     <div class="info-box" [class.open]="info3()">
-      Die Clean-up-Zeit ist ein <strong>Puffer nach jeder Reservierung</strong> am gleichen Tisch —
-      zum Beispiel zum Eindecken oder Reinigen. Im Widget wird dieser Zeitraum bei der
-      Slot-Berechnung berücksichtigt, sodass Gäste den Tisch nicht direkt nach einer
-      vorherigen Buchung buchen können. Empfohlen: <strong>15–20 Minuten</strong>.
+      {{ 'reservierungen_settings.info_cleanup' | translate }}
     </div>
 
     <p class="section-subtitle">
-      Pufferzeit zwischen zwei Buchungen am gleichen Tisch (z. B. zum
-      Eindecken). Wird im Widget bei der Slot-Berechnung berücksichtigt.
+      {{ 'reservierungen_settings.subtitle_cleanup' | translate }}
     </p>
 
     <div [class.block--disabled]="!cleanupOn()">
@@ -156,7 +145,7 @@
       </div>
 
       <label class="custom-input" style="margin-top: 12px;">
-        <span class="custom-input__label">oder eigener Wert (Min.)</span>
+        <span class="custom-input__label">{{ 'reservierungen_settings.custom_value' | translate }}</span>
         <div class="custom-input__field">
           <input type="number"
                  min="5" max="120" step="5"
@@ -170,15 +159,15 @@
     <div class="status-hint" [class.status-hint--active]="cleanupOn()">
       <mat-icon>{{ cleanupOn() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
       @if (cleanupOn()) {
-        Aktiv — Pufferzeit wird bei der Slot-Berechnung berücksichtigt.
+        {{ 'reservierungen_settings.cleanup_on' | translate }}
       } @else {
-        Deaktiviert — kein Puffer zwischen Buchungen.
+        {{ 'reservierungen_settings.cleanup_off' | translate }}
       }
     </div>
 
     <div class="actions">
       <button type="button" class="save-button" [class.saved]="savedCleanup()" (click)="saveCleanup()">
-        {{ savedCleanup() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ savedCleanup() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -191,7 +180,7 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">visibility</mat-icon>
-        Beispiel: Reservierung um 19:00 Uhr
+        {{ 'reservierungen_settings.preview_title' | translate }}
       </h2>
     </div>
 
@@ -199,7 +188,7 @@
       <div class="timeline__segment timeline__segment--reservation"
            [style.flex]="defaultDuration()">
         <div class="timeline__label">
-          <strong>Reservierung</strong>
+          <strong>{{ 'reservierungen_settings.reservation_label' | translate }}</strong>
           <span>{{ previewExample().start }} – {{ previewExample().endRes }}</span>
           <span class="timeline__minutes">{{ defaultDuration() }} min</span>
         </div>
@@ -209,7 +198,7 @@
         <div class="timeline__segment timeline__segment--cleanup"
              [style.flex]="cleanupMinutes()">
           <div class="timeline__label">
-            <strong>Clean-up</strong>
+            <strong>{{ 'reservierungen_settings.cleanup_label' | translate }}</strong>
             <span>{{ previewExample().endRes }} – {{ previewExample().endSlot }}</span>
             <span class="timeline__minutes">{{ cleanupMinutes() }} min</span>
           </div>
@@ -219,7 +208,7 @@
 
     <div class="preview-summary">
       <mat-icon>event_available</mat-icon>
-      Tisch ist nach dieser Buchung wieder frei ab
+      {{ 'reservierungen_settings.preview_free_at' | translate }}
       <strong>{{ previewExample().endSlot }}</strong> Uhr.
     </div>
   </div>
@@ -234,7 +223,7 @@
         <div class="section-icon-wrap section-icon-wrap--info">
           <mat-icon>local_bar</mat-icon>
         </div>
-        Getränke-Erinnerung
+        {{ 'reservierungen_settings.drinks_reminder' | translate }}
       </h2>
       <div class="section-header__right">
         <button class="info-button" [class.active]="info4()" (click)="info4.set(!info4())" >
@@ -248,18 +237,15 @@
     </div>
 
     <div class="info-box" [class.open]="info4()">
-      Nach dem Einchecken eines Gastes startet automatisch ein Timer.
-      Nach der eingestellten Zeit erscheint im Raum-Detail ein <strong>Hinweis-Icon</strong>
-      beim betreffenden Tisch — ein Signal für das Service-Team, die Getränkebestellung aufzunehmen.
-      Der Timer startet erneut, sobald der Hinweis bestätigt wurde.
+      {{ 'reservierungen_settings.info_drinks' | translate }}
     </div>
 
     <p class="section-subtitle">
-      Automatische Erinnerung nach dem Einchecken — <strong>„Bedienung, geh mal hin!"</strong>
+      {{ 'reservierungen_settings.subtitle_drinks' | translate }}
     </p>
 
     <div [class.block--disabled]="!getraenkeOn()">
-      <p class="field-label">Nach wie vielen Minuten soll die Erinnerung erscheinen?</p>
+      <p class="field-label">{{ 'reservierungen_settings.drinks_after' | translate }}</p>
       <div class="time-card-row">
         @for (min of getraenkePresets; track min) {
           <button type="button"
@@ -276,15 +262,15 @@
     <div class="status-hint" [class.status-hint--active]="getraenkeOn()">
       <mat-icon>{{ getraenkeOn() ? 'notifications_active' : 'notifications_off' }}</mat-icon>
       @if (getraenkeOn()) {
-        Aktiv — Erinnerung nach <strong>{{ getraenkeMinutes() }} Minuten</strong> pro eingechecktem Gast.
+        {{ 'reservierungen_settings.drinks_on' | translate }}
       } @else {
-        Deaktiviert — keine Getränke-Erinnerungen.
+        {{ 'reservierungen_settings.drinks_off' | translate }}
       }
     </div>
 
     <div class="actions">
       <button type="button" class="save-button" [class.saved]="savedGetraenke()" (click)="saveGetraenke()">
-        {{ savedGetraenke() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ savedGetraenke() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -299,7 +285,7 @@
         <div class="section-icon-wrap section-icon-wrap--vip">
           <mat-icon>workspace_premium</mat-icon>
         </div>
-        VIP-Schwelle
+        {{ 'reservierungen_settings.vip_threshold' | translate }}
       </h2>
       <button class="info-button" [class.active]="info5()" (click)="info5.set(!info5())">
         <mat-icon>info</mat-icon>
@@ -307,15 +293,11 @@
     </div>
 
     <div class="info-box" [class.open]="info5()">
-      Legt fest, ab wie vielen Reservierungen ein Gast in der <strong>Kundenkartei</strong>
-      als <strong>VIP</strong> eingestuft wird. VIP-Gäste werden beim Einchecken besonders
-      hervorgehoben und erhalten eine spezielle Kennzeichnung in der Gästeliste.
-      Gäste mit mindestens 60 % des VIP-Schwellenwerts werden als <strong>Stammgast</strong> markiert.
+      {{ 'reservierungen_settings.info_vip' | translate }}
     </div>
 
     <p class="section-subtitle">
-      Ab wie vielen Reservierungen gilt ein Gast als <strong>VIP</strong>?
-      Dieser Wert wird in der Kundenkartei und beim Einchecken verwendet.
+      {{ 'reservierungen_settings.subtitle_vip' | translate }}
     </p>
 
     <div class="vip-row">
@@ -331,18 +313,18 @@
         <input type="number" min="1" max="100"
                [(ngModel)]="vipThresholdInput"
                placeholder="?" />
-        <span class="vip-custom-input__unit">Buchungen</span>
+        <span class="vip-custom-input__unit">{{ 'reservierungen_settings.vip_bookings' | translate }}</span>
       </label>
     </div>
 
     <div class="status-hint" [class.status-hint--active]="true">
       <mat-icon>workspace_premium</mat-icon>
-      Gäste mit <strong>{{ vipThresholdInput }}+</strong> Reservierungen werden als VIP markiert.
+      {{ 'reservierungen_settings.vip_marked' | translate }}
     </div>
 
     <div class="actions">
       <button type="button" class="save-button" [class.saved]="savedVipThreshold()" (click)="saveVipThreshold()">
-        {{ savedVipThreshold() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ savedVipThreshold() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </div>
@@ -357,28 +339,28 @@
         <mat-icon>block</mat-icon>
       </div>
       <div class="setting-card__heading">
-        <div class="setting-card__title">Automatische Gast-Sperrung</div>
+        <div class="setting-card__title">{{ 'reservierungen_settings.auto_block' | translate }}</div>
         <div class="setting-card__subtitle">
-          Gast wird nach N No-Shows automatisch für weitere Reservierungen gesperrt.
+          {{ 'reservierungen_settings.subtitle_block' | translate }}
         </div>
       </div>
     </div>
 
     <div class="setting-card__body">
-      <p class="setting-card__label">Sperren nach wie vielen No-Shows?</p>
+      <p class="setting-card__label">{{ 'reservierungen_settings.block_after' | translate }}</p>
       <div class="preset-row">
         <button type="button"
                 class="preset-chip preset-chip--danger"
                 [class.active]="noShowThreshold() === null"
                 (click)="setNoShowThreshold(null)">
-          Deaktiviert
+          {{ 'reservierungen_settings.block_disabled' | translate }}
         </button>
         @for (n of noShowPresets; track n) {
           <button type="button"
                   class="preset-chip preset-chip--danger"
                   [class.active]="noShowThreshold() === n"
                   (click)="setNoShowThreshold(n)">
-            Nach {{ n }}
+            {{ 'reservierungen_settings.block_after_n' | translate }} {{ n }}
           </button>
         }
       </div>
@@ -387,9 +369,9 @@
     <div class="setting-card__hint" [class.setting-card__hint--muted]="noShowThreshold() === null">
       <mat-icon>{{ noShowThreshold() !== null ? 'gpp_bad' : 'radio_button_unchecked' }}</mat-icon>
       @if (noShowThreshold() !== null) {
-        Aktiv — Gast wird nach <strong>{{ noShowThreshold() }} No-Show{{ noShowThreshold()! > 1 ? 's' : '' }}</strong> automatisch gesperrt.
+        {{ 'reservierungen_settings.block_on' | translate }}
       } @else {
-        Deaktiviert — Sperrung muss manuell erfolgen.
+        {{ 'reservierungen_settings.block_off' | translate }}
       }
     </div>
 
@@ -398,7 +380,7 @@
               class="save-button save-button--card"
               [class.saved]="savedNoShowThreshold()"
               (click)="saveNoShowThreshold()">
-        {{ savedNoShowThreshold() ? 'Gespeichert ✓' : 'Speichern' }}
+        {{ savedNoShowThreshold() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
   </section>
@@ -410,7 +392,7 @@
   <div class="footer-actions">
     <button type="button" class="ghost-button" (click)="resetDefaults()">
       <mat-icon>restart_alt</mat-icon>
-      Auf Standard zurücksetzen
+      {{ 'reservierungen_settings.reset_defaults' | translate }}
     </button>
   </div>
 

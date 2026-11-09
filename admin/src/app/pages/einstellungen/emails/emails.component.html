@@ -1,348 +1,404 @@
-<!-- ===================== AUTOMATISCHE MAILS ===================== -->
-<div class="settings-block">
+<div class="settings-container">
 
-  <div class="section-header">
-    <h2 class="section-title">Automatische Mails</h2>
-
-    <div class="header-actions">
-      <button class="info-button"
-              [class.active]="mailInfo"
-              (click)="toggleMailInfo()">
+  <!-- ── Automatische Mails ─────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">mark_email_unread</mat-icon>
+        {{ 'emails.title' | translate }}
+      </h2>
+      <button class="info-button" [class.active]="mailInfo" (click)="toggleMailInfo()">
         <mat-icon>info</mat-icon>
       </button>
     </div>
-  </div>
 
-  <div class="info-box" [class.open]="mailInfo">
-    Lege fest, welche Mails automatisch versendet werden.
-  </div>
-
-  <div class="toggle-list">
-
-    <div class="toggle-item" *ngFor="let mail of mailSettings">
-      <span>{{ mail.label }}</span>
-
-      <label class="switch">
-        <input type="checkbox" [(ngModel)]="mail.enabled">
-        <span class="slider"></span>
-      </label>
-    </div>
-
-  </div>
-
-</div>
-
-
-<!-- ===================== ERINNERUNG ===================== -->
-<div class="settings-block">
-
-  <div class="section-header">
-    <h2 class="section-title">Erinnerung</h2>
-  </div>
-
-  <div class="view-toggle">
-    <button [class.active]="reminderTime === '2h'" (click)="setReminder('2h')">
-      2h vorher
-    </button>
-
-    <button [class.active]="reminderTime === '24h'" (click)="setReminder('24h')">
-      24h vorher
-    </button>
-  </div>
-
-</div>
-
-
-<!-- ===================== SPRACHE ===================== -->
-<div class="settings-block">
-
-  <div class="section-header">
-    <h2 class="section-title">Sprache</h2>
-
-    <div class="header-actions">
-      <button class="info-button"
-              [class.active]="languageInfo"
-              (click)="toggleLanguageInfo()">
-        <mat-icon>info</mat-icon>
-      </button>
-    </div>
-  </div>
-
-  <div class="info-box" [class.open]="languageInfo">
-    Wähle die Sprache für deine E-Mails.
-  </div>
-
-  <div class="view-toggle">
-    <button [class.active]="language === 'de'" (click)="setLanguage('de')">
-      Deutsch
-    </button>
-
-    <button [class.active]="language === 'en'" (click)="setLanguage('en')">
-      Englisch
-    </button>
-    <button [class.active]="language === 'it'" (click)="setLanguage('it')">
-      Italienisch
-    </button>
-  </div>
-
-</div>
-
-
-<!-- ===================== EMAIL DESIGN ===================== -->
-<div class="settings-block">
-
-  <div class="section-header">
-    <h2 class="section-title">Email Design</h2>
-  </div>
-
-<!-- ===================== EMAIL DESIGN ===================== -->
-<div class="settings-block">
-
-  <div class="section-header">
-    <h2 class="section-title">Email Design</h2>
-  </div>
-
-  <div class="design-grid">
-
-    <!-- MODE -->
-    <div class="setting-group">
-
-      <label class="setting-label">Modus</label>
-
-      <div class="view-toggle">
-        <button
-          [class.active]="emailMode === 'dark'"
-          (click)="setEmailMode('dark')">
-          Dark
-        </button>
-
-        <button
-          [class.active]="emailMode === 'light'"
-          (click)="setEmailMode('light')">
-          Light
-        </button>
-      </div>
-
-    </div>
-
-    <!-- BUTTON -->
-    <div class="setting-group">
-      <label class="setting-label">Button Farbe</label>
-
-      <input
-        type="color"
-        [(ngModel)]="primaryColor"
-        class="color-input">
-    </div>
-
-    <!-- HIGHLIGHT -->
-    <div class="setting-group">
-      <label class="setting-label">Highlight Farbe</label>
-
-      <input
-        type="color"
-        [(ngModel)]="highlightColor"
-        class="color-input">
-    </div>
-
-    <!-- CARD -->
-    <div class="setting-group">
-      <label class="setting-label">Karten Farbe</label>
-
-      <input
-        type="color"
-        [(ngModel)]="cardColor"
-        class="color-input">
-    </div>
-
-    <!-- BORDER RADIUS -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Border Radius
-      </label>
-
-      <input
-        type="number"
-        [(ngModel)]="borderRadius"
-        class="text-input">
-
-    </div>
-
-    <!-- FONT -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Schriftart
-      </label>
-
-      <select [(ngModel)]="fontFamily" class="text-input">
-        <option value="Arial">Arial</option>
-        <option value="Inter">Inter</option>
-        <option value="Poppins">Poppins</option>
-        <option value="Montserrat">Montserrat</option>
-      </select>
-
-    </div>
-
-    <!-- LOGO -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Logo Upload
-      </label>
-
-      <input
-        type="file"
-        (change)="onLogoUpload($event)"
-        class="text-input">
-
-    </div>
-
-    <!-- HEADER IMAGE -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Header Bild
-      </label>
-
-      <input
-        type="file"
-        (change)="onHeaderUpload($event)"
-        class="text-input">
-
-    </div>
-
-  </div>
-
-</div>
-
-<!-- ===================== CONTENT ===================== -->
-<div class="settings-block">
-
-  <div class="section-header">
-    <h2 class="section-title">Inhalte</h2>
-  </div>
-
-  <div class="design-grid">
-
-    <!-- FOOTER -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Footer Text
-      </label>
-
-      <textarea
-        [(ngModel)]="footerText"
-        class="textarea-input"></textarea>
-
-    </div>
-
-    <!-- INFO -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Info Text
-      </label>
-
-      <textarea
-        [(ngModel)]="infoText"
-        class="textarea-input"></textarea>
-
-    </div>
-
-    <!-- SIGNATURE -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Eigene Signatur
-      </label>
-
-      <textarea
-        [(ngModel)]="signature"
-        class="textarea-input"></textarea>
-
-    </div>
-
-    <!-- SOCIAL -->
-    <div class="setting-group">
-
-      <label class="setting-label">
-        Social Links
-      </label>
-
-      <input
-        type="text"
-        [(ngModel)]="instagram"
-        placeholder="Instagram"
-        class="text-input">
-
-      <input
-        type="text"
-        [(ngModel)]="facebook"
-        placeholder="Facebook"
-        class="text-input">
-
-      <input
-        type="text"
-        [(ngModel)]="tiktok"
-        placeholder="TikTok"
-        class="text-input">
-
-    </div>
-
-  </div>
-
-</div>
-
-<!-- ===================== ANHÄNGE ===================== -->
-<div class="settings-block">
-
-  <div class="section-header">
-    <h2 class="section-title">Anhänge</h2>
-  </div>
-
-  <input
-    type="file"
-    multiple
-    (change)="onAttachmentsSelected($event)"
-    class="text-input">
-
-  <div class="attachment-list">
-
-    <div
-      class="attachment-item"
-      *ngFor="let attachment of attachments">
-
-      <strong>{{ attachment.name }}</strong>
-
-      <div class="attachment-mails">
-
-        <label *ngFor="let mail of mailSettings">
-
-          <input
-            type="checkbox"
-            [(ngModel)]="attachment.assignedMails[mail.key]">
-
-          {{ mail.label }}
-
+    <div class="info-box" [class.open]="mailInfo">{{ 'emails.subtitle' | translate }}</div>
+
+    <div class="toggle-list">
+      <div class="toggle-item" *ngFor="let mail of mailSettings">
+        <span class="toggle-item__label">{{ mail.label }}</span>
+        <label class="toggle">
+          <input type="checkbox" [(ngModel)]="mail.enabled">
+          <span class="toggle__track"><span class="toggle__thumb"></span></span>
         </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Erinnerung ─────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">schedule</mat-icon>
+        {{ 'emails.reminder' | translate }}
+      </h2>
+    </div>
+    <div class="view-toggle">
+      <button [class.active]="reminderTime === '2h'"  (click)="setReminder('2h')">{{ 'emails.2h_before'  | translate }}</button>
+      <button [class.active]="reminderTime === '24h'" (click)="setReminder('24h')">{{ 'emails.24h_before' | translate }}</button>
+    </div>
+  </div>
+
+  <!-- ── Sprache ────────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">language</mat-icon>
+        {{ 'emails.language' | translate }}
+      </h2>
+      <button class="info-button" [class.active]="languageInfo" (click)="toggleLanguageInfo()">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="languageInfo">{{ 'emails.lang_hint' | translate }}</div>
+    <div class="view-toggle">
+      <button [class.active]="language === 'de'" (click)="setLanguage('de')">{{ 'emails.german'  | translate }}</button>
+      <button [class.active]="language === 'en'" (click)="setLanguage('en')">{{ 'emails.english' | translate }}</button>
+      <button [class.active]="language === 'it'" (click)="setLanguage('it')">{{ 'emails.italian' | translate }}</button>
+    </div>
+  </div>
+
+  <!-- ── E-Mail Design ──────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">palette</mat-icon>
+        {{ 'emails.design' | translate }}
+      </h2>
+    </div>
+
+    <div class="form-grid">
+
+      <!-- Modus -->
+      <div class="form-row form-row--full">
+        <span class="form-row__label">{{ 'emails.mode' | translate }}</span>
+        <div class="view-toggle">
+          <button [class.active]="emailMode === 'dark'"  (click)="setEmailMode('dark')">{{ 'emails.dark'  | translate }}</button>
+          <button [class.active]="emailMode === 'light'" (click)="setEmailMode('light')">{{ 'emails.light' | translate }}</button>
+        </div>
+      </div>
+
+      <!-- Farben -->
+      <div class="form-row form-row--color">
+        <label class="form-row__color-label">
+          <span class="form-row__label">{{ 'emails.btn_color' | translate }}</span>
+          <span class="color-swatch-wrap">
+            <input type="color" [(ngModel)]="primaryColor" class="color-swatch">
+            <span class="color-swatch__value">{{ primaryColor }}</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="form-row form-row--color">
+        <label class="form-row__color-label">
+          <span class="form-row__label">{{ 'emails.highlight' | translate }}</span>
+          <span class="color-swatch-wrap">
+            <input type="color" [(ngModel)]="highlightColor" class="color-swatch">
+            <span class="color-swatch__value">{{ highlightColor }}</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="form-row form-row--color">
+        <label class="form-row__color-label">
+          <span class="form-row__label">{{ 'emails.card_color' | translate }}</span>
+          <span class="color-swatch-wrap">
+            <input type="color" [(ngModel)]="cardColor" class="color-swatch">
+            <span class="color-swatch__value">{{ cardColor }}</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- Border Radius -->
+      <div class="form-row">
+        <label class="form-row__label">{{ 'emails.border_radius' | translate }}</label>
+        <input type="number" [(ngModel)]="borderRadius" class="form-row__input" min="0" max="32">
+      </div>
+
+      <!-- Schrift -->
+      <div class="form-row">
+        <label class="form-row__label">{{ 'emails.font' | translate }}</label>
+        <select [(ngModel)]="fontFamily" class="form-row__input">
+          <option value="Arial">Arial</option>
+          <option value="Inter">Inter</option>
+          <option value="Poppins">Poppins</option>
+          <option value="Montserrat">Montserrat</option>
+        </select>
+      </div>
+
+      <!-- Logo -->
+      <div class="form-row">
+        <span class="form-row__label">{{ 'emails.logo_upload' | translate }}</span>
+        <label class="upload-btn">
+          <mat-icon>upload</mat-icon>
+          <span>Logo wählen</span>
+          <input type="file" accept="image/*" (change)="onLogoUpload($event)" hidden>
+        </label>
+        <div class="upload-preview" *ngIf="logoPreview">
+          <img [src]="logoPreview" alt="Logo">
+        </div>
+      </div>
+
+      <!-- Header-Bild -->
+      <div class="form-row">
+        <span class="form-row__label">{{ 'emails.header_image' | translate }}</span>
+        <label class="upload-btn">
+          <mat-icon>image</mat-icon>
+          <span>Bild wählen</span>
+          <input type="file" accept="image/*" (change)="onHeaderUpload($event)" hidden>
+        </label>
+        <div class="upload-preview upload-preview--wide" *ngIf="headerPreview">
+          <img [src]="headerPreview" alt="Header">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Inhalt ─────────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">article</mat-icon>
+        {{ 'emails.content' | translate }}
+      </h2>
+    </div>
+
+    <!-- Tab-Leiste: welche Mail wird gerade bearbeitet -->
+    <div class="content-tabs">
+      <button
+        *ngFor="let mail of mailSettings"
+        class="content-tab"
+        [class.active]="selectedContentKey === mail.key"
+        (click)="selectedContentKey = mail.key">
+        {{ mail.label }}
+      </button>
+    </div>
+
+    <!-- Zwei-Spalten-Layout -->
+    <div class="content-editor">
+
+      <!-- ── Linke Spalte: Felder ── -->
+      <div class="content-editor__fields">
+
+        <!-- Fester Textblock (read-only) -->
+        <div class="fixed-block">
+          <div class="fixed-block__header">
+            <mat-icon class="fixed-block__icon">lock</mat-icon>
+            <span class="fixed-block__title">Fester Textblock</span>
+            <span class="fixed-block__badge">nicht änderbar</span>
+          </div>
+          <div class="fixed-block__body">
+            <p class="fixed-block__line">
+              Hallo <span class="var-badge">{{ ph.vorname }}</span>,
+            </p>
+            <ng-container *ngFor="let line of getFixedLines(selectedContentKey)">
+              <p class="fixed-block__line" *ngIf="line">{{ line }}</p>
+              <br *ngIf="!line">
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Info-Text -->
+        <div class="form-row">
+          <label class="form-row__label">
+            Info-Text
+            <span class="field-hint">optional — erscheint unter den Buchungsdetails</span>
+          </label>
+          <textarea
+            [(ngModel)]="currentMailContent.infoText"
+            class="form-row__input form-row__input--textarea"
+            placeholder="Zusätzliche Informationen für diese E-Mail…"></textarea>
+        </div>
+
+        <!-- Footer-Text -->
+        <div class="form-row">
+          <label class="form-row__label">
+            Footer-Text
+            <span class="field-hint">erscheint am Ende der E-Mail</span>
+          </label>
+          <textarea
+            [(ngModel)]="currentMailContent.footerText"
+            class="form-row__input form-row__input--textarea"
+            placeholder="Text am Ende der E-Mail…"></textarea>
+        </div>
+
+        <!-- Signatur -->
+        <div class="form-row">
+          <label class="form-row__label">
+            Signatur
+            <span class="field-hint">nach dem Footer-Text</span>
+          </label>
+          <textarea
+            [(ngModel)]="currentMailContent.signature"
+            class="form-row__input form-row__input--textarea"
+            placeholder="Ihre Signatur…"></textarea>
+        </div>
 
       </div>
 
+      <!-- ── Rechte Spalte: Live-Vorschau ── -->
+      <div class="content-editor__preview">
+        <div class="preview-label">
+          <mat-icon>visibility</mat-icon>
+          Vorschau
+        </div>
+
+        <div class="email-preview"
+          [class.email-preview--light]="emailMode === 'light'"
+          [style.background-color]="backgroundColor">
+
+          <!-- Logo -->
+          <div class="ep-logo-row">
+            <img *ngIf="logoPreview" [src]="logoPreview" class="ep-logo-img" alt="Logo">
+            <div *ngIf="!logoPreview" class="ep-logo-placeholder">
+              <mat-icon>storefront</mat-icon>
+              <span>Ihr Logo</span>
+            </div>
+          </div>
+
+          <!-- Header-Bild -->
+          <div class="ep-header-img" *ngIf="headerPreview">
+            <img [src]="headerPreview" alt="Header">
+          </div>
+
+          <!-- Card / Body -->
+          <div class="ep-card" [style.background-color]="cardColor"
+            [style.border-radius.px]="borderRadius">
+
+            <!-- Begrüßung -->
+            <p class="ep-greeting" [style.font-family]="fontFamily">
+              Hallo <span class="ep-var" [style.background-color]="primaryColor + '33'" [style.color]="primaryColor">{{ ph.vorname }}</span>,
+            </p>
+
+            <!-- Fester Text -->
+            <div class="ep-fixed-text" [style.font-family]="fontFamily">
+              <ng-container *ngFor="let line of getFixedLines(selectedContentKey)">
+                <span *ngIf="line">{{ line }}</span>
+                <br *ngIf="!line">
+              </ng-container>
+            </div>
+
+            <!-- Details-Karte -->
+            <div class="ep-details-card" *ngIf="showDetailsCard(selectedContentKey)"
+              [style.border-color]="primaryColor + '44'">
+              <div class="ep-detail-row">
+                <span class="ep-detail-icon">📅</span>
+                <span class="ep-var" [style.background-color]="primaryColor + '22'" [style.color]="primaryColor">{{ ph.datum }}</span>
+              </div>
+              <div class="ep-detail-row">
+                <span class="ep-detail-icon">🕐</span>
+                <span class="ep-var" [style.background-color]="primaryColor + '22'" [style.color]="primaryColor">{{ ph.uhrzeit }}</span>
+              </div>
+              <div class="ep-detail-row">
+                <span class="ep-detail-icon">👥</span>
+                <span class="ep-var" [style.background-color]="primaryColor + '22'" [style.color]="primaryColor">{{ ph.personen }}</span>
+              </div>
+              <div class="ep-detail-row">
+                <span class="ep-detail-icon">🏠</span>
+                <span class="ep-var" [style.background-color]="primaryColor + '22'" [style.color]="primaryColor">{{ ph.raum }}</span>
+              </div>
+            </div>
+
+            <!-- Info-Text -->
+            <div class="ep-placeholder ep-placeholder--info" *ngIf="!currentMailContent.infoText">
+              <mat-icon>info_outline</mat-icon>
+              <span>Info-Text</span>
+            </div>
+            <div class="ep-custom-text" *ngIf="currentMailContent.infoText" [style.font-family]="fontFamily">
+              {{ currentMailContent.infoText }}
+            </div>
+
+            <div class="ep-divider" [style.border-color]="primaryColor + '33'"></div>
+
+            <!-- Footer-Text -->
+            <div class="ep-placeholder ep-placeholder--footer" *ngIf="!currentMailContent.footerText">
+              <mat-icon>article</mat-icon>
+              <span>Footer-Text</span>
+            </div>
+            <div class="ep-custom-text ep-custom-text--muted" *ngIf="currentMailContent.footerText" [style.font-family]="fontFamily">
+              {{ currentMailContent.footerText }}
+            </div>
+
+            <!-- Signatur -->
+            <div class="ep-placeholder ep-placeholder--sig" *ngIf="!currentMailContent.signature">
+              <mat-icon>edit</mat-icon>
+              <span>Signatur</span>
+            </div>
+            <div class="ep-custom-text ep-custom-text--sig" *ngIf="currentMailContent.signature" [style.font-family]="fontFamily">
+              {{ currentMailContent.signature }}
+            </div>
+
+            <!-- Social -->
+            <div class="ep-social" *ngIf="instagram || facebook || tiktok">
+              <span class="ep-social-icon" *ngIf="instagram" [style.background-color]="primaryColor">IG</span>
+              <span class="ep-social-icon" *ngIf="facebook"  [style.background-color]="primaryColor">FB</span>
+              <span class="ep-social-icon" *ngIf="tiktok"    [style.background-color]="primaryColor">TT</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-editor -->
+
+    <!-- Social Links global -->
+    <div class="social-section">
+      <span class="form-row__label">{{ 'emails.social_links' | translate }}</span>
+      <div class="social-inputs">
+        <div class="social-row">
+          <mat-icon class="social-row__icon social-row__icon--ig">photo_camera</mat-icon>
+          <input type="text" [(ngModel)]="instagram" placeholder="Instagram URL" class="form-row__input">
+        </div>
+        <div class="social-row">
+          <mat-icon class="social-row__icon social-row__icon--fb">thumb_up</mat-icon>
+          <input type="text" [(ngModel)]="facebook"  placeholder="Facebook URL"  class="form-row__input">
+        </div>
+        <div class="social-row">
+          <mat-icon class="social-row__icon social-row__icon--tt">music_note</mat-icon>
+          <input type="text" [(ngModel)]="tiktok"    placeholder="TikTok URL"    class="form-row__input">
+        </div>
+      </div>
     </div>
 
   </div>
 
-</div>
+  <!-- ── Anhänge ────────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">attach_file</mat-icon>
+        {{ 'emails.attachments' | translate }}
+      </h2>
+    </div>
 
-<!-- ===================== ACTIONS ===================== -->
-<div class="settings-block">
+    <label class="upload-btn upload-btn--block">
+      <mat-icon>upload_file</mat-icon>
+      <span>Dateien auswählen</span>
+      <input type="file" multiple (change)="onAttachmentsSelected($event)" hidden>
+    </label>
 
-  <div class="actions">
-    <button class="save-button" [class.saved]="saved" (click)="save()">
-      {{ saved ? 'Gespeichert ✓' : 'Speichern' }}
+    <div class="attachment-list">
+      <div class="attachment-item" *ngFor="let attachment of attachments">
+        <div class="attachment-item__head">
+          <mat-icon>description</mat-icon>
+          <strong>{{ attachment.name }}</strong>
+        </div>
+        <div class="attachment-mails">
+          <label class="mail-chip" *ngFor="let mail of mailSettings">
+            <input type="checkbox" [(ngModel)]="attachment.assignedMails[mail.key]">
+            <span class="mail-chip__label">{{ mail.label }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Speichern ──────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <button class="save-btn" [class.save-btn--saved]="saved" (click)="save()">
+      <mat-icon>{{ saved ? 'check' : 'save' }}</mat-icon>
+      {{ saved ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>
   </div>
 

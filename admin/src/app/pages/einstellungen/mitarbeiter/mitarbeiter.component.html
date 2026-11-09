@@ -3,18 +3,18 @@
   <!-- Header -->
   <div class="section-header">
     <div class="section-header__left">
-      <h2 class="section-title">Mitarbeiter</h2>
+      <h2 class="section-title">{{ 'mitarbeiter.title' | translate }}</h2>
       <span class="count-pill">{{ employees().length }}</span>
     </div>
     <div class="header-actions">
-      <button class="ghost-button" [class.active]="infoOpen()" (click)="toggleInfo()" title="Info">
+      <button class="ghost-button" [class.active]="infoOpen()" (click)="toggleInfo()" [title]="'mitarbeiter.subtitle' | translate">
         <mat-icon>info</mat-icon>
       </button>
 
       @if (canEdit()) {
         <button class="primary-button" (click)="openAddModal()">
           <mat-icon>person_add</mat-icon>
-          <span>Hinzufügen</span>
+          <span>{{ 'common.add' | translate }}</span>
         </button>
       }
     </div>
@@ -22,13 +22,7 @@
 
   <!-- Info-Box -->
   <div class="info-box" [class.open]="infoOpen()">
-    Lege fest, wer was darf. Drei Rollen stehen zur Verfügung:
-    <strong>Admin</strong> hat uneingeschränkten Zugriff,
-    <strong>Manager</strong> kümmert sich um den operativen Alltag,
-    <strong>Staff</strong> arbeitet mit eingeschränkten Rechten am Tischplan.
-    Jeder Mitarbeiter hat zusätzlich eine eigene <strong>Mitarbeiter-ID</strong>
-    (z. B. 001), über die später nachvollziehbar wird, wer welche
-    Reservierung bearbeitet hat.
+    {{ 'mitarbeiter.subtitle' | translate }}
   </div>
 
   <!-- Rollen-Legende -->
@@ -48,7 +42,7 @@
   @if (loading()) {
     <div class="empty-state">
       <mat-icon>sync</mat-icon>
-      <div>Wird geladen …</div>
+      <div>{{ 'mitarbeiter.loading' | translate }}</div>
     </div>
   }
 
@@ -70,12 +64,12 @@
           <div class="employee-name">
             {{ user.name }}
             @if (canSeeId()) {
-              <span class="staff-id-pill" [attr.data-role]="user.role" title="Mitarbeiter-ID">
+              <span class="staff-id-pill" [attr.data-role]="user.role" [title]="'mitarbeiter.employee_id' | translate">
                 {{ user.staffId }}
               </span>
             }
             @if (!user.active) {
-              <span class="pill pill--muted">Deaktiviert</span>
+              <span class="pill pill--muted">{{ 'common.inactive' | translate }}</span>
             }
           </div>
         </div>
@@ -83,14 +77,14 @@
         <!-- Actions (eigene Grid-Spalte, rechts) -->
         <div class="employee-actions">
           @if (canEdit()) {
-            <button class="icon-button" (click)="openEdit(user)" title="Bearbeiten">
+            <button class="icon-button" (click)="openEdit(user)" [title]="'mitarbeiter.edit_title' | translate">
               <mat-icon>edit</mat-icon>
             </button>
-            <label class="switch" title="Aktivieren / deaktivieren">
+            <label class="switch" [title]="('common.active' | translate) + ' / ' + ('common.inactive' | translate)">
               <input type="checkbox" [checked]="user.active" (change)="toggleActive(user)" />
               <span class="slider"></span>
             </label>
-            <button class="icon-button danger" (click)="removeUser(user)" title="Entfernen">
+            <button class="icon-button danger" (click)="removeUser(user)">
               <mat-icon>delete_outline</mat-icon>
             </button>
           }
@@ -109,9 +103,9 @@
 
       <div class="modal__header">
         <h3>
-          {{ modalMode === 'add' ? 'Mitarbeiter hinzufügen' : 'Mitarbeiter bearbeiten' }}
+          {{ modalMode === 'add' ? ('mitarbeiter.add_title' | translate) : ('mitarbeiter.edit_title' | translate) }}
         </h3>
-        <button class="icon-button" (click)="closeModal()" title="Schließen">
+        <button class="icon-button" (click)="closeModal()">
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -119,34 +113,34 @@
       <div class="modal__body">
 
         <label class="field">
-          <span class="field__label">Name</span>
+          <span class="field__label">{{ 'mitarbeiter.name' | translate }}</span>
           <input type="text"
-                 placeholder="z. B. Lena Vogel"
+                 [placeholder]="'mitarbeiter.name_ph' | translate"
                  [(ngModel)]="formUser.name" />
         </label>
 
         <label class="field">
-          <span class="field__label">E-Mail</span>
+          <span class="field__label">{{ 'mitarbeiter.email' | translate }}</span>
           <input type="email"
-                 placeholder="lena@example.com"
+                 [placeholder]="'mitarbeiter.email_ph' | translate"
                  [(ngModel)]="formUser.email" />
         </label>
 
         <label class="field">
           <span class="field__label">
-            Mitarbeiter-ID
-            <span class="field__hint">— wird in Audit-Logs hinterlegt</span>
+            {{ 'mitarbeiter.employee_id' | translate }}
+            <span class="field__hint">— {{ 'mitarbeiter.id_hint' | translate }}</span>
           </span>
           <input type="text"
                  inputmode="numeric"
-                 placeholder="z. B. 001"
+                 [placeholder]="'mitarbeiter.id_ph' | translate"
                  [(ngModel)]="formUser.staffId"
                  class="field__input--mono" />
         </label>
 
         <!-- Rollen-Picker -->
         <div class="field">
-          <span class="field__label">Rolle</span>
+          <span class="field__label">{{ 'mitarbeiter.role' | translate }}</span>
           <div class="role-picker">
             @for (r of roles; track r.key) {
               <button type="button"
@@ -172,7 +166,7 @@
         <div class="permissions-preview permissions-preview--{{ formUser.role }}">
           <div class="permissions-preview__title">
             <mat-icon>verified</mat-icon>
-            Was {{ roleMeta[formUser.role].label }} darf
+            {{ 'mitarbeiter.can_do' | translate }} {{ roleMeta[formUser.role].label }}
           </div>
           <ul>
             @for (p of roleMeta[formUser.role].permissions; track p) {
@@ -201,9 +195,9 @@
       }
 
       <div class="modal-actions">
-        <button class="btn-secondary" (click)="closeModal()">Abbrechen</button>
+        <button class="btn-secondary" (click)="closeModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn-primary" (click)="saveModal()">
-          {{ modalMode === 'add' ? 'Hinzufügen' : 'Speichern' }}
+          {{ modalMode === 'add' ? ('common.add' | translate) : ('common.save' | translate) }}
         </button>
       </div>
 
@@ -217,21 +211,21 @@
     <div class="modal" (click)="$event.stopPropagation()">
 
       <div class="modal__header">
-        <h3>{{ editTarget()?.name }} bearbeiten</h3>
-        <button class="icon-button" (click)="closeEdit()" title="Schließen">
+        <h3>{{ editTarget()?.name }} {{ 'mitarbeiter.edit_title' | translate }}</h3>
+        <button class="icon-button" (click)="closeEdit()">
           <mat-icon>close</mat-icon>
         </button>
       </div>
 
       <div class="modal__body">
         <label class="field">
-          <span class="field__label">Name *</span>
-          <input type="text" placeholder="Vor- und Nachname"
+          <span class="field__label">{{ 'mitarbeiter.name' | translate }} *</span>
+          <input type="text" [placeholder]="'mitarbeiter.name_ph' | translate"
                  [ngModel]="editName()" (ngModelChange)="editName.set($event)" />
         </label>
         <label class="field">
-          <span class="field__label">E-Mail <span style="opacity:.5">(optional)</span></span>
-          <input type="email" placeholder="name@beispiel.de"
+          <span class="field__label">{{ 'mitarbeiter.email' | translate }} <span style="opacity:.5">(optional)</span></span>
+          <input type="email" [placeholder]="'mitarbeiter.email_ph' | translate"
                  [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)" />
         </label>
       </div>
@@ -244,12 +238,12 @@
       }
 
       <div class="modal-actions">
-        <button class="btn-secondary" (click)="closeEdit()">Abbrechen</button>
+        <button class="btn-secondary" (click)="closeEdit()">{{ 'common.cancel' | translate }}</button>
         <button class="btn-primary"
                 [disabled]="!editName().trim() || editSaving()"
                 (click)="saveEdit()">
           <mat-icon>{{ editSaving() ? 'hourglass_empty' : 'save' }}</mat-icon>
-          {{ editSaving() ? 'Wird gespeichert …' : 'Speichern' }}
+          {{ editSaving() ? ('common.saving' | translate) : ('common.save' | translate) }}
         </button>
       </div>
 

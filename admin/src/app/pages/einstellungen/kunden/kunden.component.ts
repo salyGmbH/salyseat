@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { GuestsService, Guest, GuestReservation, UpdateGuestDto } from '../../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
 
@@ -11,7 +12,7 @@ type FilterKey = 'alle' | 'vip' | 'stammgast' | 'neukunde' | 'gesperrt' | 'nosho
 @Component({
   selector: 'app-kunden',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './kunden.component.html',
   styleUrl: './kunden.component.scss'
 })

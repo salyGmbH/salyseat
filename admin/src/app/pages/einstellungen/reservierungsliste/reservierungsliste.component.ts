@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
 import { ReservationsService } from '../../../services/reservations.service';
 import { Reservation, ReservationStatus, STATUS_LABELS } from '../../../services/reservation.types';
 import { StatusColorsService, StatusKey } from '../../../services/status-colors.service';
@@ -11,7 +12,7 @@ import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-reservierungsliste',
   standalone: true,
-  imports: [MatIconModule, FormsModule, StatusIconComponent],
+  imports: [MatIconModule, FormsModule, TranslateModule, StatusIconComponent],
   templateUrl: './reservierungsliste.component.html',
   styleUrl: './reservierungsliste.component.scss',
 })

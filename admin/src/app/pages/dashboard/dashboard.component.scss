@@ -604,6 +604,256 @@
   &__muted { opacity: 0.7; }
 }
 
+// ─── Hero-Card Varianten (neu) ────────────────────────────────────────────────
+.hero-card {
+  &--danger {
+    border-color: rgba(239, 68, 68, 0.30);
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.06);
+
+    .hero-card__icon {
+      background: rgba(239, 68, 68, 0.12);
+      mat-icon { color: #ef4444; }
+    }
+    .hero-card__value { color: #ef4444; }
+  }
+
+  &--revenue {
+    .hero-card__icon {
+      background: rgba(34, 197, 94, 0.10);
+      mat-icon { color: #22c55e; }
+    }
+  }
+}
+
+// ─── Insight Banners ──────────────────────────────────────────────────────────
+.insights-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.insight-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-text-muted;
+  background: rgba(var(--color-text-rgb), 0.04);
+  border: 1px solid $color-border;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; color: $color-primary; }
+
+  &--warn {
+    background: rgba(249, 115, 22, 0.07);
+    border-color: rgba(249, 115, 22, 0.25);
+    color: #f97316;
+    mat-icon { color: #f97316; }
+  }
+
+  &--success {
+    background: rgba(34, 197, 94, 0.07);
+    border-color: rgba(34, 197, 94, 0.25);
+    color: #16a34a;
+    mat-icon { color: #22c55e; }
+  }
+}
+
+// ─── 2-Spalten Haupt-Layout ───────────────────────────────────────────────────
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: stretch; // rechte Spalte wächst auf Höhe der linken
+
+  @media (max-width: 1000px) { grid-template-columns: 1fr; }
+}
+
+.main-layout__left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.main-layout__right {
+  margin-top: 27px;
+  display: flex;
+  flex-direction: column;
+}
+
+// ─── Hero Grid (6 Karten) ─────────────────────────────────────────────────────
+.hero-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+
+  @media (max-width: 760px) { grid-template-columns: repeat(2, 1fr) !important; }
+  @media (max-width: 480px) { grid-template-columns: 1fr !important; }
+}
+
+// ─── Herkunfts-Karten ─────────────────────────────────────────────────────────
+.source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+
+  @media (max-width: 600px) { grid-template-columns: 1fr; }
+}
+
+.source-card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 19px; width: 19px; height: 19px; }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__value {
+    font-size: 22px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__label {
+    font-size: 11px;
+    color: $color-text-muted;
+    font-weight: 500;
+  }
+
+  &--online {
+    border-color: rgba(var(--color-primary-rgb), 0.25);
+    .source-card__icon { background: rgba(var(--color-primary-rgb), 0.10); mat-icon { color: $color-primary; } }
+  }
+
+  &--admin {
+    border-color: rgba(var(--color-accent-rgb), 0.25);
+    .source-card__icon { background: rgba(var(--color-accent-rgb), 0.10); mat-icon { color: $color-accent; } }
+  }
+
+  &--walkin {
+    border-color: rgba(34, 197, 94, 0.25);
+    .source-card__icon { background: rgba(34, 197, 94, 0.10); mat-icon { color: #22c55e; } }
+  }
+}
+
+// ─── Kompakte Reservierungsliste (rechte Spalte) ──────────────────────────────
+.res-panel {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 14px;
+  padding: 16px;
+  flex: 1;           // füllt die gesamte Höhe der rechten Spalte
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.res-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--color-primary-rgb), 0.14);
+  color: $color-primary;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
+.res-compact-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  margin-top: 8px;
+  gap: 1px;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $color-border; border-radius: 2px; }
+}
+
+.res-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.12s;
+  min-width: 0;
+
+  &:hover { background: rgba(var(--color-text-rgb), 0.04); }
+
+  &__time {
+    font-size: 12px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    font-variant-numeric: tabular-nums;
+    min-width: 40px;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    font-size: 12.5px;
+    color: $color-text;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__pax {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    color: $color-text-muted;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 11px; width: 11px; height: 11px; }
+  }
+
+  &__table {
+    font-size: 10px;
+    color: $color-text-muted;
+    background: rgba(var(--color-text-rgb), 0.06);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+}
+
+.badge--compact {
+  font-size: 10px !important;
+  padding: 2px 7px !important;
+  flex-shrink: 0;
+}
+
 // ─── Schnellzugriff ───────────────────────────────────────────────────────────
 .quick-grid {
   display: grid;

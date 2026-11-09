@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 
 export type PackageCategory = 'menu' | 'event' | 'feier' | 'sonstiges';
 
@@ -36,7 +37,7 @@ export const CATEGORY_META: Record<PackageCategory, CategoryMeta> = {
 @Component({
   selector: 'app-packages',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './packages.component.html',
   styleUrl: './packages.component.scss'
 })

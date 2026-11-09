@@ -11,6 +11,7 @@ use App\Module\Reservation\Application\Command\CreateReservation\CreateReservati
 use App\Module\Reservation\Application\Dto\ReservationDto;
 use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenHandler;
 use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenQuery;
+use App\Module\Availability\Infrastructure\Persistence\DoctrineOpeningHoursRepository;
 use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,6 +32,7 @@ class ReservationController extends AbstractController
         private readonly GetReservationByTokenHandler $statusHandler,
         private readonly DoctrineTenantRepository $tenants,
         private readonly EntityManagerInterface $em,
+        private readonly DoctrineOpeningHoursRepository $ohRepo,
     ) {}
 
     /**
@@ -57,6 +59,13 @@ class ReservationController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        $closedWeekdays = [];
+        foreach ($this->ohRepo->findByTenant($tenant) as $oh) {
+            if (!$oh->isOpen()) {
+                $closedWeekdays[] = $oh->getWeekday();
+            }
+        }
+
         return $this->json([
             'name'         => $tenant->getName(),
             'venues'       => array_map(fn ($v) => [
@@ -64,9 +73,16 @@ class ReservationController extends AbstractController
                 'name'     => $v->getName(),
                 'category' => $v->getCategory(),
                 'address'  => $v->getAddress(),
+                'tables'   => $v->getLayout()['tables'] ?? [],
+                'walls'    => $v->getLayout()['walls']  ?? [],
+                'decors'   => $v->getLayout()['decors'] ?? [],
             ], $venueList),
             'widgetDesign'      => $tenant->getUiSettings()['widgetDesign']      ?? null,
-            'widgetFunctional'  => $tenant->getUiSettings()['widgetFunctional']  ?? null,
+            'widgetFunctional'  => array_merge(
+                $tenant->getUiSettings()['widgetFunctional'] ?? [],
+                ['defaultDurationMinutes' => $tenant->getUiSettings()['reservationTiming']['defaultDurationMinutes'] ?? 120],
+            ),
+            'closedWeekdays'    => $closedWeekdays,
         ]);
     }
 
@@ -87,6 +103,8 @@ class ReservationController extends AbstractController
             'party_size'  => [new Assert\NotBlank(), new Assert\Range(min: 1, max: 50)],
             'starts_at'   => [new Assert\NotBlank(), new Assert\DateTime(\DateTimeInterface::ATOM)],
             'notes'       => new Assert\Optional([new Assert\Length(max: 1000)]),
+            'table_id'         => new Assert\Optional([new Assert\Type('integer'), new Assert\Positive()]),
+            'duration_minutes' => new Assert\Optional([new Assert\Type('integer'), new Assert\Positive()]),
         ]);
 
         $violations = $this->validator->validate($data ?? [], $constraints);
@@ -101,13 +119,15 @@ class ReservationController extends AbstractController
 
         try {
             $reservation = ($this->createHandler)(new CreateReservationCommand(
-                venueId:    $data['venue_id'],
-                guestName:  $data['guest_name'],
-                guestEmail: $data['guest_email'],
-                partySize:  (int) $data['party_size'],
-                startsAt:   new \DateTimeImmutable($data['starts_at']),
-                guestPhone: $data['guest_phone'] ?? null,
-                guestNotes: $data['notes'] ?? null,
+                venueId:     $data['venue_id'],
+                guestName:   $data['guest_name'],
+                guestEmail:  $data['guest_email'],
+                partySize:   (int) $data['party_size'],
+                startsAt:    new \DateTimeImmutable($data['starts_at']),
+                guestPhone:  $data['guest_phone'] ?? null,
+                guestNotes:  $data['notes'] ?? null,
+                tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
+                durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);

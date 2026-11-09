@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../services/auth.service';
 import {
   StaffService,
@@ -15,10 +16,7 @@ export type ModalMode    = 'add' | 'edit';
 export interface Employee {
   /** Interner UUID/Timestamp — niemals dem User gezeigt. */
   id: string;
-  /**
-   * Mitarbeiter-ID — menschenlesbarer Bezeichner (z.B. "001").
-   * Wird später in Audit-Logs hinterlegt: "Reservierung X
-   */
+
   staffId: string;
   name: string;
   email: string;
@@ -62,7 +60,7 @@ export const ROLE_META: Record<EmployeeRole, RoleMeta> = {
 @Component({
   selector: 'app-mitarbeiter',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './mitarbeiter.component.html',
   styleUrl: './mitarbeiter.component.scss',
 })

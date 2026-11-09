@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Reservierungsbestätigung</title>
+  <!--[if mso]>
+  <noscript>
+    <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  </noscript>
+  <![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:{{BACKGROUND_COLOR}};font-family:{{FONT_FAMILY}},Arial,sans-serif;">
+
+  <!-- Preheader (hidden) -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+    Ihre Reservierung wurde bestätigt ✓ — {{DATUM}} um {{UHRZEIT}} Uhr
+  </div>
+
+  <!-- Outer wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="background-color:{{BACKGROUND_COLOR}};padding:32px 16px;">
+    <tr>
+      <td align="center">
+
+        <!-- Container -->
+        <table width="600" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:600px;width:100%;">
+
+          <!-- ── Logo ── -->
+          <tr>
+            <td align="center" style="padding:0 0 20px 0;">
+              {{#if LOGO_URL}}
+              <img src="{{LOGO_URL}}" alt="{{RESTAURANT_NAME}}"
+                   style="max-height:50px;max-width:180px;display:block;">
+              {{else}}
+              <span style="font-size:20px;font-weight:700;color:{{PRIMARY_COLOR}};">
+                {{RESTAURANT_NAME}}
+              </span>
+              {{/if}}
+            </td>
+          </tr>
+
+          <!-- ── Header-Bild ── -->
+          {{#if HEADER_IMAGE_URL}}
+          <tr>
+            <td style="padding:0 0 0 0;">
+              <img src="{{HEADER_IMAGE_URL}}" alt="Header"
+                   width="600"
+                   style="display:block;width:100%;max-width:600px;height:auto;
+                          border-radius:{{BORDER_RADIUS}}px {{BORDER_RADIUS}}px 0 0;">
+            </td>
+          </tr>
+          {{/if}}
+
+          <!-- ── Card ── -->
+          <tr>
+            <td style="background-color:{{CARD_COLOR}};
+                       border-radius:{{#if HEADER_IMAGE_URL}}0 0 {{BORDER_RADIUS}}px {{BORDER_RADIUS}}px{{else}}{{BORDER_RADIUS}}px{{/if}};
+                       padding:32px 36px;">
+
+              <!-- Greeting -->
+              <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:{{TEXT_COLOR}};">
+                Hallo {{VORNAME}},
+              </p>
+
+              <!-- Fixed text -->
+              <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:{{TEXT_COLOR}};">
+                Ihre Reservierung wurde erfolgreich bestätigt.<br>
+                Wir freuen uns, Sie bei uns begrüßen zu dürfen.
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:{{TEXT_MUTED_COLOR}};">
+                Ihre Reservierungsdetails finden Sie unten.
+              </p>
+
+              <!-- Details Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="background-color:{{BACKGROUND_COLOR}};
+                            border-radius:10px;
+                            border:1px solid {{BORDER_COLOR}};
+                            margin-bottom:24px;">
+                <tr>
+                  <td style="padding:18px 20px;">
+
+                    <!-- Datum -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                           style="margin-bottom:10px;">
+                      <tr>
+                        <td width="28" style="font-size:16px;vertical-align:middle;">📅</td>
+                        <td>
+                          <span style="font-size:12px;color:{{TEXT_MUTED_COLOR}};text-transform:uppercase;
+                                       letter-spacing:0.05em;font-weight:600;">Datum</span><br>
+                          <span style="font-size:15px;font-weight:700;color:{{TEXT_COLOR}};">{{DATUM}}</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Uhrzeit -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                           style="margin-bottom:10px;">
+                      <tr>
+                        <td width="28" style="font-size:16px;vertical-align:middle;">🕐</td>
+                        <td>
+                          <span style="font-size:12px;color:{{TEXT_MUTED_COLOR}};text-transform:uppercase;
+                                       letter-spacing:0.05em;font-weight:600;">Uhrzeit</span><br>
+                          <span style="font-size:15px;font-weight:700;color:{{TEXT_COLOR}};">{{UHRZEIT}} Uhr</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Personen -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                           style="margin-bottom:10px;">
+                      <tr>
+                        <td width="28" style="font-size:16px;vertical-align:middle;">👥</td>
+                        <td>
+                          <span style="font-size:12px;color:{{TEXT_MUTED_COLOR}};text-transform:uppercase;
+                                       letter-spacing:0.05em;font-weight:600;">Personen</span><br>
+                          <span style="font-size:15px;font-weight:700;color:{{TEXT_COLOR}};">{{PERSONEN}}</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Raum -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="28" style="font-size:16px;vertical-align:middle;">🏠</td>
+                        <td>
+                          <span style="font-size:12px;color:{{TEXT_MUTED_COLOR}};text-transform:uppercase;
+                                       letter-spacing:0.05em;font-weight:600;">Raum / Bereich</span><br>
+                          <span style="font-size:15px;font-weight:700;color:{{TEXT_COLOR}};">{{RAUM}}</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Stornierungslink -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="margin-bottom:24px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{CANCEL_URL}}"
+                       style="display:inline-block;padding:10px 24px;
+                              background-color:{{PRIMARY_COLOR}};
+                              color:#ffffff;text-decoration:none;
+                              font-size:13px;font-weight:600;
+                              border-radius:{{BORDER_RADIUS}}px;">
+                      Reservierung stornieren
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Info-Text (optional) -->
+              {{#if INFO_TEXT}}
+              <p style="margin:0 0 20px;font-size:13px;line-height:1.6;
+                         color:{{TEXT_COLOR}};
+                         padding:12px 14px;
+                         background-color:{{HIGHLIGHT_COLOR}}1a;
+                         border-left:3px solid {{HIGHLIGHT_COLOR}};
+                         border-radius:0 6px 6px 0;">
+                {{INFO_TEXT}}
+              </p>
+              {{/if}}
+
+              <!-- Divider -->
+              <hr style="border:none;border-top:1px solid {{BORDER_COLOR}};margin:0 0 20px;">
+
+              <!-- Footer-Text -->
+              {{#if FOOTER_TEXT}}
+              <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:{{TEXT_MUTED_COLOR}};">
+                {{FOOTER_TEXT}}
+              </p>
+              {{/if}}
+
+              <!-- Signatur -->
+              {{#if SIGNATURE}}
+              <p style="margin:0 0 24px;font-size:13px;line-height:1.6;
+                         color:{{TEXT_MUTED_COLOR}};font-style:italic;
+                         white-space:pre-line;">{{SIGNATURE}}</p>
+              {{/if}}
+
+              <!-- Social Links -->
+              {{#if SOCIAL_LINKS}}
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding-top:8px;">
+                    {{#if INSTAGRAM_URL}}
+                    <a href="{{INSTAGRAM_URL}}" style="display:inline-block;margin:0 4px;
+                               width:30px;height:30px;line-height:30px;text-align:center;
+                               background-color:{{PRIMARY_COLOR}};color:#fff;
+                               text-decoration:none;font-size:11px;font-weight:800;
+                               border-radius:6px;">IG</a>
+                    {{/if}}
+                    {{#if FACEBOOK_URL}}
+                    <a href="{{FACEBOOK_URL}}" style="display:inline-block;margin:0 4px;
+                               width:30px;height:30px;line-height:30px;text-align:center;
+                               background-color:{{PRIMARY_COLOR}};color:#fff;
+                               text-decoration:none;font-size:11px;font-weight:800;
+                               border-radius:6px;">FB</a>
+                    {{/if}}
+                    {{#if TIKTOK_URL}}
+                    <a href="{{TIKTOK_URL}}" style="display:inline-block;margin:0 4px;
+                               width:30px;height:30px;line-height:30px;text-align:center;
+                               background-color:{{PRIMARY_COLOR}};color:#fff;
+                               text-decoration:none;font-size:11px;font-weight:800;
+                               border-radius:6px;">TT</a>
+                    {{/if}}
+                  </td>
+                </tr>
+              </table>
+              {{/if}}
+
+            </td>
+          </tr>
+
+          <!-- ── Footer ── -->
+          <tr>
+            <td align="center" style="padding:20px 0 8px;">
+              <p style="margin:0;font-size:11px;color:{{TEXT_MUTED_COLOR}};line-height:1.6;">
+                {{RESTAURANT_NAME}} · {{RESTAURANT_ADDRESS}}<br>
+                <a href="{{UNSUBSCRIBE_URL}}"
+                   style="color:{{TEXT_MUTED_COLOR}};text-decoration:underline;">
+                  E-Mail abbestellen
+                </a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

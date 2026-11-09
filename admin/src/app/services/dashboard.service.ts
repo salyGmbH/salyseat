@@ -19,6 +19,10 @@ export interface DashboardStats {
   tomorrow: PeriodStats;
   week: PeriodStats;
   venues: number;
+  // Optional — werden vom Backend später befüllt
+  free_seats?:     number;
+  total_capacity?: number;
+  revenue_today?:  number;
 }
 
 @Injectable({ providedIn: 'root' })
