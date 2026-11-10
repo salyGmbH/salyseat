@@ -1544,71 +1544,43 @@
                       <svg class="preview-planner__dial-svg"
                            viewBox="0 0 140 140"
                            aria-hidden="true">
-                        <!-- Außenring (komplett, dezent) — Basislinie -->
-                        <circle cx="70" cy="70" r="62"
-                                class="preview-planner__dial-ring"/>
+                        <circle cx="70" cy="70" r="62" class="preview-planner__dial-ring"/>
 
-                        <!-- Öffnungszeiten-Arc — leuchtender Bogen entlang
-                             des Außenrings, spannt nur über die geöffneten
-                             Stunden. Macht visuell sofort klar, in welchem
-                             Bereich Reservierungen möglich sind. -->
-                        <path [attr.d]="plannerDialOpenArc()"
-                              class="preview-planner__dial-arc"/>
-
-                        <!-- 24 Stunden-Labels — kräftig im offenen Bereich,
-                             gedimmt außerhalb. Kardinal-Stunden (0/6/12/18)
-                             leicht hervorgehoben für Orientierung. -->
-                        @for (h of plannerDialHours(); track h.hour) {
-                          <text [attr.x]="h.x"
-                                [attr.y]="h.y"
-                                class="preview-planner__dial-hour"
-                                [class.is-open]="h.isOpen"
-                                [class.is-cardinal]="h.isCardinal"
-                                text-anchor="middle"
-                                dominant-baseline="central">{{ h.label }}</text>
+                        @for (h of plannerDialHourChips(); track h.hour) {
+                          <circle [attr.cx]="h.x" [attr.cy]="h.y"
+                                  [attr.r]="h.hour === +plannerSelectedTime().split(':')[0] ? 7 : h.isAvailable ? 6 : 5"
+                                  class="preview-planner__dial-phase-dot"
+                                  [class.is-available]="h.isAvailable"
+                                  [class.is-selected]="h.hour === +plannerSelectedTime().split(':')[0]"/>
+                          <text [attr.x]="h.x" [attr.y]="h.y"
+                                class="preview-planner__dial-phase-label"
+                                [class.is-available]="h.isAvailable"
+                                [class.is-selected]="h.hour === +plannerSelectedTime().split(':')[0]"
+                                text-anchor="middle" dominant-baseline="central">{{ h.label }}</text>
                         }
 
-                        <!-- Verfügbare Slot-Dots — kleine farbige Punkte für
-                             jede buchbare Uhrzeit (jede halbe oder volle Stunde
-                             im Öffnungsfenster). Volle Stunden sind kräftiger. -->
-                        @for (slot of plannerDialSlots(); track slot.label) {
-                          <circle [attr.cx]="slot.x"
-                                  [attr.cy]="slot.y"
-                                  r="2.4"
-                                  class="preview-planner__dial-slot-dot"
-                                  [class.is-hour]="slot.isHour"
-                                  [class.is-selected]="plannerSelectedTime() === slot.label"/>
-                        }
-
-                        <!-- Nadel — SVG-transform-Attribut rotiert um (70,70) -->
                         <g class="preview-planner__dial-needle"
                            [attr.transform]="'rotate(' + plannerDialNeedleAngle() + ' 70 70)'">
-                          <line x1="70" y1="70" x2="70" y2="34"
+                          <line x1="70" y1="70" x2="70" y2="15"
                                 class="preview-planner__dial-needle-line"/>
-                          <circle cx="70" cy="34" r="2"
+                          <circle cx="70" cy="15" r="6"
                                   class="preview-planner__dial-needle-tip"/>
                         </g>
 
-                        <!-- Zentrum-Hub (Hintergrund-Kreis fürs Readout) -->
-                        <circle cx="70" cy="70" r="20"
-                                class="preview-planner__dial-hub"/>
+                        <circle cx="70" cy="70" r="20" class="preview-planner__dial-hub"/>
                       </svg>
 
-                      <!-- Klickbare Hit-Areas über den SVG-Slot-Dots.
-                           Reine HTML-Buttons mit Transparent-Hintergrund;
-                           der visuelle Punkt liegt darunter im SVG. -->
-                      @for (slot of plannerDialSlots(); track slot.label) {
+                      @for (h of plannerDialHourChips(); track h.hour) {
                         <button type="button"
                                 class="preview-planner__dial-slot"
-                                [class.is-selected]="plannerSelectedTime() === slot.label"
-                                [style.left.%]="(slot.x / 140) * 100"
-                                [style.top.%]="(slot.y / 140) * 100"
-                                (click)="selectPlannerTime(slot.label)"
+                                [disabled]="!h.isAvailable"
+                                [style.left.%]="(h.x / 140) * 100"
+                                [style.top.%]="(h.y / 140) * 100"
+                                (click)="selectPlannerHour(h.hour)"
                                 tabindex="-1"
-                                [attr.aria-label]="slot.label + ' Uhr'"></button>
+                                [attr.aria-label]="h.label + ' Uhr'"></button>
                       }
 
-                      <!-- Zentrales Digital-Readout über dem Hub-Kreis -->
                       <div class="preview-planner__dial-readout" aria-hidden="true">
                         <span class="preview-planner__dial-time">{{ plannerSelectedTime() }}</span>
                         <span class="preview-planner__dial-meta">Uhr</span>

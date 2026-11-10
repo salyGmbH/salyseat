@@ -66,6 +66,15 @@ class DoctrineGuestRepository extends ServiceEntityRepository implements GuestRe
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
+    public function findAllByTenant(Uuid $tenantId): array
+    {
+        return $this->createQueryBuilder('g')
+            ->where('IDENTITY(g.tenant) = :tenantId')
+            ->setParameter('tenantId', $tenantId->toBinary())
+            ->getQuery()
+            ->getResult();
+    }
+
     public function save(Guest $guest): void
     {
         $this->getEntityManager()->persist($guest);

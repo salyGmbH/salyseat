@@ -27,7 +27,6 @@ import { NotificationsComponent } from './notifications/notifications.component'
 import { OeffnungszeitenComponent } from './oeffnungszeiten/oeffnungszeiten.component';
 import { IntegrationenComponent } from './integrationen/integrationen.component';
 import { BackupComponent } from './backup/backup.component';
-import { BrandingComponent } from './branding/branding.component';
 import { KundenComponent } from './kunden/kunden.component';
 import { NotizenComponent } from './notizen/notizen.component';
 import { SpeisekarteComponent } from './speisekarte/speisekarte.component';
@@ -66,7 +65,6 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'oeffnungszeiten', component: OeffnungszeitenComponent },
       { path: 'integrationen',   component: IntegrationenComponent },
       { path: 'backup',          component: BackupComponent },
-      { path: 'branding',        component: BrandingComponent },
       { path: 'kunden',          component: KundenComponent },
       { path: 'notizen',         component: NotizenComponent },
       { path: 'speisekarte',     component: SpeisekarteComponent },

@@ -98,6 +98,18 @@ export interface TenantUiSettings {
   /** Rollen-Berechtigungsmatrix: role → permissionKey → boolean */
   permissions?: Record<string, Record<string, boolean>>;
 
+  /** Gespeicherte Speisekarte-Konfiguration (Design + Inhalte). */
+  speisekarteKonfiguration?: {
+    design: {
+      bgColor:      string;
+      bgImage:      string | null;
+      textColor:    string;
+      accentColor:  string;
+      fontFamilyKey: string;
+    };
+    sections: any[];
+  };
+
   /** Getränke-Reminder Einstellungen (tenant-weit) */
   getraenkeReminder?: { enabled: boolean; minutes: number };
 
@@ -112,6 +124,37 @@ export interface TenantUiSettings {
    * Standard: 5. Kann in Einstellungen → Kunden/CRM geändert werden.
    */
   vipThreshold?: number;
+
+  /**
+   * Restaurant-Logo (hell + dunkel).
+   * Gespeichert als relativer Pfad /uploads/…
+   */
+  logoLight?: string | null;
+  logoDark?:  string | null;
+
+  /**
+   * JWT-Laufzeit in Sekunden. Steuert wie lange ein Admin eingeloggt bleibt.
+   * Standard: 3600 (1 Stunde). Wird beim nächsten Login aktiv.
+   */
+  sessionTtlSeconds?: number;
+
+  /** E-Mail-Einstellungen (Aktivierung, Design, Inhalte, Social). */
+  emailSettings?: {
+    mailSettings?:  { key: string; enabled: boolean }[];
+    reminderTime?:  '3min' | '2h' | '24h';
+    language?:      'de' | 'en' | 'it';
+    design?: {
+      mode?:            'dark' | 'light';
+      primaryColor?:    string;
+      highlightColor?:  string;
+      backgroundColor?: string;
+      cardColor?:       string;
+      borderRadius?:    number;
+      fontFamily?:      string;
+    };
+    content?: Record<string, { footerText: string; infoText: string; signature: string }>;
+    social?:  { instagram: string; facebook: string; tiktok: string };
+  };
 }
 
 // ─── Widget-Functional-Typen ──────────────────────────────────────────────────
@@ -151,6 +194,12 @@ export interface WidgetFunctionalSettings {
   kinderStuehleAktiv: boolean;
   kinderStuehleGesamt: number;
   kinderStuehleOnline: number;
+  /** Rollstuhl */
+  rollstuhlAktiv: boolean;
+  /** Hund */
+  hundAktiv: boolean;
+  /** Allergene-Abfrage im Widget */
+  allergeneAktiv: boolean;
   /** Vorausbuchungszeitraum */
   vorausbuchungEinheit: 'tage' | 'monate';
   vorausbuchungWert: number;
@@ -213,6 +262,9 @@ export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
   kinderStuehleAktiv:       false,
   kinderStuehleGesamt:      4,
   kinderStuehleOnline:      2,
+  rollstuhlAktiv:           false,
+  hundAktiv:                false,
+  allergeneAktiv:           false,
   vorausbuchungEinheit:     'monate',
   vorausbuchungWert:        12,
   mindestvorlaufMinuten:    60,

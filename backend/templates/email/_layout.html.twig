@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ heading_title }}</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: {{ design.backgroundColor }}; font-family: {{ design.fontFamily }}, Arial, sans-serif; }
+        .wrapper { max-width: 600px; margin: 0 auto; padding: 32px 16px; }
+        .logo-row { text-align: center; margin-bottom: 24px; }
+        .logo-row img { max-height: 60px; max-width: 200px; object-fit: contain; }
+        .logo-placeholder { display: inline-block; padding: 10px 20px; background: {{ design.cardColor }}; border-radius: 8px; color: {{ design.mutedColor }}; font-size: 13px; }
+        .card { background-color: {{ design.cardColor }}; border-radius: {{ design.borderRadius }}px; padding: 32px; margin-bottom: 8px; }
+        .greeting { color: {{ design.textColor }}; font-size: 16px; margin: 0 0 16px 0; }
+        .fixed-text { color: {{ design.mutedColor }}; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; }
+        .heading-badge { display: inline-block; background: {{ design.primaryColor }}22; color: {{ design.primaryColor }}; border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
+        .details-card { border: 1px solid {{ design.primaryColor }}44; border-radius: {{ max(design.borderRadius - 4, 6) }}px; overflow: hidden; margin: 20px 0; }
+        .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid {{ design.primaryColor }}22; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: {{ design.mutedColor }}; font-size: 13px; }
+        .detail-value { color: {{ design.primaryColor }}; font-size: 14px; font-weight: 600; }
+        .info-text { color: {{ design.textColor }}; font-size: 14px; line-height: 1.6; margin: 20px 0; white-space: pre-line; }
+        .divider { border: none; border-top: 1px solid {{ design.primaryColor }}33; margin: 20px 0; }
+        .footer-text { color: {{ design.mutedColor }}; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0; white-space: pre-line; }
+        .signature { color: {{ design.textColor }}; font-size: 14px; line-height: 1.6; white-space: pre-line; }
+        .action-btn { display: inline-block; margin-top: 24px; padding: 12px 28px; background: {{ design.primaryColor }}; color: #ffffff; border-radius: {{ max(design.borderRadius - 4, 6) }}px; text-decoration: none; font-size: 14px; font-weight: 600; }
+        .social-row { text-align: center; margin-top: 20px; }
+        .social-badge { display: inline-block; background: {{ design.primaryColor }}; color: #fff; border-radius: 50%; width: 32px; height: 32px; line-height: 32px; text-align: center; font-size: 11px; font-weight: 700; margin: 0 4px; text-decoration: none; }
+        .auto-footer { text-align: center; color: {{ design.mutedColor }}; font-size: 11px; margin-top: 20px; padding: 0 16px; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+
+    {# ── Logo ── #}
+    <div class="logo-row">
+        {% if design.mode == 'dark' and logoLight %}
+            <img src="{{ logoLight }}" alt="Logo">
+        {% elseif design.mode == 'light' and logoDark %}
+            <img src="{{ logoDark }}" alt="Logo">
+        {% elseif logoLight %}
+            <img src="{{ logoLight }}" alt="Logo">
+        {% endif %}
+    </div>
+
+    {# ── Karte ── #}
+    <div class="card">
+
+        <span class="heading-badge">{{ heading_title }}</span>
+
+        <p class="greeting">Hallo {{ guest_name }},</p>
+
+        <div class="fixed-text">
+            {% for line in fixed_lines %}
+                {% if line %}{{ line }}<br>{% else %}<br>{% endif %}
+            {% endfor %}
+        </div>
+
+        {# ── Reservierungsdetails ── #}
+        {% if show_details %}
+        <div class="details-card">
+            <div class="detail-row">
+                <span class="detail-label">📅 Datum & Uhrzeit</span>
+                <span class="detail-value">{{ starts_at }}</span>
+            </div>
+            {% if party_size is defined and party_size %}
+            <div class="detail-row">
+                <span class="detail-label">👥 Personenanzahl</span>
+                <span class="detail-value">{{ party_size }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# ── Action-Button ── #}
+        {% if action_url is defined and action_url %}
+        <p><a href="{{ action_url }}" class="action-btn">{{ action_label ?? 'Mehr erfahren' }}</a></p>
+        {% endif %}
+
+        {# ── Info-Text ── #}
+        {% if mail_content.infoText is defined and mail_content.infoText %}
+        <div class="info-text">{{ mail_content.infoText }}</div>
+        {% endif %}
+
+        <hr class="divider">
+
+        {# ── Footer-Text ── #}
+        {% if mail_content.footerText is defined and mail_content.footerText %}
+        <div class="footer-text">{{ mail_content.footerText }}</div>
+        {% endif %}
+
+        {# ── Signatur ── #}
+        {% if mail_content.signature is defined and mail_content.signature %}
+        <div class="signature">{{ mail_content.signature }}</div>
+        {% endif %}
+
+        {# ── Social ── #}
+        {% if social.instagram or social.facebook or social.tiktok %}
+        <div class="social-row">
+            {% if social.instagram %}<a href="{{ social.instagram }}" class="social-badge">IG</a>{% endif %}
+            {% if social.facebook  %}<a href="{{ social.facebook  }}" class="social-badge">FB</a>{% endif %}
+            {% if social.tiktok    %}<a href="{{ social.tiktok    }}" class="social-badge">TT</a>{% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+
+    <div class="auto-footer">
+        Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese Mail.
+    </div>
+
+</div>
+</body>
+</html>

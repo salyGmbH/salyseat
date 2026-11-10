@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
+import { TenantSettingsService } from '../../../services/tenant-settings.service';
 
 type MailSetting = {
   label: string;
@@ -23,15 +24,17 @@ type MailContent = {
   templateUrl: './emails.component.html',
   styleUrl: './emails.component.scss'
 })
-export class EmailsComponent {
+export class EmailsComponent implements OnInit {
+  private readonly tenantSettings = inject(TenantSettingsService);
 
   // ── UI State ──────────────────────────────────────────────────────────────
   mailInfo     = false;
   languageInfo = false;
   saved        = false;
+  saving       = false;
 
   // ── Einstellungen ─────────────────────────────────────────────────────────
-  reminderTime: '2h' | '24h' = '2h';
+  reminderTime: '3min' | '2h' | '24h' = '2h';
   language: 'de' | 'en' | 'it' = 'de';
 
   // ── Design ────────────────────────────────────────────────────────────────
@@ -95,8 +98,6 @@ export class EmailsComponent {
     return this.perMailContent[this.selectedContentKey];
   }
 
-  /** Literal placeholder labels — displayed as static text in the preview/fixed-block.
-   *  Stored as strings so Angular does NOT try to evaluate them as template expressions. */
   readonly ph = {
     vorname:  '{{Vorname}}',
     datum:    '{{Datum}}',
@@ -104,6 +105,46 @@ export class EmailsComponent {
     personen: '{{Personen}}',
     raum:     '{{Raum}}',
   };
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  ngOnInit(): void {
+    this.tenantSettings.load().subscribe(s => {
+      const es = s.emailSettings;
+      if (!es) return;
+
+      if (es.mailSettings?.length) {
+        // Gespeicherte enabled-Flags auf die Standard-Liste anwenden
+        this.mailSettings = this.mailSettings.map(ms => {
+          const saved = es.mailSettings!.find(x => x.key === ms.key);
+          return saved ? { ...ms, enabled: saved.enabled } : ms;
+        });
+      }
+      if (es.reminderTime) this.reminderTime = es.reminderTime;
+      if (es.language)     this.language     = es.language;
+      if (es.design) {
+        const d = es.design;
+        if (d.mode)            this.emailMode       = d.mode;
+        if (d.primaryColor)    this.primaryColor    = d.primaryColor;
+        if (d.highlightColor)  this.highlightColor  = d.highlightColor;
+        if (d.backgroundColor) this.backgroundColor = d.backgroundColor;
+        if (d.cardColor)       this.cardColor       = d.cardColor;
+        if (d.borderRadius != null) this.borderRadius = d.borderRadius;
+        if (d.fontFamily)      this.fontFamily      = d.fontFamily;
+      }
+      if (es.content) {
+        for (const key of Object.keys(es.content)) {
+          if (this.perMailContent[key]) {
+            this.perMailContent[key] = { ...this.perMailContent[key], ...es.content[key] };
+          }
+        }
+      }
+      if (es.social) {
+        this.instagram = es.social.instagram ?? '';
+        this.facebook  = es.social.facebook  ?? '';
+        this.tiktok    = es.social.tiktok    ?? '';
+      }
+    });
+  }
 
   // Fester, nicht editierbarer Haupttext je Mail-Typ
   getFixedLines(key: string): string[] {
@@ -134,7 +175,6 @@ export class EmailsComponent {
     return map[key] ?? [];
   }
 
-  // Zeigt Details-Karte im Preview: nur bei Bestätigung + Erinnerung
   showDetailsCard(key: string): boolean {
     return key === 'confirmation' || key === 'reminder';
   }
@@ -150,7 +190,7 @@ export class EmailsComponent {
     this.mailInfo     = false;
   }
 
-  setReminder(time: '2h' | '24h') { this.reminderTime = time; }
+  setReminder(time: '3min' | '2h' | '24h') { this.reminderTime = time; }
   setLanguage(lang: 'de' | 'en' | 'it') { this.language = lang; }
 
   setEmailMode(mode: 'dark' | 'light') {
@@ -191,9 +231,11 @@ export class EmailsComponent {
   }
 
   save() {
-    const payload = {
-      mailSettings:    this.mailSettings,
-      reminder:        this.reminderTime,
+    this.saving = true;
+    const snapshot = this.tenantSettings.snapshot;
+    const emailSettings = {
+      mailSettings:    this.mailSettings.map(({ key, enabled }) => ({ key, enabled })),
+      reminderTime:    this.reminderTime,
       language:        this.language,
       design: {
         mode:            this.emailMode,
@@ -207,8 +249,16 @@ export class EmailsComponent {
       content: this.perMailContent,
       social: { instagram: this.instagram, facebook: this.facebook, tiktok: this.tiktok },
     };
-    console.log('Email settings saved:', payload);
-    this.saved = true;
-    setTimeout(() => this.saved = false, 2000);
+
+    this.tenantSettings.save({ ...snapshot, emailSettings }).subscribe({
+      next: () => {
+        this.saving = false;
+        this.saved  = true;
+        setTimeout(() => this.saved = false, 2000);
+      },
+      error: () => {
+        this.saving = false;
+      },
+    });
   }
 }

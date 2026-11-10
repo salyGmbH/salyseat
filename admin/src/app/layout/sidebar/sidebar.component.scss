@@ -54,6 +54,10 @@
     width: 100px;
     transition: opacity 0.2s, width 0.25s;
   }
+
+  // Hellmodus → dunkles Logo
+  &-dark  { display: block; }
+  &-light { display: none;  }
 }
 
 .sidebar__nav {

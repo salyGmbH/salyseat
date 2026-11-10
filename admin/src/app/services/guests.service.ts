@@ -87,4 +87,15 @@ export class GuestsService {
       `${this.base}/${guestId}/reservations`, { params: qp }
     ).pipe(catchError(() => of({ reservations: [], avg_party_size: 0 })));
   }
+
+  resendEmail(
+    guestId: string,
+    type: 'confirmation' | 'reminder' | 'cancel' | 'no_show',
+    reservationId?: string,
+  ): Observable<{ sent: boolean; type: string; to: string }> {
+    return this.http.post<{ sent: boolean; type: string; to: string }>(
+      `${this.base}/${guestId}/resend-email`,
+      { type, reservation_id: reservationId ?? '' },
+    );
+  }
 }

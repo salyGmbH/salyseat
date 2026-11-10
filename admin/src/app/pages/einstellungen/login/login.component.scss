@@ -1,0 +1,251 @@
+@use '../../../../styles/variables' as *;
+@use '../_placeholder' as *;
+
+// ── Block-Abstand ─────────────────────────────────────────────────────────────
+
+.settings-block {
+  margin-bottom: 16px;
+}
+
+// ── Section ───────────────────────────────────────────────────────────────────
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: $color-text-muted;
+  }
+}
+
+.section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: $color-text-muted;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+// ── Optionen-Grid ─────────────────────────────────────────────────────────────
+
+.session-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.session-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 14px 10px;
+  border: 1px solid $color-border;
+  border-radius: 11px;
+  background: rgba(var(--color-text-rgb), 0.02);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: rgba(var(--color-primary-rgb), 0.4);
+    background: rgba(var(--color-primary-rgb), 0.04);
+  }
+
+  &--active {
+    border-color: $color-primary;
+    background: rgba(var(--color-primary-rgb), 0.08);
+
+    .session-card__label { color: $color-primary; font-weight: 600; }
+    .session-card__icon  { color: $color-primary; }
+  }
+
+  &__icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    color: $color-text-muted;
+  }
+
+  &__label {
+    font-size: 12px;
+    color: $color-text;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  &__check {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    color: $color-primary;
+  }
+}
+
+// ── Info-Box ──────────────────────────────────────────────────────────────────
+
+.session-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(var(--color-primary-rgb), 0.07);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.18);
+  border-radius: 10px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: $color-text-muted;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $color-primary;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  strong {
+    display: block;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    margin-bottom: 3px;
+    font-size: 13px;
+  }
+
+  p { margin: 0; }
+}
+
+// ── Neu-einloggen-Hinweis ────────────────────────────────────────────────────
+
+.relogin-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(var(--color-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.35);
+  border-radius: 10px;
+  margin-bottom: 16px;
+
+  > mat-icon {
+    color: $color-accent;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    flex: 1;
+    font-size: 13px;
+    color: $color-text-muted;
+    line-height: 1.4;
+
+    strong {
+      display: block;
+      color: $color-text-on-dark;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--color-accent-rgb), 0.5);
+    background: rgba(var(--color-accent-rgb), 0.12);
+    color: $color-accent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    &:hover { background: rgba(var(--color-accent-rgb), 0.22); }
+  }
+}
+
+// ── Fehler ────────────────────────────────────────────────────────────────────
+
+.settings-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(var(--color-danger-rgb, 229, 57, 53), 0.08);
+  border: 1px solid rgba(var(--color-danger-rgb, 229, 57, 53), 0.25);
+  border-radius: 8px;
+  color: $color-danger;
+  font-size: 13px;
+  margin-bottom: 14px;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+}
+
+// ── Speichern ─────────────────────────────────────────────────────────────────
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: $color-accent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover:not(:disabled) {
+    background: $color-accent-dark;
+  }
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  &--saved {
+    background: $color-success;
+    &:hover:not(:disabled) { background: $color-success; }
+  }
+
+  &--loading { background: $color-text-muted; }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

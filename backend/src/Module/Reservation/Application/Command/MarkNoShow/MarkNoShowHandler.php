@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Module\Reservation\Application\Command\MarkNoShow;
 
+use App\Messenger\Message\SendNoShowEmail;
 use App\Module\Reservation\Domain\Entity\Reservation;
 use App\Module\Reservation\Domain\Repository\ReservationRepositoryInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
 final class MarkNoShowHandler
 {
     public function __construct(
         private readonly ReservationRepositoryInterface $reservations,
-        private readonly EntityManagerInterface $em,
+        private readonly EntityManagerInterface         $em,
+        private readonly MessageBusInterface            $bus,
     ) {}
 
     public function __invoke(MarkNoShowCommand $cmd): Reservation
@@ -53,6 +56,29 @@ final class MarkNoShowHandler
             }
 
             $this->em->persist($guest);
+
+            // No-Show-Mail nur versenden wenn der Gast eine E-Mail-Adresse hat
+            if ($guest->getEmail() !== '') {
+                $uiSettings  = $reservation->getVenue()->getTenant()->getUiSettings() ?? [];
+                $mailEnabled = true;
+                foreach (($uiSettings['emailSettings']['mailSettings'] ?? []) as $ms) {
+                    if (($ms['key'] ?? '') === 'no_show') {
+                        $mailEnabled = (bool) ($ms['enabled'] ?? true);
+                        break;
+                    }
+                }
+
+                if ($mailEnabled) {
+                    $this->bus->dispatch(new SendNoShowEmail(
+                        reservationId: $reservation->getId()->toRfc4122(),
+                        guestEmail:    $guest->getEmail(),
+                        guestName:     $guest->getName(),
+                        startsAt:      $reservation->getStartsAt()->format('d.m.Y H:i'),
+                        venueName:     $reservation->getVenue()->getName(),
+                        tenantId:      $reservation->getVenue()->getTenant()->getId()->toRfc4122(),
+                    ));
+                }
+            }
         }
 
         $this->em->persist($reservation);

@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { jsPDF } from 'jspdf';
 import { TenantSettingsService } from '../../../services/tenant-settings.service';
 import { AllergenIconComponent } from '../../../shared/allergen-icon/allergen-icon.component';
 
@@ -12,8 +13,8 @@ export type Gericht = {
   name: string;
   description: string;
   price: string;
-  zusatzstoffe: number[];  // e.g. [1, 4]
-  allergene:    string[];  // e.g. ['gluten', 'milk']
+  zusatzstoffe: number[];
+  allergene:    string[];
 };
 
 export type MenuSection = {
@@ -44,7 +45,7 @@ export type AllergenDef = {
   templateUrl: './speisekarte.component.html',
   styleUrl: './speisekarte.component.scss',
 })
-export class SpeisekarteComponent implements OnInit {
+export class SpeisekarteComponent implements OnInit, OnDestroy {
   private readonly tenantSettings = inject(TenantSettingsService);
 
   // ── Design ─────────────────────────────────────────────────────────────────
@@ -54,8 +55,12 @@ export class SpeisekarteComponent implements OnInit {
   accentColor = '#ff6b2c';
   fontFamilyKey = 'system';
 
-  saved = false;
-  bgInfo = false;
+  saved   = false;
+  saving  = false;
+  bgInfo  = false;
+
+  /** Blob-URL der zuletzt generierten PDF — für den Download-Button. */
+  pdfBlobUrl: string | null = null;
 
   // Dieselben Font-Optionen wie im Widget-Designer
   readonly fontFamilyOptions = [
@@ -142,14 +147,12 @@ export class SpeisekarteComponent implements OnInit {
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
-  /** Alle im Menü tatsächlich verwendeten Zusatzstoffe (sortiert nach ID). */
   get usedZusatzstoffe(): Zusatzstoff[] {
     const used = new Set<number>();
     this.sections.forEach(s => s.gerichte.forEach(g => g.zusatzstoffe.forEach(z => used.add(z))));
     return this.allZusatzstoffe.filter(z => used.has(z.id));
   }
 
-  /** Alle im Menü verwendeten Allergene (alphabetisch nach Buchstabe). */
   get usedAllergene(): AllergenDef[] {
     const used = new Set<string>();
     this.sections.forEach(s => s.gerichte.forEach(g => g.allergene.forEach(a => used.add(a))));
@@ -160,7 +163,6 @@ export class SpeisekarteComponent implements OnInit {
     return this.allergene.find(a => a.key === key);
   }
 
-  /** Gibt die Buchstaben der Allergene eines Gerichts als kommagetrennten String zurück. */
   allergenLetters(keys: string[]): string {
     return keys
       .map(k => this.allergenByKey(k)?.letter ?? '?')
@@ -168,7 +170,6 @@ export class SpeisekarteComponent implements OnInit {
       .join(', ');
   }
 
-  /** Gibt die Zusatzstoff-IDs als formatierten Hochzahl-String zurück. */
   zusatzstoffLabel(ids: number[]): string {
     return [...ids].sort((a, b) => a - b).join(',');
   }
@@ -176,15 +177,34 @@ export class SpeisekarteComponent implements OnInit {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   ngOnInit() {
-    // Allergenfarben aus den Tenant-Einstellungen laden (status-kennzeichnungen)
     this.tenantSettings.load().subscribe(settings => {
+      // Allergenfarben aus den Tenant-Einstellungen
       if (settings.allergene?.length) {
         settings.allergene.forEach((sa: any) => {
           const local = this.allergene.find(a => a.key === sa.key);
           if (local && sa.color) local.color = sa.color;
         });
       }
+
+      // Gespeicherte Speisekarte-Konfiguration laden
+      if (settings.speisekarteKonfiguration) {
+        const { design, sections } = settings.speisekarteKonfiguration;
+        if (design) {
+          if (design.bgColor)      this.bgColor      = design.bgColor;
+          if (design.bgImage)      this.bgImage      = design.bgImage;
+          if (design.textColor)    this.textColor    = design.textColor;
+          if (design.accentColor)  this.accentColor  = design.accentColor;
+          if (design.fontFamilyKey) this.fontFamilyKey = design.fontFamilyKey;
+        }
+        if (Array.isArray(sections) && sections.length > 0) {
+          this.sections = sections;
+        }
+      }
     });
+  }
+
+  ngOnDestroy() {
+    if (this.pdfBlobUrl) URL.revokeObjectURL(this.pdfBlobUrl);
   }
 
   // ── Abschnitte ─────────────────────────────────────────────────────────────
@@ -288,22 +308,242 @@ export class SpeisekarteComponent implements OnInit {
     this.bgImage = null;
   }
 
-  // ── Speichern ──────────────────────────────────────────────────────────────
+  // ── Speichern & PDF ────────────────────────────────────────────────────────
 
-  save() {
-    const payload = {
+  async save() {
+    this.saving = true;
+
+    // In DB speichern
+    const konfiguration = {
       design: {
         bgColor:       this.bgColor,
-        bgImage:       this.bgImage ? '[base64]' : null,
+        bgImage:       this.bgImage,
         textColor:     this.textColor,
         accentColor:   this.accentColor,
         fontFamilyKey: this.fontFamilyKey,
-        fontStack:     this.currentFontStack,
       },
       sections: this.sections,
     };
-    console.log('Speisekarte gespeichert:', payload);
-    this.saved = true;
-    setTimeout(() => (this.saved = false), 2000);
+
+    await new Promise<void>(resolve => {
+      this.tenantSettings
+        .save({ ...this.tenantSettings.snapshot, speisekarteKonfiguration: konfiguration })
+        .subscribe({ next: () => resolve(), error: () => resolve() });
+    });
+
+    // PDF generieren
+    try {
+      const blob = await this.buildPdf();
+      if (this.pdfBlobUrl) URL.revokeObjectURL(this.pdfBlobUrl);
+      this.pdfBlobUrl = URL.createObjectURL(blob);
+    } catch (err) {
+      console.error('PDF-Generierung fehlgeschlagen:', err);
+    }
+
+    this.saving = false;
+    this.saved  = true;
+    setTimeout(() => (this.saved = false), 2500);
+  }
+
+  downloadPdf() {
+    if (!this.pdfBlobUrl) return;
+    const a = document.createElement('a');
+    a.href     = this.pdfBlobUrl;
+    a.download = 'speisekarte.pdf';
+    a.click();
+  }
+
+  // ── PDF-Generierung ────────────────────────────────────────────────────────
+
+  private hexToRgb(hex: string): [number, number, number] {
+    const c = hex.replace('#', '').padEnd(6, '0');
+    return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)];
+  }
+
+  private async buildPdf(): Promise<Blob> {
+    const doc    = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const W      = 210;
+    const H      = 297;
+    const M      = 15;   // margin
+    const CW     = W - M * 2;
+
+    const bg     = this.hexToRgb(this.bgColor);
+    const fg     = this.hexToRgb(this.textColor);
+    const acc    = this.hexToRgb(this.accentColor);
+
+    const font   = this.fontFamilyKey === 'serif' ? 'times'
+                 : this.fontFamilyKey === 'mono'   ? 'courier'
+                 : 'helvetica';
+
+    const drawBg = () => {
+      doc.setFillColor(...bg);
+      doc.rect(0, 0, W, H, 'F');
+      if (this.bgImage) {
+        const fmt = this.bgImage.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        try { doc.addImage(this.bgImage, fmt, 0, 0, W, H); } catch {}
+      }
+    };
+
+    drawBg();
+    let y = M;
+
+    const ensurePage = (need: number) => {
+      if (y + need > H - M) {
+        doc.addPage();
+        drawBg();
+        y = M;
+      }
+    };
+
+    // ── Abschnitte ──────────────────────────────────────────────────────────
+    for (const section of this.sections) {
+      const validDishes = section.gerichte.filter((g: Gericht) => g.name.trim());
+      if (!section.title && validDishes.length === 0) continue;
+
+      ensurePage(20);
+
+      // Abschnitts-Titel
+      doc.setFont(font, 'bold');
+      doc.setFontSize(15);
+      doc.setTextColor(...acc);
+      doc.text(section.title, M, y);
+      y += 4;
+
+      // Trennlinie
+      doc.setDrawColor(...acc);
+      doc.setLineWidth(0.4);
+      doc.line(M, y, W - M, y);
+      y += 6;
+
+      // Gerichte
+      for (const g of validDishes) {
+        ensurePage(16);
+
+        // Preis (rechts)
+        const priceStr = g.price ? `${g.price} €` : '';
+        doc.setFont(font, 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...acc);
+        let rightEdge = W - M;
+        if (priceStr) {
+          doc.text(priceStr, rightEdge, y, { align: 'right' });
+          rightEdge -= doc.getTextWidth(priceStr) + 3;
+        }
+
+        // Allergen-Buchstaben (links vom Preis, farbig)
+        if (g.allergene?.length) {
+          const sortedKeys = [...g.allergene].sort((a: string, b: string) => {
+            const la = this.allergenByKey(a)?.letter ?? 'Z';
+            const lb = this.allergenByKey(b)?.letter ?? 'Z';
+            return la.localeCompare(lb);
+          });
+
+          doc.setFont(font, 'bold');
+          doc.setFontSize(8);
+          let bx = rightEdge;
+
+          for (let i = sortedKeys.length - 1; i >= 0; i--) {
+            const def = this.allergenByKey(sortedKeys[i]);
+            if (!def) continue;
+            const aRgb = this.hexToRgb(def.color);
+            const lw   = doc.getTextWidth(def.letter);
+            bx -= lw + 2;
+            doc.setTextColor(...aRgb);
+            doc.text(def.letter, bx, y);
+          }
+          rightEdge = bx - 2;
+        }
+
+        // Gericht-Name (+ Zusatzstoffe)
+        const zusStr   = g.zusatzstoffe?.length ? ` (${this.zusatzstoffLabel(g.zusatzstoffe)})` : '';
+        const nameStr  = g.name + zusStr;
+        const maxNameW = Math.max(rightEdge - M - 2, 30);
+
+        doc.setFont(font, 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...fg);
+        const nameLines = doc.splitTextToSize(nameStr, maxNameW);
+        doc.text(nameLines[0], M, y);
+        y += 5;
+
+        for (let i = 1; i < nameLines.length; i++) {
+          ensurePage(5);
+          doc.text(nameLines[i], M, y);
+          y += 5;
+        }
+
+        // Beschreibung
+        if (g.description?.trim()) {
+          doc.setFont(font, 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(fg[0], fg[1], fg[2]);
+          const descLines = doc.splitTextToSize(g.description, CW);
+          ensurePage(descLines.length * 4);
+          doc.text(descLines, M, y);
+          y += descLines.length * 4 + 1;
+        }
+
+        y += 3;
+      }
+
+      y += 4;
+    }
+
+    // ── Fußnoten Zusatzstoffe ────────────────────────────────────────────────
+    if (this.usedZusatzstoffe.length > 0) {
+      ensurePage(8 + this.usedZusatzstoffe.length * 4);
+
+      doc.setDrawColor(fg[0], fg[1], fg[2]);
+      doc.setLineWidth(0.2);
+      doc.line(M, y, W - M, y);
+      y += 5;
+
+      for (const z of this.usedZusatzstoffe) {
+        ensurePage(5);
+        doc.setFont(font, 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...acc);
+        doc.text(`${z.id}`, M, y);
+
+        doc.setFont(font, 'normal');
+        doc.setTextColor(...fg);
+        doc.text(`  ${z.label}`, M + 3, y);
+        y += 4;
+      }
+      y += 4;
+    }
+
+    // ── Allergen-Legende ─────────────────────────────────────────────────────
+    if (this.usedAllergene.length > 0) {
+      ensurePage(8 + this.usedAllergene.length * 5);
+
+      doc.setFont(font, 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...fg);
+      doc.text('Allergene', M, y);
+      y += 5;
+
+      for (const a of this.usedAllergene) {
+        ensurePage(5);
+        const aRgb = this.hexToRgb(a.color);
+
+        // Farbiger Kreis
+        doc.setFillColor(...aRgb);
+        doc.circle(M + 2.5, y - 1.5, 2.5, 'F');
+        doc.setFont(font, 'bold');
+        doc.setFontSize(5.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text(a.letter, M + 2.5, y - 0.6, { align: 'center' });
+
+        // Label
+        doc.setFont(font, 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...fg);
+        doc.text(`${a.letter} = ${a.label}`, M + 7, y);
+        y += 5;
+      }
+    }
+
+    return doc.output('blob');
   }
 }

@@ -314,6 +314,57 @@
                   </div>
                 </div>
               }
+              @if (rollstuhlAktiv()) {
+                <label class="extra-checkbox">
+                  <input type="checkbox" [checked]="rollstuhl()" (change)="rollstuhl.set(!rollstuhl())">
+                  <span class="extra-checkbox__box"></span>
+                  <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <circle cx="13.5" cy="3" r="1.8" fill="currentColor" stroke="none"/>
+                      <line x1="7" y1="5.5" x2="7" y2="10"/>
+                      <line x1="7" y1="10" x2="13" y2="10"/>
+                      <path d="M13.5,4.8 L11,10"/>
+                      <line x1="13" y1="10" x2="13" y2="14"/>
+                      <line x1="10" y1="14" x2="16" y2="14"/>
+                      <path d="M11,7.5 Q8.5,11.5 8,16.2"/>
+                      <circle cx="8" cy="17" r="2.8"/>
+                      <circle cx="16.5" cy="15" r="1.2"/>
+                    </svg>
+                    Rollstuhlgerechter Platz gewünscht
+                  </span>
+                </label>
+              }
+              @if (hundAktiv()) {
+                <label class="extra-checkbox">
+                  <input type="checkbox" [checked]="hund()" (change)="hund.set(!hund())">
+                  <span class="extra-checkbox__box"></span>
+                  <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <path d="M4,12 Q4,9 6,9 L13,9 Q15.5,9 15.5,11.5 Q15.5,14 13,14 L6,14 Q4,14 4,12 Z"/>
+                      <circle cx="16" cy="7.5" r="2.8"/>
+                      <path d="M14,5.2 Q15,2.5 17.5,3.5 Q17.5,6.2 15.2,5.8"/>
+                      <path d="M4,12 Q1.5,9.5 2,6.5"/>
+                      <line x1="12" y1="14" x2="12" y2="18"/>
+                      <line x1="10.5" y1="14" x2="10.5" y2="18"/>
+                      <line x1="7" y1="14" x2="7" y2="18"/>
+                      <line x1="5.5" y1="14" x2="5.5" y2="18"/>
+                    </svg>
+                    Hund dabei
+                  </span>
+                </label>
+              }
+              @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
+                <div class="allergen-picker">
+                  <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                  <div class="allergen-picker__chips">
+                    @for (a of verfuegbareAllergene(); track a.key) {
+                      <button type="button" class="allergen-chip"
+                              [class.is-selected]="isAllergenSelected(a.key)"
+                              (click)="toggleAllergen(a.key)">{{ a.label }}</button>
+                    }
+                  </div>
+                </div>
+              }
 
               <div class="preview-card__field">
                 <label class="preview-card__field-label" for="card-notes">
@@ -518,6 +569,57 @@
                     <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
                     <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
                     <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                  </div>
+                </div>
+              }
+              @if (rollstuhlAktiv()) {
+                <label class="extra-checkbox">
+                  <input type="checkbox" [checked]="rollstuhl()" (change)="rollstuhl.set(!rollstuhl())">
+                  <span class="extra-checkbox__box"></span>
+                  <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <circle cx="13.5" cy="3" r="1.8" fill="currentColor" stroke="none"/>
+                      <line x1="7" y1="5.5" x2="7" y2="10"/>
+                      <line x1="7" y1="10" x2="13" y2="10"/>
+                      <path d="M13.5,4.8 L11,10"/>
+                      <line x1="13" y1="10" x2="13" y2="14"/>
+                      <line x1="10" y1="14" x2="16" y2="14"/>
+                      <path d="M11,7.5 Q8.5,11.5 8,16.2"/>
+                      <circle cx="8" cy="17" r="2.8"/>
+                      <circle cx="16.5" cy="15" r="1.2"/>
+                    </svg>
+                    Rollstuhlgerechter Platz gewünscht
+                  </span>
+                </label>
+              }
+              @if (hundAktiv()) {
+                <label class="extra-checkbox">
+                  <input type="checkbox" [checked]="hund()" (change)="hund.set(!hund())">
+                  <span class="extra-checkbox__box"></span>
+                  <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <path d="M4,12 Q4,9 6,9 L13,9 Q15.5,9 15.5,11.5 Q15.5,14 13,14 L6,14 Q4,14 4,12 Z"/>
+                      <circle cx="16" cy="7.5" r="2.8"/>
+                      <path d="M14,5.2 Q15,2.5 17.5,3.5 Q17.5,6.2 15.2,5.8"/>
+                      <path d="M4,12 Q1.5,9.5 2,6.5"/>
+                      <line x1="12" y1="14" x2="12" y2="18"/>
+                      <line x1="10.5" y1="14" x2="10.5" y2="18"/>
+                      <line x1="7" y1="14" x2="7" y2="18"/>
+                      <line x1="5.5" y1="14" x2="5.5" y2="18"/>
+                    </svg>
+                    Hund dabei
+                  </span>
+                </label>
+              }
+              @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
+                <div class="allergen-picker">
+                  <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                  <div class="allergen-picker__chips">
+                    @for (a of verfuegbareAllergene(); track a.key) {
+                      <button type="button" class="allergen-chip"
+                              [class.is-selected]="isAllergenSelected(a.key)"
+                              (click)="toggleAllergen(a.key)">{{ a.label }}</button>
+                    }
                   </div>
                 </div>
               }
@@ -817,7 +919,7 @@
             }
 
             @if (speisekarte()) {
-              <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
+              <button type="button" class="widget-menu-btn widget-menu-btn--stacked" (click)="toggleMenu()">
                 🍽 Speisekarte ansehen
               </button>
             }
@@ -905,6 +1007,57 @@
                   </div>
                 </div>
               }
+              @if (rollstuhlAktiv()) {
+                <label class="extra-checkbox">
+                  <input type="checkbox" [checked]="rollstuhl()" (change)="rollstuhl.set(!rollstuhl())">
+                  <span class="extra-checkbox__box"></span>
+                  <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <circle cx="13.5" cy="3" r="1.8" fill="currentColor" stroke="none"/>
+                      <line x1="7" y1="5.5" x2="7" y2="10"/>
+                      <line x1="7" y1="10" x2="13" y2="10"/>
+                      <path d="M13.5,4.8 L11,10"/>
+                      <line x1="13" y1="10" x2="13" y2="14"/>
+                      <line x1="10" y1="14" x2="16" y2="14"/>
+                      <path d="M11,7.5 Q8.5,11.5 8,16.2"/>
+                      <circle cx="8" cy="17" r="2.8"/>
+                      <circle cx="16.5" cy="15" r="1.2"/>
+                    </svg>
+                    Rollstuhlgerechter Platz gewünscht
+                  </span>
+                </label>
+              }
+              @if (hundAktiv()) {
+                <label class="extra-checkbox">
+                  <input type="checkbox" [checked]="hund()" (change)="hund.set(!hund())">
+                  <span class="extra-checkbox__box"></span>
+                  <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <path d="M4,12 Q4,9 6,9 L13,9 Q15.5,9 15.5,11.5 Q15.5,14 13,14 L6,14 Q4,14 4,12 Z"/>
+                      <circle cx="16" cy="7.5" r="2.8"/>
+                      <path d="M14,5.2 Q15,2.5 17.5,3.5 Q17.5,6.2 15.2,5.8"/>
+                      <path d="M4,12 Q1.5,9.5 2,6.5"/>
+                      <line x1="12" y1="14" x2="12" y2="18"/>
+                      <line x1="10.5" y1="14" x2="10.5" y2="18"/>
+                      <line x1="7" y1="14" x2="7" y2="18"/>
+                      <line x1="5.5" y1="14" x2="5.5" y2="18"/>
+                    </svg>
+                    Hund dabei
+                  </span>
+                </label>
+              }
+              @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
+                <div class="allergen-picker">
+                  <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                  <div class="allergen-picker__chips">
+                    @for (a of verfuegbareAllergene(); track a.key) {
+                      <button type="button" class="allergen-chip"
+                              [class.is-selected]="isAllergenSelected(a.key)"
+                              (click)="toggleAllergen(a.key)">{{ a.label }}</button>
+                    }
+                  </div>
+                </div>
+              }
 
               <div class="preview-stacked__field">
                 <label class="preview-stacked__field-label" for="st-notes">
@@ -957,9 +1110,16 @@
       @case ('planner') {
         <div class="preview-planner-wrapper">
           <header class="preview__header">
-            <h4 class="preview__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
-            @if (showSubtitle() && headingSubtitle()) {
-              <p class="preview__subtitle">{{ headingSubtitle() }}</p>
+            <div class="preview__header-text">
+              <h4 class="preview__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+              @if (showSubtitle() && headingSubtitle()) {
+                <p class="preview__subtitle">{{ headingSubtitle() }}</p>
+              }
+            </div>
+            @if (speisekarte()) {
+              <button type="button" class="widget-menu-btn widget-menu-btn--planner" (click)="toggleMenu()">
+                🍽 Speisekarte
+              </button>
             }
           </header>
 
@@ -1084,51 +1244,70 @@
                        viewBox="0 0 140 140"
                        aria-hidden="true">
                     <circle cx="70" cy="70" r="62" class="preview-planner__dial-ring"/>
-                    <path [attr.d]="dialOpenArc()" class="preview-planner__dial-arc"/>
 
-                    @for (h of dialHours(); track h.hour) {
-                      <text [attr.x]="h.x"
-                            [attr.y]="h.y"
-                            class="preview-planner__dial-hour"
-                            [class.is-open]="h.isOpen"
-                            [class.is-cardinal]="h.isCardinal"
-                            text-anchor="middle"
-                            dominant-baseline="central">{{ h.label }}</text>
-                    }
-
-                    @for (slot of dialSlots(); track slot.label) {
-                      <circle [attr.cx]="slot.x"
-                              [attr.cy]="slot.y"
-                              r="2.4"
-                              class="preview-planner__dial-slot-dot"
-                              [class.is-hour]="slot.isHour"
-                              [class.is-selected]="validTime() === slot.label"/>
+                    @if (plannerDialPhase() === 'hour') {
+                      @for (h of dialPhaseHourDots(); track h.hour) {
+                        <circle [attr.cx]="h.x" [attr.cy]="h.y"
+                                [attr.r]="h.hour === +validTime().split(':')[0] ? 7 : h.isAvailable ? 6 : 5"
+                                class="preview-planner__dial-phase-dot"
+                                [class.is-available]="h.isAvailable"
+                                [class.is-selected]="h.hour === +validTime().split(':')[0]"/>
+                        <text [attr.x]="h.x" [attr.y]="h.y"
+                              class="preview-planner__dial-phase-label"
+                              [class.is-available]="h.isAvailable"
+                              [class.is-selected]="h.hour === +validTime().split(':')[0]"
+                              text-anchor="middle" dominant-baseline="central">{{ h.label }}</text>
+                      }
+                    } @else {
+                      @for (m of dialPhaseMinuteDots(); track m.minute) {
+                        <circle [attr.cx]="m.x" [attr.cy]="m.y" r="9"
+                                class="preview-planner__dial-phase-dot is-available"
+                                [class.is-selected]="m.minute === +validTime().split(':')[1]"/>
+                        <text [attr.x]="m.x" [attr.y]="m.y"
+                              class="preview-planner__dial-phase-label is-available"
+                              [class.is-selected]="m.minute === +validTime().split(':')[1]"
+                              text-anchor="middle" dominant-baseline="central">{{ m.label }}</text>
+                      }
                     }
 
                     <g class="preview-planner__dial-needle"
-                       [attr.transform]="'rotate(' + dialNeedleAngle() + ' 70 70)'">
-                      <line x1="70" y1="70" x2="70" y2="34"
+                       [attr.transform]="'rotate(' + dialPhaseNeedleAngle() + ' 70 70)'">
+                      <line x1="70" y1="70" x2="70" [attr.y2]="dialPhaseNeedleEndY()"
                             class="preview-planner__dial-needle-line"/>
-                      <circle cx="70" cy="34" r="2"
+                      <circle cx="70" [attr.cy]="dialPhaseNeedleEndY()" r="6"
                               class="preview-planner__dial-needle-tip"/>
                     </g>
 
-                    <circle cx="70" cy="70" r="20" class="preview-planner__dial-hub"/>
+                    <circle cx="70" cy="70" r="18" class="preview-planner__dial-hub"/>
                   </svg>
 
-                  @for (slot of dialSlots(); track slot.label) {
-                    <button type="button"
-                            class="preview-planner__dial-slot"
-                            [class.is-selected]="validTime() === slot.label"
-                            [style.left.%]="(slot.x / 140) * 100"
-                            [style.top.%]="(slot.y / 140) * 100"
-                            (click)="selectPlannerTime(slot.label)"
-                            [attr.aria-label]="slot.label + ' Uhr'"></button>
+                  @if (plannerDialPhase() === 'hour') {
+                    @for (h of dialPhaseHourDots(); track h.hour) {
+                      <button type="button"
+                              class="preview-planner__dial-slot"
+                              [disabled]="!h.isAvailable"
+                              [style.left.%]="(h.x / 140) * 100"
+                              [style.top.%]="(h.y / 140) * 100"
+                              (click)="selectPlannerHour(h.hour)"
+                              [attr.aria-label]="h.label + ' Uhr'"></button>
+                    }
+                  } @else {
+                    @for (m of dialPhaseMinuteDots(); track m.minute) {
+                      <button type="button"
+                              class="preview-planner__dial-slot"
+                              [class.is-selected]="m.minute === +validTime().split(':')[1]"
+                              [style.left.%]="(m.x / 140) * 100"
+                              [style.top.%]="(m.y / 140) * 100"
+                              (click)="selectPlannerMinute(m.minute)"
+                              [attr.aria-label]="m.label + ' Minuten'"></button>
+                    }
                   }
 
                   <div class="preview-planner__dial-readout" aria-hidden="true">
                     <span class="preview-planner__dial-time">{{ validTime() }}</span>
-                    <span class="preview-planner__dial-meta">Uhr</span>
+                    <span class="preview-planner__dial-meta">
+                      {{ plannerDialPhase() === 'hour' ? 'Stunde' : 'Minute' }}
+                    </span>
                   </div>
                 </div>
               </section>
@@ -1301,6 +1480,57 @@
                       </div>
                     </div>
                   }
+                  @if (rollstuhlAktiv()) {
+                    <label class="extra-checkbox">
+                      <input type="checkbox" [checked]="rollstuhl()" (change)="rollstuhl.set(!rollstuhl())">
+                      <span class="extra-checkbox__box"></span>
+                      <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <circle cx="13.5" cy="3" r="1.8" fill="currentColor" stroke="none"/>
+                      <line x1="7" y1="5.5" x2="7" y2="10"/>
+                      <line x1="7" y1="10" x2="13" y2="10"/>
+                      <path d="M13.5,4.8 L11,10"/>
+                      <line x1="13" y1="10" x2="13" y2="14"/>
+                      <line x1="10" y1="14" x2="16" y2="14"/>
+                      <path d="M11,7.5 Q8.5,11.5 8,16.2"/>
+                      <circle cx="8" cy="17" r="2.8"/>
+                      <circle cx="16.5" cy="15" r="1.2"/>
+                    </svg>
+                    Rollstuhlgerechter Platz gewünscht
+                  </span>
+                    </label>
+                  }
+                  @if (hundAktiv()) {
+                    <label class="extra-checkbox">
+                      <input type="checkbox" [checked]="hund()" (change)="hund.set(!hund())">
+                      <span class="extra-checkbox__box"></span>
+                      <span class="extra-checkbox__label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <path d="M4,12 Q4,9 6,9 L13,9 Q15.5,9 15.5,11.5 Q15.5,14 13,14 L6,14 Q4,14 4,12 Z"/>
+                      <circle cx="16" cy="7.5" r="2.8"/>
+                      <path d="M14,5.2 Q15,2.5 17.5,3.5 Q17.5,6.2 15.2,5.8"/>
+                      <path d="M4,12 Q1.5,9.5 2,6.5"/>
+                      <line x1="12" y1="14" x2="12" y2="18"/>
+                      <line x1="10.5" y1="14" x2="10.5" y2="18"/>
+                      <line x1="7" y1="14" x2="7" y2="18"/>
+                      <line x1="5.5" y1="14" x2="5.5" y2="18"/>
+                    </svg>
+                    Hund dabei
+                  </span>
+                    </label>
+                  }
+                  @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
+                    <div class="allergen-picker">
+                      <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                      <div class="allergen-picker__chips">
+                        @for (a of verfuegbareAllergene(); track a.key) {
+                          <button type="button" class="allergen-chip"
+                                  [class.is-selected]="isAllergenSelected(a.key)"
+                                  (click)="toggleAllergen(a.key)">{{ a.label }}</button>
+                        }
+                      </div>
+                    </div>
+                  }
 
                   @if (state() === 'error') {
                     <div class="widget-alert">{{ errorMessage() }}</div>
@@ -1325,12 +1555,6 @@
               <button type="button" class="preview-planner__back" (click)="plannerPrev()">
                 ‹ Zurück
               </button>
-
-              @if (speisekarte()) {
-                <button type="button" class="widget-menu-btn widget-menu-btn--planner" (click)="toggleMenu()">
-                  🍽 Speisekarte
-                </button>
-              }
 
               @if (showMaxPersonenWarning() && plannerStep() >= 3) {
                 <div class="widget-max-warning widget-max-warning--inline">
@@ -1373,6 +1597,9 @@
         <div class="widget-alert">Unbekanntes Layout: {{ layout() }}</div>
       }
     }
+
+    <!-- ─── Branding ───────────────────────────────────────────────────────── -->
+    <div class="saly-credit">created by <span class="saly-credit__name">saly</span></div>
 
     <!-- ─── Tisch-Wahl Zwischenschritt (Tablet+, Plan-Modus) ──────────────── -->
     @if (tischwahlActive()) {

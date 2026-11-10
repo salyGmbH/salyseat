@@ -44,7 +44,7 @@ final class CreateReservationHandler
             throw new \DomainException('Diese E-Mail-Adresse kann aktuell keine Reservierungen vornehmen.');
         }
 
-        $endsAt = $cmd->startsAt->modify(sprintf('+%d minutes', $venue->getDefaultDurationMinutes()));
+        $endsAt = $cmd->startsAt->modify(sprintf('+%d minutes', $cmd->durationMinutes ?? $venue->getDefaultDurationMinutes()));
 
         $reservation = new Reservation(
             $venue,
@@ -56,6 +56,7 @@ final class CreateReservationHandler
             $cmd->guestPhone,
             $cmd->guestNotes,
         );
+        $reservation->setTableNumber($cmd->tableNumber);
         $reservation->setGuest($guest);
         $guest->incrementReservations();
 
@@ -74,6 +75,7 @@ final class CreateReservationHandler
             startsAt:         $reservation->getStartsAt()->format(\DateTimeInterface::ATOM),
             partySize:        $cmd->partySize,
             venueName:        $venue->getName(),
+            tenantId:         $tenant->getId()->toRfc4122(),
         ));
 
         return $reservation;

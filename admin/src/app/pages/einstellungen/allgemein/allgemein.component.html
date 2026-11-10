@@ -35,6 +35,104 @@
   </div>
 
 </div>
+<!-- ===================== LOGO ===================== -->
+<div class="settings-block">
+
+  <div class="section-header">
+    <h2 class="section-title">Logo</h2>
+    @if (logoSaved()) {
+      <span class="logo-saved-badge">
+        <mat-icon>check_circle</mat-icon>Gespeichert
+      </span>
+    }
+  </div>
+
+  <p class="logo-hint">
+    Lade dein Restaurant-Logo in zwei Varianten hoch — eine für hellen und eine für dunklen Modus.
+    Es wird im Widget und in E-Mails eingesetzt.
+  </p>
+
+  <div class="logo-upload-grid">
+
+    <!-- Hell-Logo -->
+    <div class="logo-upload-card">
+      <div class="logo-upload-card__label">
+        <mat-icon>light_mode</mat-icon>
+        <span>Helles Design</span>
+        <small>Für hellen Hintergrund</small>
+      </div>
+
+      <div class="logo-preview-area" [class.logo-preview-area--has-logo]="!!logoLight()">
+        @if (logoLight()) {
+          <img class="logo-preview-img" [src]="logoLight()" alt="Logo hell" />
+          <button class="logo-remove-btn" (click)="removeLogo('light')" title="Logo entfernen">
+            <mat-icon>close</mat-icon>
+          </button>
+        } @else {
+          <div class="logo-placeholder">
+            <mat-icon>add_photo_alternate</mat-icon>
+            <span>Logo hochladen</span>
+          </div>
+        }
+        @if (logoLightUploading()) {
+          <div class="logo-upload-overlay">
+            <mat-icon class="logo-spinner">hourglass_top</mat-icon>
+          </div>
+        }
+      </div>
+
+      <label class="logo-upload-btn">
+        <mat-icon>upload</mat-icon>
+        {{ logoLight() ? 'Ersetzen' : 'Hochladen' }}
+        <input type="file" accept="image/jpeg,image/png,image/webp"
+               (change)="onLogoSelected($event, 'light')" hidden />
+      </label>
+      @if (logoLightError()) {
+        <p class="logo-error"><mat-icon>error</mat-icon>{{ logoLightError() }}</p>
+      }
+    </div>
+
+    <!-- Dunkel-Logo -->
+    <div class="logo-upload-card logo-upload-card--dark">
+      <div class="logo-upload-card__label">
+        <mat-icon>dark_mode</mat-icon>
+        <span>Dunkles Design</span>
+        <small>Für dunklen Hintergrund</small>
+      </div>
+
+      <div class="logo-preview-area logo-preview-area--dark" [class.logo-preview-area--has-logo]="!!logoDark()">
+        @if (logoDark()) {
+          <img class="logo-preview-img" [src]="logoDark()" alt="Logo dunkel" />
+          <button class="logo-remove-btn" (click)="removeLogo('dark')" title="Logo entfernen">
+            <mat-icon>close</mat-icon>
+          </button>
+        } @else {
+          <div class="logo-placeholder">
+            <mat-icon>add_photo_alternate</mat-icon>
+            <span>Logo hochladen</span>
+          </div>
+        }
+        @if (logoDarkUploading()) {
+          <div class="logo-upload-overlay">
+            <mat-icon class="logo-spinner">hourglass_top</mat-icon>
+          </div>
+        }
+      </div>
+
+      <label class="logo-upload-btn">
+        <mat-icon>upload</mat-icon>
+        {{ logoDark() ? 'Ersetzen' : 'Hochladen' }}
+        <input type="file" accept="image/jpeg,image/png,image/webp"
+               (change)="onLogoSelected($event, 'dark')" hidden />
+      </label>
+      @if (logoDarkError()) {
+        <p class="logo-error"><mat-icon>error</mat-icon>{{ logoDarkError() }}</p>
+      }
+    </div>
+
+  </div>
+</div>
+
 <!-- ===================== DARSTELLUNG ===================== -->
 <div class="settings-block">
 

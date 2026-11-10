@@ -1,35 +1,14 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; background: #f9fafb; margin: 0; padding: 0; }
-        .wrapper { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; }
-        .header { background: #dc2626; color: #fff; padding: 32px; text-align: center; }
-        .header h1 { margin: 0; font-size: 22px; }
-        .body { padding: 32px; color: #111827; }
-        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
-        .footer { padding: 16px 32px; background: #f3f4f6; font-size: 12px; color: #6b7280; text-align: center; }
-    </style>
-</head>
-<body>
-<div class="wrapper">
-    <div class="header">
-        <h1>Reservierung storniert</h1>
-    </div>
-    <div class="body">
-        <p>Hallo {{ guest_name }},</p>
-        <p>Ihre Reservierung bei <strong>{{ venue_name }}</strong> wurde storniert.</p>
-
-        <div class="detail-row"><span>Datum & Uhrzeit</span><strong>{{ starts_at }}</strong></div>
-
-        <p style="margin-top: 24px; color: #6b7280; font-size: 14px;">
-            Falls Sie eine neue Reservierung vornehmen möchten, besuchen Sie bitte unsere Website.
-        </p>
-    </div>
-    <div class="footer">
-        Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese Mail.
-    </div>
-</div>
-</body>
-</html>
+{% include 'email/_layout.html.twig' with {
+    heading_title: 'Reservierung storniert',
+    fixed_lines: [
+        'Ihre Reservierung bei ' ~ venue_name ~ ' wurde storniert.',
+        '',
+        'Wir hoffen, Sie bald wieder bei uns begrüßen zu dürfen.',
+    ],
+    show_details: false,
+    mail_content: mail_content,
+    design:    design,
+    social:    social,
+    logoLight: logoLight,
+    logoDark:  logoDark,
+} %}

@@ -111,6 +111,10 @@ class Guest
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $allergene = null;
 
+    /** Interne Erinnerungen des Tenants für diesen Gast */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $reminders = null;
+
     /** @var Collection<int, Reservation> */
     #[ORM\OneToMany(mappedBy: 'guest', targetEntity: Reservation::class)]
     private Collection $reservations;
@@ -232,6 +236,33 @@ class Guest
     public function setAllergene(array $keys): void
     {
         $this->allergene = array_values($keys);
+    }
+
+    public function getReminders(): array
+    {
+        return $this->reminders ?? [];
+    }
+
+    public function addReminder(array $reminder): void
+    {
+        $list = $this->reminders ?? [];
+        $list[] = $reminder;
+        $this->reminders = $list;
+    }
+
+    public function removeReminder(string $id): void
+    {
+        $this->reminders = array_values(
+            array_filter($this->reminders ?? [], fn (array $r) => $r['id'] !== $id)
+        );
+    }
+
+    public function dismissReminder(string $id): void
+    {
+        $this->reminders = array_map(
+            fn (array $r) => $r['id'] === $id ? array_merge($r, ['dismissed' => true]) : $r,
+            $this->reminders ?? []
+        );
     }
 
     public function block(string $reason): void

@@ -146,19 +146,61 @@
 
         @if (filterPanelOpen()) {
           <div class="filter-panel">
+
+            <!-- Sortierung -->
             <div class="filter-panel__group">
               <span class="filter-panel__label">{{ 'raum_detail.sort_display' | translate }}</span>
               <div class="filter-panel__chips">
-                <button class="sub-filter__chip sub-filter__chip--active">{{ 'raum_detail.time_asc' | translate }}</button>
-                <button class="sub-filter__chip">{{ 'raum_detail.time_desc' | translate }}</button>
-                <button class="sub-filter__chip">{{ 'raum_detail.no_shows' | translate }}</button>
-                <button class="sub-filter__chip">{{ 'raum_detail.cancelled' | translate }}</button>
-                <button class="sub-filter__chip">{{ 'raum_detail.late' | translate }}</button>
-                <button class="sub-filter__chip">{{ 'raum_detail.upcoming' | translate }}</button>
-                <button class="sub-filter__chip">{{ 'raum_detail.waitlist' | translate }}</button>
-                <button class="sub-filter__chip">{{ 'raum_detail.walk_in' | translate }}</button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="sortDir() === 'asc'"
+                        (click)="sortDir.set('asc')">
+                  {{ 'raum_detail.time_asc' | translate }}
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="sortDir() === 'desc'"
+                        (click)="sortDir.set('desc')">
+                  {{ 'raum_detail.time_desc' | translate }}
+                </button>
               </div>
             </div>
+
+            <!-- Status-Filter -->
+            <div class="filter-panel__group">
+              <span class="filter-panel__label">Status</span>
+              <div class="filter-panel__chips">
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'no-show'"
+                        (click)="statusFilter.set('no-show')">
+                  {{ 'raum_detail.no_shows' | translate }}
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'cancelled'"
+                        (click)="statusFilter.set('cancelled')">
+                  {{ 'raum_detail.cancelled' | translate }}
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'late'"
+                        (click)="statusFilter.set('late')">
+                  {{ 'raum_detail.late' | translate }}
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'confirmed'"
+                        (click)="statusFilter.set('confirmed')">
+                  {{ 'raum_detail.upcoming' | translate }}
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'upcoming'"
+                        (click)="statusFilter.set('upcoming')">
+                  {{ 'raum_detail.waitlist' | translate }}
+                </button>
+                <button class="sub-filter__chip"
+                        [class.sub-filter__chip--active]="statusFilter() === 'seated'"
+                        (click)="statusFilter.set('seated')">
+                  {{ 'raum_detail.walk_in' | translate }}
+                </button>
+              </div>
+            </div>
+
           </div>
         }
 
@@ -1503,6 +1545,47 @@
                       <input class="field__input" type="text" placeholder="z. B. 3× No-Show"
                              [ngModel]="gcReason()" (ngModelChange)="gcReason.set($event)" />
                     </label>
+                  }
+
+                  <!-- ── E-Mail erneut senden ──────────────────────────────── -->
+                  @if (res.guestEmail) {
+                    <div class="gc-mail-section">
+                      <div class="gc-mail-header">
+                        <mat-icon>send</mat-icon>
+                        <span>E-Mail erneut senden</span>
+                      </div>
+                      <div class="gc-mail-cards">
+                        @for (tpl of gcMailTemplates; track tpl.key) {
+                          <button type="button"
+                                  class="gc-mail-card gc-mail-card{{ tpl.color }}"
+                                  [class.gc-mail-card--selected]="gcMailSelected() === tpl.key"
+                                  (click)="gcMailSelected.set(gcMailSelected() === tpl.key ? null : tpl.key)">
+                            <mat-icon>{{ tpl.icon }}</mat-icon>
+                            <span>{{ tpl.label }}</span>
+                          </button>
+                        }
+                      </div>
+                      @if (gcMailSelected()) {
+                        <button class="gc-mail-send-btn"
+                                [disabled]="gcMailSending()"
+                                (click)="sendGcMail()">
+                          <mat-icon>{{ gcMailSending() ? 'hourglass_top' : 'send' }}</mat-icon>
+                          {{ gcMailSending() ? 'Wird gesendet …' : 'Jetzt senden' }}
+                        </button>
+                      }
+                      @if (gcMailSentOk()) {
+                        <div class="gc-mail-success">
+                          <mat-icon>check_circle</mat-icon>
+                          E-Mail wurde erfolgreich gesendet.
+                        </div>
+                      }
+                      @if (gcMailError()) {
+                        <div class="gc-mail-error">
+                          <mat-icon>error</mat-icon>
+                          {{ gcMailError() }}
+                        </div>
+                      }
+                    </div>
                   }
                 </div>
               }

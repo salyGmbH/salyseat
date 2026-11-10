@@ -173,7 +173,6 @@ export class WidgetComponent {
   /** DSGVO-Einwilligung für Layout-4-Daten-Step. Pflichtfeld vor Submit. */
   readonly plannerConsent       = signal<boolean>(false);
 
-
   readonly plannerCalendarMonth = signal<number>(4);  
   readonly plannerCalendarYear  = signal<number>(2026);
   readonly plannerCalendarMonthLabel = computed(() => {
@@ -397,11 +396,37 @@ export class WidgetComponent {
    * Drehwinkel der Nadel — zeigt minutengenau auf den ausgewählten Slot.
    * Wird im SVG-transform-Attribut als `rotate(angle 70 70)` verwendet.
    */
-  readonly plannerDialNeedleAngle = computed(() => {
-    const sel = this.plannerSelectedTime();
-    const [h, m] = sel.split(':').map(Number);
-    return this.dialAngleForMinutes(h * 60 + m);
+  /** 24-Stunden-Chip-Ring für die neue Uhr-Vorschau. */
+  readonly plannerDialHourChips = computed(() => {
+    const cx = 70, cy = 70, r = 55;
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const availableHours = new Set(
+      this.plannerTimes.map(s => parseInt(s.label.split(':')[0], 10))
+    );
+    return Array.from({ length: 24 }, (_, h) => {
+      const deg = h * 15 - 90;
+      const rad = deg * Math.PI / 180;
+      return {
+        hour:        h,
+        label:       String(h),
+        x:           round(cx + r * Math.cos(rad)),
+        y:           round(cy + r * Math.sin(rad)),
+        isAvailable: availableHours.has(h),
+      };
+    });
   });
+
+  /** Nadelwinkel: 15° pro Stunde (24h-Ring). */
+  readonly plannerDialNeedleAngle = computed(() => {
+    const [h] = this.plannerSelectedTime().split(':').map(Number);
+    return h * 15;
+  });
+
+  /** Stunde klicken → ersten passenden Slot setzen. */
+  selectPlannerHour(hour: number): void {
+    const match = this.plannerTimes.find(s => parseInt(s.label.split(':')[0], 10) === hour);
+    if (match) this.selectPlannerTime(match.label);
+  }
 
   /** Personenanzahl-Chips (Demo). */
   readonly plannerSeats: readonly { count: number; label: string }[] = [

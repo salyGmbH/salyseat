@@ -1509,3 +1509,42 @@
     }
   }
 }
+
+
+// ─── Speisekarte-Generator Hinweis ───────────────────────────────────────────
+.speisekarte-gen-hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 10px;
+
+  mat-icon {
+    color: #2563eb;
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+  }
+
+  div {
+    font-size: 13px;
+    color: $color-text;
+    line-height: 1.5;
+
+    strong { font-weight: 700; display: block; margin-bottom: 3px; }
+
+    p { margin: 0; color: $color-text-muted; }
+
+    a {
+      color: #2563eb;
+      font-weight: 600;
+      text-decoration: none;
+      &:hover { text-decoration: underline; }
+    }
+  }
+}

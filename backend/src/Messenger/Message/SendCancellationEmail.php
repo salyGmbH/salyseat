@@ -12,5 +12,6 @@ final readonly class SendCancellationEmail
         public string $guestName,
         public string $startsAt,
         public string $venueName,
+        public string $tenantId = '',
     ) {}
 }

@@ -22,7 +22,6 @@ export class OverviewComponent {
     { label: 'settings.general',          route: 'allgemein',              icon: 'tune' },
     { label: 'settings.notifications',    route: 'notifications',          icon: 'notifications_active' },
     { label: 'settings.permissions',      route: 'rechte',                 icon: 'admin_panel_settings' },
-    { label: 'settings.branding',         route: 'branding',               icon: 'palette' },
     { label: 'settings.emails',           route: 'emails',                 icon: 'mail' },
     { label: 'settings.customers',        route: 'kunden',                 icon: 'groups' },
     { label: 'settings.login',            route: 'login',                  icon: 'login' },

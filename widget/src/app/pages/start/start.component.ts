@@ -10,6 +10,7 @@ import {
   ReservationsService,
   WidgetDesignConfig,
   WidgetFunctionalConfig,
+  WidgetAllergen,
   WidgetVenue,
   WidgetVenueTable,
   WidgetVenueWall,
@@ -68,8 +69,19 @@ export class StartComponent implements OnInit {
   showSubtitle     = signal(true);
   buttonLabel      = signal('Reservierung absenden');
 
+  // ─── Hilfsfunktion: Datum als YYYY-MM-DD in Ortszeit (NICHT UTC) ─────────
+  // new Date().toISOString() liefert UTC — in Deutschland (UTC+2) ist das
+  // zwischen 00:00 und 01:59 Uhr LOCAL bereits der gestrige UTC-Tag.
+  // Daher immer getFullYear/getMonth/getDate (lokale Zeit) verwenden.
+  static localDate(d: Date): string {
+    const y  = d.getFullYear();
+    const m  = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
+
   // ─── Heute als Vorbelegung & Mindestdatum ────────────────────────────────
-  readonly today = new Date().toISOString().slice(0, 10);
+  readonly today = StartComponent.localDate(new Date());
 
   // ─── Slot-Auswahl ────────────────────────────────────────────────────────
   date   = signal<string>(this.today);
@@ -109,6 +121,29 @@ export class StartComponent implements OnInit {
   kinderStuehleAktiv   = signal<boolean>(false);
   kinderStuehleOnline  = signal<number>(2);
   kinderStuehle        = signal<number>(0);
+
+  // ─── Rollstuhl ───────────────────────────────────────────────────────────
+  rollstuhlAktiv = signal<boolean>(false);
+  rollstuhl      = signal<boolean>(false);
+
+  // ─── Hund ────────────────────────────────────────────────────────────────
+  hundAktiv = signal<boolean>(false);
+  hund      = signal<boolean>(false);
+
+  // ─── Allergene ───────────────────────────────────────────────────────────
+  allergeneAktiv       = signal<boolean>(false);
+  verfuegbareAllergene = signal<WidgetAllergen[]>([]);
+  selectedAllergene    = signal<string[]>([]);
+
+  toggleAllergen(key: string): void {
+    this.selectedAllergene.update(list =>
+      list.includes(key) ? list.filter(k => k !== key) : [...list, key]
+    );
+  }
+
+  isAllergenSelected(key: string): boolean {
+    return this.selectedAllergene().includes(key);
+  }
 
   // ─── Vorausbuchung ───────────────────────────────────────────────────────
   vorausbuchungEinheit = signal<string>('monate');
@@ -175,8 +210,9 @@ export class StartComponent implements OnInit {
   stackedConsent    = signal(false);
 
   // ─── Planner-Layout-State ────────────────────────────────────────────────
-  plannerStep    = signal<1 | 2 | 3 | 4>(1);
-  plannerConsent = signal(false);
+  plannerStep      = signal<1 | 2 | 3 | 4>(1);
+  plannerConsent   = signal(false);
+  plannerDialPhase = signal<'hour' | 'minute'>('hour');
 
   // ─── Tag-Verfügbarkeit (ohne Zeit) — für Slot-Filterung ──────────────────
   // Reagiert nur auf Venue + Datum, NICHT auf Zeit. Liefert bookedPeriods +
@@ -272,12 +308,21 @@ export class StartComponent implements OnInit {
     return slots;
   });
 
+  /**
+   * Gibt die angezeigte Uhrzeit zurück.
+   * Wenn noch keine Slots geladen sind (Ladezeit zwischen Datumswechsel),
+   * wird die zuletzt gewählte Zeit beibehalten statt '' — verhindert
+   * den kurzen Moment wo nur „Uhr" angezeigt wird.
+   */
   readonly validTime = computed(() => {
     const slots = this.timeSlots();
     const t = this.time();
-    if (slots.length === 0) return '';
+    if (slots.length === 0) return t;          // Fallback: aktuelle Zeit, kein Leerlauf
     return slots.includes(t) ? t : slots[0];
   });
+
+  /** Gibt es tatsächlich buchbare Slots für das gewählte Datum? */
+  readonly hasBookableSlots = computed(() => this.timeSlots().length > 0);
 
   // ─── Submit-Status ───────────────────────────────────────────────────────
   state        = signal<SubmitState>('loading');
@@ -298,6 +343,7 @@ export class StartComponent implements OnInit {
     const req = this.requiredFields();
     return !!this.selectedVenue() &&
       !!this.date() &&
+      this.hasBookableSlots() &&       // echte Slots müssen vorhanden sein
       !!this.validTime() &&
       !this.isClosedDay() &&
       !this.showMaxPersonenWarning() &&
@@ -434,6 +480,68 @@ export class StartComponent implements OnInit {
         isHour: m === 0,
       };
     });
+  });
+
+  // ─── Zweistufiger Planner-Dial ───────────────────────────────────────────
+
+  /** Intervall in Minuten, aus den timeSlots abgeleitet. */
+  readonly dialIntervalMinutes = computed(() => {
+    const slots = this.timeSlots();
+    if (slots.length < 2) return 60;
+    const toMin = (s: string) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+    return toMin(slots[1]) - toMin(slots[0]);
+  });
+
+  /** Deduplizierte verfügbare Stunden. */
+  readonly dialAvailableHours = computed(() => {
+    const slots = this.timeSlots();
+    return [...new Set(slots.map(s => parseInt(s.split(':')[0], 10)))];
+  });
+
+  /**
+   * SVG-Positionen aller 24 Stunden auf einem Ring (r=55).
+   * 15° pro Stunde (360/24), 0h = oben.
+   * Verfügbare Stunden = isAvailable true.
+   */
+  readonly dialPhaseHourDots = computed(() => {
+    const cx = 70, cy = 70, r = 55;
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const availableSet = new Set(this.dialAvailableHours());
+    return Array.from({ length: 24 }, (_, h) => {
+      const deg = h * 15 - 90;
+      const rad = deg * Math.PI / 180;
+      return {
+        hour:        h,
+        label:       String(h),
+        x:           round(cx + r * Math.cos(rad)),
+        y:           round(cy + r * Math.sin(rad)),
+        angleDeg:    h * 15,
+        isAvailable: availableSet.has(h),
+      };
+    });
+  });
+
+  /** Y-Endpunkt der Nadel — immer äußerer Ring (r=55 → y=15). */
+  readonly dialPhaseNeedleEndY = computed(() => 15);
+
+  /** SVG-Positionen der Minuten-Dots je nach Intervall. */
+  readonly dialPhaseMinuteDots = computed(() => {
+    const cx = 70, cy = 70, r = 53;
+    const interval = this.dialIntervalMinutes();
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const minutes: number[] = [];
+    for (let m = 0; m < 60; m += interval) minutes.push(m);
+    return minutes.map(m => {
+      const deg = m * 6 - 90;
+      const rad = deg * Math.PI / 180;
+      return { minute: m, label: String(m).padStart(2, '0'), x: round(cx + r * Math.cos(rad)), y: round(cy + r * Math.sin(rad)), angleDeg: m * 6 };
+    });
+  });
+
+  /** Nadelwinkel: 15° pro Stunde (24h-Ring) oder 6° pro Minute. */
+  readonly dialPhaseNeedleAngle = computed(() => {
+    const [h, m] = this.validTime().split(':').map(Number);
+    return this.plannerDialPhase() === 'hour' ? h * 15 : m * 6;
   });
 
   readonly dialOpenArc = computed(() => {
@@ -667,6 +775,11 @@ export class StartComponent implements OnInit {
   // ─── Planner methods ──────────────────────────────────────────────────────
   setPlannerStep(s: 1 | 2 | 3 | 4): void { this.plannerStep.set(s); }
   plannerPrev(): void {
+    // Im Minuten-Modus: erst zurück zur Stunden-Auswahl
+    if (this.plannerStep() === 2 && this.plannerDialPhase() === 'minute') {
+      this.plannerDialPhase.set('hour');
+      return;
+    }
     const s = this.plannerStep();
     if (s > 1) this.plannerStep.set((s - 1) as 1 | 2 | 3 | 4);
   }
@@ -677,6 +790,30 @@ export class StartComponent implements OnInit {
   plannerToggleConsent(): void { this.plannerConsent.update(v => !v); }
   selectPlannerDay(day: number): void { this.selectDay(day); this.setPlannerStep(2); }
   selectPlannerTime(t: string): void { this.time.set(t); this.setPlannerStep(3); }
+
+  /** Phase 1: Stunde wählen → wechselt zu Minuten-Phase (oder direkt zu Schritt 3 bei 60-Min-Intervall). */
+  selectPlannerHour(hour: number): void {
+    const slots = this.timeSlots();
+    const match = slots.find(s => parseInt(s.split(':')[0], 10) === hour);
+    if (!match) return;
+    this.time.set(match);
+    if (this.dialIntervalMinutes() >= 60) {
+      this.plannerDialPhase.set('hour');
+      this.setPlannerStep(3);
+    } else {
+      this.plannerDialPhase.set('minute');
+    }
+  }
+
+  /** Phase 2: Minute wählen → setzt die Uhrzeit und wechselt zu Schritt 3. */
+  selectPlannerMinute(minute: number): void {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const [h] = this.validTime().split(':').map(Number);
+    const t = `${pad(h)}:${pad(minute)}`;
+    if (this.timeSlots().includes(t)) this.time.set(t);
+    this.plannerDialPhase.set('hour');
+    this.setPlannerStep(3);
+  }
   selectPlannerSeats(n: number): void {
     this.people.set(n);
     if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
@@ -749,6 +886,7 @@ export class StartComponent implements OnInit {
       this.venues.set(config.venues);
       this.applyDesign(config.widgetDesign);
       this.applyFunctional(config.widgetFunctional);
+      if (Array.isArray(config.allergene)) this.verfuegbareAllergene.set(config.allergene);
 
       const closed = config.closedWeekdays ?? [];
       this.closedWeekdays.set(closed);
@@ -765,12 +903,14 @@ export class StartComponent implements OnInit {
         let d = new Date(this.today + 'T00:00:00');
         for (let i = 0; i < 60; i++) {
           const wd = (d.getDay() + 6) % 7;
-          const isToday = d.toISOString().slice(0, 10) === this.today;
+          // Wichtig: localDate() statt toISOString() verwenden, damit der
+          // Vergleich in der lokalen Zeitzone stimmt, nicht in UTC.
+          const isToday = StartComponent.localDate(d) === this.today;
           if (closed.includes(wd)) { d.setDate(d.getDate() + 1); continue; }
           if (isToday && cutoff >= latestSlotMinutes) { d.setDate(d.getDate() + 1); continue; }
           break;
         }
-        const iso = d.toISOString().slice(0, 10);
+        const iso = StartComponent.localDate(d);
         if (iso !== this.date()) {
           this.date.set(iso);
           this.calendarMonth.set(d.getMonth());
@@ -904,6 +1044,9 @@ export class StartComponent implements OnInit {
     if (Array.isArray(func.raumauswahlAktiveIds))      this.raumauswahlAktiveIds.set(func.raumauswahlAktiveIds);
     if (typeof func.kinderStuehleAktiv === 'boolean')  this.kinderStuehleAktiv.set(func.kinderStuehleAktiv);
     if (typeof func.kinderStuehleOnline === 'number')  this.kinderStuehleOnline.set(func.kinderStuehleOnline);
+    if (typeof func.rollstuhlAktiv === 'boolean')      this.rollstuhlAktiv.set(func.rollstuhlAktiv);
+    if (typeof func.hundAktiv === 'boolean')           this.hundAktiv.set(func.hundAktiv);
+    if (typeof func.allergeneAktiv === 'boolean')      this.allergeneAktiv.set(func.allergeneAktiv);
     if (func.vorausbuchungEinheit)                     this.vorausbuchungEinheit.set(func.vorausbuchungEinheit);
     if (typeof func.vorausbuchungWert === 'number')    this.vorausbuchungWert.set(func.vorausbuchungWert);
     if (typeof func.mindestvorlaufMinuten === 'number')  this.mindestvorlaufMinuten.set(func.mindestvorlaufMinuten);
@@ -964,13 +1107,29 @@ export class StartComponent implements OnInit {
     if (!this.canSubmit()) return;
 
     const venue = this.selectedVenue()!;
-    const time  = this.validTime();
+    // Sicherheitsprüfung: nur Zeiten aus dem Slot-Array akzeptieren
+    const slots = this.timeSlots();
+    const raw   = this.validTime();
+    const time  = slots.includes(raw) ? raw : slots[0];
+    if (!time) return;  // Sollte nie passieren, da canSubmit hasBookableSlots prüft
     this.state.set('submitting');
     this.errorMessage.set('');
 
     let notesText = this.notes().trim();
     if (this.kinderStuehleAktiv() && this.kinderStuehle() > 0) {
       notesText = [notesText, `Kinderstühle: ${this.kinderStuehle()}`].filter(Boolean).join(' | ');
+    }
+    if (this.rollstuhlAktiv() && this.rollstuhl()) {
+      notesText = [notesText, 'Rollstuhlplatz benötigt'].filter(Boolean).join(' | ');
+    }
+    if (this.hundAktiv() && this.hund()) {
+      notesText = [notesText, 'Hund dabei'].filter(Boolean).join(' | ');
+    }
+    if (this.allergeneAktiv() && this.selectedAllergene().length > 0) {
+      const labels = this.selectedAllergene()
+        .map(key => this.verfuegbareAllergene().find(a => a.key === key)?.label ?? key)
+        .join(', ');
+      notesText = [notesText, `Allergene: ${labels}`].filter(Boolean).join(' | ');
     }
     if (this.tischartenAktiv() && this.tischartenModus() === 'liste' && this.selectedTischart()) {
       const found = this.alleTischarten.find(t => t.key === this.selectedTischart());
@@ -1050,6 +1209,9 @@ export class StartComponent implements OnInit {
       this.selectedVenue.set(this.filteredVenues()[0]);
     }
     this.kinderStuehle.set(0);
+    this.rollstuhl.set(false);
+    this.hund.set(false);
+    this.selectedAllergene.set([]);
     this.selectedTischart.set('');
     this.selectedTableId.set(null);
     this.tischwahlActive.set(false);

@@ -1,0 +1,14 @@
+{% include 'email/_layout.html.twig' with {
+    heading_title: 'Verpasste Reservierung',
+    fixed_lines: [
+        'Leider konnten wir Sie heute nicht bei uns begrüßen.',
+        '',
+        'Bei Fragen stehen wir Ihnen jederzeit gerne zur Verfügung.',
+    ],
+    show_details: false,
+    mail_content: mail_content,
+    design:    design,
+    social:    social,
+    logoLight: logoLight,
+    logoDark:  logoDark,
+} %}

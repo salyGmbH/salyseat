@@ -7,22 +7,11 @@ import { AuthUser, LoginRequest, LoginResponse } from './auth.types';
 const TOKEN_KEY = 'salyseat.auth.token.v1';
 const USER_KEY  = 'salyseat.auth.user.v1';
 
-/**
- * Zentrale Auth-Logik fürs Admin-Frontend.
- *
- * - Login geht gegen POST /api/v1/auth/login im Symfony-Backend.
- * - JWT + User werden in localStorage gespeichert, damit der Admin nach Reload
- *   eingeloggt bleibt.
- * - Alle Komponenten/Guards/Interceptoren können über `token()` bzw.
- *   `isAuthenticated()` den aktuellen Zustand lesen (Angular Signals).
- */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http   = inject(HttpClient);
   private readonly router = inject(Router);
 
-  // Basis-URL des Symfony-Backends. Für Production via Proxy / gleiche Domain
-  // kann hier auch einfach '' gesetzt werden.
   private readonly apiBase = '/api/v1';
 
   private readonly _token = signal<string | null>(this.loadToken());
@@ -31,6 +20,14 @@ export class AuthService {
   readonly token           = computed(() => this._token());
   readonly user            = computed(() => this._user());
   readonly isAuthenticated = computed(() => this._token() !== null);
+
+  private _logoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    // Beim App-Start: prüfen ob das gespeicherte Token schon abgelaufen ist,
+    // sonst Timer bis zum Ablauf starten.
+    this.scheduleAutoLogout();
+  }
 
   // ── Login / Logout ────────────────────────────────────────────────────────
   login(email: string, password: string): Observable<LoginResponse> {
@@ -41,6 +38,10 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this._logoutTimer) {
+      clearTimeout(this._logoutTimer);
+      this._logoutTimer = null;
+    }
     this._token.set(null);
     this._user.set(null);
     try {
@@ -58,7 +59,42 @@ export class AuthService {
     try {
       localStorage.setItem(TOKEN_KEY, res.token);
       localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-    } catch { /* ignore – z.B. privater Modus */ }
+    } catch { /* ignore */ }
+    this.scheduleAutoLogout();
+  }
+
+  // ── Auto-Logout via JWT exp-Claim ─────────────────────────────────────────
+  private scheduleAutoLogout(): void {
+    if (this._logoutTimer) {
+      clearTimeout(this._logoutTimer);
+      this._logoutTimer = null;
+    }
+
+    const token = this._token();
+    if (!token) return;
+
+    try {
+      const payload     = JSON.parse(atob(token.split('.')[1]));
+      const exp: number = payload.exp;
+      if (!exp) return;
+
+      const msLeft = exp * 1000 - Date.now();
+
+      if (msLeft <= 0) {
+        this.logout();
+        return;
+      }
+
+      // setTimeout ist auf ~24.8 Tage (2^31-1 ms) begrenzt — größere Werte
+      // feuern sofort. Bei sehr langen Sessions (>23h) kein Timer nötig:
+      // der Page-Load-Check im constructor() greift beim nächsten Aufruf.
+      const MAX_TIMER_MS = 23 * 60 * 60 * 1000; // 23 Stunden
+      if (msLeft > MAX_TIMER_MS) return;
+
+      this._logoutTimer = setTimeout(() => this.logout(), msLeft);
+    } catch {
+      // Ungültiges Token-Format → ignorieren
+    }
   }
 
   private loadToken(): string | null {

@@ -1,12 +1,21 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { GuestsService, Guest, GuestReservation, UpdateGuestDto } from '../../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
+import { ReminderService, Reminder } from '../../../services/reminder.service';
 
-type ModalTab  = 'profil' | 'hinweise' | 'reservierungen';
+type ModalTab  = 'profil' | 'hinweise' | 'reservierungen' | 'erinnerungen' | 'email';
+
+export interface MailTemplate {
+  key: 'confirmation' | 'reminder' | 'cancel' | 'no_show';
+  label: string;
+  description: string;
+  icon: string;
+  color: string;
+}
 type FilterKey = 'alle' | 'vip' | 'stammgast' | 'neukunde' | 'gesperrt' | 'noshows' | 'geburtstag' | 'jahrestag';
 
 @Component({
@@ -19,6 +28,7 @@ type FilterKey = 'alle' | 'vip' | 'stammgast' | 'neukunde' | 'gesperrt' | 'nosho
 export class KundenComponent implements OnInit {
   private readonly guestsService   = inject(GuestsService);
   private readonly tenantSettings  = inject(TenantSettingsService);
+  readonly reminderSvc             = inject(ReminderService);
 
   guests      = signal<Guest[]>([]);
   total       = signal(0);
@@ -65,6 +75,8 @@ export class KundenComponent implements OnInit {
   vipThreshold = signal(5);
 
   // ── Geburtstags- & Hochzeitstags-Alert ────────────────────────────────────
+  readonly todayIso = new Date().toISOString().slice(0, 10);
+
   private readonly todayMmDd = (() => {
     const d = new Date();
     return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -106,6 +118,31 @@ export class KundenComponent implements OnInit {
 
   editSaving  = signal(false);
   editError   = signal<string | null>(null);
+
+  // ── Erinnerungen ──────────────────────────────────────────────────────────
+  // Reaktiv: aktualisiert sich sobald reminderSvc._all sich ändert
+  guestReminders = computed<Reminder[]>(() => {
+    const guest = this.editTarget();
+    if (!guest) return [];
+    return this.reminderSvc.all().filter(r => r.guestId === guest.id);
+  });
+  newReminderNote = signal('');
+  newReminderDate = signal('');
+  reminderSaving  = signal(false);
+
+  // ── E-Mail senden ─────────────────────────────────────────────────────────
+  readonly mailTemplates: MailTemplate[] = [
+    { key: 'confirmation', label: 'Reservierungsbestätigung', description: 'Bestätigung mit allen Reservierungsdetails und Stornierungs-Link', icon: 'check_circle',    color: 'blue'   },
+    { key: 'reminder',     label: 'Erinnerungsmail',          description: 'Freundliche Erinnerung an den bevorstehenden Termin',                icon: 'alarm',           color: 'amber'  },
+    { key: 'cancel',       label: 'Stornierungsbestätigung',  description: 'Bestätigung der Stornierung der Reservierung',                       icon: 'cancel',          color: 'red'    },
+    { key: 'no_show',      label: 'No-Show Info',             description: 'Hinweis auf die verpasste Reservierung',                             icon: 'person_off',      color: 'grey'   },
+  ];
+
+  selectedMailTemplate = signal<MailTemplate['key'] | null>(null);
+  selectedReservationId = signal<string>('');
+  mailSending  = signal(false);
+  mailSentOk   = signal(false);
+  mailError    = signal<string | null>(null);
 
   // Computed: Reservierungen gefiltert
   filteredReservations = computed(() => {
@@ -167,6 +204,12 @@ export class KundenComponent implements OnInit {
     this.reservations.set([]);
     this.avgPartySize.set(0);
     this.reservationsUpcomingOnly.set(false);
+    this.newReminderNote.set('');
+    this.newReminderDate.set('');
+    this.selectedMailTemplate.set(null);
+    this.selectedReservationId.set('');
+    this.mailSentOk.set(false);
+    this.mailError.set(null);
     this.editModal.set(true);
   }
 
@@ -177,6 +220,67 @@ export class KundenComponent implements OnInit {
     if (tab === 'reservierungen' && this.reservations().length === 0 && !this.reservationsLoading()) {
       this.loadGuestReservations();
     }
+    if (tab === 'erinnerungen') {
+      // guestReminders ist ein computed Signal — kein manuelles Set nötig
+    }
+    if (tab === 'email') {
+      this.selectedMailTemplate.set(null);
+      this.selectedReservationId.set('');
+      this.mailSentOk.set(false);
+      this.mailError.set(null);
+      // Reservierungen laden falls noch nicht vorhanden
+      if (this.reservations().length === 0 && !this.reservationsLoading()) {
+        this.loadGuestReservations();
+      }
+    }
+  }
+
+  sendMail(): void {
+    const guest    = this.editTarget();
+    const tplKey   = this.selectedMailTemplate();
+    if (!guest || !tplKey) return;
+
+    this.mailSending.set(true);
+    this.mailError.set(null);
+    this.mailSentOk.set(false);
+
+    this.guestsService.resendEmail(
+      guest.id,
+      tplKey,
+      this.selectedReservationId() || undefined,
+    ).subscribe({
+      next: () => {
+        this.mailSending.set(false);
+        this.mailSentOk.set(true);
+        this.selectedMailTemplate.set(null);
+        setTimeout(() => this.mailSentOk.set(false), 3500);
+      },
+      error: (err) => {
+        this.mailSending.set(false);
+        this.mailError.set(err?.error?.error ?? 'Fehler beim Versenden.');
+      },
+    });
+  }
+
+  addReminder(): void {
+    const guest = this.editTarget();
+    if (!guest || !this.newReminderNote().trim() || !this.newReminderDate()) return;
+    this.reminderSvc.add(guest.id, guest.name, this.newReminderNote(), this.newReminderDate());
+    this.newReminderNote.set('');
+    this.newReminderDate.set('');
+  }
+
+  deleteReminder(id: string): void {
+    this.reminderSvc.remove(id);
+  }
+
+  reminderIsDue(dueDate: string): boolean {
+    return dueDate <= new Date().toISOString().slice(0, 10);
+  }
+
+  formatReminderDate(iso: string): string {
+    const [y, m, d] = iso.split('-');
+    return `${d}.${m}.${y}`;
   }
 
   loadGuestReservations(): void {

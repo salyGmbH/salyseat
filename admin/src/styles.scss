@@ -1,6 +1,26 @@
 @use 'styles/variables' as *;
 
 // ─────────────────────────────────────────────────────────────────────────
+//  LOGO — Theme-Switch: Hellmodus = dunkles Logo, Dim/Dunkel = helles Logo
+// ─────────────────────────────────────────────────────────────────────────
+
+// Hellmodus (Default): dunkles Logo sichtbar, helles Logo versteckt
+.sidebar__logo-dark  { display: block; }
+.sidebar__logo-light { display: none;  }
+
+// Dim-Modus: helles Logo
+body.dim-theme {
+  .sidebar__logo-dark  { display: none;  }
+  .sidebar__logo-light { display: block; }
+}
+
+// Dunkel-Modus: helles Logo
+body.dark-theme {
+  .sidebar__logo-dark  { display: none;  }
+  .sidebar__logo-light { display: block; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  THEME — HELL (Default)
 //  Ein Klassenwechsel auf <body> tauscht alle CSS-Variablen blitzschnell
 //  aus, ohne JavaScript-Loop oder Neukompilierung.
@@ -11,6 +31,14 @@
   // Brand — bleibt in beiden Modi gleich
   --color-primary:           #2979ff;
   --color-primary-rgb:       41, 121, 255;
+
+  // ── Tischplan Status-Farben (RGB-Triplets für rgba()) ────────────────────
+  --t-upcoming-rgb:   41, 121, 255;   // Blau   — demnächst
+  --t-confirmed-rgb:  148, 163, 184;  // Grau   — bestätigt
+  --t-seated-rgb:     67, 160, 71;    // Grün   — eingecheckt
+  --t-expired-rgb:    251, 146, 60;   // Orange — überfällig
+  --t-cleanup-rgb:    6, 182, 212;    // Cyan   — reinigung
+  --t-late-rgb:       234, 179, 8;    // Gelb   — verspätet
   --color-primary-dark:      #1565c0;
   --color-primary-dark-rgb:  21, 101, 192;
   --color-accent:            #ffb700;
@@ -18,19 +46,19 @@
   --color-accent-dark:       #e6a500;
   --color-accent-dark-rgb:   230, 165, 0;
 
-  // Surfaces (hell)
-  --color-bg:                #f4f5f7;
-  --color-bg-rgb:            244, 245, 247;
-  --color-surface:           #ffffff;
+  // Surfaces (hell) — klare Hierarchie: bg < panel < card
+  --color-bg:                #e8eaee;   // Seitenhintergrund (dunkelste Ebene)
+  --color-bg-rgb:            232, 234, 238;
+  --color-surface:           #ffffff;   // Karten / Inhaltsflächen (hellste Ebene)
   --color-surface-rgb:       255, 255, 255;
-  --color-surface-soft:      #eef0f4;
-  --color-surface-soft-rgb:  238, 240, 244;
+  --color-surface-soft:      #f0f1f4;
+  --color-surface-soft-rgb:  240, 241, 244;
 
-  // Navigation (Sidebar-Farbe) — im Hell-Modus weiß
-  --color-dark:              #ffffff;
-  --color-dark-rgb:          255, 255, 255;
-  --color-dark-soft:         #eef0f4;
-  --color-dark-soft-rgb:     238, 240, 244;
+  // Navigation / Panels — f6f6f6 (zwischen bg und surface)
+  --color-dark:              #f6f6f6;
+  --color-dark-rgb:          246, 246, 246;
+  --color-dark-soft:         #ededf0;
+  --color-dark-soft-rgb:     237, 237, 240;
 
   // Text
   --color-text:              #111111;
@@ -60,6 +88,16 @@
 //  off-white Text. Passt zur Abendstimmung eines Restaurants.
 // ─────────────────────────────────────────────────────────────────────────
 body.dim-theme {
+  // Brand — gedämpfte, nicht-neon Varianten für den Dim-Modus
+  --color-primary:           #6d9fd8;      // weiches Stahlblau statt Electric Blue
+  --color-primary-rgb:       109, 159, 216;
+  --color-primary-dark:      #4f7eb5;
+  --color-primary-dark-rgb:  79, 126, 181;
+  --color-accent:             #c49a2a;      // warmes Messing statt Neon-Gelb
+  --color-accent-rgb:        196, 154, 42;
+  --color-accent-dark:       #a97f1e;
+  --color-accent-dark-rgb:   169, 127, 30;
+
   // Surfaces (gedimmt — weicher Blaugrau-Ton, minimal wärmer als dunkel)
   --color-bg:                #232732;
   --color-bg-rgb:            35, 39, 50;
@@ -82,9 +120,210 @@ body.dim-theme {
   --color-text-on-dark:      #ebe6dc;
   --color-text-on-dark-rgb:  235, 230, 220;
 
+  // Semantic — gedämpft, kein Neon
+  --color-success:           #4d9168;
+  --color-success-rgb:       77, 145, 104;
+  --color-danger:            #b85c5c;
+  --color-danger-rgb:        184, 92, 92;
+  --color-warn:              #b87830;
+  --color-warn-rgb:          184, 120, 48;
+
+  // Tischplan — gedämpfte, nicht-neon Statusfarben
+  --t-upcoming-rgb:   80, 130, 200;   // softes Blau
+  --t-confirmed-rgb:  110, 125, 145;  // dunkles Stahlgrau
+  --t-seated-rgb:     60, 130, 70;    // dunkles Waldgrün
+  --t-expired-rgb:    180, 100, 45;   // gedämpftes Terrakotta-Orange
+  --t-cleanup-rgb:    35, 145, 160;   // weiches Petrol
+  --t-late-rgb:       175, 140, 25;   // dunkles Bernstein
+
   // Borders — sanft, nicht hart abgegrenzt
   --color-border:            rgba(235, 230, 220, 0.10);
   --color-border-rgb:        235, 230, 220;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  DIM-THEME — globale Neon-Dämpfung für hart kodierte Farben
+//  Alle Elemente die #22c55e / rgba(34,197,94) hard-coded nutzen
+//  werden per filter desaturiert, ohne jede Komponente anfassen zu müssen.
+// ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+//  DIM-THEME — Tischplan: keine leuchtenden Umrandungen, kein Neon-Glow
+// ─────────────────────────────────────────────────────────────────────────
+body.dim-theme {
+  // ── Leere Tische: Stroke etwas heller damit sie sichtbar bleiben
+  .placed-table:not(.is-upcoming):not(.is-confirmed):not(.is-seated):not(.is-expired):not(.is-cleanup):not(.is-late) .table-svg__body {
+    stroke: rgba(var(--color-text-rgb), 0.35) !important;
+    stroke-width: 1.5 !important;
+    fill: rgba(var(--color-text-rgb), 0.06) !important;
+  }
+
+  // ── Status-Tische: Fill stärker sichtbar, Stroke = gleiche Farbe (kein Kontrast-Rand)
+  .placed-table.is-upcoming  .table-svg__body { fill: rgba(var(--t-upcoming-rgb),  0.40) !important; stroke: rgba(var(--t-upcoming-rgb),  0.40) !important; }
+  .placed-table.is-confirmed .table-svg__body { fill: rgba(var(--t-confirmed-rgb), 0.38) !important; stroke: rgba(var(--t-confirmed-rgb), 0.38) !important; }
+  .placed-table.is-seated    .table-svg__body { fill: rgba(var(--t-seated-rgb),    0.50) !important; stroke: rgba(var(--t-seated-rgb),    0.50) !important; }
+  .placed-table.is-expired   .table-svg__body { fill: rgba(var(--t-expired-rgb),   0.50) !important; stroke: rgba(var(--t-expired-rgb),   0.50) !important; }
+  .placed-table.is-cleanup   .table-svg__body { fill: rgba(var(--t-cleanup-rgb),   0.45) !important; stroke: rgba(var(--t-cleanup-rgb),   0.45) !important; }
+  .placed-table.is-late      .table-svg__body { fill: rgba(var(--t-late-rgb),      0.48) !important; stroke: rgba(var(--t-late-rgb),      0.48) !important; }
+
+  // Kein Neon-Glow bei Animationen
+  .placed-table.is-expired .table-svg__body,
+  .placed-table.is-cleanup .table-svg__body,
+  .placed-table.is-late    .table-svg__body {
+    animation: none !important;
+    filter: none !important;
+  }
+
+  // Hover: nur Aufhellung, kein Leucht-Effekt
+  .placed-table:hover .table-svg__body,
+  .placed-table:active .table-svg__body {
+    filter: brightness(1.15) !important;
+  }
+
+  // Reassign ohne Pulsieren
+  .placed-table.is-reassign-source .table-svg__body {
+    animation: none !important;
+    filter: brightness(1.2) !important;
+  }
+}
+
+body.dim-theme {
+  // Grüne Status-Elemente (Aktiv-Badges, Eingecheckt-Pills, etc.)
+  .badge--active,
+  .status-pill--seated,
+  .module-status.active,
+  .module-card.active .module-icon,
+  .module-card.active .module-status,
+  .hero-card--active,
+  .source-card--walkin,
+  .rcr.accent--active,
+  .insight-chip--success {
+    filter: saturate(0.68) brightness(0.92);
+  }
+
+  // Rote Danger-Elemente
+  .badge--danger,
+  .status-pill--cancelled,
+  .status-pill--noshow,
+  .state-error {
+    filter: saturate(0.70) brightness(0.93);
+  }
+
+  // Orange Warn-Elemente
+  .badge--warn,
+  .status-pill--warn,
+  .hero-card--warn {
+    filter: saturate(0.70) brightness(0.95);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  DIM-THEME — Dekor-Elemente (Pflanze, Säule, Wand, Tür, Fenster, WC…)
+//  CSS filter auf das SVG-Element wirkt auf alle inline fill/stroke-Attribute
+//  ohne dass das HTML-Template angefasst werden muss.
+// ─────────────────────────────────────────────────────────────────────────
+body.dim-theme {
+
+  // Alle SVG-Dekor-Elemente: Sättigung runter, Helligkeit dämpfen
+  .placed-decor .decor-svg {
+    filter: saturate(0.45) brightness(0.78) !important;
+  }
+
+  // Wände: etwas transparenter im Dim-Modus
+  .placed-wall .wall-body {
+    background: rgba(var(--color-text-rgb), 0.22) !important;
+    border-color: rgba(var(--color-text-rgb), 0.14) !important;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  DIM-THEME — Statistiken: kein Neon-Glow auf Charts, Heatmap, Badges
+// ─────────────────────────────────────────────────────────────────────────
+body.dim-theme {
+
+  // Donut-Karten: Leucht-Halo + drop-shadow entfernen
+  .donut-wrap::before {
+    opacity: 0 !important;
+  }
+  .donut-wrap canvas {
+    filter: saturate(0.70) brightness(0.90) !important;
+  }
+
+  // Chart.js Canvases (Linien-, Balken-, Donut-Charts):
+  // hard-coded #2979ff / #22c55e im TS werden global gedämpft
+  .chart-card__body canvas {
+    filter: saturate(0.65) brightness(0.88) !important;
+  }
+
+  // Heatmap Hover: kein hard-coded Blau-Glow
+  .heatmap__cell:not(.heatmap__cell--empty):hover {
+    box-shadow: 0 2px 10px rgba(var(--color-text-rgb), 0.18) !important;
+  }
+
+  // Status-Badges (active = grün, inactive = rot, warn = orange)
+  .status-badge--active,
+  .status-badge--inactive,
+  .status-badge--warn {
+    filter: saturate(0.68) brightness(0.92);
+  }
+
+  // Metric-Row progress bar: kein knallendes Blau
+  .metric-row__fill {
+    filter: saturate(0.68) brightness(0.90);
+  }
+
+  // Reliability-Bar fill
+  .reliability-bar__fill {
+    filter: saturate(0.68) brightness(0.92);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  HELLMODUS — Dekor-Elemente (SVGs mit dunklen Inline-Farben aufhellen)
+//  Die SVG-Dekore wurden für dunkle Hintergründe designt:
+//    fill="#1a1f2e" (fast schwarz) & stroke="#2979ff" (neon blau)
+//  Im Hellmodus überschreiben wir diese via CSS-Attribut-Selektoren.
+//  CSS-Eigenschaften haben höhere Priorität als SVG-Presentation-Attributes.
+// ─────────────────────────────────────────────────────────────────────────
+body:not(.dim-theme):not(.dark-theme) {
+  .placed-decor .decor-svg {
+
+    // Dunkle Hintergrundflächen → helles Grau
+    path[fill="#1a1f2e"],
+    circle[fill="#1a1f2e"],
+    rect[fill="#1a1f2e"] {
+      fill: #e4e7ec !important;
+    }
+
+    // Blaue Umrandungen → gedämpftes Primärblau
+    path[stroke="#2979ff"],
+    circle[stroke="#2979ff"],
+    rect[stroke="#2979ff"],
+    line[stroke="#2979ff"] {
+      stroke: rgba(41, 121, 255, 0.40) !important;
+    }
+
+    // Blaue Füllformen (WC-Icon, Pillar-Dot, Bar-Dots, Cashier-Tasten)
+    circle[fill="#2979ff"],
+    path[fill="#2979ff"] {
+      fill: rgba(41, 121, 255, 0.45) !important;
+    }
+
+    // Gruppen mit blauer Füllung (Cashier-Buttons)
+    g[fill="#2979ff"] {
+      fill: rgba(41, 121, 255, 0.45) !important;
+    }
+
+    // Fensterrahmen hard-coded #546e7a → neutrales Grau
+    rect[fill="#546e7a"] {
+      fill: #9aa5b1 !important;
+    }
+    rect[stroke="#78909c"] {
+      stroke: #9aa5b1 !important;
+    }
+
+    // Wand entfernen der Dekor-Drop-Shadow (war blau)
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.10));
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -130,11 +369,7 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  MatDatepicker — Panel-Style (reagiert automatisch aufs Theme)
-//  Das Popup lebt in einem CDK-Overlay außerhalb der Komponente,
-//  deswegen hier global via panelClass="salyseat-datepicker-panel".
-// ─────────────────────────────────────────────────────────────────────────
+
 .salyseat-datepicker-panel.mat-datepicker-content,
 .salyseat-datepicker-panel .mat-datepicker-content {
   background: $color-surface;

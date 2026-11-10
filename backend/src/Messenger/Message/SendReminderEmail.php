@@ -12,5 +12,7 @@ final readonly class SendReminderEmail
         public string $guestName,
         public string $startsAt,
         public string $venueName,
+        public ?int   $partySize = null,
+        public string $tenantId  = '',
     ) {}
 }

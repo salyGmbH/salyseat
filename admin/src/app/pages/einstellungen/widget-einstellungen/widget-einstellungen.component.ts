@@ -40,6 +40,7 @@ export class WidgetEinstellungenComponent implements OnInit {
   info7  = signal(false); info8  = signal(false); info9  = signal(false);
   info10 = signal(false); info11 = signal(false); info12 = signal(false);
   info13 = signal(false); info14 = signal(false); info15 = signal(false);
+  info16 = signal(false);
 
   // ─── Per-Block saved signals ─────────────────────────────────────────────────
   saved1  = signal(false); saved2  = signal(false); saved3  = signal(false);
@@ -47,12 +48,14 @@ export class WidgetEinstellungenComponent implements OnInit {
   saved7  = signal(false); saved8  = signal(false); saved9  = signal(false);
   saved10 = signal(false); saved11 = signal(false); saved12 = signal(false);
   saved13 = signal(false); saved14 = signal(false); saved15 = signal(false);
+  saved16 = signal(false);
 
   saveBlock(n: number): void {
     const all = [
       this.saved1, this.saved2, this.saved3, this.saved4, this.saved5,
       this.saved6, this.saved7, this.saved8, this.saved9, this.saved10,
-      this.saved11, this.saved12, this.saved13, this.saved14, this.saved15
+      this.saved11, this.saved12, this.saved13, this.saved14, this.saved15,
+      this.saved16
     ];
     const s = all[n - 1];
     if (!s) return;
@@ -101,10 +104,15 @@ export class WidgetEinstellungenComponent implements OnInit {
     maxPersonenPhone: '',
     maxPersonenEmail: '',
 
-    // 9. Kinderstühle
+    // 9. Kinderstühle / Rollstuhl / Hund
     kinderStuehleAktiv: false,
     kinderStuehleGesamt: 4,
     kinderStuehleOnline: 2,
+    rollstuhlAktiv: false,
+    hundAktiv: false,
+
+    // 16. Allergene
+    allergeneAktiv: false,
 
     // 10. Vorausbuchung
     vorausbuchungEinheit: 'monate' as 'tage' | 'monate',

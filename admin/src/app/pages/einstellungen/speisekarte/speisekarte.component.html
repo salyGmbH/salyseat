@@ -387,12 +387,41 @@
     </div>
   </div>
 
-  <!-- ── Speichern ──────────────────────────────────────────────────── -->
+  <!-- ── Speichern & Download ────────────────────────────────────── -->
   <div class="settings-block">
-    <button class="save-btn" [class.save-btn--saved]="saved" (click)="save()">
-      <mat-icon>{{ saved ? 'check' : 'save' }}</mat-icon>
-      {{ saved ? 'Gespeichert' : 'Speisekarte speichern' }}
-    </button>
+
+    <div class="save-row">
+      <button
+        class="save-btn"
+        [class.save-btn--saved]="saved"
+        [class.save-btn--loading]="saving"
+        [disabled]="saving"
+        (click)="save()">
+        <mat-icon>{{ saved ? 'check' : saving ? 'hourglass_top' : 'save' }}</mat-icon>
+        {{ saved ? 'Gespeichert &amp; PDF erstellt' : saving ? 'Wird gespeichert …' : 'Speisekarte speichern &amp; PDF erstellen' }}
+      </button>
+
+      <button
+        class="download-btn"
+        *ngIf="pdfBlobUrl"
+        (click)="downloadPdf()">
+        <mat-icon>download</mat-icon>
+        Speisekarte PDF herunterladen
+      </button>
+    </div>
+
+    <!-- Hinweis: PDF in Widget-Einstellungen hochladen -->
+    <div class="pdf-upload-hint" *ngIf="pdfBlobUrl">
+      <mat-icon class="pdf-upload-hint__icon">info</mat-icon>
+      <div class="pdf-upload-hint__text">
+        <strong>Tipp:</strong> Laden Sie die generierte PDF unter
+        <a href="/einstellungen/widget-einstellungen" class="pdf-upload-hint__link">
+          Einstellungen → Widget-Einstellungen
+        </a>
+        hoch, um die Speisekarte direkt im Buchungs-Widget für Ihre Gäste anzuzeigen.
+      </div>
+    </div>
+
   </div>
 
 </div>

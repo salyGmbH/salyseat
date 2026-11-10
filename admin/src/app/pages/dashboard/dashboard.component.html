@@ -100,6 +100,47 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════
+       FÄLLIGE ERINNERUNGEN
+  ══════════════════════════════════════════════════════════ -->
+  @if (dueReminders().length > 0) {
+    <section class="reminders-section">
+      <div class="reminders-header">
+        <span class="reminders-header__icon">
+          <mat-icon>notification_important</mat-icon>
+        </span>
+        <span class="reminders-header__title">
+          Erinnerungen
+          <span class="reminders-header__count">{{ dueReminders().length }}</span>
+        </span>
+        <a class="reminders-header__link" routerLink="/einstellungen/kunden">
+          Alle Kunden
+          <mat-icon>arrow_forward</mat-icon>
+        </a>
+      </div>
+      <div class="reminders-list">
+        @for (r of dueReminders(); track r.id) {
+          <div class="reminder-card">
+            <div class="reminder-card__left">
+              <mat-icon>notifications_active</mat-icon>
+            </div>
+            <div class="reminder-card__body">
+              <span class="reminder-card__guest">{{ r.guestName }}</span>
+              <p class="reminder-card__note">{{ r.note }}</p>
+              <span class="reminder-card__date">
+                <mat-icon>event</mat-icon>
+                {{ formatReminderDate(r.dueDate) }}
+              </span>
+            </div>
+            <button class="reminder-card__dismiss" (click)="dismissReminder(r.id)" title="Erledigt">
+              <mat-icon>check_circle_outline</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════
        SCHNELLZUGRIFF (immer oben sichtbar)
   ══════════════════════════════════════════════════════════ -->
   <section class="dash-section">
@@ -406,18 +447,26 @@
           @if (upcomingRes().length > 0) {
             <div class="res-compact-list">
               @for (r of upcomingRes(); track r.id) {
-                <div class="res-compact-row">
-                  <span class="res-compact-row__time">{{ formatTime(r.starts_at) }}</span>
-                  <span class="res-compact-row__name">{{ r.guest_name }}</span>
-                  <span class="res-compact-row__pax">
-                    <mat-icon>group</mat-icon>{{ r.party_size }}
-                  </span>
-                  @if (r.table_number) {
-                    <span class="res-compact-row__table">T{{ r.table_number }}</span>
-                  }
-                  <span class="badge badge--compact" [ngClass]="statusClass(r.status)">
-                    {{ statusLabel(r.status) }}
-                  </span>
+                <div class="rcr" [class]="rowAccentClass(r.status)">
+                  <!-- Akzentstreifen -->
+                  <div class="rcr__accent"></div>
+                  <!-- Avatar -->
+                  <div class="rcr__avatar">{{ initials(r.guest_name) }}</div>
+                  <!-- Info -->
+                  <div class="rcr__info">
+                    <span class="rcr__name">{{ r.guest_name }}</span>
+                    <span class="rcr__meta">
+                      {{ formatTime(r.starts_at) }}
+                      <span class="rcr__dot">·</span>
+                      {{ r.party_size }} P
+                      @if (r.table_number) {
+                        <span class="rcr__dot">·</span>
+                        T{{ r.table_number }}
+                      }
+                    </span>
+                  </div>
+                  <!-- Status-Dot -->
+                  <div class="rcr__status-dot"></div>
                 </div>
               }
             </div>

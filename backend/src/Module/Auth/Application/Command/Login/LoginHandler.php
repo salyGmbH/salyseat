@@ -10,19 +10,10 @@ use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 
-/**
- * Führt den Login-Use-Case aus:
- *
- * 1. User anhand der E-Mail suchen
- * 2. Passwort gegen den gespeicherten Hash prüfen
- * 3. JWT-Token erstellen und zurückgeben
- *
- * Warum eine eigene Exception statt "User nicht gefunden" + "Passwort falsch" separat?
- * Sicherheit: Angreifer dürfen nicht wissen ob eine E-Mail existiert oder das Passwort falsch ist.
- * Deshalb immer dieselbe Fehlermeldung: "Ungültige Zugangsdaten".
- */
 final class LoginHandler
 {
+    private const DEFAULT_TTL = 3600;
+
     public function __construct(
         private readonly UserRepositoryInterface     $users,
         private readonly UserPasswordHasherInterface $hasher,
@@ -37,14 +28,26 @@ final class LoginHandler
             throw new BadCredentialsException('Ungültige Zugangsdaten.');
         }
 
-        $token = $this->jwtManager->create($user);
+        // TTL aus Tenant-Settings lesen, Fallback auf 1 Stunde
+        $ttl    = self::DEFAULT_TTL;
+        $tenant = $user->getTenant();
+        if ($tenant !== null) {
+            $settings = $tenant->getUiSettings() ?? [];
+            if (isset($settings['sessionTtlSeconds']) && is_int($settings['sessionTtlSeconds']) && $settings['sessionTtlSeconds'] > 0) {
+                $ttl = $settings['sessionTtlSeconds'];
+            }
+        }
+
+        $token = $this->jwtManager->createFromPayload($user, [
+            'exp' => time() + $ttl,
+        ]);
 
         return new LoginResponse(
-            token:    $token,
-            expiresIn: 3600,
-            email:    $user->getEmail(),
-            roles:    $user->getRoles(),
-            tenantId: $user->getTenant()?->getId()->toRfc4122(),
+            token:     $token,
+            expiresIn: $ttl,
+            email:     $user->getEmail(),
+            roles:     $user->getRoles(),
+            tenantId:  $tenant?->getId()->toRfc4122(),
         );
     }
 }

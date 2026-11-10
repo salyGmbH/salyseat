@@ -362,6 +362,8 @@ export class RaumDetailComponent implements OnInit {
   selectedDate   = signal<string>(this.todayIso());
   statusFilter    = signal<StatusFilter>('active');
   filterPanelOpen = signal(false);
+  /** Sortierung der Liste nach Uhrzeit: aufsteigend (früh → spät) oder absteigend. */
+  sortDir         = signal<'asc' | 'desc'>('asc');
 
   /** Datum im Neue-Reservierung-Dialog — kann vom Panel-Datum abweichen. */
   formDate     = signal<string>(this.todayIso());
@@ -558,6 +560,38 @@ export class RaumDetailComponent implements OnInit {
   gcError          = signal<string | null>(null);
   gcStatusLoading  = signal(false);
 
+  // E-Mail erneut senden aus Gastkarte
+  readonly gcMailTemplates = [
+    { key: 'confirmation' as const, label: 'Bestätigung',   icon: 'check_circle',  color: '--blue'  },
+    { key: 'reminder'     as const, label: 'Erinnerung',    icon: 'notifications', color: '--amber' },
+    { key: 'cancel'       as const, label: 'Stornierung',   icon: 'cancel',        color: '--red'   },
+    { key: 'no_show'      as const, label: 'No-Show',       icon: 'person_off',    color: '--grey'  },
+  ];
+  gcMailSelected   = signal<'confirmation' | 'reminder' | 'cancel' | 'no_show' | null>(null);
+  gcMailSending    = signal(false);
+  gcMailSentOk     = signal(false);
+  gcMailError      = signal<string | null>(null);
+
+  sendGcMail(): void {
+    const res  = this.guestCardRes();
+    const type = this.gcMailSelected();
+    if (!res?.guestId || !type || this.gcMailSending()) return;
+    this.gcMailSending.set(true);
+    this.gcMailSentOk.set(false);
+    this.gcMailError.set(null);
+    this.guestsService.resendEmail(res.guestId, type, res.backendId ?? undefined).subscribe({
+      next: () => {
+        this.gcMailSending.set(false);
+        this.gcMailSentOk.set(true);
+        setTimeout(() => this.gcMailSentOk.set(false), 4000);
+      },
+      error: err => {
+        this.gcMailSending.set(false);
+        this.gcMailError.set(err?.error?.error ?? 'E-Mail konnte nicht gesendet werden.');
+      },
+    });
+  }
+
   openGuestCard(res: FloorReservation): void {
     this.guestCardRes.set(res);
     this.gcName.set(res.guestName);
@@ -569,6 +603,9 @@ export class RaumDetailComponent implements OnInit {
     this.gcGasttypen.set([...(res.gasttypen ?? [])]);
     this.gcHinweise.set([...(res.hinweise ?? [])]);
     this.gcError.set(null);
+    this.gcMailSelected.set(null);
+    this.gcMailSentOk.set(false);
+    this.gcMailError.set(null);
     this.guestCardOpen.set(true);
   }
 
@@ -897,7 +934,8 @@ export class RaumDetailComponent implements OnInit {
     const sorted = [...this.filteredReservations()].sort((a, b) => {
       const sw = this.statusSortWeight(a.status) - this.statusSortWeight(b.status);
       if (sw !== 0) return sw;
-      return a.time.localeCompare(b.time);
+      const byTime = a.time.localeCompare(b.time);
+      return this.sortDir() === 'asc' ? byTime : -byTime;
     });
 
     // 2. In Stunden-Gruppen zusammenfassen — Reihenfolge der Gruppen folgt

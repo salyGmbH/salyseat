@@ -1,0 +1,15 @@
+{% include 'email/_layout.html.twig' with {
+    heading_title: 'Erinnerung an Ihre Reservierung',
+    fixed_lines: [
+        'Wir möchten Sie freundlich an Ihren bevorstehenden',
+        'Termin bei ' ~ venue_name ~ ' erinnern.',
+        '',
+        'Ihre Reservierungsdetails auf einen Blick:',
+    ],
+    show_details: true,
+    mail_content: mail_content,
+    design:    design,
+    social:    social,
+    logoLight: logoLight,
+    logoDark:  logoDark,
+} %}

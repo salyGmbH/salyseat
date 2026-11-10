@@ -3093,61 +3093,35 @@
   // gefüllter Hintergrund, daher fill: none — Default ist sonst schwarz!)
   &__dial-ring {
     fill: none;
-    stroke: color-mix(in srgb, var(--preview-text) 16%, transparent);
-    stroke-width: 1.2;
+    stroke: color-mix(in srgb, var(--preview-text) 12%, transparent);
+    stroke-width: 1;
   }
 
-  // Öffnungszeiten-Arc — leuchtender Bogen entlang des Außenrings,
-  // markiert das Zeitfenster, in dem reserviert werden kann.
-  &__dial-arc {
-    fill: none;
-    stroke: color-mix(in srgb, var(--preview-primary) 75%, transparent);
-    stroke-width: 2.4;
-    stroke-linecap: round;
-    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--preview-primary) 40%, transparent));
-  }
+  &__dial-phase-dot {
+    fill: color-mix(in srgb, var(--preview-text) 6%, transparent);
 
-  // 24 Stunden-Labels rund ums Zifferblatt. Geöffnete Stunden werden
-  // hervorgehoben, geschlossene stark abgedimmt — sofortige visuelle
-  // Orientierung, in welchem Bereich Reservierungen möglich sind.
-  // Hinweis: SVG <text> font-size in user-units (viewBox 0 0 140 140),
-  // 1 unit ≈ Container-px / 140 → bei ~240px Container ≈ 1.7px pro unit.
-  &__dial-hour {
-    font-family: inherit;
-    font-size: 5px;
-    font-weight: 600;
-    fill: color-mix(in srgb, var(--preview-text) 22%, transparent);
-    user-select: none;
-    transition: fill 0.18s ease;
-
-    // Kardinal-Stunden (0/6/12/18) leicht hervorgehoben für Orientierung
-    &.is-cardinal {
-      font-weight: 700;
-    }
-
-    // Innerhalb der Öffnungszeiten — kräftig + Primary-Tint
-    &.is-open {
-      fill: color-mix(in srgb, var(--preview-text) 85%, transparent);
-
-      &.is-cardinal {
-        fill: var(--preview-text);
-      }
-    }
-  }
-
-  // Verfügbare Slot-Dots — kleine farbige Punkte für jede buchbare Uhrzeit.
-  // Volle Stunden sind kräftiger, halbe Stunden subtiler.
-  &__dial-slot-dot {
-    fill: color-mix(in srgb, var(--preview-primary) 45%, transparent);
-    transition: fill 0.18s ease;
-
-    &.is-hour {
-      fill: color-mix(in srgb, var(--preview-primary) 70%, transparent);
+    &.is-available {
+      fill: color-mix(in srgb, var(--preview-primary) 13%, transparent);
+      stroke: color-mix(in srgb, var(--preview-primary) 35%, transparent);
+      stroke-width: 0.8;
     }
 
     &.is-selected {
       fill: var(--preview-primary);
+      stroke: none;
     }
+  }
+
+  &__dial-phase-label {
+    font-family: inherit;
+    font-size: 5.5px;
+    font-weight: 600;
+    fill: color-mix(in srgb, var(--preview-text) 28%, transparent);
+    user-select: none;
+    pointer-events: none;
+
+    &.is-available { fill: var(--preview-primary); }
+    &.is-selected  { fill: #fff; }
   }
 
   // Nadel: Linie vom Zentrum zum ausgewählten Tick + kleiner Punkt am Ende.

@@ -34,8 +34,9 @@
       </h2>
     </div>
     <div class="view-toggle">
-      <button [class.active]="reminderTime === '2h'"  (click)="setReminder('2h')">{{ 'emails.2h_before'  | translate }}</button>
-      <button [class.active]="reminderTime === '24h'" (click)="setReminder('24h')">{{ 'emails.24h_before' | translate }}</button>
+      <button [class.active]="reminderTime === '3min'" (click)="setReminder('3min')">3 Min (Test)</button>
+      <button [class.active]="reminderTime === '2h'"   (click)="setReminder('2h')">{{ 'emails.2h_before'  | translate }}</button>
+      <button [class.active]="reminderTime === '24h'"  (click)="setReminder('24h')">{{ 'emails.24h_before' | translate }}</button>
     </div>
   </div>
 

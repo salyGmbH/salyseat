@@ -63,6 +63,10 @@ class Reservation
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $adminNotes = null;
 
+    /** Zeitstempel wann die Erinnerungs-Mail versendet wurde (null = noch nicht gesendet) */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $reminderSentAt = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -205,6 +209,16 @@ class Reservation
     public function setGuest(?Guest $guest): void
     {
         $this->guest = $guest;
+    }
+
+    public function getReminderSentAt(): ?\DateTimeImmutable
+    {
+        return $this->reminderSentAt;
+    }
+
+    public function markReminderSent(): void
+    {
+        $this->reminderSentAt = new \DateTimeImmutable();
     }
 
     public function updateDetails(

@@ -940,6 +940,109 @@
   }
 }
 
+// ─── Save Row ─────────────────────────────────────────────────────────────────
+.save-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+// ─── Save Button ──────────────────────────────────────────────────────────────
+.save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: $color-primary;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover:not(:disabled) { background: darken(#2563eb, 8%); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  &--saved {
+    background: $color-success;
+    &:hover:not(:disabled) { background: darken(#16a34a, 8%); }
+  }
+
+  &--loading {
+    mat-icon { animation: spin 1s linear infinite; }
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+// ─── Download Button ──────────────────────────────────────────────────────────
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: 2px solid $color-primary;
+  border-radius: 10px;
+  background: transparent;
+  color: $color-primary;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover {
+    background: $color-primary;
+    color: #fff;
+  }
+}
+
+// ─── PDF-Upload Hinweis ───────────────────────────────────────────────────────
+.pdf-upload-hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(var(--color-primary-rgb, 37, 99, 235), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb, 37, 99, 235), 0.25);
+  border-radius: 10px;
+
+  &__icon {
+    color: $color-primary;
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+  }
+
+  &__text {
+    font-size: 13px;
+    color: $color-text-on-dark;
+    line-height: 1.5;
+
+    strong { font-weight: 700; }
+  }
+
+  &__link {
+    color: $color-primary;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
 // ─── Responsive ──────────────────────────────────────────────────────────────
 @media (min-width: 600px) {
   .settings-block { padding: 22px; }

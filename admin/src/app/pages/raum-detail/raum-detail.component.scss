@@ -815,9 +815,9 @@
     color: transparent;
     font-variant-numeric: tabular-nums;
 
-    &.is-green { color: #22c55e; }
-    &.is-amber { color: #f59e0b; }
-    &.is-red   { color: #ef4444; }
+    &.is-green { color: $color-success; }
+    &.is-amber { color: $color-warn; }
+    &.is-red   { color: $color-danger; }
   }
 
   &__bar {
@@ -868,18 +868,19 @@
   align-items: center;
   gap: 10px;
   background: rgba(var(--color-primary-rgb), 0.12);
-  border: 1px dashed rgba(var(--color-primary-rgb), 0.4);
+  border: 1.5px solid rgba(var(--color-primary-rgb), 0.55);
   border-radius: 10px;
   color: $color-primary;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 3px rgba(var(--color-primary-rgb), 0.10);
 
   &:hover {
-    background: rgba(var(--color-primary-rgb), 0.2);
+    background: rgba(var(--color-primary-rgb), 0.20);
     border-color: $color-primary;
-    border-style: solid;
+    box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.18);
   }
 
   &:disabled {
@@ -891,13 +892,14 @@
   // Walk-In-Variante: Gold/Akzent statt Blau – signalisiert "jetzt sofort".
   &--walkin {
     background: rgba(var(--color-accent-rgb), 0.12);
-    border-color: rgba(var(--color-accent-rgb), 0.4);
+    border-color: rgba(var(--color-accent-rgb), 0.55);
     color: $color-accent;
+    box-shadow: 0 1px 3px rgba(var(--color-accent-rgb), 0.10);
 
     &:hover {
-      background: rgba(var(--color-accent-rgb), 0.22);
+      background: rgba(var(--color-accent-rgb), 0.20);
       border-color: $color-accent;
-      border-style: solid;
+      box-shadow: 0 2px 8px rgba(var(--color-accent-rgb), 0.18);
     }
   }
 
@@ -930,17 +932,17 @@
 // ── Filter-Tabs ─────────────────────────────────────────────────────────
 .filter-tabs {
   display: flex;
-  gap: 0;
-  padding: 0 14px;
+  gap: 4px;
+  padding: 8px 14px;
   margin-bottom: 4px;
   border-bottom: 1px solid $color-border;
 
   button {
     flex: 1;
-    padding: 10px 4px;
+    padding: 6px 8px;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-radius: 8px;
     color: $color-text-muted;
     font-size: 12px;
     font-weight: 600;
@@ -949,20 +951,23 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    transition: color 0.15s, border-color 0.15s;
-    margin-bottom: -1px;
+    transition: color 0.15s, background 0.15s;
 
-    &:hover { color: $color-text-on-dark; }
+    &:hover {
+      color: $color-text-on-dark;
+      background: rgba(var(--color-text-rgb), 0.05);
+    }
 
     &.active {
-      color: $color-text-on-dark;
-      border-bottom-color: $color-accent;
+      color: $color-primary;
+      background: rgba(var(--color-primary-rgb), 0.12);
+      border: 1px solid rgba(var(--color-primary-rgb), 0.30);
     }
   }
 
   &__badge {
-    background: rgba(var(--color-accent-rgb), 0.2);
-    color: $color-accent;
+    background: rgba(var(--color-primary-rgb), 0.18);
+    color: $color-primary;
     font-size: 10px;
     font-weight: 700;
     padding: 1px 6px;
@@ -1046,18 +1051,21 @@
   align-items: stretch;
   gap: 10px;
   padding: 6px 10px 6px 6px;
-  background: rgba(var(--color-text-rgb), 0.02);
+  background: $color-surface;
   border-radius: 10px;
   // Farbiger Border-Left zeigt den Status; rest der Border bleibt dezent.
-  border: 1px solid rgba(var(--color-text-rgb), 0.06);
+  border: 1px solid $color-border;
   border-left: 3px solid var(--status-color);
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 
   &:hover {
-    background: rgba(var(--color-text-rgb), 0.05);
-    border-color: rgba(var(--color-text-rgb), 0.12);
+    background: rgba(var(--color-text-rgb), 0.03);
+    border-color: rgba(var(--color-text-rgb), 0.14);
     border-left-color: var(--status-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+    transform: translateY(-1px);
   }
 
   // „Tote" Status (Beendet/Storniert/No-Show) etwas zurücktreten lassen
@@ -1213,8 +1221,8 @@
     white-space: nowrap;
     mat-icon { font-size: 11px; width: 11px; height: 11px; }
 
-    &--late    { color: #eab308; }
-    &--expired { color: #fb923c; }
+    &--late    { color: rgba(var(--t-late-rgb),    1); }
+    &--expired { color: rgba(var(--t-expired-rgb), 1); }
   }
 
   &__status-tile {
@@ -1269,39 +1277,38 @@
   }
 
   &--success {
-    background: rgba(67, 160, 71, 0.18);
-    color: #66bb6a;
-    border-color: rgba(67, 160, 71, 0.4);
+    background: rgba(var(--t-seated-rgb), 0.18);
+    color: rgba(var(--t-seated-rgb), 0.9);
+    border-color: rgba(var(--t-seated-rgb), 0.4);
 
-    &:hover { background: rgba(67, 160, 71, 0.3); color: #43a047; }
+    &:hover { background: rgba(var(--t-seated-rgb), 0.3); }
   }
 
-  // Cleanup-Action: cyan/teal — passt zur is-cleanup-Tisch-Färbung.
-  // "Tisch jetzt frei" wird so optisch klar von "Beenden" abgegrenzt.
+  // Cleanup-Action: cyan/teal
   &--cleanup {
-    background: rgba(6, 182, 212, 0.18);
-    color: #22d3ee;
-    border-color: rgba(6, 182, 212, 0.4);
+    background: rgba(var(--t-cleanup-rgb), 0.18);
+    color: rgba(var(--t-cleanup-rgb), 0.9);
+    border-color: rgba(var(--t-cleanup-rgb), 0.4);
 
-    &:hover { background: rgba(6, 182, 212, 0.3); color: #06b6d4; }
+    &:hover { background: rgba(var(--t-cleanup-rgb), 0.3); }
   }
 
   // Check-in für "Bevorstehend" (confirmed) — Stahlgrau
   &--checkin-confirmed {
-    background: rgba(148, 163, 184, 0.12);
-    color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.35);
+    background: rgba(var(--t-confirmed-rgb), 0.12);
+    color: rgba(var(--t-confirmed-rgb), 1);
+    border-color: rgba(var(--t-confirmed-rgb), 0.35);
 
-    &:hover { background: rgba(148, 163, 184, 0.25); color: #cbd5e1; }
+    &:hover { background: rgba(var(--t-confirmed-rgb), 0.25); }
   }
 
   // Check-in für "Verspätet" (late) — Amber
   &--checkin-late {
-    background: rgba(234, 179, 8, 0.12);
-    color: #eab308;
-    border-color: rgba(234, 179, 8, 0.35);
+    background: rgba(var(--t-late-rgb), 0.12);
+    color: rgba(var(--t-late-rgb), 1);
+    border-color: rgba(var(--t-late-rgb), 0.35);
 
-    &:hover { background: rgba(234, 179, 8, 0.25); color: #fcd34d; }
+    &:hover { background: rgba(var(--t-late-rgb), 0.25); }
   }
 }
 
@@ -1376,8 +1383,8 @@
   .wall-body {
     width: 100%;
     height: 8px;
-    background: #546e7a;
-    border: 1px solid #78909c;
+    background: rgba(var(--color-text-rgb), 0.28);
+    border: 1px solid rgba(var(--color-text-rgb), 0.18);
     border-radius: 2px;
   }
 }
@@ -1395,8 +1402,8 @@
 
     &__body {
       fill: var(--color-surface);
-      stroke: var(--color-primary);
-      stroke-width: 2;
+      stroke: rgba(var(--color-text-rgb), 0.22);
+      stroke-width: 1.5;
       transition: fill 0.2s, stroke 0.2s, stroke-width 0.2s, filter 0.2s;
     }
   }
@@ -1465,7 +1472,7 @@
     align-items: center;
     gap: 4px;
     padding: 3px 8px;
-    background: rgba(15, 17, 23, 0.92);
+    background: $color-surface;
     border: 1px solid $color-border;
     border-radius: 14px;
     font-size: 11px;
@@ -1473,10 +1480,11 @@
     white-space: nowrap;
     pointer-events: auto;
     transition: border-color 0.15s, background 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 
     &:hover {
-      border-color: rgba(41, 121, 255, 0.5);
-      background: rgba(41, 121, 255, 0.1);
+      border-color: rgba(var(--color-primary-rgb), 0.5);
+      background: rgba(var(--color-primary-rgb), 0.08);
     }
 
     mat-icon { font-size: 12px; width: 12px; height: 12px; color: $color-text-muted; }
@@ -1510,8 +1518,8 @@
     align-items: center;
     gap: 2px;
     padding: 2px 8px 2px 6px;
-    background: rgba(41, 121, 255, 0.12);
-    border: 1px solid rgba(41, 121, 255, 0.35);
+    background: rgba(var(--color-primary-rgb), 0.10);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.30);
     border-radius: 14px;
     color: $color-primary;
     font-size: 11px;
@@ -1523,59 +1531,64 @@
     mat-icon { font-size: 13px; width: 13px; height: 13px; }
 
     &:hover {
-      background: rgba(41, 121, 255, 0.22);
-      border-color: rgba(41, 121, 255, 0.6);
+      background: rgba(var(--color-primary-rgb), 0.18);
+      border-color: rgba(var(--color-primary-rgb), 0.55);
     }
   }
 
 
-  // Status-Färbung
-  &.is-upcoming .table-svg__body  { fill: rgba(41, 121, 255, 0.18); stroke: $color-primary; stroke-dasharray: 5 3; }
+  // Status-Färbung — alle Farben über CSS-Variablen (leicht umschaltbar)
+  &.is-upcoming .table-svg__body  {
+    fill: rgba(var(--t-upcoming-rgb), 0.18);
+    stroke: rgba(var(--t-upcoming-rgb), 1);
+    stroke-dasharray: 5 3;
+  }
 
   // "confirmed" = Tisch reserviert, Gast wird erwartet → Stahlgrau, klar aber ruhig
   &.is-confirmed .table-svg__body {
-    fill: rgba(148, 163, 184, 0.22);
-    stroke: #94a3b8;
+    fill: rgba(var(--t-confirmed-rgb), 0.22);
+    stroke: rgba(var(--t-confirmed-rgb), 1);
     stroke-width: 2;
   }
-  &.is-confirmed .placed-table__label-id { color: #94a3b8; }
-  &.is-confirmed .placed-table__guest    { border-color: rgba(148, 163, 184, 0.55); }
+  &.is-confirmed .placed-table__label-id { color: rgba(var(--t-confirmed-rgb), 1); }
+  &.is-confirmed .placed-table__guest    { border-color: rgba(var(--t-confirmed-rgb), 0.55); }
 
-  &.is-seated   .table-svg__body { fill: rgba(67, 160, 71, 0.3);  stroke: #43a047; }
-  &.is-seated   .placed-table__guest { border-color: rgba(67, 160, 71, 0.6); }
-  &.is-seated   .placed-table__guests .placed-table__guest { border-color: rgba(67, 160, 71, 0.6); }
+  &.is-seated   .table-svg__body {
+    fill: rgba(var(--t-seated-rgb), 0.3);
+    stroke: rgba(var(--t-seated-rgb), 1);
+  }
+  &.is-seated   .placed-table__guest { border-color: rgba(var(--t-seated-rgb), 0.6); }
+  &.is-seated   .placed-table__guests .placed-table__guest { border-color: rgba(var(--t-seated-rgb), 0.6); }
 
   // "expired" = Reservierungszeit abgelaufen, Tisch noch belegt → Orange-Pulse
   &.is-expired  .table-svg__body {
-    fill: rgba(251, 146, 60, 0.32);
-    stroke: #fb923c;
+    fill: rgba(var(--t-expired-rgb), 0.32);
+    stroke: rgba(var(--t-expired-rgb), 1);
     stroke-width: 2.5;
     animation: expired-pulse 1.8s ease-in-out infinite;
   }
-  &.is-expired  .placed-table__guest { border-color: rgba(251, 146, 60, 0.7); }
-  &.is-expired  .placed-table__guests .placed-table__guest { border-color: rgba(251, 146, 60, 0.7); }
+  &.is-expired  .placed-table__guest { border-color: rgba(var(--t-expired-rgb), 0.7); }
+  &.is-expired  .placed-table__guests .placed-table__guest { border-color: rgba(var(--t-expired-rgb), 0.7); }
 
-  // "cleanup" = Gäste sind weg, Tisch wird gerade gereinigt → Cyan/Teal mit
-  // diagonalen Streifen (klar erkennbar als "in Arbeit"). Sanftes Pulsieren,
-  // damit Personal sieht: das hier ist gerade der „in Bereitstellung"-Tisch.
+  // "cleanup" = Gäste sind weg, Tisch wird gerade gereinigt
   &.is-cleanup  .table-svg__body {
-    fill: rgba(6, 182, 212, 0.22);
-    stroke: #06b6d4;
+    fill: rgba(var(--t-cleanup-rgb), 0.22);
+    stroke: rgba(var(--t-cleanup-rgb), 1);
     stroke-width: 2.5;
     stroke-dasharray: 6 4;
     animation: cleanup-pulse 2.4s ease-in-out infinite;
   }
-  &.is-cleanup  .placed-table__guest { border-color: rgba(6, 182, 212, 0.7); }
+  &.is-cleanup  .placed-table__guest { border-color: rgba(var(--t-cleanup-rgb), 0.7); }
 
   // "late" = Gast ist verspätet, hat Tisch aber noch nicht eingecheckt → Gelb-Amber
   &.is-late .table-svg__body {
-    fill: rgba(234, 179, 8, 0.22);
-    stroke: #eab308;
+    fill: rgba(var(--t-late-rgb), 0.22);
+    stroke: rgba(var(--t-late-rgb), 1);
     stroke-width: 2.5;
     animation: late-pulse 1.6s ease-in-out infinite;
   }
-  &.is-late .placed-table__label-id { color: #eab308; }
-  &.is-late .placed-table__guest    { border-color: rgba(234, 179, 8, 0.65); }
+  &.is-late .placed-table__label-id { color: rgba(var(--t-late-rgb), 1); }
+  &.is-late .placed-table__guest    { border-color: rgba(var(--t-late-rgb), 0.65); }
 
   // ── Umplatzier-Modus ────────────────────────────────────────────────
   &.is-reassign-source {
@@ -1617,20 +1630,18 @@
 // "expired"-Tisch zart pulsieren lassen — sanfter als der Reassign-Pulse,
 // damit es Aufmerksamkeit erzeugt, aber nicht aggressiv wirkt.
 @keyframes expired-pulse {
-  0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 146, 60, 0.45)); }
-  50%      { filter: drop-shadow(0 0 12px rgba(251, 146, 60, 0.85)); }
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--t-expired-rgb), 0.45)); }
+  50%      { filter: drop-shadow(0 0 12px rgba(var(--t-expired-rgb), 0.85)); }
 }
 
-// "cleanup"-Tisch in einem ruhigen Cyan-Glow — signalisiert "Wartung"
-// statt "Achtung". Slowmotion-Pulse, damit es nicht stört.
 @keyframes cleanup-pulse {
-  0%, 100% { filter: drop-shadow(0 0 3px rgba(6, 182, 212, 0.40)); }
-  50%      { filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.80)); }
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(var(--t-cleanup-rgb), 0.40)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(var(--t-cleanup-rgb), 0.80)); }
 }
 
 @keyframes late-pulse {
-  0%, 100% { filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.45)); }
-  50%      { filter: drop-shadow(0 0 12px rgba(234, 179, 8, 0.90)); }
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--t-late-rgb), 0.45)); }
+  50%      { filter: drop-shadow(0 0 12px rgba(var(--t-late-rgb), 0.90)); }
 }
 
 // ── Reassign-Hinweis-Banner ──────────────────────────────────────────────
@@ -3121,6 +3132,120 @@
   mat-icon { font-size: 16px; width: 16px; height: 16px; }
 }
 
+// ── E-Mail erneut senden (Gastkarte) ──────────────────────────────────────
+.gc-mail-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid $color-border;
+}
+
+.gc-mail-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 10px;
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+
+.gc-mail-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.gc-mail-card {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  border: 1.5px solid $color-border;
+  background: rgba(var(--color-text-rgb), .04);
+  color: $color-text-muted;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .14s, border-color .14s, color .14s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; flex-shrink: 0; }
+
+  &:hover {
+    background: rgba(var(--color-text-rgb), .08);
+    border-color: rgba(var(--color-text-rgb), .25);
+  }
+
+  &--blue    { --mc: #3b82f6; }
+  &--amber   { --mc: #f59e0b; }
+  &--red     { --mc: #ef4444; }
+  &--grey    { --mc: #6b7280; }
+
+  &--selected {
+    background: color-mix(in srgb, var(--mc, #3b82f6) 15%, transparent);
+    border-color: var(--mc, #3b82f6);
+    color: var(--mc, #3b82f6);
+    font-weight: 600;
+  }
+}
+
+.gc-mail-send-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  background: $color-primary;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  justify-content: center;
+  transition: opacity .15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:disabled { opacity: .55; cursor: default; }
+  &:not(:disabled):hover { opacity: .88; }
+}
+
+.gc-mail-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, .15);
+  border: 1px solid rgba(34, 197, 94, .35);
+  color: #16a34a;
+  font-size: 12.5px;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+.gc-mail-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, .12);
+  border: 1px solid rgba(239, 68, 68, .3);
+  color: #dc2626;
+  font-size: 12.5px;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
 // Footer-Trennlinie
 .dialog--gc .dialog__actions {
   padding: 14px 20px;
@@ -3317,7 +3442,7 @@
     width: 100%;
     height: 100%;
     display: block;
-    filter: drop-shadow(0 2px 8px rgba(41, 121, 255, 0.18));
+    filter: drop-shadow(0 2px 6px rgba(var(--color-primary-rgb), 0.14));
   }
 }
 
@@ -4108,5 +4233,226 @@
     border-radius: 999px;
     margin-left: 4px;
     line-height: 1.7;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  HELLMODUS — res-panel: alle Elemente klarer & kontrastreicher
+//  :host-context scoped auf body ohne Dim/Dark-Klasse
+// ═══════════════════════════════════════════════════════════════════════════
+:host-context(body:not(.dim-theme):not(.dark-theme)) {
+
+  // ── Panel-Hintergrund: sichtbare rechte Trennlinie ──────────────────────
+  .res-panel {
+    background: var(--color-dark);
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  // ── Datum-Karte: deutlicheres Primärblau-Gradient + Rahmen ───────────────
+  .date-card {
+    background: linear-gradient(135deg,
+      rgba(var(--color-primary-rgb), 0.10),
+      rgba(var(--color-primary-rgb), 0.04));
+    border: 1px solid rgba(var(--color-primary-rgb), 0.22);
+    box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.08);
+
+    &__label { color: #111; }
+    &__summary { color: rgba(0, 0, 0, 0.55); }
+  }
+
+  // ── Zeitgruppen-Trennzeile: sichtbarer ──────────────────────────────────
+  .time-group {
+    &__header {
+      background: var(--color-dark);
+    }
+    &__hour {
+      color: rgba(0, 0, 0, 0.50);
+      font-size: 11.5px;
+    }
+    &__line {
+      background: rgba(0, 0, 0, 0.14);
+    }
+    &__count {
+      background: rgba(0, 0, 0, 0.07);
+      color: rgba(0, 0, 0, 0.55);
+      font-weight: 700;
+    }
+  }
+
+  // ── Reservierungs-Karten: weiß + deutlicher Schatten ────────────────────
+  .res-row {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.10);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+
+    &:hover {
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.11);
+    }
+
+    &__name  { color: #111111; font-weight: 600; }
+    &__party { color: rgba(0, 0, 0, 0.50); }
+    &__sub   { color: rgba(0, 0, 0, 0.50); }
+  }
+
+  // ── Status-Badge (Aktiv / Verspätet / …) in Karten ──────────────────────
+  .res-row__status-badge {
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.20);
+  }
+
+  // ── Filter-Tabs ──────────────────────────────────────────────────────────
+  .filter-tabs {
+    border-bottom-color: rgba(0, 0, 0, 0.10);
+
+    button {
+      color: rgba(0, 0, 0, 0.45);
+      border: 1px solid transparent;
+
+      &:hover {
+        color: rgba(0, 0, 0, 0.75);
+        background: rgba(0, 0, 0, 0.05);
+        border-color: transparent;
+      }
+
+      &.active {
+        color: rgba(0, 0, 0, 0.80);
+        background: rgba(0, 0, 0, 0.07);
+        border-color: rgba(0, 0, 0, 0.14);
+      }
+    }
+  }
+
+  .filter-tabs__badge {
+    background: rgba(0, 0, 0, 0.09);
+    color: rgba(0, 0, 0, 0.60);
+  }
+
+  // ── Leer-Zustand ────────────────────────────────────────────────────────
+  .res-empty {
+    color: rgba(0, 0, 0, 0.40);
+    p { color: rgba(0, 0, 0, 0.65); }
+  }
+
+  // ── Freie-Slot-Einträge (Tagesübersicht-Sidebar) ─────────────────────────
+  .tl-free-slot {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.10);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+    &__time  { color: #111111; }
+    &__count { color: rgba(0, 0, 0, 0.45); }
+
+    &__btn {
+      background: rgba(var(--color-primary-rgb), 0.10);
+      border-color: rgba(var(--color-primary-rgb), 0.40);
+      color: var(--color-primary);
+      font-weight: 600;
+
+      &:hover { background: rgba(var(--color-primary-rgb), 0.18); }
+    }
+  }
+
+  // ── Freie-Slot-Panel Header ───────────────────────────────────────────────
+  .tl-free-panel {
+    background: var(--color-dark);
+    border-left-color: rgba(0, 0, 0, 0.12);
+
+    &__head {
+      color: #111;
+      border-bottom-color: rgba(0, 0, 0, 0.10);
+    }
+  }
+
+  // ── Neue-RV + Walk-In Buttons: dezent aber sichtbar ─────────────────────
+  .btn-new {
+    background: rgba(var(--color-primary-rgb), 0.07);
+    border-color: rgba(var(--color-primary-rgb), 0.30);
+    box-shadow: none;
+
+    &:hover {
+      background: rgba(var(--color-primary-rgb), 0.13);
+      border-color: rgba(var(--color-primary-rgb), 0.50);
+      box-shadow: none;
+    }
+
+    &--walkin {
+      background: rgba(var(--color-accent-rgb), 0.07);
+      border-color: rgba(var(--color-accent-rgb), 0.30);
+
+      &:hover {
+        background: rgba(var(--color-accent-rgb), 0.13);
+        border-color: rgba(var(--color-accent-rgb), 0.50);
+      }
+    }
+  }
+
+  // ── Aktions-Buttons in den Karten ────────────────────────────────────────
+  .action {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.55);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.09);
+      color: #111;
+    }
+  }
+
+  // ── Filter-Toggle-Button ─────────────────────────────────────────────────
+  .filter-toggle-btn {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.14);
+    color: rgba(0, 0, 0, 0.60);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+      border-color: rgba(0, 0, 0, 0.22);
+      color: rgba(0, 0, 0, 0.80);
+    }
+
+    &--open {
+      background: rgba(0, 0, 0, 0.05);
+      border-color: rgba(0, 0, 0, 0.22);
+      color: rgba(0, 0, 0, 0.80);
+      box-shadow: none;
+    }
+  }
+
+  // ── Filter-Panel (aufgeklappt) ────────────────────────────────────────────
+  .filter-panel {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.10);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+    &__label {
+      color: rgba(0, 0, 0, 0.40);
+    }
+  }
+
+  // ── Status-Bar Chips (Aktiv / Verspätet / …) ─────────────────────────────
+  .sub-filter__chip {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    color: rgba(0, 0, 0, 0.60);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+      border-color: rgba(0, 0, 0, 0.25);
+      color: rgba(0, 0, 0, 0.85);
+      transform: translateY(-1px);
+    }
+  }
+
+  .sub-filter__chip--active {
+    background: rgba(var(--color-primary-rgb), 0.10);
+    border-color: rgba(var(--color-primary-rgb), 0.40);
+    color: var(--color-primary);
+  }
+
+  // ── Filter-Panel Count-Badge (Anzahl neben Chips) ─────────────────────────
+  // $color-accent = #ffb700 (gelb) → auf Weiß kaum sichtbar → dunkles Neutral
+  .filter-panel__count {
+    background: rgba(0, 0, 0, 0.10);
+    color: rgba(0, 0, 0, 0.65);
   }
 }

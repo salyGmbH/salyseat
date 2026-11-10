@@ -16,7 +16,8 @@ final readonly class SendConfirmationEmail
         public string $guestName,
         public string $reservationToken,
         public string $startsAt,
-        public int $partySize,
+        public int    $partySize,
         public string $venueName,
+        public string $tenantId = '',
     ) {}
 }

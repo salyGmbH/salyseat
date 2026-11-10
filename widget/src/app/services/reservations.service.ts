@@ -69,6 +69,13 @@ export interface WidgetDesignConfig {
   cornerRadius:     string;
 }
 
+export interface WidgetAllergen {
+  key:    string;
+  label:  string;
+  color:  string;
+  icon?:  string;
+}
+
 export interface WidgetFunctionalConfig {
   intervall:               number;
   speisekarte:             boolean;
@@ -90,6 +97,9 @@ export interface WidgetFunctionalConfig {
   kinderStuehleAktiv:      boolean;
   kinderStuehleGesamt:     number;
   kinderStuehleOnline:     number;
+  rollstuhlAktiv:          boolean;
+  hundAktiv:               boolean;
+  allergeneAktiv:          boolean;
   vorausbuchungEinheit:    string;
   vorausbuchungWert:       number;
   mindestvorlaufMinuten:   number;
@@ -109,6 +119,7 @@ export interface WidgetConfig {
   widgetDesign:      WidgetDesignConfig      | null;
   widgetFunctional:  WidgetFunctionalConfig  | null;
   closedWeekdays:    number[];
+  allergene?:        WidgetAllergen[];
 }
 
 export interface CreateReservationPayload {

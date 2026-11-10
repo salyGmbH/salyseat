@@ -1889,8 +1889,17 @@
 }
 
 .preview__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-bottom: 1px solid var(--preview-border);
   padding-bottom: 12px;
+}
+
+.preview__header-text {
+  min-width: 0;
+  flex: 1;
 }
 
 .preview__title {
@@ -2476,8 +2485,8 @@
 
   &__dial-ring {
     fill: none;
-    stroke: color-mix(in srgb, var(--preview-text) 16%, transparent);
-    stroke-width: 1.2;
+    stroke: color-mix(in srgb, var(--preview-text) 12%, transparent);
+    stroke-width: 1;
   }
 
   &__dial-arc {
@@ -2500,43 +2509,63 @@
     &.is-open.is-cardinal { fill: var(--preview-text); }
   }
 
-  &__dial-slot-dot {
-    fill: color-mix(in srgb, var(--preview-primary) 45%, transparent);
+  &__dial-phase-dot {
+    fill: color-mix(in srgb, var(--preview-text) 6%, transparent);
 
-    &.is-hour { fill: color-mix(in srgb, var(--preview-primary) 70%, transparent); }
-    &.is-selected { fill: var(--preview-primary); }
+    &.is-available {
+      fill: color-mix(in srgb, var(--preview-primary) 13%, transparent);
+      stroke: color-mix(in srgb, var(--preview-primary) 35%, transparent);
+      stroke-width: 0.8;
+    }
+
+    &.is-selected {
+      fill: var(--preview-primary);
+      stroke: none;
+    }
+  }
+
+  &__dial-phase-label {
+    font-family: inherit;
+    font-size: 5.5px;
+    font-weight: 600;
+    fill: color-mix(in srgb, var(--preview-text) 28%, transparent);
+    user-select: none;
+    pointer-events: none;
+
+    &.is-available { fill: var(--preview-primary); }
+    &.is-selected  { fill: #fff; }
   }
 
   &__dial-needle { pointer-events: none; }
-  &__dial-needle-line { stroke: var(--preview-primary); stroke-width: 1.6; stroke-linecap: round; }
+  &__dial-needle-line {
+    stroke: var(--preview-primary);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
   &__dial-needle-tip { fill: var(--preview-primary); }
 
   &__dial-hub {
     fill: var(--preview-bg);
-    stroke: color-mix(in srgb, var(--preview-text) 18%, transparent);
+    stroke: color-mix(in srgb, var(--preview-text) 14%, transparent);
     stroke-width: 1;
   }
+
+  &__dial-hub-dot { fill: var(--preview-primary); }
 
   &__dial-slot {
     position: absolute;
     transform: translate(-50%, -50%);
-    width: 14%;
-    height: 14%;
+    width: 13%;
+    height: 13%;
     appearance: none;
     background: transparent;
     border: none;
     border-radius: 50%;
     cursor: pointer;
     padding: 0;
-    transition: background 0.18s ease;
 
-    &:hover {
-      background: color-mix(in srgb, var(--preview-primary) 14%, transparent);
-    }
-
-    &.is-selected {
-      background: color-mix(in srgb, var(--preview-primary) 18%, transparent);
-    }
+    &:disabled { cursor: default; }
+    &.is-available:hover { opacity: 0.8; }
   }
 
   &__dial-readout {
@@ -2560,12 +2589,12 @@
 
   &__dial-meta {
     display: block;
-    margin-top: 2px;
-    font-size: 0.55em;
+    margin-top: 3px;
+    font-size: 0.5em;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--preview-muted);
+    color: var(--preview-primary);
   }
 
   // Mobile: only active panel visible
@@ -2663,79 +2692,132 @@
   display: block;
   width: 100%;
   margin-bottom: 12px;
-  padding: 10px 16px;
-  background: transparent;
-  border: 1.5px dashed var(--preview-primary, #2563eb);
+  padding: 11px 16px;
+  background: color-mix(in srgb, var(--preview-primary, #2563eb) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--preview-primary, #2563eb) 35%, transparent);
   border-radius: var(--preview-radius, 10px);
   color: var(--preview-primary, #2563eb);
   font-size: 0.85em;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
-  transition: opacity 0.15s;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
 
-  &:hover { opacity: 0.75; }
+  &:hover {
+    background: color-mix(in srgb, var(--preview-primary, #2563eb) 14%, transparent);
+    border-color: color-mix(in srgb, var(--preview-primary, #2563eb) 55%, transparent);
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: translateY(0); }
+
+  &--stacked {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 10px 24px;
+  }
 
   &--planner {
-    padding: 6px 12px;
-    font-size: 0.8em;
+    padding: 9px 18px;
+    font-size: 0.82em;
     margin-bottom: 0;
     width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    font-weight: 700;
   }
+}
+
+@keyframes menuOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes menuBoxIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
 .widget-menu-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 20px;
+  animation: menuOverlayIn 0.2s ease;
 
   &__box {
     background: var(--preview-bg, #fff);
-    border-radius: var(--preview-radius, 10px);
+    border-radius: calc(var(--preview-radius, 10px) + 6px);
     width: 100%;
-    max-width: 860px;
-    height: 80vh;
-
-  &--hinweis {
-    height: auto;
-    max-height: 80vh;
-    max-width: 520px;
-    overflow-y: auto;
-  }
+    max-width: 900px;
+    height: 85vh;
+    max-height: 800px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.06),
+      0 8px 28px rgba(0, 0, 0, 0.14),
+      0 32px 80px rgba(0, 0, 0, 0.26);
+    animation: menuBoxIn 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+
+    &--hinweis {
+      height: auto;
+      max-height: 80vh;
+      max-width: 520px;
+      overflow-y: auto;
+    }
   }
 
   &__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    gap: 12px;
+    padding: 16px 20px;
+    background: color-mix(in srgb, var(--preview-primary, #2563eb) 5%, var(--preview-bg, #fff));
     border-bottom: 1px solid var(--preview-border, #e5e7eb);
-    font-weight: 600;
-    font-size: 0.9em;
+    font-weight: 700;
+    font-size: 1em;
+    color: var(--preview-text, #1f2937);
     flex-shrink: 0;
   }
 
   &__close {
-    background: none;
-    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--preview-text, #1f2937) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--preview-text, #1f2937) 10%, transparent);
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 1.1em;
+    font-size: 0.8em;
     color: var(--preview-muted, #6b7280);
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 0;
     line-height: 1;
-    transition: opacity 0.15s;
+    transition: background 0.15s, color 0.15s;
 
-    &:hover { opacity: 0.7; }
+    &:hover {
+      background: color-mix(in srgb, var(--preview-text, #1f2937) 13%, transparent);
+      color: var(--preview-text, #1f2937);
+    }
   }
 
   &__frame {
@@ -2748,12 +2830,23 @@
   &__empty {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 32px;
+    gap: 16px;
+    padding: 40px 32px;
     color: var(--preview-muted, #6b7280);
     font-size: 0.9em;
     text-align: center;
+    line-height: 1.6;
+
+    &::before {
+      content: '🍽';
+      display: block;
+      font-size: 2.8em;
+      opacity: 0.3;
+      margin-bottom: 4px;
+    }
   }
 }
 
@@ -3013,6 +3106,125 @@
   &__hint {
     font-size: 0.78em;
     color: var(--preview-muted, #6b7280);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Allergen-Picker
+// ─────────────────────────────────────────────────────────────────────────
+.allergen-picker {
+  padding: 6px 0 4px;
+
+  &__label {
+    display: block;
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--preview-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+.allergen-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--preview-border, #e5e7eb);
+  background: var(--preview-card-bg, #ffffff);
+  color: var(--preview-text, #1f2937);
+  font-size: 0.82em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  line-height: 1;
+
+  &:hover {
+    border-color: var(--preview-primary, #2563eb);
+    color: var(--preview-primary, #2563eb);
+  }
+
+  &.is-selected {
+    background: var(--preview-primary, #2563eb);
+    border-color: var(--preview-primary, #2563eb);
+    color: #fff;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Extra checkbox (Rollstuhl / Hund)
+// ─────────────────────────────────────────────────────────────────────────
+.extra-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 0;
+  user-select: none;
+
+  input[type='checkbox'] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  &__box {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--preview-border, #e5e7eb);
+    border-radius: 5px;
+    background: var(--preview-card-bg, #ffffff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s, background 0.15s;
+
+    &::after {
+      content: '';
+      display: block;
+      width: 5px;
+      height: 9px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg) translateY(-1px);
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+  }
+
+  input[type='checkbox']:checked ~ &__box {
+    background: var(--preview-primary, #2563eb);
+    border-color: var(--preview-primary, #2563eb);
+
+    &::after { opacity: 1; }
+  }
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    color: var(--preview-text, #1f2937);
+    line-height: 1.3;
+
+    svg {
+      flex-shrink: 0;
+      opacity: 0.75;
+    }
+  }
+
+  &:hover &__box {
+    border-color: var(--preview-primary, #2563eb);
   }
 }
 
@@ -3408,5 +3620,29 @@
     &:hover {
       background: color-mix(in srgb, var(--preview-primary, #2563eb) 10%, transparent);
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Saly branding credit
+// ─────────────────────────────────────────────────────────────────────────
+.saly-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 10px;
+  margin-bottom: 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: var(--preview-muted, #9ca3af);
+  user-select: none;
+  opacity: 0.7;
+
+  &__name {
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--preview-primary, #2563eb);
+    opacity: 0.8;
   }
 }

@@ -9,6 +9,7 @@ import { DashboardService, DashboardStats } from '../../services/dashboard.servi
 import { ReservationsService } from '../../services/reservations.service';
 import { Reservation, ReservationStatus, STATUS_LABELS } from '../../services/reservation.types';
 import { GuestsService, Guest } from '../../services/guests.service';
+import { ReminderService } from '../../services/reminder.service';
 
 const REFRESH_INTERVAL_MS = 60_000; // 60 Sekunden
 
@@ -20,10 +21,14 @@ const REFRESH_INTERVAL_MS = 60_000; // 60 Sekunden
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  private readonly svc       = inject(DashboardService);
-  private readonly resSvc    = inject(ReservationsService);
-  private readonly guestsSvc = inject(GuestsService);
+  private readonly svc         = inject(DashboardService);
+  private readonly resSvc      = inject(ReservationsService);
+  private readonly guestsSvc   = inject(GuestsService);
+  private readonly reminderSvc = inject(ReminderService);
   private refreshSub?: Subscription;
+
+  /** Fällige Erinnerungen — direkt vom Service (reaktiv) */
+  readonly dueReminders = this.reminderSvc.due;
 
   readonly stats          = signal<DashboardStats | null>(null);
   readonly todayRes       = signal<Reservation[]>([]);
@@ -150,6 +155,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return [];
   }
 
+  dismissReminder(id: string): void {
+    this.reminderSvc.remove(id);
+  }
+
+  formatReminderDate(iso: string): string {
+    const [y, m, d] = iso.split('-');
+    return `${d}.${m}.${y}`;
+  }
+
   formatTime(iso: string): string {
     return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   }
@@ -171,6 +185,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
       completed: 'badge--muted',
       cancelled: 'badge--danger',
       no_show:   'badge--danger',
+    };
+    return map[s] ?? '';
+  }
+
+  /** Initialen aus Gastname (max. 2 Zeichen) */
+  initials(name: string): string {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  /** CSS-Klasse für den farbigen Akzentstreifen links */
+  rowAccentClass(s: ReservationStatus): string {
+    const map: Record<string, string> = {
+      pending:   'accent--warn',
+      confirmed: 'accent--primary',
+      seated:    'accent--active',
+      cleanup:   'accent--cleanup',
+      completed: 'accent--muted',
+      cancelled: 'accent--danger',
+      no_show:   'accent--danger',
     };
     return map[s] ?? '';
   }
