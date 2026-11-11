@@ -45,7 +45,7 @@
                 [class.active]="filter === c.key"
                 (click)="setFilter(c.key)">
           <mat-icon>{{ c.icon }}</mat-icon>
-          <span>{{ c.label }}</span>
+          <span>{{ ('packages.cat_' + c.key + '_label') | translate }}</span>
           <em>{{ countByCategory(c.key) }}</em>
         </button>
       }
@@ -60,7 +60,7 @@
         <!-- Media / Kategorie-Header -->
         <div class="package-card__media package-card__media--{{ pkg.category }}">
           @if (pkg.image) {
-            <img [src]="pkg.image" [alt]="pkg.name">
+            <img [src]="pkg.image" [alt]="'packages.image_alt' | translate">
           } @else {
             <div class="package-card__placeholder">
               <mat-icon>{{ categoryMeta[pkg.category].icon }}</mat-icon>
@@ -69,7 +69,7 @@
 
           <div class="package-card__category-chip">
             <mat-icon>{{ categoryMeta[pkg.category].icon }}</mat-icon>
-            {{ categoryMeta[pkg.category].label }}
+            {{ ('packages.cat_' + pkg.category + '_label') | translate }}
           </div>
 
           @if (!pkg.active) {
@@ -170,13 +170,27 @@
   </div>
 
   <!-- Save -->
-  @if (packages.length) {
-    <div class="actions">
-      <button class="save-button" [class.saved]="saved" (click)="save()">
-        {{ saved ? ('common.saved' | translate) : ('common.save' | translate) }}
-      </button>
-    </div>
-  }
+  <div class="actions">
+    <button class="save-button"
+            [class.saved]="saved"
+            [class.save-button--loading]="saving"
+            [disabled]="saving"
+            (click)="save()">
+      @if (saving) {
+        <mat-icon class="spin">sync</mat-icon>
+        {{ 'common.saving' | translate }}
+      } @else if (saved) {
+        <mat-icon>check</mat-icon>
+        {{ 'common.saved' | translate }}
+      } @else {
+        <mat-icon>save</mat-icon>
+        {{ 'common.save' | translate }}
+      }
+    </button>
+    @if (error) {
+      <span class="settings-error">{{ 'packages.save_error' | translate }}</span>
+    }
+  </div>
 
 </div>
 
@@ -210,8 +224,8 @@
                   <mat-icon>{{ c.icon }}</mat-icon>
                 </div>
                 <div class="category-chip__text">
-                  <div class="category-chip__label">{{ c.label }}</div>
-                  <div class="category-chip__tagline">{{ c.tagline }}</div>
+                  <div class="category-chip__label">{{ ('packages.cat_' + c.key + '_label') | translate }}</div>
+                  <div class="category-chip__tagline">{{ ('packages.cat_' + c.key + '_tagline') | translate }}</div>
                 </div>
               </button>
             }
@@ -261,7 +275,7 @@
                      [(ngModel)]="draft.durationHours"
                      min="0"
                      step="0.5"
-                     placeholder="optional">
+                     [placeholder]="'common.optional' | translate">
             </label>
           </div>
 
@@ -282,7 +296,7 @@
           <div class="section__title">
             <span class="section__num">4</span>
             {{ 'packages.included' | translate }}
-            <span class="section__optional">optional</span>
+            <span class="section__optional">{{ 'common.optional' | translate }}</span>
           </div>
 
           <div class="include-input">
@@ -323,12 +337,12 @@
           <div class="section__title">
             <span class="section__num">5</span>
             {{ 'packages.image' | translate }}
-            <span class="section__optional">optional</span>
+            <span class="section__optional">{{ 'common.optional' | translate }}</span>
           </div>
 
           @if (draft.image) {
             <div class="image-preview">
-              <img [src]="draft.image" alt="Vorschau">
+              <img [src]="draft.image" [alt]="'packages.image_alt' | translate">
               <button type="button" class="image-preview__remove" (click)="clearImage()">
                 <mat-icon>delete_outline</mat-icon>
               </button>

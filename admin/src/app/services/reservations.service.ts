@@ -27,14 +27,16 @@ export class ReservationsService {
     );
   }
 
-  load(params: { status?: string; date?: string; limit?: number; offset?: number } = {}): Observable<ReservationListResponse> {
+  load(params: { status?: string; date?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number } = {}): Observable<ReservationListResponse> {
     this._loading.set(true);
 
     let qp = new HttpParams();
-    if (params.status) qp = qp.set('status', params.status);
-    if (params.date)   qp = qp.set('date',   params.date);
-    if (params.limit)  qp = qp.set('limit',  String(params.limit));
-    if (params.offset) qp = qp.set('offset', String(params.offset));
+    if (params.status)   qp = qp.set('status',    params.status);
+    if (params.date)     qp = qp.set('date',       params.date);
+    if (params.dateFrom) qp = qp.set('date_from',  params.dateFrom);
+    if (params.dateTo)   qp = qp.set('date_to',    params.dateTo);
+    if (params.limit)    qp = qp.set('limit',      String(params.limit));
+    if (params.offset)   qp = qp.set('offset',     String(params.offset));
 
     return this.http.get<ReservationListResponse>(this.base, { params: qp }).pipe(
       tap(res => {
@@ -88,6 +90,8 @@ export class ReservationsService {
     notes?: string;
     /** null = Tisch entziehen, number = Tisch zuweisen */
     table_id?: number | null;
+    /** UUID des Ziel-Venues — verschiebt die Reservierung in einen anderen Raum */
+    venue_id?: string;
   }): Observable<Reservation> {
     return this.http.patch<Reservation>(`${this.base}/${id}`, payload).pipe(
       tap(updated => this._reservations.update(rs => rs.map(r => r.id === id ? updated : r))),

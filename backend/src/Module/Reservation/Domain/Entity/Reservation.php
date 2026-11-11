@@ -148,6 +148,11 @@ class Reservation
     {
         return $this->venue;
     }
+
+    public function moveToVenue(Venue $venue): void
+    {
+        $this->venue = $venue;
+    }
     public function getToken(): string
     {
         return $this->token;

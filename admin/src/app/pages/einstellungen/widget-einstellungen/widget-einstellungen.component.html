@@ -111,13 +111,8 @@
         <div class="speisekarte-gen-hint">
           <mat-icon>auto_awesome</mat-icon>
           <div>
-            <strong>Speisekarte-Generator verfügbar</strong>
-            <p>
-              Erstellen Sie Ihre Speisekarte mit dem integrierten Editor unter
-              <a href="/einstellungen/speisekarte">Einstellungen → Speisekarte</a>.
-              Dort können Sie Design, Gerichte, Allergene und Zusatzstoffe konfigurieren
-              und eine fertige PDF herunterladen — die Sie direkt hier hochladen können.
-            </p>
+            <strong>{{ 'widget_einstellungen.speisekarte_gen_title' | translate }}</strong>
+            <p>{{ 'widget_einstellungen.speisekarte_gen_text' | translate }}</p>
           </div>
         </div>
       </div>
@@ -887,8 +882,8 @@
 
     <div class="toggle-row" style="margin-top: 12px;">
       <div class="toggle-row__label">
-        <span>♿ Rollstuhlgerecht anfragen</span>
-        <small>Gäste können angeben, ob sie einen barrierefreien Platz benötigen</small>
+        <span>{{ 'widget_einstellungen.wheelchair_label' | translate }}</span>
+        <small>{{ 'widget_einstellungen.wheelchair_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.rollstuhlAktiv">
@@ -898,8 +893,8 @@
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>🐕 Hund mitbringen anfragen</span>
-        <small>Gäste können angeben, ob sie einen Hund dabei haben</small>
+        <span>{{ 'widget_einstellungen.dog_label' | translate }}</span>
+        <small>{{ 'widget_einstellungen.dog_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.hundAktiv">

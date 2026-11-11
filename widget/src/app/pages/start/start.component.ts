@@ -117,6 +117,11 @@ export class StartComponent implements OnInit {
   menuOpen                = signal<boolean>(false);
   hinweisOpen             = signal<boolean>(false);
 
+  dismissHinweis(): void {
+    this.hinweisOpen.set(false);
+    try { localStorage.setItem('widget.hinweis.dismissed', Date.now().toString()); } catch { /* ignore */ }
+  }
+
   // ─── Kinderstühle ────────────────────────────────────────────────────────
   kinderStuehleAktiv   = signal<boolean>(false);
   kinderStuehleOnline  = signal<number>(2);
@@ -176,16 +181,15 @@ export class StartComponent implements OnInit {
   onlineStornierungMinuten = signal<number>(120);
 
   readonly weekdays: readonly string[] = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-  readonly seatOptions: readonly { count: number; label: string }[] = [
-    { count: 1, label: '1 Gast'   },
-    { count: 2, label: '2 Gäste'  },
-    { count: 3, label: '3 Gäste'  },
-    { count: 4, label: '4 Gäste'  },
-    { count: 5, label: '5 Gäste'  },
-    { count: 6, label: '6 Gäste'  },
-    { count: 7, label: '7 Gäste'  },
-    { count: 8, label: '8+ Gäste' },
-  ];
+  /** Personen-Auswahl 1 … maxPeople, die letzte Option mit "+" (Standard 8 → "8+ Gäste"). */
+  readonly seatOptions = computed<readonly { count: number; label: string }[]>(() => {
+    const max = this.maxPeople();
+    return Array.from({ length: max }, (_, i) => {
+      const count = i + 1;
+      const label = count === 1 ? '1 Gast' : count === max ? `${count}+ Gäste` : `${count} Gäste`;
+      return { count, label };
+    });
+  });
 
   decrement(): void { this.people.update(n => Math.max(this.minPeople, n - 1)); }
   increment(): void { this.people.update(n => Math.min(this.maxPeople(), n + 1)); }
@@ -252,6 +256,8 @@ export class StartComponent implements OnInit {
   readonly isClosedDay = computed(() => this.dayAvail()?.open === false);
 
   readonly showMaxPersonenWarning = computed(() => this.people() >= this.maxPeople());
+  /** Gruppen-Hinweis (Kontakt bei großen Gruppen) — gleiche Bedingung wie die Warnung. */
+  readonly showMaxPersonenInfo    = computed(() => this.showMaxPersonenWarning());
 
   readonly safeMenuUrl = computed<SafeResourceUrl>(() =>
     this.sanitizer.bypassSecurityTrustResourceUrl(this.speisekarteUrl() || '')
@@ -1032,7 +1038,11 @@ export class StartComponent implements OnInit {
     if (func.speisekartePdfName != null)               this.speisekartePdfName.set(func.speisekartePdfName);
     if (typeof func.hinweistext === 'boolean') {
       this.hinweistext.set(func.hinweistext);
-      if (func.hinweistext) this.hinweisOpen.set(true);
+      if (func.hinweistext) {
+        const dismissed = localStorage.getItem('widget.hinweis.dismissed');
+        const recentlyDismissed = !!dismissed && (Date.now() - parseInt(dismissed, 10)) < 24 * 60 * 60 * 1000;
+        if (!recentlyDismissed) this.hinweisOpen.set(true);
+      }
     }
     if (func.hinweistextUeberschrift != null)          this.hinweistextUeberschrift.set(func.hinweistextUeberschrift);
     if (func.hinweistextInhalt != null)                this.hinweistextInhalt.set(func.hinweistextInhalt);

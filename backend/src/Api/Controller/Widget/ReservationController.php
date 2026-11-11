@@ -12,6 +12,7 @@ use App\Module\Reservation\Application\Dto\ReservationDto;
 use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenHandler;
 use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservationByTokenQuery;
 use App\Module\Availability\Infrastructure\Persistence\DoctrineOpeningHoursRepository;
+use App\Module\Availability\Infrastructure\Persistence\DoctrineSpecialClosingRepository;
 use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,6 +34,7 @@ class ReservationController extends AbstractController
         private readonly DoctrineTenantRepository $tenants,
         private readonly EntityManagerInterface $em,
         private readonly DoctrineOpeningHoursRepository $ohRepo,
+        private readonly DoctrineSpecialClosingRepository $scRepo,
     ) {}
 
     /**
@@ -59,12 +61,33 @@ class ReservationController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        $closedWeekdays = [];
+        $closedWeekdays  = [];
+        $openingSchedule = [];
         foreach ($this->ohRepo->findByTenant($tenant) as $oh) {
             if (!$oh->isOpen()) {
                 $closedWeekdays[] = $oh->getWeekday();
+            } else {
+                $openingSchedule[$oh->getWeekday()] = [
+                    'open_time'  => $oh->getOpenTime(),
+                    'close_time' => $oh->getCloseTime(),
+                    'breaks'     => $oh->getBreaks() ?? [],
+                ];
             }
         }
+
+        // Sonder-Schließtage: nur fullDay=true Einträge als Datumsbereiche ans Widget übergeben.
+        // Das Widget prüft beim Kalender-Rendering ob ein Datum in einem Bereich liegt.
+        $specialClosedRanges = [];
+        foreach ($this->scRepo->findByTenant($tenant) as $sc) {
+            if ($sc->isFullDay()) {
+                $specialClosedRanges[] = [
+                    'date_from' => $sc->getDateFrom()->format('Y-m-d'),
+                    'date_to'   => $sc->getDateTo()->format('Y-m-d'),
+                ];
+            }
+        }
+
+        $uiSettings = $tenant->getUiSettings() ?? [];
 
         return $this->json([
             'name'         => $tenant->getName(),
@@ -77,12 +100,14 @@ class ReservationController extends AbstractController
                 'walls'    => $v->getLayout()['walls']  ?? [],
                 'decors'   => $v->getLayout()['decors'] ?? [],
             ], $venueList),
-            'widgetDesign'      => $tenant->getUiSettings()['widgetDesign']      ?? null,
+            'widgetDesign'      => $uiSettings['widgetDesign'] ?? null,
             'widgetFunctional'  => array_merge(
-                $tenant->getUiSettings()['widgetFunctional'] ?? [],
-                ['defaultDurationMinutes' => $tenant->getUiSettings()['reservationTiming']['defaultDurationMinutes'] ?? 120],
+                $uiSettings['widgetFunctional'] ?? [],
+                ['defaultDurationMinutes' => $uiSettings['reservationTiming']['defaultDurationMinutes'] ?? 120],
             ),
-            'closedWeekdays'    => $closedWeekdays,
+            'closedWeekdays'      => $closedWeekdays,
+            'openingSchedule'     => $openingSchedule,
+            'specialClosedRanges' => $specialClosedRanges,
         ]);
     }
 

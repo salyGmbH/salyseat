@@ -19,6 +19,7 @@ final class SendReminderEmailHandler
         private readonly Environment                 $twig,
         private readonly TenantEmailSettingsProvider $settings,
         private readonly string                      $mailerSender,
+        private readonly string                      $publicDir,
     ) {}
 
     public function __invoke(SendReminderEmail $message): void
@@ -42,6 +43,14 @@ final class SendReminderEmailHandler
             ->to($message->guestEmail)
             ->subject(sprintf('Erinnerung an Ihre Reservierung bei %s', $message->venueName))
             ->html($html);
+
+        foreach ($s['attachments'] as $att) {
+            if (empty($att['assignedMails']['reminder'])) continue;
+            $path = $this->publicDir . $att['url'];
+            if (is_file($path)) {
+                $email->attachFromPath($path, $att['name'] ?? basename($path));
+            }
+        }
 
         $this->mailer->send($email);
     }

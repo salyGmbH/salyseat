@@ -59,9 +59,15 @@ export class WidgetEinstellungenComponent implements OnInit {
     ];
     const s = all[n - 1];
     if (!s) return;
-    this.widgetFunctionalSvc.save({ ...this.settings });
-    s.set(true);
-    setTimeout(() => s.set(false), 2500);
+    this.widgetFunctionalSvc.save({ ...this.settings }).subscribe({
+      next: () => {
+        s.set(true);
+        setTimeout(() => s.set(false), 2500);
+      },
+      error: (err) => {
+        console.error('Fehler beim Speichern der Widget-Einstellungen:', err);
+      },
+    });
   }
 
   // ─── Settings ────────────────────────────────────────────────────────────────
@@ -100,7 +106,7 @@ export class WidgetEinstellungenComponent implements OnInit {
 
     // 8. Max. Personenanzahl
     maxPersonen: 8,
-    maxPersonenText: 'Für Gruppen ab dieser Personenzahl bitten wir um Kontaktaufnahme.',
+    maxPersonenText: 'Für größere Gruppen bitten wir um Kontaktaufnahme.',
     maxPersonenPhone: '',
     maxPersonenEmail: '',
 

@@ -19,6 +19,7 @@ final class SendConfirmationEmailHandler
         private readonly Environment                 $twig,
         private readonly TenantEmailSettingsProvider $settings,
         private readonly string                      $mailerSender,
+        private readonly string                      $publicDir,
         private readonly string                      $widgetBaseUrl,
     ) {}
 
@@ -44,6 +45,14 @@ final class SendConfirmationEmailHandler
             ->to($message->guestEmail)
             ->subject(sprintf('Ihre Reservierung bei %s ist bestätigt', $message->venueName))
             ->html($html);
+
+        foreach ($s['attachments'] as $att) {
+            if (empty($att['assignedMails']['confirmation'])) continue;
+            $path = $this->publicDir . $att['url'];
+            if (is_file($path)) {
+                $email->attachFromPath($path, $att['name'] ?? basename($path));
+            }
+        }
 
         $this->mailer->send($email);
     }

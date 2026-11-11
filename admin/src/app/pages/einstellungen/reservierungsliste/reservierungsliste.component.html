@@ -12,40 +12,103 @@
 
   <!-- Filter Bar -->
   <div class="filter-bar">
-    <div class="filter-bar__field">
-      <mat-icon>calendar_today</mat-icon>
-      <input
-        type="date"
-        class="filter-input"
-        [(ngModel)]="filterDate"
-        (change)="load()"
-      />
-    </div>
 
-    <div class="filter-bar__field">
-      <mat-icon>filter_list</mat-icon>
-      <select class="filter-select" [(ngModel)]="filterStatus" (change)="load()">
-        @for (opt of statusOptions; track opt.value) {
-          <option [value]="opt.value">{{ opt.label }}</option>
+    <!-- Zeile 1: Datumsbereich + Sortierung + Aktionen -->
+    <div class="filter-bar__top">
+      <div class="filter-bar__dates">
+        <div class="filter-bar__field">
+          <mat-icon>calendar_today</mat-icon>
+          <input type="date" class="filter-input filter-input--active"
+                 [(ngModel)]="filterFrom" (change)="load()" />
+        </div>
+        <span class="filter-bar__sep">–</span>
+        <div class="filter-bar__field">
+          <input type="date" class="filter-input"
+                 [class.filter-input--active]="filterTo"
+                 [class.filter-input--empty]="!filterTo"
+                 [(ngModel)]="filterTo" (change)="load()" />
+        </div>
+      </div>
+
+      <!-- Sortier-Chips -->
+      <div class="filter-bar__sort">
+        @for (opt of sortOptions; track opt.value) {
+          <button class="sort-chip"
+                  [class.sort-chip--active]="sortBy === opt.value"
+                  (click)="sortBy = opt.value">
+            <mat-icon>{{ opt.icon }}</mat-icon>
+            {{ opt.label }}
+          </button>
         }
-      </select>
+      </div>
+
+      <div class="filter-bar__actions">
+        <button class="action-btn action-btn--pdf" (click)="openExportModal('pdf')">
+          <mat-icon>picture_as_pdf</mat-icon><span>PDF</span>
+        </button>
+        <button class="action-btn action-btn--print" (click)="openExportModal('print')">
+          <mat-icon>print</mat-icon><span>{{ 'reservierungsliste.print' | translate }}</span>
+        </button>
+        <button class="action-btn action-btn--refresh" (click)="resetToToday()" [disabled]="loading()">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
     </div>
 
-    <div class="filter-bar__actions">
-      <button class="action-btn action-btn--pdf" (click)="openExportModal('pdf')" [title]="'reservierungsliste.export_pdf' | translate">
-        <mat-icon>picture_as_pdf</mat-icon>
-        <span>PDF</span>
-      </button>
-
-      <button class="action-btn action-btn--print" (click)="openExportModal('print')" [title]="'reservierungsliste.print' | translate">
-        <mat-icon>print</mat-icon>
-        <span>{{ 'reservierungsliste.print' | translate }}</span>
-      </button>
-
-      <button class="action-btn action-btn--refresh" (click)="resetToToday()" [disabled]="loading()" [title]="'reservierungsliste.refresh' | translate">
-        <mat-icon>refresh</mat-icon>
-      </button>
+    <!-- Zeile 2: Status-Chips -->
+    <div class="filter-bar__row">
+      <span class="filter-bar__label">Status</span>
+      <div class="filter-bar__chips">
+        <button class="filter-chip" [class.filter-chip--all]="!activeStatuses.length"
+                (click)="activeStatuses = []">Alle</button>
+        @for (opt of statusOptions; track opt.value) {
+          <button class="filter-chip"
+                  [class.filter-chip--active]="activeStatuses.includes(opt.value)"
+                  [style.--chip-color]="colorForBooking($any(opt.value))"
+                  (click)="toggleStatusFilter(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
     </div>
+
+    <!-- Zeile 3: Raum-Chips (nur wenn >1 Raum vorhanden) -->
+    @if (availableRooms().length > 1) {
+      <div class="filter-bar__row">
+        <span class="filter-bar__label">Raum</span>
+        <div class="filter-bar__chips">
+          <button class="filter-chip" [class.filter-chip--all]="!activeVenues.length"
+                  (click)="activeVenues = []">Alle</button>
+          @for (rm of availableRooms(); track rm.id) {
+            <button class="filter-chip"
+                    [class.filter-chip--active]="activeVenues.includes(rm.id)"
+                    (click)="toggleVenueFilter(rm.id)">
+              {{ rm.name }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Zeile 4: Weitere Filter (immer sichtbar) + dynamische Tag-Chips -->
+    <div class="filter-bar__row">
+      <span class="filter-bar__label">Weitere</span>
+      <div class="filter-bar__chips">
+        <button class="filter-chip filter-chip--note"
+                [class.filter-chip--active]="filterWithNote"
+                (click)="filterWithNote = !filterWithNote">
+          <mat-icon>notes</mat-icon>Mit Notiz
+        </button>
+        @for (tag of availableTags(); track tag) {
+          <button class="filter-chip filter-chip--tag"
+                  [class.filter-chip--active]="activeTags.includes(tag)"
+                  (click)="toggleTagFilter(tag)">
+            {{ tag }}
+          </button>
+        }
+      </div>
+    </div>
+
   </div>
 
   <!-- EXPORT MODAL -->
@@ -134,7 +197,7 @@
   }
 
   <!-- Empty -->
-  @if (!loading() && reservations().length === 0) {
+  @if (!loading() && filteredReservations.length === 0) {
     <div class="state-box">
       <mat-icon class="state-box__icon">event_busy</mat-icon>
       <span>{{ 'reservierungsliste.empty' | translate }}</span>
@@ -142,7 +205,7 @@
   }
 
   <!-- LIST + PRINT -->
-  @if (!loading() && reservations().length > 0) {
+  @if (!loading() && filteredReservations.length > 0) {
 
     <div class="print-area">
 
@@ -155,67 +218,43 @@
       <!-- Liste -->
       <div class="reservation-list">
 
-        @for (r of (printReservations.length ? printReservations : reservations()); track r.id) {
+        @for (r of (printReservations.length ? printReservations : filteredReservations); track r.id) {
 
-          <div class="reservation-card reservation-card--{{ r.status }} reservation-card--mode-{{ viewMode() }}"
-               [style.--status-color]="colorForBooking(r.status)">
+          <div class="rc" [style.--rc-color]="colorForBooking(r.status)">
 
-            <!-- Zeit + Status-Indikator (links, je nach ViewMode) -->
-            <div class="reservation-card__left">
-              @if (viewMode() === 'card') {
-                <div class="reservation-card__time reservation-card__time--colored">
-                  <span class="time-date">{{ formatDate(r.starts_at) }}</span>
-                  <span class="time-main">{{ formatTime(r.starts_at) }}</span>
-                  <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
-                </div>
-              } @else {
-                <div class="reservation-card__time reservation-card__time--neutral">
-                  <span class="time-date">{{ formatDate(r.starts_at) }}</span>
-                  <span class="time-main">{{ formatTime(r.starts_at) }}</span>
-                  <span class="time-end">– {{ formatTime(r.ends_at) }}</span>
-                </div>
-                @if (viewMode() === 'text') {
-                  <span class="reservation-card__status-badge"
-                        [style.background]="colorForBooking(r.status)"
-                        [style.color]="textColorFor(colorForBooking(r.status))">
-                    {{ labelForBooking(r.status) }}
-                  </span>
-                } @else if (viewMode() === 'svg') {
-                  <span class="reservation-card__status-tile"
-                        [title]="labelForBooking(r.status)">
-                    <app-status-icon [name]="iconForBooking(r.status)" [size]="20"></app-status-icon>
-                  </span>
-                }
-              }
-            </div>
-
-            <!-- Info -->
-            <div class="reservation-card__info">
-              <div class="info-name">
-                <mat-icon>person</mat-icon>
-                {{ r.guest_name }}
-                <span class="party-size">
-                  <mat-icon>group</mat-icon>{{ r.party_size }}
-                </span>
+            <!-- Datum + farbiger Zeit-Block -->
+            <div class="rc__left">
+              <span class="rc__date">{{ formatDate(r.starts_at) }}</span>
+              <div class="rc__time">
+                <span class="rc__start">{{ formatTime(r.starts_at) }}</span>
+                <span class="rc__end">– {{ formatTime(r.ends_at) }}</span>
               </div>
-
-              <div class="info-meta print-hide">{{ r.guest_email }}</div>
-
-              @if (r.guest_phone) {
-                <div class="info-meta">{{ r.guest_phone }}</div>
-              }
-
-              @if (r.guest_notes) {
-                <div class="info-notes">
-                  <mat-icon>notes</mat-icon>{{ r.guest_notes }}
-                </div>
-              }
             </div>
 
-            <!-- Status-Label rechts -->
-            <div class="reservation-card__status-label">
-              {{ labelForBooking(r.status) }}
+            <!-- Mitte: Name + Meta (füllt den Platz) -->
+            <div class="rc__body">
+              <div class="rc__top">
+                <span class="rc__name">{{ r.guest_name }}</span>
+                <span class="rc__party">· {{ r.party_size }} Pers.</span>
+              </div>
+              <div class="rc__sub">
+                @if (r.table_number) {
+                  <span><mat-icon>table_restaurant</mat-icon>Tisch #{{ r.table_number }}</span>
+                }
+                @if (r.guest_email) {
+                  <span class="print-hide"><mat-icon>mail</mat-icon>{{ r.guest_email }}</span>
+                }
+                @if (r.guest_phone) {
+                  <span><mat-icon>call</mat-icon>{{ r.guest_phone }}</span>
+                }
+                @if (r.guest_notes) {
+                  <span><mat-icon>notes</mat-icon>{{ r.guest_notes }}</span>
+                }
+              </div>
             </div>
+
+            <!-- Status rechts -->
+            <span class="rc__status-chip">{{ labelForBooking(r.status) }}</span>
 
           </div>
 

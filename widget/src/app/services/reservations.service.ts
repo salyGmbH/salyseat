@@ -118,8 +118,10 @@ export interface WidgetConfig {
   venues:            WidgetVenue[];
   widgetDesign:      WidgetDesignConfig      | null;
   widgetFunctional:  WidgetFunctionalConfig  | null;
-  closedWeekdays:    number[];
-  allergene?:        WidgetAllergen[];
+  closedWeekdays:       number[];
+  openingSchedule?:     Record<number, { open_time: string | null; close_time: string | null; breaks: { from: string; to: string }[] }>;
+  specialClosedRanges?: { date_from: string; date_to: string }[];
+  allergene?:           WidgetAllergen[];
 }
 
 export interface CreateReservationPayload {

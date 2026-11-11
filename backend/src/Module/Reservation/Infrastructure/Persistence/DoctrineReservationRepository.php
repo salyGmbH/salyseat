@@ -36,13 +36,15 @@ class DoctrineReservationRepository extends ServiceEntityRepository implements R
         ?\DateTimeImmutable $date = null,
         int $limit = 50,
         int $offset = 0,
+        ?\DateTimeImmutable $dateFrom = null,
+        ?\DateTimeImmutable $dateTo = null,
     ): array {
         $qb = $this->createQueryBuilder('r')
             ->join('r.venue', 'v')
             ->join('v.tenant', 't')
             ->where('t.id = :tenantId')
             ->setParameter('tenantId', $tenantId, 'uuid')
-            ->orderBy('r.startsAt', 'DESC')
+            ->orderBy('r.startsAt', 'ASC')
             ->setMaxResults($limit)
             ->setFirstResult($offset);
 
@@ -51,9 +53,16 @@ class DoctrineReservationRepository extends ServiceEntityRepository implements R
         }
 
         if ($date !== null) {
-            $qb->andWhere('r.startsAt >= :dateFrom AND r.startsAt < :dateTo')
-                ->setParameter('dateFrom', $date->setTime(0, 0, 0))
-                ->setParameter('dateTo', $date->setTime(0, 0, 0)->modify('+1 day'));
+            $qb->andWhere('r.startsAt >= :df AND r.startsAt < :dt')
+                ->setParameter('df', $date->setTime(0, 0, 0))
+                ->setParameter('dt', $date->setTime(0, 0, 0)->modify('+1 day'));
+        } elseif ($dateFrom !== null || $dateTo !== null) {
+            if ($dateFrom !== null) {
+                $qb->andWhere('r.startsAt >= :df')->setParameter('df', $dateFrom->setTime(0, 0, 0));
+            }
+            if ($dateTo !== null) {
+                $qb->andWhere('r.startsAt < :dt')->setParameter('dt', $dateTo->setTime(0, 0, 0)->modify('+1 day'));
+            }
         }
 
         return $qb->getQuery()->getResult();
@@ -63,6 +72,8 @@ class DoctrineReservationRepository extends ServiceEntityRepository implements R
         Uuid $tenantId,
         ?string $status = null,
         ?\DateTimeImmutable $date = null,
+        ?\DateTimeImmutable $dateFrom = null,
+        ?\DateTimeImmutable $dateTo = null,
     ): int {
         $qb = $this->createQueryBuilder('r')
             ->select('COUNT(r.id)')
@@ -76,9 +87,16 @@ class DoctrineReservationRepository extends ServiceEntityRepository implements R
         }
 
         if ($date !== null) {
-            $qb->andWhere('r.startsAt >= :dateFrom AND r.startsAt < :dateTo')
-                ->setParameter('dateFrom', $date->setTime(0, 0, 0))
-                ->setParameter('dateTo', $date->setTime(0, 0, 0)->modify('+1 day'));
+            $qb->andWhere('r.startsAt >= :df AND r.startsAt < :dt')
+                ->setParameter('df', $date->setTime(0, 0, 0))
+                ->setParameter('dt', $date->setTime(0, 0, 0)->modify('+1 day'));
+        } elseif ($dateFrom !== null || $dateTo !== null) {
+            if ($dateFrom !== null) {
+                $qb->andWhere('r.startsAt >= :df')->setParameter('df', $dateFrom->setTime(0, 0, 0));
+            }
+            if ($dateTo !== null) {
+                $qb->andWhere('r.startsAt < :dt')->setParameter('dt', $dateTo->setTime(0, 0, 0)->modify('+1 day'));
+            }
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();

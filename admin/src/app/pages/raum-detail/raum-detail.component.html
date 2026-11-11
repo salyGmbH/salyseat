@@ -2,16 +2,27 @@
   <div class="raum-detail">
     <!-- ── Header ────────────────────────────────────────────────────── -->
     <div class="raum-detail__header">
-      <a class="btn-icon" routerLink="/raum" [title]="'raum_detail.back' | translate">
-        <mat-icon>arrow_back</mat-icon>
-      </a>
-      <div class="raum-detail__title-wrap">
-        <h1 class="raum-detail__title">{{ r.name }}</h1>
-        <div class="raum-detail__meta">
-          <span><mat-icon>table_restaurant</mat-icon>{{ r.tables.length }} Tische</span>
-          <span><mat-icon>person</mat-icon>{{ totalSeats() }} Plätze</span>
-        </div>
-      </div>
+
+      <!-- Raum-Tabs -->
+      <nav class="room-tabs">
+        @for (rm of allRooms(); track rm.id) {
+          <button
+            class="room-tab"
+            [class.room-tab--active]="rm.id === r.id"
+            [class.room-tab--target]="(crossMoveMode() !== null || reassignMode() !== null) && rm.id !== r.id"
+            (click)="onRoomTabClick(rm.id)">
+            <span class="room-tab__name-row">
+              <span class="room-tab__name">{{ rm.name }}</span>
+              @if ((crossMoveMode() !== null || reassignMode() !== null) && rm.id !== r.id) {
+                <mat-icon class="room-tab__move-icon">arrow_forward</mat-icon>
+              }
+            </span>
+            <span class="room-tab__meta">
+              {{ rm.tables.length }}&nbsp;Tische&ensp;·&ensp;{{ roomSeats(rm) }}&nbsp;Pl.
+            </span>
+          </button>
+        }
+      </nav>
       <!-- Timeline / Plan Toggle -->
       <button class="btn-view-toggle"
               [class.btn-view-toggle--active]="showTimeline()"
@@ -45,6 +56,15 @@
         <mat-icon>edit</mat-icon> {{ 'raum_detail.edit_plan' | translate }}
       </a>
     </div>
+
+    <!-- ── Cross-Room-Move Banner ───────────────────────────────────────── -->
+    @if (crossMoveMode()) {
+      <div class="cross-move-banner">
+        <mat-icon>open_with</mat-icon>
+        <span>Ziel-Tisch für <strong>{{ crossMoveName() }}</strong> wählen — oder</span>
+        <button class="cross-move-banner__cancel" (click)="cancelCrossMove()">Abbrechen</button>
+      </div>
+    }
 
     <!-- ── Hauptbereich: Links Reservierungen / Rechts Plan ────────────── -->
     <div class="raum-detail__body">
@@ -131,20 +151,22 @@
           </div>
         </div>
 
-        <!-- Filter-Button -->
-        <div class="filter-toggle-wrap">
-          <button class="filter-toggle-btn"
-                  [class.filter-toggle-btn--open]="filterPanelOpen()"
-                  (click)="filterPanelOpen.set(!filterPanelOpen())">
-            <mat-icon>filter_list</mat-icon>
-            <span>{{ 'raum_detail.filter' | translate }}</span>
-            <mat-icon class="filter-toggle-btn__arrow">
-              {{ filterPanelOpen() ? 'expand_less' : 'expand_more' }}
-            </mat-icon>
-          </button>
-        </div>
+        <!-- Filter-Button (nur bei "Alle") -->
+        @if (statusFilter() === 'all') {
+          <div class="filter-toggle-wrap">
+            <button class="filter-toggle-btn"
+                    [class.filter-toggle-btn--open]="filterPanelOpen()"
+                    (click)="filterPanelOpen.set(!filterPanelOpen())">
+              <mat-icon>filter_list</mat-icon>
+              <span>{{ 'raum_detail.filter' | translate }}</span>
+              <mat-icon class="filter-toggle-btn__arrow">
+                {{ filterPanelOpen() ? 'expand_less' : 'expand_more' }}
+              </mat-icon>
+            </button>
+          </div>
+        }
 
-        @if (filterPanelOpen()) {
+        @if (statusFilter() === 'all' && filterPanelOpen()) {
           <div class="filter-panel">
 
             <!-- Sortierung -->
@@ -233,8 +255,9 @@
                           @if (viewMode() === 'text') {
                             <span class="res-row__status-badge"
                                   [style.background]="colorFor(res.status)"
-                                  [style.color]="textColorFor(colorFor(res.status))">
-                              {{ labelFor(res.status) }}
+                                  [style.color]="textColorFor(colorFor(res.status))"
+                                  [title]="labelFor(res.status)">
+                              {{ shortLabelFor(res.status) }}
                             </span>
                           } @else if (viewMode() === 'svg') {
                             <span class="res-row__status-tile"
@@ -310,17 +333,9 @@
                             </span>
                           }
                         </div>
-                        @if (res.notes) {
-                          <div class="res-row__notes"><mat-icon>sticky_note_2</mat-icon>{{ res.notes }}</div>
-                        }
-                        @if ((res.gasttypen?.length || res.hinweise?.length)) {
-                          <div class="res-row__tags">
-                            @for (t of resolveGasttypen(res.gasttypen); track t.key) {
-                              <span class="res-tag" [style.background]="t.color + '33'" [style.color]="t.color" [style.border-color]="t.color + '66'">{{ t.label }}</span>
-                            }
-                            @for (h of resolveHinweise(res.hinweise); track h.key) {
-                              <span class="res-tag" [style.background]="h.color + '33'" [style.color]="h.color" [style.border-color]="h.color + '66'">{{ h.label }}</span>
-                            }
+                        @if (res.notes || res.gasttypen?.length || res.hinweise?.length) {
+                          <div class="res-row__info-badge">
+                            <mat-icon>sticky_note_2</mat-icon>
                           </div>
                         }
                       </div>
@@ -585,29 +600,29 @@
                 <button class="reassign-choice__opt reassign-choice__opt--move" (click)="doReassign()">
                   <mat-icon>swap_horiz</mat-icon>
                   <div>
-                    <strong>Tisch Umplatzieren</strong>
-                    <span>Reservierung wechselt vollständig zu Tisch {{ reassignChoice()?.targetTableId }}</span>
+                    <strong>{{ 'raum_detail.reassign_move' | translate }}</strong>
+                    <span>{{ 'raum_detail.reassign_move_hint' | translate : { id: reassignChoice()?.targetTableId } }}</span>
                   </div>
                 </button>
                 @if (reassignResSplit) {
                   <button class="reassign-choice__opt reassign-choice__opt--merge" (click)="doMerge()">
                     <mat-icon>merge</mat-icon>
                     <div>
-                      <strong>Tische zusammenführen</strong>
-                      <span>Split aufheben — Reservierung nur noch auf Tisch {{ reassignChoice()?.targetTableId }}</span>
+                      <strong>{{ 'raum_detail.reassign_merge' | translate }}</strong>
+                      <span>{{ 'raum_detail.reassign_merge_hint' | translate : { id: reassignChoice()?.targetTableId } }}</span>
                     </div>
                   </button>
                 } @else {
                   <button class="reassign-choice__opt reassign-choice__opt--split" (click)="doSplit()">
                     <mat-icon>call_split</mat-icon>
                     <div>
-                      <strong>Tisch Splitten</strong>
-                      <span>Reservierung gilt für Tisch {{ reassignMode()?.sourceTableId }} und {{ reassignChoice()?.targetTableId }}</span>
+                      <strong>{{ 'raum_detail.reassign_split_action' | translate }}</strong>
+                      <span>{{ 'raum_detail.reassign_split_hint' | translate : { src: reassignMode()?.sourceTableId, tgt: reassignChoice()?.targetTableId } }}</span>
                     </div>
                   </button>
                 }
               </div>
-              <button class="reassign-choice__cancel" (click)="reassignChoice.set(null)">Abbrechen</button>
+              <button class="reassign-choice__cancel" (click)="reassignChoice.set(null)">{{ 'common.cancel' | translate }}</button>
             </div>
           </div>
         }
@@ -761,7 +776,7 @@
                [style]="getMidpointStyle(pair.a, pair.b)"
                (pointerdown)="$event.stopPropagation()"
                (click)="openRoomSplitDialog(pair.a.id, $event)"
-               title="Tische wieder trennen">
+               [title]="'raum_detail.split_room_badge' | translate">
             <mat-icon>link</mat-icon>
           </div>
         }
@@ -771,14 +786,14 @@
           <div class="room-split-backdrop" (click)="cancelRoomSplit()">
             <div class="room-split-dialog" (click)="$event.stopPropagation()">
               <div class="room-split-dialog__icon"><mat-icon>link_off</mat-icon></div>
-              <h3 class="room-split-dialog__title">Tische trennen?</h3>
-              <p class="room-split-dialog__text">Die zusammengestellten Tische werden wieder getrennt und auf ihre ursprüngliche Sitzplatzzahl zurückgesetzt.</p>
+              <h3 class="room-split-dialog__title">{{ 'raum_detail.split_room_title' | translate }}</h3>
+              <p class="room-split-dialog__text">{{ 'raum_detail.split_room_text' | translate }}</p>
               <div class="room-split-dialog__actions">
                 <button class="room-split-dialog__btn room-split-dialog__btn--confirm" (click)="confirmRoomSplit()">
-                  <mat-icon>link_off</mat-icon> Ja, trennen
+                  <mat-icon>link_off</mat-icon> {{ 'raum_detail.split_room_confirm' | translate }}
                 </button>
                 <button class="room-split-dialog__btn room-split-dialog__btn--cancel" (click)="cancelRoomSplit()">
-                  Abbrechen
+                  {{ 'common.cancel' | translate }}
                 </button>
               </div>
             </div>
@@ -1047,6 +1062,11 @@
               </div>
 
               <label class="field">
+                <span class="field__label">{{ 'raum_detail.phone_optional' | translate }}</span>
+                <input class="field__input" name="phone" type="tel" [placeholder]="'raum_detail.phone_placeholder' | translate" [(ngModel)]="form.phone">
+              </label>
+
+              <label class="field">
                 <span class="field__label">{{ 'raum_detail.duration' | translate }}</span>
                 <select class="field__input field__input--select" name="duration" [(ngModel)]="form.durationMinutes" (ngModelChange)="formDurationMinutes.set(+$event)">
                   <option [value]="30">30 min</option><option [value]="45">45 min</option>
@@ -1062,11 +1082,6 @@
               <label class="field">
                 <span class="field__label">{{ 'raum_detail.email_optional' | translate }}</span>
                 <input class="field__input" name="guestEmail" type="email" [placeholder]="'raum_detail.email_placeholder' | translate" [(ngModel)]="form.guestEmail">
-              </label>
-
-              <label class="field">
-                <span class="field__label">{{ 'raum_detail.phone_optional' | translate }}</span>
-                <input class="field__input" name="phone" type="tel" [placeholder]="'raum_detail.phone_placeholder' | translate" [(ngModel)]="form.phone">
               </label>
 
               <label class="field rf-notes">
@@ -1121,6 +1136,8 @@
                                   [class.is-past]="cell.past && !cell.isToday"
                                   [class.is-today]="cell.isToday"
                                   [class.is-selected]="cell.sel"
+                                  [class.is-closed]="cell.closed"
+                                  [class.is-open]="cell.open"
                                   [disabled]="cell.disabled"
                                   (click)="selectCalendarDay(cell.iso)">
                             {{ cell.day }}
@@ -1133,6 +1150,15 @@
                   <!-- Uhrzeit + Personen — Step 2 auf Mobile -->
                   <div class="rf-time-persons rf-mob-time">
                     <div class="rf-section-label">
+                      <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="14" height="14" style="opacity:.7">
+                        <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                        <line x1="10" y1="10" x2="10" y2="5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        <line x1="10" y1="10" x2="13.5" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="10" cy="3"  r=".8" fill="currentColor" opacity=".5"/>
+                        <circle cx="10" cy="17" r=".8" fill="currentColor" opacity=".5"/>
+                        <circle cx="3"  cy="10" r=".8" fill="currentColor" opacity=".5"/>
+                        <circle cx="17" cy="10" r=".8" fill="currentColor" opacity=".5"/>
+                      </svg>
                       {{ 'raum_detail.time_step' | translate }}
                       @if (formSubmitAttempted() && !form.time) {
                         <span class="field__required-hint">{{ 'common.required' | translate }}</span>
@@ -1151,7 +1177,7 @@
                       </div>
                     </div>
 
-                    <div class="rf-section-label">
+                    <div class="rf-section-label" style="margin-top: auto; padding-top: 6px;">
                       <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="14" height="14" style="opacity:.7">
                         <circle cx="7" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".6"/>
                         <path d="M1 17 Q1 12 7 12 Q9.5 12 11 13.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
@@ -1171,11 +1197,11 @@
                           <span class="table-inline__num">{{ n }}</span>
                         </button>
                       }
-                      <input type="number" min="11" max="200"
+                      <input type="number" min="7" max="200"
                              class="picker-row__more-input"
-                             [class.picker-row__more-input--active]="form.partySize > 10"
-                             placeholder="11+"
-                             [value]="form.partySize > 10 ? form.partySize : null"
+                             [class.picker-row__more-input--active]="form.partySize > 6"
+                             placeholder="7+"
+                             [value]="form.partySize > 6 ? form.partySize : null"
                              (change)="form.partySize = +$any($event.target).value" />
                     </div>
                   </div>
@@ -1216,7 +1242,7 @@
                 @if (mergeSuggestions().length > 0 && form.tableIds.length === 0) {
                   <div class="merge-hint">
                     <mat-icon>merge_type</mat-icon>
-                    <span>Kein Einzeltisch für {{ form.partySize }} Pers. — Kombination wählen:</span>
+                    <span>{{ 'raum_detail.no_single_table' | translate : { n: form.partySize } }}</span>
                     @for (s of mergeSuggestions(); track s.ids.join(',')) {
                       <button type="button" class="merge-hint__chip" (click)="form.tableIds = s.ids; form.tableId = s.ids[0]">
                         @for (id of s.ids; track id) { #{{ id }} }
@@ -1230,7 +1256,7 @@
                   @if (isAnySelectedTableOccupied()) {
                     <div class="table-occupied-warning">
                       <mat-icon>lock</mat-icon>
-                      <span>Tisch&nbsp;#{{ firstOccupiedSelectedTableId() }} ist um&nbsp;<strong>{{ form.time }}&nbsp;Uhr</strong> bereits belegt — bitte andere Uhrzeit oder anderen Tisch wählen.</span>
+                      <span>{{ 'raum_detail.table_occupied' | translate : { id: firstOccupiedSelectedTableId(), time: form.time } }}</span>
                     </div>
                   }
                   <div class="table-inline">
@@ -1354,8 +1380,30 @@
 
         <!-- ── Kopfzeile ──────────────────────────────────────────────── -->
         <div class="gc-header">
-          <div class="gc-avatar" [class.gc-avatar--warn]="(guestCardRes()?.guestNoShowCount ?? 0) >= 2">
-            {{ guestInitials(gcName()) }}
+          <div class="gc-avatar-wrap">
+            <div class="gc-avatar"
+                 [class.gc-avatar--warn]="(guestCardRes()?.guestNoShowCount ?? 0) >= 2"
+                 [class.gc-avatar--clickable]="guestCardRes()?.guestId"
+                 (click)="toggleKundenConfirm()">
+              <svg class="gc-avatar__silhouette" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="15" r="7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M6 36c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <span class="gc-avatar__initials">{{ guestInitials(gcName()) }}</span>
+            </div>
+            @if (showKundenConfirm() && guestCardRes()?.guestId) {
+              <div class="gc-avatar-confirm">
+                <span class="gc-avatar-confirm__text">Zur Kundenkartei wechseln?</span>
+                <div class="gc-avatar-confirm__actions">
+                  <button class="gc-avatar-confirm__yes" (click)="navigateToKunde()">
+                    <mat-icon>open_in_new</mat-icon> Ja
+                  </button>
+                  <button class="gc-avatar-confirm__no" (click)="showKundenConfirm.set(false)">
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            }
           </div>
           <div class="gc-identity">
             <h3 class="gc-name">{{ guestCardRes()?.guestName }}</h3>
@@ -1389,17 +1437,17 @@
           <div class="gc-actions-bar">
             @if (res.status === 'upcoming' || res.status === 'late' || res.status === 'expired') {
               <button class="gc-action gc-action--confirm" (click)="gcDoStatus('confirmed')" [disabled]="gcStatusLoading()">
-                <mat-icon>check_circle</mat-icon>Bestätigen
+                <mat-icon>check_circle</mat-icon>{{ 'common.confirm' | translate }}
               </button>
             }
             @if (res.status === 'confirmed' || res.status === 'late') {
               <button class="gc-action gc-action--seat" (click)="gcDoStatus('seated')" [disabled]="gcStatusLoading()">
-                <mat-icon>airline_seat_recline_normal</mat-icon>Eingecheckt
+                <mat-icon>airline_seat_recline_normal</mat-icon>{{ 'raum_detail.gc_seated' | translate }}
               </button>
             }
             @if (res.status === 'seated' || res.status === 'cleanup') {
               <button class="gc-action gc-action--complete" (click)="gcDoStatus('completed')" [disabled]="gcStatusLoading()">
-                <mat-icon>task_alt</mat-icon>Abschließen
+                <mat-icon>task_alt</mat-icon>{{ 'raum_detail.gc_complete' | translate }}
               </button>
             }
             @if (res.status !== 'completed' && res.status !== 'cancelled' && res.status !== 'no-show') {
@@ -1407,12 +1455,12 @@
                 <mat-icon>person_off</mat-icon>No-Show
               </button>
               <button class="gc-action gc-action--cancel" (click)="gcDoStatus('cancelled')" [disabled]="gcStatusLoading()">
-                <mat-icon>cancel</mat-icon>Stornieren
+                <mat-icon>cancel</mat-icon>{{ 'raum_detail.cancel_res' | translate }}
               </button>
             }
             @if (res.status === 'completed' || res.status === 'cancelled' || res.status === 'no-show') {
               <button class="gc-action gc-action--reopen" (click)="gcDoStatus('reopen')" [disabled]="gcStatusLoading()">
-                <mat-icon>restart_alt</mat-icon>Wiedereröffnen
+                <mat-icon>restart_alt</mat-icon>{{ 'raum_detail.gc_reopen' | translate }}
               </button>
             }
           </div>
@@ -1421,47 +1469,49 @@
           <div class="gc-body">
 
             <!-- Links: Reservierungsdetails -->
-            <div class="gc-res-panel">
-              <div class="gc-section-head">
-                <span class="gc-section-title">Reservierung</span>
-                <span class="gc-status-pill"
-                      [style.background]="colorFor(res.status) + '22'"
-                      [style.border-color]="colorFor(res.status) + '66'"
-                      [style.color]="colorFor(res.status)">
-                  {{ labelFor(res.status) }}
-                </span>
+            <div class="gc-res-panel" [style.--res-color]="colorFor(res.status)">
+
+              <!-- Hero: Zeit + Status -->
+              <div class="gc-res-hero">
+                <div class="gc-res-hero__time">{{ res.time }}</div>
+                <div class="gc-res-hero__meta">
+                  <span class="gc-res-hero__date">{{ res.date | date:'EEEE, dd. MMMM yyyy' }}</span>
+                  <span class="gc-res-hero__dur">{{ res.durationMinutes }} min</span>
+                </div>
+                <span class="gc-res-hero__pill">{{ labelFor(res.status) }}</span>
               </div>
+
+              <!-- Detail-Rows -->
               <div class="gc-detail-list">
                 <div class="gc-detail">
-                  <mat-icon>calendar_today</mat-icon>
-                  <span>{{ res.date | date:'dd.MM.yyyy' }}</span>
+                  <span class="gc-detail__icon"><mat-icon>group</mat-icon></span>
+                  <span class="gc-detail__label">Personen</span>
+                  <span class="gc-detail__val">{{ res.partySize }} Person{{ res.partySize !== 1 ? 'en' : '' }}</span>
                 </div>
-                <div class="gc-detail">
-                  <mat-icon>schedule</mat-icon>
-                  <span>{{ res.time }} Uhr · {{ res.durationMinutes }} min</span>
-                </div>
-                <div class="gc-detail">
-                  <mat-icon>group</mat-icon>
-                  <span>{{ res.partySize }} Person{{ res.partySize !== 1 ? 'en' : '' }}</span>
-                </div>
+
                 @if ((res.tableIds?.length ?? 0) > 1) {
                   <div class="gc-detail">
-                    <mat-icon>table_restaurant</mat-icon>
-                    <span>Tische @for (id of res.tableIds!; track id; let last = $last) {#{{ id }}@if (!last) { + }}</span>
+                    <span class="gc-detail__icon"><mat-icon>table_restaurant</mat-icon></span>
+                    <span class="gc-detail__label">Tische</span>
+                    <span class="gc-detail__val">@for (id of res.tableIds!; track id; let last = $last) {#{{ id }}@if (!last) { + }}</span>
                   </div>
                 } @else if (res.tableId) {
                   <div class="gc-detail">
-                    <mat-icon>table_restaurant</mat-icon>
-                    <span>Tisch #{{ res.tableId }}</span>
+                    <span class="gc-detail__icon"><mat-icon>table_restaurant</mat-icon></span>
+                    <span class="gc-detail__label">Tisch</span>
+                    <span class="gc-detail__val">#{{ res.tableId }}</span>
                   </div>
                 }
+
                 @if (res.notes) {
                   <div class="gc-detail gc-detail--notes">
-                    <mat-icon>sticky_note_2</mat-icon>
-                    <span>{{ res.notes }}</span>
+                    <span class="gc-detail__icon"><mat-icon>sticky_note_2</mat-icon></span>
+                    <span class="gc-detail__label">Notiz</span>
+                    <span class="gc-detail__val">{{ res.notes }}</span>
                   </div>
                 }
               </div>
+
               <button class="gc-edit-btn" (click)="editFromGuestCard()" [title]="'raum_detail.edit_reservation' | translate">
                 <mat-icon>edit</mat-icon>{{ 'common.edit' | translate }}
               </button>

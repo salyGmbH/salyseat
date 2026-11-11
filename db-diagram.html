@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Salyseat — Entity Relationship Diagram</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0D0F16;font-family:'Inter','Segoe UI',system-ui,sans-serif;color:#e2e8f0;padding:40px 40px 60px}
+h1{font-size:26px;font-weight:700;text-align:center;margin-bottom:6px;background:linear-gradient(135deg,#60a5fa,#a78bfa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{text-align:center;color:#6b7280;font-size:13px;margin-bottom:44px}
+.canvas{position:relative;width:1540px;height:1210px;margin:0 auto}
+.svg-layer{position:absolute;top:0;left:0;width:1540px;height:1210px;pointer-events:none;overflow:visible}
+
+/* ── Entity card ─────────────────────────────────────── */
+.ent{position:absolute;background:#141720;border:1px solid #252836;border-radius:10px;overflow:hidden;box-shadow:0 4px 28px rgba(0,0,0,.45);width:278px}
+.ent-head{padding:9px 13px 7px;border-bottom:1px solid #252836}
+.ent-name{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.ent-icon{font-size:13px}
+.ent-tbl{font-size:9.5px;color:#6b7280;font-family:monospace;letter-spacing:.4px}
+.ent-body{padding:5px 0 4px}
+.f{display:flex;align-items:center;padding:2px 11px;gap:5px}
+.f:hover{background:rgba(255,255,255,.03)}
+.fm{font-size:9px;width:9px;flex-shrink:0;text-align:center}
+.fm.pk{color:#fbbf24}
+.fm.fk{color:#60a5fa}
+.fm.reg{color:#374151}
+.tb{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8.5px;font-weight:600;min-width:40px;text-align:center;font-family:monospace;flex-shrink:0}
+.fn{font-size:10.5px;color:#cbd5e1;flex:1}
+.fn.opt{color:#9ca3af}
+
+/* type palette */
+.t-uuid{background:#1a3357;color:#60a5fa}
+.t-str{background:#14532d;color:#4ade80}
+.t-int{background:#431407;color:#fb923c}
+.t-bool{background:#3b2100;color:#fbbf24}
+.t-json{background:#2e1065;color:#c084fc}
+.t-dt{background:#0c2a2a;color:#2dd4bf}
+.t-date{background:#0c2a2a;color:#2dd4bf}
+.t-text{background:#1f2937;color:#9ca3af}
+.t-enum{background:#2a1840;color:#e879f9}
+.t-fk{background:#1a3357;color:#93c5fd}
+
+/* accent borders */
+.a-blue   .ent-head{background:#1e3a5f18;border-left:3px solid #2563eb}
+.a-purple .ent-head{background:#2e106518;border-left:3px solid #7c3aed}
+.a-indigo .ent-head{background:#1e1b4b18;border-left:3px solid #4f46e5}
+.a-teal   .ent-head{background:#0c2a2a18;border-left:3px solid #0891b2}
+.a-orange .ent-head{background:#43140718;border-left:3px solid #ea580c}
+.a-amber  .ent-head{background:#3b210018;border-left:3px solid #d97706}
+.a-green  .ent-head{background:#14532d18;border-left:3px solid #16a34a}
+.a-rose   .ent-head{background:#4c050518;border-left:3px solid #e11d48}
+.a-emerald .ent-head{background:#06402418;border-left:3px solid #059669}
+.a-red    .ent-head{background:#7f1d1d18;border-left:3px solid #dc2626}
+.a-yellow .ent-head{background:#3b210018;border-left:3px solid #ca8a04}
+
+/* ── Legend ───────────────────────────────────────────── */
+.legend{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:32px;padding:14px 24px;background:#141720;border:1px solid #252836;border-radius:10px;width:fit-content;margin-left:auto;margin-right:auto;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:7px;font-size:11px;color:#9ca3af}
+.ll{width:28px;height:2px;background:#4b5563}
+.ll-dash{width:28px;height:2px;background:repeating-linear-gradient(to right,#4b5563 0,#4b5563 4px,transparent 4px,transparent 8px)}
+.ld{width:9px;height:9px;border-radius:50%}
+.ld-pk{background:#fbbf24}
+.ld-fk{background:#60a5fa}
+</style>
+</head>
+<body>
+
+<h1>Salyseat — Entity Relationship Diagram</h1>
+<p class="subtitle">Alle Entitäten, Felder und Kardinalitäten im Überblick</p>
+
+<div class="canvas">
+
+<!-- ═══════════════════════════════════════════════════
+     SVG ARROWS
+════════════════════════════════════════════════════ -->
+<svg class="svg-layer" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#4b5563"/>
+    </marker>
+    <marker id="ah-opt" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- Tenant → TenantBranding  1:1 -->
+  <path d="M 600 245 C 600 274 149 274 149 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="290" y="268" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">hat Branding</text>
+  <text x="618" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="132" y="294" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">1</text>
+
+  <!-- Tenant → User  1:N -->
+  <path d="M 648 245 C 648 274 436 274 436 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="542" y="268" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">hat Nutzer</text>
+  <text x="660" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="420" y="294" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Tenant → Venue  1:N -->
+  <path d="M 712 245 L 712 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="720" y="275" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">betreibt</text>
+  <text x="698" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="698" y="296" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Tenant → OpeningHours  1:N -->
+  <path d="M 795 245 C 795 274 1010 274 1010 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="902" y="268" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">Öffnungszeiten</text>
+  <text x="807" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="994" y="294" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Tenant → Guest  1:N -->
+  <path d="M 852 128 C 1010 128 1010 248 1180 248" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="1016" y="122" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">kennt Gäste</text>
+  <text x="836" y="123" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="1163" y="242" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Tenant → Staff  1:N -->
+  <path d="M 588 245 C 588 395 436 395 436 545" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="490" y="368" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Mitarbeiter</text>
+  <text x="596" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="420" y="540" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Tenant → SpecialClosing  1:N -->
+  <path d="M 852 168 C 1160 168 1160 515 1018 515" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="1060" y="162" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Sonderschl.</text>
+  <text x="836" y="163" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="1020" y="510" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Tenant → Notiz  1:N -->
+  <path d="M 576 238 C 295 400 292 700 149 785" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="220" y="500" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Notizen</text>
+  <text x="582" y="253" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="133" y="780" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Venue → Resource  1:N -->
+  <path d="M 712 645 L 712 668" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="720" y="660" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Tische</text>
+  <text x="698" y="658" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="698" y="666" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Venue → Reservation  1:N -->
+  <path d="M 820 645 C 820 706 1010 706 1010 758" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+  <text x="915" y="700" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">Reservierungen</text>
+  <text x="826" y="660" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
+  <text x="994" y="753" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- Guest → Reservation  0..1 : N -->
+  <path d="M 1330 488 C 1330 680 1148 680 1148 758" stroke="#374151" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#ah-opt)"/>
+  <text x="1260" y="630" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">bucht</text>
+  <text x="1316" y="500" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">0..1</text>
+  <text x="1132" y="753" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+
+  <!-- User → Notiz  optional createdBy -->
+  <path d="M 308 430 C 235 430 235 720 149 785" stroke="#374151" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#ah-opt)"/>
+  <text x="184" y="610" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">erstellt</text>
+  <text x="293" y="426" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">0..1</text>
+  <text x="133" y="780" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+</svg>
+
+
+<!-- ═══════════════════════════════════════════════════
+     ENTITY CARDS
+════════════════════════════════════════════════════ -->
+
+<!-- TENANT  (center top) -->
+<div class="ent a-blue" style="left:572px;top:20px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">🏢</span> Tenant</div>
+    <div class="ent-tbl">tenants</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">slug</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">publicKey</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">plan</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">uiSettings?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+  </div>
+</div>
+
+<!-- TENANT BRANDING  (far left) -->
+<div class="ent a-purple" style="left:10px;top:300px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">🎨</span> TenantBranding</div>
+    <div class="ent-tbl">tenant_branding</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">primaryColor</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">primaryColorHover</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">backgroundColor</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">textColor</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">fontFamily</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">baseFontSize</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">borderRadius</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">buttonStyle</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">logoUrl?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">widgetTitle?</span></div>
+  </div>
+</div>
+
+<!-- USER  (center-left) -->
+<div class="ent a-indigo" style="left:300px;top:300px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">👤</span> User</div>
+    <div class="ent-tbl">users</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn opt">tenant? (null=SuperAdmin)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">email</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">password</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">firstName?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">lastName?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">arr</span><span class="fn">roles</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+  </div>
+</div>
+
+<!-- STAFF  (below User) -->
+<div class="ent a-teal" style="left:300px;top:545px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">👥</span> Staff</div>
+    <div class="ent-tbl">staff</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">employeeNumber</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">email?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">role</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+  </div>
+</div>
+
+<!-- VENUE  (center) -->
+<div class="ent a-orange" style="left:572px;top:300px;width:283px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">📍</span> Venue</div>
+    <div class="ent-tbl">venues</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">category</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">description?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">address?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">timezone</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">phone?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">email?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">defaultDurationMinutes</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">maxAdvanceBookingDays</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">minAdvanceBookingHours</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">layout?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+  </div>
+</div>
+
+<!-- OPENING HOURS  (center-right) -->
+<div class="ent a-emerald" style="left:878px;top:300px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">🕐</span> OpeningHours</div>
+    <div class="ent-tbl">opening_hours · UNIQUE(tenant, weekday)</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">weekday (0=Mo…6=So)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">open</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">openTime? (HH:MM)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">closeTime? (HH:MM)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">breaks?</span></div>
+  </div>
+</div>
+
+<!-- SPECIAL CLOSING  (below OpeningHours) -->
+<div class="ent a-red" style="left:878px;top:510px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">🚫</span> SpecialClosing</div>
+    <div class="ent-tbl">special_closings</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">dateFrom</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">dateTo</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">reason?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">fullDay</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">openTime?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">closeTime?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+  </div>
+</div>
+
+<!-- RESOURCE  (below Venue) -->
+<div class="ent a-amber" style="left:572px;top:668px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">🪑</span> Resource</div>
+    <div class="ent-tbl">resources</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">capacity</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+  </div>
+</div>
+
+<!-- RESERVATION  (bottom center-right) -->
+<div class="ent a-rose" style="left:878px;top:758px;width:285px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">📋</span> Reservation</div>
+    <div class="ent-tbl">reservations</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Guest</span><span class="fn opt">guest? (SET NULL)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">token (unique)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">guestName</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">guestEmail</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">guestPhone?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">guestNotes?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">partySize</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn opt">tableNumber?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">startsAt</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">endsAt</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">status</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">adminNotes?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn opt">reminderSentAt?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+  </div>
+</div>
+
+<!-- NOTIZ  (bottom left) -->
+<div class="ent a-yellow" style="left:10px;top:785px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">📝</span> Notiz</div>
+    <div class="ent-tbl">notizen</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">User</span><span class="fn opt">createdBy? (SET NULL)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">date (YYYY-MM-DD)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">time? (HH:MM)</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">title</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">text?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">color</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">done</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+  </div>
+</div>
+
+<!-- GUEST  (far right) -->
+<div class="ent a-green" style="left:1185px;top:20px;width:295px">
+  <div class="ent-head">
+    <div class="ent-name"><span class="ent-icon">👋</span> Guest</div>
+    <div class="ent-tbl">guests · UNIQUE(tenant, email)</div>
+  </div>
+  <div class="ent-body">
+    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">email</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">phone?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">internalNotes?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">blocked</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">blockedReason?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">totalReservations</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">noShowCount</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">totalRevenueCents</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">cancellationCount</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">birthday?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">weddingDate?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">lastVisitAt?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">allergies?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">gasttypen?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">hinweise?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">allergene?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">reminders?</span></div>
+    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+  </div>
+</div>
+
+<!-- ReservationStatus enum box -->
+<div style="position:absolute;left:878px;top:1140px;background:#14172088;border:1px solid #252836;border-radius:8px;padding:8px 14px;font-size:10px;color:#9ca3af">
+  <span style="color:#e879f9;font-weight:700;font-family:monospace">enum</span>
+  <span style="color:#e2e8f0;margin-left:6px">status:</span>
+  <span style="color:#6b7280;margin-left:6px">pending · confirmed · seated · cleanup · completed · cancelled · no_show</span>
+</div>
+
+</div><!-- /canvas -->
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="li"><span class="ld ld-pk"></span> Primary Key (PK)</div>
+  <div class="li"><span class="ld ld-fk"></span> Foreign Key (FK)</div>
+  <div class="li"><div class="ll"></div> Pflicht-Beziehung (1:N / 1:1)</div>
+  <div class="li"><div class="ll-dash"></div> Optionale Beziehung (0..1)</div>
+  <div class="li"><span style="color:#4ade80;font-size:11px;font-family:monospace">str</span> string</div>
+  <div class="li"><span style="color:#fb923c;font-size:11px;font-family:monospace">int</span> integer</div>
+  <div class="li"><span style="color:#fbbf24;font-size:11px;font-family:monospace">bool</span> boolean</div>
+  <div class="li"><span style="color:#c084fc;font-size:11px;font-family:monospace">json</span> JSON / array</div>
+  <div class="li"><span style="color:#2dd4bf;font-size:11px;font-family:monospace">DT</span> DateTime</div>
+  <div class="li"><span style="color:#e879f9;font-size:11px;font-family:monospace">enum</span> Enum</div>
+  <div class="li"><span style="color:#9ca3af;font-size:11px">field?</span> nullable</div>
+</div>
+
+</body>
+</html>

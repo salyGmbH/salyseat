@@ -12,6 +12,7 @@ services:
             string $mailerSender: '%mailer_sender%'
             string $widgetBaseUrl: '%widget_base_url%'
             string $uploadsDir: '%kernel.project_dir%/public/uploads'
+            string $publicDir: '%kernel.project_dir%/public'
 
     # Alle Klassen in src/ werden automatisch als Services registriert.
     # Entities sind keine Services und werden deshalb ausgeschlossen.

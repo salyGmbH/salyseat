@@ -17,5 +17,7 @@ final readonly class UpdateReservationCommand
         public ?string $guestNotes = null,
         /** false = not provided (no change); null = unassign; int = assign this table number */
         public int|false|null $tableNumber = false,
+        /** null = no change; string UUID = move reservation to this venue/room */
+        public ?string $venueId = null,
     ) {}
 }

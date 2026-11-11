@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { StatusColorsService } from '../../../services/status-colors.service';
 import { ReservationTimingService } from '../../../services/reservation-timing.service';
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
@@ -25,7 +25,8 @@ import {
 export class StatusFarbenComponent implements OnInit {
 
   private readonly statusColorsService = inject(StatusColorsService);
-  private readonly tenantSettings = inject(TenantSettingsService);
+  private readonly tenantSettings      = inject(TenantSettingsService);
+  private readonly translate           = inject(TranslateService);
   /**
    * Lese-Zugriff auf Timing-Settings — wird auf dieser Seite nur gelesen
    * (gesetzt wird die Cleanup-Zeit unter Einstellungen → Reservierungen).
@@ -154,6 +155,11 @@ export class StatusFarbenComponent implements OnInit {
 
   getStatusByKey(key: string): ConfigItem | undefined {
     return this.statuses.find(s => s.key === key);
+  }
+
+  /** Übersetztes Status-Label — liest aus i18n statt aus dem gespeicherten Objekt */
+  labelFor(key: string): string {
+    return this.statusColorsService.labelFor(key as any);
   }
 
   // =========================

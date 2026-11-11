@@ -116,7 +116,7 @@ class ReservationController extends AbstractController
 
         return $this->json(ReservationDto::fromEntity($reservation)->toArray(), Response::HTTP_CREATED);
     }
-
+    
     #[Route('', name: 'admin_reservation_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] User $user): JsonResponse
     {
@@ -129,7 +129,9 @@ class ReservationController extends AbstractController
             tenantId: $tenant->getId()->toRfc4122(),
             status:   $request->query->get('status'),
             date:     $request->query->get('date'),
-            limit:    (int) $request->query->get('limit', 50),
+            dateFrom: $request->query->get('date_from'),
+            dateTo:   $request->query->get('date_to'),
+            limit:    (int) $request->query->get('limit', 500),
             offset:   (int) $request->query->get('offset', 0),
         );
 
@@ -193,6 +195,9 @@ class ReservationController extends AbstractController
             $tableNumber = $data['table_id'] === null ? null : (int) $data['table_id'];
         }
 
+        $venueId = isset($data['venue_id']) ? trim((string) $data['venue_id']) : null;
+        if ($venueId === '') $venueId = null;
+
         try {
             $reservation = ($this->updateHandler)(new UpdateReservationCommand(
                 reservationId:   $id,
@@ -204,6 +209,7 @@ class ReservationController extends AbstractController
                 guestPhone:      isset($data['guest_phone']) ? trim((string) $data['guest_phone']) : null,
                 guestNotes:      isset($data['notes']) ? trim((string) $data['notes']) : null,
                 tableNumber:     $tableNumber,
+                venueId:         $venueId,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_NOT_FOUND);

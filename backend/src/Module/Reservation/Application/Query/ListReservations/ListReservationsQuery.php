@@ -10,6 +10,8 @@ final readonly class ListReservationsQuery
         public string $tenantId,
         public ?string $status = null,
         public ?string $date = null,
+        public ?string $dateFrom = null,
+        public ?string $dateTo = null,
         public int $limit = 50,
         public int $offset = 0,
     ) {}

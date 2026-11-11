@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { combineLatest, of, startWith, switchMap, take } from 'rxjs';
+import { combineLatest, of, startWith, switchMap, take, distinctUntilChanged } from 'rxjs';
 import { RoomsService } from '../../services/rooms.service';
 import { FloorReservationsService } from '../../services/floor-reservations.service';
 import { ReservationsService } from '../../services/reservations.service';
@@ -15,7 +15,7 @@ import { StatusColorsService } from '../../services/status-colors.service';
 import { ReservationTimingService } from '../../services/reservation-timing.service';
 import { GuestsService, Guest } from '../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../services/tenant-settings.service';
-import { OpeningHoursService, DayHours } from '../../services/opening-hours.service';
+import { OpeningHoursService, DayHours, SpecialClosing } from '../../services/opening-hours.service';
 import { PlacedTable, TableType, DecorType, SavedRoom } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
@@ -63,6 +63,8 @@ export class RaumDetailComponent implements OnInit {
 
   // Vollständige Öffnungszeiten – gesetzt sobald die API antwortet
   allDayHours = signal<DayHours[]>([]);
+  // Sonderschließungen (z.B. Feiertage, Betriebsferien)
+  specialClosings = signal<SpecialClosing[]>([]);
 
   // Dynamische Start-/Endstunde: exakt der früheste/späteste Öffnungszeitraum, kein Puffer
   get tlStartH(): number {
@@ -219,8 +221,8 @@ export class RaumDetailComponent implements OnInit {
   readonly STATUS_LABELS = STATUS_LABELS;
   readonly layoutLoading = signal(false);
 
-  /** Personen-Karten: 1–10, darüber → Eingabefeld */
-  readonly partyOptions = Array.from({ length: 10 }, (_, i) => i + 1);
+  /** Personen-Karten: 1–6, darüber → Eingabefeld */
+  readonly partyOptions = Array.from({ length: 6 }, (_, i) => i + 1);
 
   /** Zeitslots basierend auf dem konfigurierten Intervall (08:00–23:30). */
   get timeSlots(): string[] {
@@ -270,6 +272,11 @@ export class RaumDetailComponent implements OnInit {
     return this.statusColors.labelForReservation(status);
   }
 
+  /** Kurzes Label für enge UI-Elemente (Status-Badge). */
+  shortLabelFor(status: FloorReservationStatus): string {
+    return this.statusColors.shortLabelForReservation(status);
+  }
+
   /**
    * Anzeigemodus für Status (Farbe / Text / Icons).
    * Wird zentral in der Status-Einstellungsseite gesetzt und hier nur gelesen.
@@ -312,29 +319,64 @@ export class RaumDetailComponent implements OnInit {
       if (s.gasttypen?.length) this.availableGasttypen.set(s.gasttypen);
       if (s.hinweise?.length)  this.availableHinweise.set(s.hinweise);
     });
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return;
-    this.ohService.getHours(id).subscribe(days => {
-      this.allDayHours.set(days);
-      this.closedWeekdays.set(days.filter(d => !d.open).map(d => d.weekday));
+
+    // xmove-Parameter nur beim ersten Aufruf auslesen (snapshot reicht hier)
+    const xmove     = this.route.snapshot.queryParamMap.get('xmove');
+    const xbackend  = this.route.snapshot.queryParamMap.get('xbackend') ?? '';
+    const fromTable = this.route.snapshot.queryParamMap.get('fromTable');
+    const guestName = this.route.snapshot.queryParamMap.get('guestName') ?? '';
+    let xmoveHandled = false;
+
+    // paramMap als Observable abonnieren – damit wird loadRoomLayout AUCH beim
+    // Raum-Wechsel (Tab-Klick) erneut ausgeführt, weil Angular die Komponente
+    // wiederverwendet und ngOnInit nicht nochmal aufruft.
+    this.route.paramMap.pipe(
+      distinctUntilChanged((a, b) => a.get('id') === b.get('id')),
+      switchMap(params => {
+        const id = params.get('id');
+        if (!id) return of(null);
+        this.layoutLoading.set(true);
+
+        // Öffnungszeiten & Sonderschließungen gelten pro Raum → bei jedem Raumwechsel neu laden
+        this.ohService.getHours(id).subscribe(days => {
+          this.allDayHours.set(days);
+          this.closedWeekdays.set(days.filter(d => !d.open).map(d => d.weekday));
+        });
+        this.ohService.getSpecialClosings(id).subscribe(closings => {
+          this.specialClosings.set(closings);
+        });
+
+        // Bei Direktaufruf von /raum/:id ist die Venue-Liste evtl. noch leer,
+        // weil sonst nur /raum sie lädt. Erst Räume holen, dann das Layout.
+        const ensureRooms$ = this.roomsService.loaded()
+          ? of(null)
+          : this.roomsService.load();
+
+        return ensureRooms$.pipe(
+          switchMap(() => this.roomsService.loadRoomLayout(id)),
+          switchMap(() => of(id)),
+        );
+      }),
+    ).subscribe({
+      next: id => {
+        if (!id) return;
+        this.layoutLoading.set(false);
+        this.syncFromBackend(id, this.selectedDate());
+
+        // xmove nur einmal beim ersten Laden aktivieren
+        if (!xmoveHandled && xmove && fromTable) {
+          xmoveHandled = true;
+          this.crossMoveMode.set({
+            reservationId: xmove,
+            backendId:     xbackend,
+            fromTableId:   parseInt(fromTable, 10),
+            guestName,
+          });
+          this.router.navigate([], { queryParams: {}, replaceUrl: true });
+        }
+      },
+      error: () => this.layoutLoading.set(false),
     });
-    this.layoutLoading.set(true);
-
-    // Bei Direktaufruf von /raum/:id ist die Venue-Liste evtl. noch leer,
-    // weil sonst nur /raum sie lädt. Erst Räume holen, dann das Layout.
-    const ensureRooms$ = this.roomsService.loaded()
-      ? of(null)
-      : this.roomsService.load();
-
-    ensureRooms$
-      .pipe(switchMap(() => this.roomsService.loadRoomLayout(id)))
-      .subscribe({
-        next:  () => {
-          this.layoutLoading.set(false);
-          this.syncFromBackend(id, this.selectedDate());
-        },
-        error: () => this.layoutLoading.set(false),
-      });
   }
 
   private syncFromBackend(venueId: string, date: string): void {
@@ -347,23 +389,28 @@ export class RaumDetailComponent implements OnInit {
   closedWeekdays = signal<number[]>([]);
 
   readonly isSelectedDayClosed = computed(() => {
-    const [y, m, d] = this.selectedDate().split('-').map(Number);
+    const iso = this.selectedDate();
+    const sc = this.specialClosings().find(s => iso >= s.date_from && iso <= s.date_to);
+    if (sc?.full_day) return true;
+    const [y, m, d] = iso.split('-').map(Number);
     const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
     return this.closedWeekdays().includes(weekday);
   });
 
   readonly dateFilter = (d: Date | null): boolean => {
     if (!d) return true;
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const sc = this.specialClosings().find(s => iso >= s.date_from && iso <= s.date_to);
+    if (sc?.full_day) return false;
     const weekday = (d.getDay() + 6) % 7;
     return !this.closedWeekdays().includes(weekday);
   };
 
   // ── Reservierungs-State ────────────────────────────────────────────────
-  selectedDate   = signal<string>(this.todayIso());
+  selectedDate    = signal<string>(this.todayIso());
   statusFilter    = signal<StatusFilter>('active');
-  filterPanelOpen = signal(false);
-  /** Sortierung der Liste nach Uhrzeit: aufsteigend (früh → spät) oder absteigend. */
   sortDir         = signal<'asc' | 'desc'>('asc');
+  filterPanelOpen = signal(false);
 
   /** Datum im Neue-Reservierung-Dialog — kann vom Panel-Datum abweichen. */
   formDate     = signal<string>(this.todayIso());
@@ -391,6 +438,8 @@ export class RaumDetailComponent implements OnInit {
     const mon = this.calendarMonth();
     const today = this.todayIso();
     const sel   = this.formDate();
+    const closedWds  = this.closedWeekdays();    // Signal-Abhängigkeit
+    const specials   = this.specialClosings();   // Signal-Abhängigkeit
 
     // Vorausbuchungslimit: wie viele Tage in die Zukunft darf das Admin-Team buchen?
     // Im Admin ohne Limit — wir lassen beliebig weit in die Zukunft zu.
@@ -405,12 +454,18 @@ export class RaumDetailComponent implements OnInit {
     const cells: {
       iso: string; day: number; cur: boolean;
       past: boolean; isToday: boolean; sel: boolean; disabled: boolean;
+      closed: boolean; open: boolean;
     }[] = [];
 
     const makeCell = (iso: string, day: number, cur: boolean) => {
-      const isPast   = iso < today;
-      const isToday  = iso === today;
-      return { iso, day, cur, past: isPast, isToday, sel: iso === sel, disabled: isPast };
+      const isPast  = iso < today;
+      const isToday = iso === today;
+      // hasAvailableSlotsForDate prüft Wochentag-Schließung, Sonderschließung,
+      // Öffnungszeiten UND ob heute noch Slots in der Zukunft liegen.
+      const isClosed = !isPast && !this.hasAvailableSlotsForDate(iso);
+      const isOpen   = !isPast && !isClosed && cur;
+      return { iso, day, cur, past: isPast, isToday, sel: iso === sel,
+               disabled: isPast || isClosed, closed: isClosed, open: isOpen };
     };
 
     // Vormonat auffüllen
@@ -477,8 +532,51 @@ export class RaumDetailComponent implements OnInit {
       }
     }
 
-    // Vergangene Slots heute ausblenden
+    // Öffnungszeiten des gewählten Tages ermitteln
     let slots = all;
+    {
+      const [fy, fm, fd] = formDateVal.split('-').map(Number);
+      const weekday = (new Date(fy, fm - 1, fd).getDay() + 6) % 7;
+      const sc = this.specialClosings().find(s => formDateVal >= s.date_from && formDateVal <= s.date_to);
+
+      if (sc?.full_day) {
+        // Vollständig geschlossen → keine Slots
+        return [];
+      }
+
+      let openMin: number | null = null;
+      let closeMin: number | null = null;
+
+      if (sc && !sc.full_day && sc.open_time && sc.close_time) {
+        // Sonder-Öffnungszeiten (z.B. Silvester kürzer)
+        const [oh, om] = sc.open_time.split(':').map(Number);
+        const [ch, cm] = sc.close_time.split(':').map(Number);
+        openMin  = oh * 60 + om;
+        closeMin = ch * 60 + cm;
+      } else if (!sc) {
+        // Reguläre Wochentagszeiten
+        const dayHours = this.allDayHours().find(h => h.weekday === weekday);
+        if (dayHours && !dayHours.open) return [];
+        if (dayHours?.open_time && dayHours?.close_time) {
+          const [oh, om] = dayHours.open_time.split(':').map(Number);
+          const [ch, cm] = dayHours.close_time.split(':').map(Number);
+          openMin  = oh * 60 + om;
+          closeMin = ch * 60 + cm;
+        }
+      }
+
+      if (openMin !== null && closeMin !== null) {
+        const oMin = openMin;
+        const cMin = closeMin;
+        slots = slots.filter(slot => {
+          const [h, m] = slot.split(':').map(Number);
+          const t = h * 60 + m;
+          return t >= oMin && t < cMin;
+        });
+      }
+    }
+
+    // Vergangene Slots heute ausblenden
     if (formDateVal === this.todayIso()) {
       const now = new Date();
       const cur = now.getHours() * 60 + now.getMinutes();
@@ -546,6 +644,7 @@ export class RaumDetailComponent implements OnInit {
   formSubmitAttempted = signal(false);
 
   // Kundenkarte-Modal (Klick auf res-row__body)
+  showKundenConfirm = signal(false);
   guestCardOpen    = signal(false);
   guestCardRes     = signal<FloorReservation | null>(null);
   gcName           = signal('');
@@ -609,7 +708,22 @@ export class RaumDetailComponent implements OnInit {
     this.guestCardOpen.set(true);
   }
 
-  closeGuestCard(): void { this.guestCardOpen.set(false); }
+  closeGuestCard(): void {
+    this.guestCardOpen.set(false);
+    this.showKundenConfirm.set(false);
+  }
+
+  toggleKundenConfirm(): void {
+    if (!this.guestCardRes()?.guestId) return;
+    this.showKundenConfirm.update(v => !v);
+  }
+
+  navigateToKunde(): void {
+    const guestId = this.guestCardRes()?.guestId;
+    if (!guestId) return;
+    this.closeGuestCard();
+    this.router.navigate(['/einstellungen/kunden'], { queryParams: { guest: guestId } });
+  }
 
   /** Schnell-Statuswechsel direkt aus der Gästekarte */
   gcDoStatus(action: string): void {
@@ -713,8 +827,6 @@ export class RaumDetailComponent implements OnInit {
 
   filteredReservations = computed(() => {
     const list = this.allReservationsForDay();
-    // Filter-Panel zugeklappt → kein Filter, alle RVs anzeigen
-    if (!this.filterPanelOpen()) return list;
     const f = this.statusFilter();
     if (f === 'all') return list;
     // 'active' = alles, was operativ noch im Restaurant ist:
@@ -931,11 +1043,12 @@ export class RaumDetailComponent implements OnInit {
   // und es gibt keine Vermischung von Bevorstehend und Aktiv in der Gruppen-Sortierung.
   timeGroups = computed<Array<{ hour: string; reservations: FloorReservation[] }>>(() => {
     // 1. Alle RVs nach (Status-Gewicht, Uhrzeit) sortieren
+    const dir = this.sortDir();
     const sorted = [...this.filteredReservations()].sort((a, b) => {
       const sw = this.statusSortWeight(a.status) - this.statusSortWeight(b.status);
       if (sw !== 0) return sw;
-      const byTime = a.time.localeCompare(b.time);
-      return this.sortDir() === 'asc' ? byTime : -byTime;
+      const timeCmp = a.time.localeCompare(b.time);
+      return dir === 'asc' ? timeCmp : -timeCmp;
     });
 
     // 2. In Stunden-Gruppen zusammenfassen — Reihenfolge der Gruppen folgt
@@ -977,10 +1090,13 @@ export class RaumDetailComponent implements OnInit {
   shiftDate(days: number) {
     const [y, m, d] = this.selectedDate().split('-').map(Number);
     const dt = new Date(y, m - 1, d);
-    const closed = this.closedWeekdays();
+    const closed   = this.closedWeekdays();
+    const specials = this.specialClosings();
     for (let i = 0; i < 14; i++) {
       dt.setDate(dt.getDate() + days);
-      if (!closed.includes((dt.getDay() + 6) % 7)) break;
+      const iso = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+      const sc = specials.find(s => iso >= s.date_from && iso <= s.date_to);
+      if (!closed.includes((dt.getDay() + 6) % 7) && !sc?.full_day) break;
     }
     const mm = String(dt.getMonth() + 1).padStart(2, '0');
     const dd = String(dt.getDate()).padStart(2, '0');
@@ -1049,9 +1165,72 @@ export class RaumDetailComponent implements OnInit {
     });
   }
 
+  /**
+   * Prüft ob ein ISO-Datum noch buchbare Zeitslots hat.
+   * Berücksichtigt: Wochentag-Schließung, Sonderschließung, Öffnungszeiten,
+   * und für heute ob noch Slots in der Zukunft liegen.
+   */
+  private hasAvailableSlotsForDate(iso: string): boolean {
+    const step = this.tenantSettings.snapshot.widgetFunctional?.intervall ?? 30;
+    // Sonderschließung?
+    const sc = this.specialClosings().find(s => iso >= s.date_from && iso <= s.date_to);
+    if (sc?.full_day) return false;
+    // Wochentag geschlossen?
+    const [iy, im, id] = iso.split('-').map(Number);
+    const weekday = (new Date(iy, im - 1, id).getDay() + 6) % 7;
+    if (!sc) {
+      const dayH = this.allDayHours().find(h => h.weekday === weekday);
+      if (dayH && !dayH.open) return false;
+    }
+    // Öffnungszeiten-Fenster bestimmen
+    let openMin: number | null = null;
+    let closeMin: number | null = null;
+    if (sc && !sc.full_day && sc.open_time && sc.close_time) {
+      const [oh, om] = sc.open_time.split(':').map(Number);
+      const [ch, cm2] = sc.close_time.split(':').map(Number);
+      openMin = oh * 60 + om; closeMin = ch * 60 + cm2;
+    } else if (!sc) {
+      const dayH = this.allDayHours().find(h => h.weekday === weekday);
+      if (dayH?.open_time && dayH?.close_time) {
+        const [oh, om] = dayH.open_time.split(':').map(Number);
+        const [ch, cm2] = dayH.close_time.split(':').map(Number);
+        openMin = oh * 60 + om; closeMin = ch * 60 + cm2;
+      }
+    }
+    // Heute: mindestens ein Slot muss noch in der Zukunft liegen
+    const nowMin = iso === this.todayIso()
+      ? new Date().getHours() * 60 + new Date().getMinutes()
+      : -1;
+    for (let h = 8; h < 24; h++) {
+      for (let m = 0; m < 60; m += step) {
+        const t = h * 60 + m;
+        if (openMin !== null && closeMin !== null && (t < openMin || t >= closeMin)) continue;
+        if (t > nowMin) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Findet das erste Datum ab `from` (inkl.) mit verfügbaren Buchungsslots.
+   * Sucht max. 60 Tage in die Zukunft.
+   */
+  private firstAvailableDate(from: string): string {
+    const [fy, fm, fd] = from.split('-').map(Number);
+    const dt = new Date(fy, fm - 1, fd);
+    for (let i = 0; i < 60; i++) {
+      const iso = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+      if (this.hasAvailableSlotsForDate(iso)) return iso;
+      dt.setDate(dt.getDate() + 1);
+    }
+    return from; // Fallback
+  }
+
   openNewDialog(preset?: Partial<typeof this.form>) {
-    const [cy, cm] = this.selectedDate().split('-').map(Number);
-    this.formDate.set(this.selectedDate());
+    // Nächsten verfügbaren Tag ermitteln — heute könnte schon vorbei sein
+    const startDate = this.firstAvailableDate(this.selectedDate());
+    const [cy, cm] = startDate.split('-').map(Number);
+    this.formDate.set(startDate);
     this.calendarYear.set(cy);
     this.calendarMonth.set(cm - 1);
     this.form = {
@@ -1107,6 +1286,63 @@ export class RaumDetailComponent implements OnInit {
   private currentTime(): string {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  // ── Alle Räume für Tab-Leiste ─────────────────────────────────────────
+  readonly allRooms = computed(() => this.roomsService.rooms());
+
+  onRoomTabClick(roomId: string): void {
+    if (roomId === this.room()?.id) return;
+    const mode = this.reassignMode();
+    if (mode) {
+      // Raum wechseln und Reservierung dort platzieren
+      const res = this.reservationsService.reservations().find(r => r.id === mode.reservationId);
+      this.cancelReassign();
+      this.router.navigate(['/raum', roomId], {
+        queryParams: {
+          xmove:     mode.reservationId,
+          xbackend:  res?.backendId ?? '',
+          fromTable: mode.sourceTableId,
+          guestName: res?.guestName ?? '',
+        },
+      });
+    } else {
+      this.router.navigate(['/raum', roomId]);
+    }
+  }
+
+  // ── Raum-übergreifende Umplatzierung ──────────────────────────────────
+  crossMoveMode = signal<{ reservationId: string; backendId: string; fromTableId: number; guestName: string } | null>(null);
+
+  crossMoveName = computed(() => this.crossMoveMode()?.guestName ?? '');
+
+  cancelCrossMove(): void {
+    this.crossMoveMode.set(null);
+    // Query-Params aus URL entfernen
+    this.router.navigate([], { queryParams: {}, replaceUrl: true });
+  }
+
+  doCrossRoomMove(targetTableId: number): void {
+    const mode = this.crossMoveMode();
+    const room = this.room();
+    if (!mode || !room) return;
+
+    // Backend: table_id + venue_id updaten — backendId kommt aus den Query-Params,
+    // da die Reservierung im alten Raum geladen war und hier nicht verfügbar ist.
+    if (mode.backendId) {
+      this.apiReservations.update(mode.backendId, {
+        table_id: targetTableId,
+        venue_id: room.id,
+      }).subscribe({
+        next: () => {
+          // Nach erfolgreichem Backend-Update Reservierungen neu laden
+          this.syncFromBackend(room.id, this.selectedDate());
+        },
+        error: () => console.warn('Cross-Room-Sync fehlgeschlagen'),
+      });
+    }
+
+    this.cancelCrossMove();
   }
 
   // ── Tisch-Umplatzierung per Long-Press ────────────────────────────────
@@ -1169,6 +1405,12 @@ export class RaumDetailComponent implements OnInit {
     // Nach Long-Press den darauf folgenden Klick schlucken
     if (this.suppressNextClick) {
       this.suppressNextClick = false;
+      return;
+    }
+
+    // Cross-Room-Move: Tisch in neuem Raum als Ziel auswählen
+    if (this.crossMoveMode()) {
+      this.doCrossRoomMove(tableId);
       return;
     }
 
@@ -1919,6 +2161,10 @@ export class RaumDetailComponent implements OnInit {
 
   totalSeats(): number {
     return (this.room()?.tables ?? []).reduce((sum, t) => sum + t.seats, 0);
+  }
+
+  roomSeats(rm: { tables: { seats: number }[] }): number {
+    return rm.tables.reduce((sum, t) => sum + t.seats, 0);
   }
 
   // ── Tisch-Status fürs Overlay ─────────────────────────────────────────

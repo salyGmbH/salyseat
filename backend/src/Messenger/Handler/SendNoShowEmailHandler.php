@@ -19,6 +19,7 @@ final class SendNoShowEmailHandler
         private readonly Environment                 $twig,
         private readonly TenantEmailSettingsProvider $settings,
         private readonly string                      $mailerSender,
+        private readonly string                      $publicDir,
     ) {}
 
     public function __invoke(SendNoShowEmail $message): void
@@ -41,6 +42,14 @@ final class SendNoShowEmailHandler
             ->to($message->guestEmail)
             ->subject(sprintf('Ihre verpasste Reservierung bei %s', $message->venueName))
             ->html($html);
+
+        foreach ($s['attachments'] as $att) {
+            if (empty($att['assignedMails']['no_show'])) continue;
+            $path = $this->publicDir . $att['url'];
+            if (is_file($path)) {
+                $email->attachFromPath($path, $att['name'] ?? basename($path));
+            }
+        }
 
         $this->mailer->send($email);
     }

@@ -75,6 +75,7 @@ final class TenantEmailSettingsProvider
                 'facebook'  => $social['facebook']  ?? '',
                 'tiktok'    => $social['tiktok']    ?? '',
             ],
+            'attachments' => $es['attachments'] ?? [],
             'logoLight' => $ui['logoLight'] ?? null,
             'logoDark'  => $ui['logoDark']  ?? null,
         ];

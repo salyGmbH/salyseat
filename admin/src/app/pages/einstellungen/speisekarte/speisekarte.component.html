@@ -5,15 +5,14 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">palette</mat-icon>
-        Design
+        {{ 'speisekarte.design' | translate }}
       </h2>
       <button class="info-button" [class.active]="bgInfo" (click)="bgInfo = !bgInfo">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="bgInfo">
-      Wählen Sie eine Hintergrundfarbe oder laden Sie ein Hintergrundbild hoch.
-      Textfarbe und Akzentfarbe bestimmen das Aussehen der Speisekarte.
+      {{ 'speisekarte.design_hint' | translate }}
     </div>
 
     <div class="form-grid">
@@ -21,7 +20,7 @@
       <!-- Hintergrundfarbe -->
       <div class="form-row form-row--color">
         <label class="form-row__color-label">
-          <span class="form-row__label">Hintergrundfarbe</span>
+          <span class="form-row__label">{{ 'speisekarte.bg_color' | translate }}</span>
           <span class="color-swatch-wrap">
             <input type="color" [(ngModel)]="bgColor" class="color-swatch">
             <span class="color-swatch__value">{{ bgColor }}</span>
@@ -32,7 +31,7 @@
       <!-- Textfarbe -->
       <div class="form-row form-row--color">
         <label class="form-row__color-label">
-          <span class="form-row__label">Textfarbe</span>
+          <span class="form-row__label">{{ 'speisekarte.text_color' | translate }}</span>
           <span class="color-swatch-wrap">
             <input type="color" [(ngModel)]="textColor" class="color-swatch">
             <span class="color-swatch__value">{{ textColor }}</span>
@@ -43,7 +42,7 @@
       <!-- Akzentfarbe -->
       <div class="form-row form-row--color">
         <label class="form-row__color-label">
-          <span class="form-row__label">Akzentfarbe (Überschriften)</span>
+          <span class="form-row__label">{{ 'speisekarte.accent_color' | translate }}</span>
           <span class="color-swatch-wrap">
             <input type="color" [(ngModel)]="accentColor" class="color-swatch">
             <span class="color-swatch__value">{{ accentColor }}</span>
@@ -53,7 +52,7 @@
 
       <!-- Schriftart -->
       <div class="form-row form-row--full">
-        <span class="form-row__label">Schriftart</span>
+        <span class="form-row__label">{{ 'speisekarte.font' | translate }}</span>
         <div class="font-grid">
           <button
             type="button"
@@ -77,18 +76,18 @@
 
       <!-- Hintergrundbild -->
       <div class="form-row form-row--full">
-        <span class="form-row__label">Hintergrundbild
-          <span class="field-hint">überschreibt die Hintergrundfarbe</span>
+        <span class="form-row__label">{{ 'speisekarte.bg_image' | translate }}
+          <span class="field-hint">{{ 'speisekarte.bg_image_hint' | translate }}</span>
         </span>
         <div class="bg-image-row">
           <label class="upload-btn">
             <mat-icon>image</mat-icon>
-            <span>{{ bgImage ? 'Bild ändern' : 'Bild hochladen' }}</span>
+            <span>{{ (bgImage ? 'speisekarte.change_image' : 'speisekarte.upload_image') | translate }}</span>
             <input type="file" accept="image/*" (change)="onBgImageUpload($event)" hidden>
           </label>
           <button class="remove-btn" *ngIf="bgImage" (click)="removeBgImage()">
             <mat-icon>delete</mat-icon>
-            <span>Entfernen</span>
+            <span>{{ 'speisekarte.remove' | translate }}</span>
           </button>
         </div>
         <div class="bg-preview" *ngIf="bgImage">
@@ -104,18 +103,18 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">menu_book</mat-icon>
-        Abschnitte &amp; Gerichte
+        {{ 'speisekarte.sections_dishes' | translate }}
       </h2>
       <button class="add-section-btn" (click)="addSection()">
         <mat-icon>add</mat-icon>
-        Abschnitt
+        {{ 'speisekarte.add_section' | translate }}
       </button>
     </div>
 
     <!-- Leerer Zustand -->
     <div class="empty-state" *ngIf="sections.length === 0">
       <mat-icon>menu_book</mat-icon>
-      <p>Noch keine Abschnitte. Klicken Sie auf „+ Abschnitt" um zu beginnen.</p>
+      <p>{{ 'speisekarte.no_sections' | translate }}</p>
     </div>
 
     <!-- Abschnitte -->
@@ -131,11 +130,11 @@
             <input
               class="section-title-input"
               [(ngModel)]="section.title"
-              placeholder="Abschnitt-Titel (z. B. Nudelgerichte)"
+              [placeholder]="'speisekarte.section_title_ph' | translate"
               (click)="$event.stopPropagation()">
           </div>
           <div class="menu-section__header-right">
-            <span class="section-count">{{ section.gerichte.length }} Gericht(e)</span>
+            <span class="section-count">{{ section.gerichte.length }} {{ 'speisekarte.dish_count' | translate }}</span>
             <button class="icon-btn" [disabled]="si === 0" (click)="$event.stopPropagation(); moveSectionUp(si)">
               <mat-icon>keyboard_arrow_up</mat-icon>
             </button>
@@ -189,7 +188,7 @@
 
             <!-- Zeile 3: Zusatzstoffe -->
             <div class="chip-row">
-              <span class="chip-row__label">Zusatzstoffe:</span>
+              <span class="chip-row__label">{{ 'speisekarte.additives_label' | translate }}</span>
               <div class="chips">
                 <button
                   class="chip chip--zusatz"
@@ -204,7 +203,7 @@
 
             <!-- Zeile 4: Allergene -->
             <div class="chip-row">
-              <span class="chip-row__label">Allergene:</span>
+              <span class="chip-row__label">{{ 'speisekarte.allergens_label' | translate }}</span>
               <div class="chips chips--allergen">
                 <button
                   class="chip chip--allergen"
@@ -236,7 +235,7 @@
           <!-- + Gericht -->
           <button class="add-dish-btn" (click)="addDish(section)">
             <mat-icon>add</mat-icon>
-            Gericht hinzufügen
+            {{ 'speisekarte.add_dish' | translate }}
           </button>
 
         </div><!-- /menu-section__body -->
@@ -251,16 +250,13 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">format_list_numbered</mat-icon>
-        Fußnoten — Zusatzstoffe
+        {{ 'speisekarte.footnotes_title' | translate }}
       </h2>
     </div>
-    <p class="block-hint">
-      Automatisch aus den verwendeten Zusatzstoffen generiert.
-      Erscheint am Ende der Speisekarte.
-    </p>
+    <p class="block-hint">{{ 'speisekarte.footnotes_hint' | translate }}</p>
 
     <div class="empty-hint" *ngIf="usedZusatzstoffe.length === 0">
-      Noch keine Zusatzstoffe vergeben.
+      {{ 'speisekarte.no_additives' | translate }}
     </div>
     <div class="footnote-list" *ngIf="usedZusatzstoffe.length > 0">
       <div class="footnote-item" *ngFor="let z of usedZusatzstoffe">
@@ -275,15 +271,13 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">warning_amber</mat-icon>
-        Allergen-Legende
+        {{ 'speisekarte.allergen_legend' | translate }}
       </h2>
     </div>
-    <p class="block-hint">
-      Alle verwendeten Allergene — alphabetisch sortiert. Erscheint als Legende am Ende der Speisekarte.
-    </p>
+    <p class="block-hint">{{ 'speisekarte.allergen_hint' | translate }}</p>
 
     <div class="empty-hint" *ngIf="usedAllergene.length === 0">
-      Noch keine Allergene vergeben.
+      {{ 'speisekarte.no_allergens' | translate }}
     </div>
     <div class="allergen-legend" *ngIf="usedAllergene.length > 0">
       <div class="allergen-legend-item" *ngFor="let a of usedAllergene">
@@ -295,7 +289,7 @@
 
     <!-- Alle 14 (ausgegraut wenn nicht verwendet) -->
     <div class="allergen-full-legend">
-      <span class="allergen-full-legend__label">Vollständige Liste:</span>
+      <span class="allergen-full-legend__label">{{ 'speisekarte.full_list' | translate }}</span>
       <div class="allergen-full-grid">
         <div class="allergen-full-item"
           *ngFor="let a of allergene"
@@ -313,7 +307,7 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">visibility</mat-icon>
-        Vorschau
+        {{ 'speisekarte.preview' | translate }}
       </h2>
     </div>
 
@@ -398,7 +392,7 @@
         [disabled]="saving"
         (click)="save()">
         <mat-icon>{{ saved ? 'check' : saving ? 'hourglass_top' : 'save' }}</mat-icon>
-        {{ saved ? 'Gespeichert &amp; PDF erstellt' : saving ? 'Wird gespeichert …' : 'Speisekarte speichern &amp; PDF erstellen' }}
+        {{ (saved ? 'speisekarte.saved_btn' : saving ? 'speisekarte.saving_btn' : 'speisekarte.save_btn') | translate }}
       </button>
 
       <button
@@ -406,7 +400,7 @@
         *ngIf="pdfBlobUrl"
         (click)="downloadPdf()">
         <mat-icon>download</mat-icon>
-        Speisekarte PDF herunterladen
+        {{ 'speisekarte.download_btn' | translate }}
       </button>
     </div>
 
@@ -414,11 +408,7 @@
     <div class="pdf-upload-hint" *ngIf="pdfBlobUrl">
       <mat-icon class="pdf-upload-hint__icon">info</mat-icon>
       <div class="pdf-upload-hint__text">
-        <strong>Tipp:</strong> Laden Sie die generierte PDF unter
-        <a href="/einstellungen/widget-einstellungen" class="pdf-upload-hint__link">
-          Einstellungen → Widget-Einstellungen
-        </a>
-        hoch, um die Speisekarte direkt im Buchungs-Widget für Ihre Gäste anzuzeigen.
+        <strong>{{ 'speisekarte.upload_hint_tip' | translate }}</strong> {{ 'speisekarte.upload_hint_text' | translate }}
       </div>
     </div>
 

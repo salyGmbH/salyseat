@@ -19,6 +19,7 @@ final class SendCancellationEmailHandler
         private readonly Environment                 $twig,
         private readonly TenantEmailSettingsProvider $settings,
         private readonly string                      $mailerSender,
+        private readonly string                      $publicDir,
     ) {}
 
     public function __invoke(SendCancellationEmail $message): void
@@ -41,6 +42,14 @@ final class SendCancellationEmailHandler
             ->to($message->guestEmail)
             ->subject(sprintf('Ihre Reservierung bei %s wurde storniert', $message->venueName))
             ->html($html);
+
+        foreach ($s['attachments'] as $att) {
+            if (empty($att['assignedMails']['cancel'])) continue;
+            $path = $this->publicDir . $att['url'];
+            if (is_file($path)) {
+                $email->attachFromPath($path, $att['name'] ?? basename($path));
+            }
+        }
 
         $this->mailer->send($email);
     }

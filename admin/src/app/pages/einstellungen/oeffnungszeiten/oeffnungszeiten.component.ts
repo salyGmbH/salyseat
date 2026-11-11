@@ -31,7 +31,7 @@ interface NewClosing {
   close_time: string;
 }
 
-const WEEKDAY_LABELS = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+const WEEKDAY_KEYS = ['common.days_long.mon','common.days_long.tue','common.days_long.wed','common.days_long.thu','common.days_long.fri','common.days_long.sat','common.days_long.sun'];
 
 @Component({
   selector: 'app-oeffnungszeiten',
@@ -177,7 +177,7 @@ export class OeffnungszeitenComponent implements OnInit {
   private toDayRow(d: DayHours): DayRow {
     return {
       weekday:    d.weekday,
-      label:      WEEKDAY_LABELS[d.weekday] ?? `Tag ${d.weekday}`,
+      label:      WEEKDAY_KEYS[d.weekday] ?? `common.days_long.mon`,
       open:       d.open,
       open_time:  d.open_time  ?? '08:00',
       close_time: d.close_time ?? '22:00',

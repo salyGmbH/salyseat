@@ -3,8 +3,8 @@
   <div class="page-hero">
     <div class="page-hero__icon"><mat-icon>lock</mat-icon></div>
     <div>
-      <h2 class="page-hero__title">Login &amp; Sicherheit</h2>
-      <p class="page-hero__sub">Steuere wie lange Administratoren eingeloggt bleiben.</p>
+      <h2 class="page-hero__title">{{ 'login_settings.title' | translate }}</h2>
+      <p class="page-hero__sub">{{ 'login_settings.subtitle' | translate }}</p>
     </div>
   </div>
 </div>
@@ -14,12 +14,9 @@
 
   <div class="section-header">
     <mat-icon>timer</mat-icon>
-    <h3 class="section-title">Sitzungsdauer</h3>
+    <h3 class="section-title">{{ 'login_settings.session_title' | translate }}</h3>
   </div>
-  <p class="section-desc">
-    Nach dieser Zeit werden Administratoren automatisch ausgeloggt.
-    Die Änderung gilt ab dem <strong>nächsten Login</strong>.
-  </p>
+  <p class="section-desc" [innerHTML]="'login_settings.session_desc' | translate"></p>
 
   <div class="session-options">
     @for (opt of sessionOptions; track opt.seconds) {
@@ -30,7 +27,7 @@
         <mat-icon class="session-card__icon">
           {{ opt.seconds <= 3600 ? 'hourglass_top' : opt.seconds <= 86400 ? 'schedule' : 'calendar_month' }}
         </mat-icon>
-        <span class="session-card__label">{{ opt.label }}</span>
+        <span class="session-card__label">{{ opt.labelKey | translate }}</span>
         @if (selectedTtl() === opt.seconds) {
           <mat-icon class="session-card__check">check_circle</mat-icon>
         }
@@ -41,11 +38,8 @@
   <div class="session-info">
     <mat-icon>info_outline</mat-icon>
     <div>
-      <strong>Aktuell eingestellt: {{ currentLabel() }}</strong>
-      <p>
-        Kurze Sitzungsdauer = mehr Sicherheit (z.&nbsp;B. öffentliche Geräte).
-        Lange Sitzungsdauer = bequemeres Arbeiten auf privaten Computern.
-      </p>
+      <strong>{{ 'login_settings.current_label' | translate }} {{ currentLabel() }}</strong>
+      <p>{{ 'login_settings.session_hint' | translate }}</p>
     </div>
   </div>
 
@@ -53,12 +47,12 @@
     <div class="relogin-hint">
       <mat-icon>info</mat-icon>
       <div class="relogin-hint__text">
-        <strong>Jetzt neu einloggen</strong>
-        Das neue Token wird erst beim nächsten Login ausgestellt.
+        <strong>{{ 'login_settings.relogin_title' | translate }}</strong>
+        {{ 'login_settings.relogin_text' | translate }}
       </div>
       <button class="relogin-hint__btn" (click)="relogin()">
         <mat-icon>logout</mat-icon>
-        Jetzt neu einloggen
+        {{ 'login_settings.relogin_btn' | translate }}
       </button>
     </div>
   }
@@ -79,13 +73,13 @@
       (click)="save()">
       @if (saving()) {
         <mat-icon class="spin">sync</mat-icon>
-        Wird gespeichert…
+        {{ 'common.saving' | translate }}
       } @else if (saved()) {
         <mat-icon>check</mat-icon>
-        Gespeichert
+        {{ 'common.saved' | translate }}
       } @else {
         <mat-icon>save</mat-icon>
-        Speichern
+        {{ 'common.save' | translate }}
       }
     </button>
   </div>

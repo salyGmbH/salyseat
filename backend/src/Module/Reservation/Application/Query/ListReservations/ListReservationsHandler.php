@@ -18,7 +18,9 @@ final class ListReservationsHandler
     public function __invoke(ListReservationsQuery $query): array
     {
         $tenantId = Uuid::fromString($query->tenantId);
-        $date     = $query->date !== null ? new \DateTimeImmutable($query->date) : null;
+        $date     = $query->date     !== null ? new \DateTimeImmutable($query->date)     : null;
+        $dateFrom = $query->dateFrom !== null ? new \DateTimeImmutable($query->dateFrom) : null;
+        $dateTo   = $query->dateTo   !== null ? new \DateTimeImmutable($query->dateTo)   : null;
 
         $items = $this->reservations->findByTenant(
             $tenantId,
@@ -26,9 +28,11 @@ final class ListReservationsHandler
             $date,
             $query->limit,
             $query->offset,
+            $dateFrom,
+            $dateTo,
         );
 
-        $total = $this->reservations->countByTenant($tenantId, $query->status, $date);
+        $total = $this->reservations->countByTenant($tenantId, $query->status, $date, $dateFrom, $dateTo);
 
         return [
             'reservations' => array_map(

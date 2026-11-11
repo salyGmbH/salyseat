@@ -6,12 +6,15 @@ namespace App\Module\Reservation\Application\Command\UpdateReservation;
 
 use App\Module\Reservation\Domain\Entity\Reservation;
 use App\Module\Reservation\Domain\Repository\ReservationRepositoryInterface;
+use App\Module\Venue\Domain\Entity\Venue;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 
 final class UpdateReservationHandler
 {
     public function __construct(
         private readonly ReservationRepositoryInterface $reservations,
+        private readonly EntityManagerInterface $em,
     ) {}
 
     public function __invoke(UpdateReservationCommand $cmd): Reservation
@@ -40,6 +43,15 @@ final class UpdateReservationHandler
 
         if ($cmd->tableNumber !== false) {
             $reservation->setTableNumber(is_int($cmd->tableNumber) ? $cmd->tableNumber : null);
+        }
+
+        if ($cmd->venueId !== null) {
+            $newVenue = $this->em->getRepository(Venue::class)->find($cmd->venueId)
+                ?? throw new \DomainException('Ziel-Venue nicht gefunden.');
+            if ($newVenue->getTenant()->getId()->toRfc4122() !== $cmd->tenantId) {
+                throw new \DomainException('Ziel-Venue nicht gefunden.');
+            }
+            $reservation->moveToVenue($newVenue);
         }
 
         $this->reservations->save($reservation);

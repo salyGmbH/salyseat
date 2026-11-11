@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
+import { ActivatedRoute } from '@angular/router';
 import { GuestsService, Guest, GuestReservation, UpdateGuestDto } from '../../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
 import { ReminderService, Reminder } from '../../../services/reminder.service';
@@ -28,6 +29,7 @@ type FilterKey = 'alle' | 'vip' | 'stammgast' | 'neukunde' | 'gesperrt' | 'nosho
 export class KundenComponent implements OnInit {
   private readonly guestsService   = inject(GuestsService);
   private readonly tenantSettings  = inject(TenantSettingsService);
+  private readonly route           = inject(ActivatedRoute);
   readonly reminderSvc             = inject(ReminderService);
 
   guests      = signal<Guest[]>([]);
@@ -161,7 +163,18 @@ export class KundenComponent implements OnInit {
       if (s.allergene?.length)  this.availableAllergene.set(s.allergene);
       if (s.vipThreshold)       this.vipThreshold.set(s.vipThreshold);
     });
-    this.loadGuests();
+
+    const targetGuestId = this.route.snapshot.queryParamMap.get('guest');
+    this.loading.set(true);
+    this.guestsService.load({ search: this.search() || undefined }).subscribe(res => {
+      this.guests.set(res.guests);
+      this.total.set(res.total);
+      this.loading.set(false);
+      if (targetGuestId) {
+        const found = res.guests.find(g => g.id === targetGuestId);
+        if (found) this.openEdit(found);
+      }
+    });
   }
 
   loadGuests(): void {

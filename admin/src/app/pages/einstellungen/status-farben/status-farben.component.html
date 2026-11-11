@@ -78,7 +78,7 @@
             <span class="sample-row__status-pill"
                   [style.color]="getStatusByKey(sample.key)?.color"
                   [style.borderColor]="getStatusByKey(sample.key)?.color">
-              {{ getStatusByKey(sample.key)?.label }}
+              {{ labelFor(sample.key) }}
             </span>
           </div>
         </div>
@@ -105,7 +105,7 @@
             <span class="sample-row__status-badge"
                   [style.background]="getStatusByKey(sample.key)?.color"
                   [style.color]="getTextColor(getStatusByKey(sample.key)?.color || '#6b7280')">
-              {{ getStatusByKey(sample.key)?.label }}
+              {{ labelFor(sample.key) }}
             </span>
           </label>
         </div>
@@ -139,7 +139,7 @@
                     class="sample-row__icon-btn"
                     (click)="toggleIconPicker(sample.key)"
                     [class.open]="iconPickerOpenFor === sample.key"
-                    [attr.aria-label]="'Icon für ' + getStatusByKey(sample.key)?.label + ' wählen'">
+                    [attr.aria-label]="'Icon für ' + labelFor(sample.key) + ' wählen'">
               <span class="sample-row__icon-tile">
                 <app-status-icon [name]="resolveIcon(getStatusByKey(sample.key)!)" [size]="22"></app-status-icon>
               </span>
@@ -152,7 +152,7 @@
             </div>
             <div class="sample-row__sub">
               <mat-icon>table_restaurant</mat-icon> Tisch #{{ sample.table }}
-              <span class="sample-row__status-name">{{ getStatusByKey(sample.key)?.label }}</span>
+              <span class="sample-row__status-name">{{ labelFor(sample.key) }}</span>
             </div>
           </div>
         </div>
@@ -162,7 +162,7 @@
              *ngIf="iconPickerOpenFor === sample.key"
              [style.--status-color]="getStatusByKey(sample.key)?.color">
           <div class="icon-picker-section-title">
-            {{ 'status_farben.recommended_for' | translate }} „{{ getStatusByKey(sample.key)?.label }}"
+            {{ 'status_farben.recommended_for' | translate }} „{{ labelFor(sample.key) }}"
           </div>
           <div class="icon-picker-grid">
             <button type="button"

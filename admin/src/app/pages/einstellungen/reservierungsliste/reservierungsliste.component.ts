@@ -1,8 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ReservationsService } from '../../../services/reservations.service';
+import { RoomsService } from '../../../services/rooms.service';
 import { Reservation, ReservationStatus, STATUS_LABELS } from '../../../services/reservation.types';
 import { StatusColorsService, StatusKey } from '../../../services/status-colors.service';
 import { StatusIconComponent } from '../../../shared/status-icon/status-icon.component';
@@ -20,11 +21,37 @@ export class ReservierungslisteComponent implements OnInit {
 
   private readonly svc          = inject(ReservationsService);
   private readonly statusColors = inject(StatusColorsService);
+  private readonly roomsService = inject(RoomsService);
 
   readonly reservations = this.svc.reservations;
   readonly total        = this.svc.total;
   readonly loading      = this.svc.loading;
   readonly viewMode     = this.statusColors.viewMode;
+
+  /** Räume die in den geladenen Reservierungen vorkommen (dynamisch) */
+  readonly availableRooms = computed(() => {
+    const seen = new Map<string, string>();
+    for (const r of this.svc.reservations()) {
+      if (!seen.has(r.venue_id)) seen.set(r.venue_id, r.venue_name);
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+  });
+
+  /** Feste Tag-Optionen — immer sichtbar */
+  private readonly predefinedTags = ['Mit Hund', 'Rollstuhl', 'Geburtstag', 'Hochzeit'];
+
+  /** Feste Tags + alle weiteren die dynamisch in den Reservierungen vorkommen */
+  readonly availableTags = computed(() => {
+    const extra = new Set<string>();
+    for (const r of this.svc.reservations()) {
+      r.guest_gasttypen?.forEach(t => { if (!this.predefinedTags.includes(t)) extra.add(t); });
+      r.guest_hinweise?.forEach(t => { if (!this.predefinedTags.includes(t)) extra.add(t); });
+    }
+    return [
+      ...this.predefinedTags,
+      ...Array.from(extra).sort((a, b) => a.localeCompare(b, 'de')),
+    ];
+  });
 
   private readonly bookingStatusToKey: Record<ReservationStatus, StatusKey> = {
     pending:   'waiting',
@@ -51,17 +78,47 @@ export class ReservierungslisteComponent implements OnInit {
   }
 
   // ── Filter ────────────────────────────────────────────────────────────
-  filterDate   = '';
-  filterStatus = '';
-  actionError  = signal<string | null>(null);
+  filterFrom      = '';
+  filterTo        = '';   // leer = nur filterFrom als Einzeltag
+  activeStatuses: string[] = [];
+  activeVenues:   string[] = [];
+  activeTags:     string[] = [];
+  filterWithNote  = false;
+  sortBy:         'time' | 'alpha' | 'table' = 'time';
+  actionError     = signal<string | null>(null);
+
+  readonly sortOptions: { value: 'time' | 'alpha' | 'table'; label: string; icon: string }[] = [
+    { value: 'time',  label: 'Uhrzeit',       icon: 'schedule'         },
+    { value: 'alpha', label: 'Alphabetisch',  icon: 'sort_by_alpha'    },
+    { value: 'table', label: 'Tisch',         icon: 'table_restaurant' },
+  ];
 
   readonly statusOptions = [
-    { value: '',          label: 'Alle Status' },
-    { value: 'pending',   label: 'Ausstehend'  },
-    { value: 'confirmed', label: 'Bestätigt'   },
-    { value: 'cancelled', label: 'Storniert'   },
-    { value: 'no_show',   label: 'No-Show'     },
+    { value: 'pending',   label: 'Ausstehend' },
+    { value: 'confirmed', label: 'Bestätigt'  },
+    { value: 'seated',    label: 'Aktiv'      },
+    { value: 'completed', label: 'Beendet'    },
+    { value: 'cancelled', label: 'Storniert'  },
+    { value: 'no_show',   label: 'No-Show'    },
   ];
+
+  toggleStatusFilter(value: string): void {
+    this.activeStatuses = this.activeStatuses.includes(value)
+      ? this.activeStatuses.filter(s => s !== value)
+      : [...this.activeStatuses, value];
+  }
+
+  toggleVenueFilter(id: string): void {
+    this.activeVenues = this.activeVenues.includes(id)
+      ? this.activeVenues.filter(v => v !== id)
+      : [...this.activeVenues, id];
+  }
+
+  toggleTagFilter(tag: string): void {
+    this.activeTags = this.activeTags.includes(tag)
+      ? this.activeTags.filter(t => t !== tag)
+      : [...this.activeTags, tag];
+  }
 
   // ── Export-Modal ───────────────────────────────────────────────────────
   exportModal     = signal(false);
@@ -73,9 +130,9 @@ export class ReservierungslisteComponent implements OnInit {
 
   openExportModal(mode: 'print' | 'pdf'): void {
     this.exportMode  = mode;
-    this.exportRange = 'day';
-    this.exportFrom  = this.filterDate;
-    this.exportTo    = this.filterDate;
+    this.exportRange = this.filterFrom !== this.filterTo ? 'range' : 'day';
+    this.exportFrom  = this.filterFrom;
+    this.exportTo    = this.filterTo;
     this.selectedStatuses = [];
     this.exportModal.set(true);
   }
@@ -196,7 +253,8 @@ export class ReservierungslisteComponent implements OnInit {
 
   // ── Laden ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.filterDate = this.getToday();
+    this.filterFrom = this.getToday();
+    this.filterTo   = '';   // kein Enddatum → Einzeltag
     this.load();
   }
 
@@ -208,14 +266,53 @@ export class ReservierungslisteComponent implements OnInit {
 
   load(): void {
     this.actionError.set(null);
+    const hasRange = this.filterFrom && this.filterTo;
     this.svc.load({
-      date:   this.filterDate   || undefined,
-      status: this.filterStatus || undefined,
+      date:     !hasRange && this.filterFrom ? this.filterFrom : undefined,
+      dateFrom: hasRange ? this.filterFrom : undefined,
+      dateTo:   hasRange ? this.filterTo   : undefined,
     }).subscribe();
   }
 
+  /** Reservierungen gefiltert (Status + Raum) und sortiert */
+  get filteredReservations(): Reservation[] {
+    let list = this.svc.reservations();
+
+    if (this.activeStatuses.length) {
+      list = list.filter(r => this.activeStatuses.includes(r.status));
+    }
+    if (this.activeVenues.length) {
+      list = list.filter(r => this.activeVenues.includes(r.venue_id));
+    }
+    if (this.activeTags.length) {
+      list = list.filter(r =>
+        this.activeTags.every(tag =>
+          r.guest_gasttypen?.includes(tag) || r.guest_hinweise?.includes(tag)
+        )
+      );
+    }
+    if (this.filterWithNote) {
+      list = list.filter(r => r.guest_notes && r.guest_notes.trim().length > 0);
+    }
+
+    switch (this.sortBy) {
+      case 'alpha':
+        return [...list].sort((a, b) => a.guest_name.localeCompare(b.guest_name, 'de'));
+      case 'table':
+        return [...list].sort((a, b) => (a.table_number ?? 9999) - (b.table_number ?? 9999));
+      default: // 'time'
+        return [...list].sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+    }
+  }
+
   resetToToday(): void {
-    this.filterDate = this.getToday();
+    this.filterFrom      = this.getToday();
+    this.filterTo        = '';
+    this.activeStatuses  = [];
+    this.activeVenues    = [];
+    this.activeTags      = [];
+    this.filterWithNote  = false;
+    this.sortBy          = 'time';
     this.load();
   }
 

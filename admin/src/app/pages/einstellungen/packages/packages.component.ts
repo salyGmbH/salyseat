@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TenantSettingsService } from '../../../services/tenant-settings.service';
 
 export type PackageCategory = 'menu' | 'event' | 'feier' | 'sonstiges';
 
@@ -22,16 +23,14 @@ export interface Package {
 
 export interface CategoryMeta {
   key: PackageCategory;
-  label: string;
   icon: string;
-  tagline: string;
 }
 
 export const CATEGORY_META: Record<PackageCategory, CategoryMeta> = {
-  menu:      { key: 'menu',      label: 'Menü',      icon: 'restaurant_menu', tagline: 'Mehrgang-Menüs' },
-  event:     { key: 'event',     label: 'Event',     icon: 'celebration',     tagline: 'Besondere Abende' },
-  feier:     { key: 'feier',     label: 'Feier',     icon: 'cake',            tagline: 'Geburtstag, Hochzeit, ...' },
-  sonstiges: { key: 'sonstiges', label: 'Sonstiges', icon: 'local_offer',     tagline: 'Weitere Angebote' },
+  menu:      { key: 'menu',      icon: 'restaurant_menu' },
+  event:     { key: 'event',     icon: 'celebration'     },
+  feier:     { key: 'feier',     icon: 'cake'            },
+  sonstiges: { key: 'sonstiges', icon: 'local_offer'     },
 };
 
 @Component({
@@ -41,68 +40,38 @@ export const CATEGORY_META: Record<PackageCategory, CategoryMeta> = {
   templateUrl: './packages.component.html',
   styleUrl: './packages.component.scss'
 })
-export class PackagesComponent {
+export class PackagesComponent implements OnInit {
+
+  private readonly tenantSettings = inject(TenantSettingsService);
+  private readonly translate      = inject(TranslateService);
 
   // ===================== CONFIG =====================
-  readonly categories = Object.values(CATEGORY_META);
+  readonly categories   = Object.values(CATEGORY_META);
   readonly categoryMeta = CATEGORY_META;
 
   // ===================== STATE =====================
   infoOpen  = false;
   modalOpen = false;
+  saving    = false;
   saved     = false;
+  error     = false;
 
-  /** Beim Bearbeiten gesetzt, sonst null = "Neu anlegen". */
   editingId: string | null = null;
-
-  /** Filter-Kategorie; null = alle. */
   filter: PackageCategory | null = null;
 
-  packages: Package[] = [
-    {
-      id: '1',
-      name: 'Sommerabend-Menü',
-      description: 'Vier Gänge mit saisonalen Zutaten aus der Region, inkl. Aperitif und Wein-Empfehlung vom Sommelier.',
-      category: 'menu',
-      pricePerPerson: 89,
-      minPeople: 2,
-      maxPeople: 12,
-      durationHours: 2.5,
-      includes: ['Aperitif', 'Vorspeise', 'Zwischengang', 'Hauptgang', 'Dessert', 'Wein-Empfehlung'],
-      image: '',
-      active: true,
-    },
-    {
-      id: '2',
-      name: 'Silvester-Gala',
-      description: '6-Gänge-Galamenü mit Live-Musik, Mitternachts-Champagner und freier Sicht aufs Feuerwerk.',
-      category: 'event',
-      pricePerPerson: 195,
-      minPeople: 2,
-      maxPeople: 8,
-      durationHours: 4,
-      includes: ['Begrüßungssekt', '6-Gänge-Menü', 'Weinbegleitung', 'Live-Musik', 'Mitternachts-Champagner'],
-      image: '',
-      active: false,
-    },
-    {
-      id: '3',
-      name: 'Geburtstags-Feier',
-      description: '3-Gänge-Menü mit Torte, Tischdeko und persönlicher Betreuung — auf Wunsch personalisiert.',
-      category: 'feier',
-      pricePerPerson: 65,
-      minPeople: 6,
-      maxPeople: 20,
-      durationHours: 3,
-      includes: ['Aperitif', '3-Gänge-Menü', 'Geburtstagstorte', 'Tischdekoration'],
-      image: '',
-      active: true,
-    },
-  ];
+  packages: Package[] = [];
 
-  /** Entwurf, der im Modal bearbeitet wird. */
   draft: Package = this.empty();
   newIncludeItem = '';
+
+  // ===================== LIFECYCLE =====================
+  ngOnInit(): void {
+    this.tenantSettings.load().subscribe(s => {
+      if (Array.isArray(s.packages) && s.packages.length) {
+        this.packages = s.packages as Package[];
+      }
+    });
+  }
 
   // ===================== DERIVED =====================
   get visiblePackages(): Package[] {
@@ -116,7 +85,6 @@ export class PackagesComponent {
 
   // ===================== UI =====================
   toggleInfo(): void { this.infoOpen = !this.infoOpen; }
-
   setFilter(c: PackageCategory | null): void { this.filter = c; }
 
   // ===================== MODAL =====================
@@ -165,7 +133,7 @@ export class PackagesComponent {
       this.draft = { ...this.draft, image: reader.result as string };
     };
     reader.readAsDataURL(file);
-    input.value = ''; // erlaubt gleiche Datei erneut zu wählen
+    input.value = '';
   }
 
   clearImage(): void {
@@ -208,7 +176,7 @@ export class PackagesComponent {
       {
         ...pkg,
         id: String(Date.now()),
-        name: pkg.name + ' (Kopie)',
+        name: pkg.name + this.translate.instant('packages.copy_suffix'),
         includes: [...pkg.includes],
         active: false,
       }
@@ -217,8 +185,21 @@ export class PackagesComponent {
 
   // ===================== SAVE =====================
   save(): void {
-    this.saved = true;
-    setTimeout(() => this.saved = false, 2000);
+    this.saving = true;
+    this.error  = false;
+    const snapshot = this.tenantSettings.snapshot;
+    this.tenantSettings.save({ ...snapshot, packages: this.packages }).subscribe({
+      next: () => {
+        this.saving = false;
+        this.saved  = true;
+        setTimeout(() => this.saved = false, 2000);
+      },
+      error: () => {
+        this.saving = false;
+        this.error  = true;
+        setTimeout(() => this.error = false, 3000);
+      },
+    });
   }
 
   // ===================== HELPERS =====================

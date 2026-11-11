@@ -132,6 +132,9 @@ export interface TenantUiSettings {
   logoLight?: string | null;
   logoDark?:  string | null;
 
+  /** Gespeicherte Packages (Menü-Angebote, Events, Feiern …). */
+  packages?: any[];
+
   /**
    * JWT-Laufzeit in Sekunden. Steuert wie lange ein Admin eingeloggt bleibt.
    * Standard: 3600 (1 Stunde). Wird beim nächsten Login aktiv.
@@ -154,6 +157,7 @@ export interface TenantUiSettings {
     };
     content?: Record<string, { footerText: string; infoText: string; signature: string }>;
     social?:  { instagram: string; facebook: string; tiktok: string };
+    attachments?: { url: string; name: string; assignedMails: Record<string, boolean> }[];
   };
 }
 
@@ -256,7 +260,7 @@ export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
   hinweistextFooter:        '',
   pflichtfelder:            ['name', 'partySize'],
   maxPersonen:              8,
-  maxPersonenText:          'Für Gruppen ab dieser Personenzahl bitten wir um Kontaktaufnahme.',
+  maxPersonenText:          'Für größere Gruppen bitten wir um Kontaktaufnahme.',
   maxPersonenPhone:         '',
   maxPersonenEmail:         '',
   kinderStuehleAktiv:       false,

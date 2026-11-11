@@ -67,20 +67,142 @@
   &__header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 14px 20px;
+    gap: 12px;
+    padding: 10px 16px;
     background-color: $color-dark;
     border-bottom: 1px solid $color-border;
     flex-shrink: 0;
   }
 
   &__title-wrap {
-    flex: 1;
+    margin-left: auto;
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
   }
+}
+
+// ── Room Tabs (header navigation) ──────────────────────────────────────────
+.room-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+.room-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: $color-text-muted;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: rgba(var(--color-text-rgb), 0.06);
+    color: $color-text-on-dark;
+  }
+
+  &--active {
+    background: rgba(var(--color-accent-rgb, 255, 183, 0), 0.12);
+    border-color: rgba(var(--color-accent-rgb, 255, 183, 0), 0.4);
+    color: $color-accent;
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  // Pulsing ring when cross-move mode is active and this tab is a target
+  &--target {
+    border-color: rgba(var(--color-accent-rgb, 255, 183, 0), 0.5);
+    color: $color-accent;
+    animation: room-tab-pulse 1.6s ease-in-out infinite;
+
+    mat-icon.room-tab__move-icon {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      opacity: 0.85;
+    }
+  }
+
+  &__name-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+  &__meta {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.55;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+}
+
+@keyframes room-tab-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb, 255, 183, 0), 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(var(--color-accent-rgb, 255, 183, 0), 0.25); }
+}
+
+// ── Cross-move banner ───────────────────────────────────────────────────────
+.cross-move-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(var(--color-accent-rgb, 255, 183, 0), 0.10);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb, 255, 183, 0), 0.25);
+  font-size: 13px;
+  color: $color-text-on-dark;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $color-accent;
+    flex-shrink: 0;
+  }
+
+  span { flex: 1; min-width: 0; }
+
+  &__cancel {
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--color-text-rgb), 0.2);
+    background: transparent;
+    color: $color-text-muted;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+
+    &:hover {
+      background: rgba(var(--color-text-rgb), 0.08);
+      color: $color-text-on-dark;
+    }
+  }
+}
+
+// Reopen .raum-detail block so remaining rules stay nested correctly
+.raum-detail {
 
   &__title {
     margin: 0;
@@ -1145,16 +1267,23 @@
     }
   }
 
-  &__notes {
+  &__info-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    color: rgba(var(--color-text-rgb), 0.5);
-    font-style: italic;
-    margin-top: 2px;
+    justify-content: flex-start;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    background: rgba($color-accent, 0.18);
+    margin-top: -3px;
+    flex-shrink: 0;
 
-    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+    mat-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      color: $color-accent;
+    }
   }
 
   &__actions {
@@ -2066,13 +2195,13 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 7px 10px;
+    padding: 11px 10px;
     border-radius: 8px;
     border: 1.5px solid $color-border;
     background: rgba(var(--color-text-rgb), 0.04);
     color: $color-text-muted;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
@@ -2113,7 +2242,66 @@
   flex-direction: column;
   gap: 14px;
 
-  &--form { width: 920px; max-height: 90vh; overflow-y: auto; }
+  &--form {
+    width: 1100px;
+    max-height: 90vh;
+    overflow-y: auto;
+
+    // CSS-Variable global überschreiben → alle $color-text-on-dark nutzen #d4d4d4
+    --color-text-on-dark: #d4d4d4;
+    --color-text: #d4d4d4;
+
+    // Explizite Overrides für direkte color: #fff Verwendungen
+    color: #d4d4d4;
+
+    .rf-section-label,
+    .field__label,
+    .rf-panel__title,
+    .rf-panel__header,
+    .dialog__title,
+    .table-inline__num,
+    .table-inline__lbl,
+    label {
+      color: #d4d4d4;
+    }
+
+    // Muted-Texte etwas transparenter
+    .field__required-hint { color: #ff6b6b; }
+
+    // Buchungstyp-Toggle (Reservierung / Walk-In) — aktiver Button gedimmt
+    .type-toggle__btn--active {
+      background:   rgba(220, 162, 0, 0.12);
+      border-color: rgba(220, 162, 0, 0.65);
+      color:        rgba(220, 162, 0, 0.95);
+    }
+
+    // ── Gedimmtes Gelb im Formular-Dialog ───────────────────────────────
+    // Das knallige Akzent-Gelb (255,183,0) wird im dunklen Dialog auf ein
+    // wärmeres, satteres Dunkelgold (185,138,0) reduziert.
+    --color-accent-rgb: 220, 162, 0;
+
+    // Selektierter Kalendertag
+    .inline-cal__day.is-selected {
+      border-color: rgba(220, 162, 0, 0.75);
+      color:        rgba(220, 162, 0, 0.95);
+      background:   rgba(220, 162, 0, 0.12);
+      box-shadow:   0 0 0 1px rgba(220, 162, 0, 0.15);
+    }
+
+    // Selektierte Zeitslot- und Personen-Karten
+    .table-inline__card--selected {
+      border-color: rgba(220, 162, 0, 0.65);
+      box-shadow:   0 0 0 1px rgba(220, 162, 0, 0.18);
+      .table-inline__num { color: rgba(220, 162, 0, 0.85); }
+      .table-inline__lbl { color: rgba(220, 162, 0, 0.55); }
+    }
+
+    // Tisch-Karte selektiert
+    .table-inline__card--selected-table {
+      border-color: rgba(220, 162, 0, 0.65);
+      .table-inline__num { color: rgba(220, 162, 0, 0.85); }
+    }
+  }
   &--gc   { width: 780px; max-height: 92vh; overflow-y: auto; padding: 0; gap: 0; }
   &--table-picker { width: 420px; }
 
@@ -2203,9 +2391,13 @@
     }
 
     &--primary {
-      background: $color-accent;
-      color: $color-dark;
-      &:hover { background: $color-accent-dark; }
+      background: rgba(var(--color-primary-rgb), 0.14);
+      color: $color-primary;
+      border: 1px solid rgba(var(--color-primary-rgb), 0.45);
+      &:hover {
+        background: rgba(var(--color-primary-rgb), 0.24);
+        border-color: rgba(var(--color-primary-rgb), 0.7);
+      }
     }
   }
 }
@@ -2217,6 +2409,7 @@
   border-radius: 10px;
   padding: 8px 6px 6px;
   user-select: none;
+  align-self: start; // Kalender bestimmt die Zeilenhöhe, nicht die rechte Spalte
 
   &__header {
     display: flex;
@@ -2229,38 +2422,38 @@
   &__nav {
     background: none;
     border: none;
-    color: $color-text-muted;
+    color: #d4d4d4;
     cursor: pointer;
-    border-radius: 6px;
-    padding: 2px;
+    border-radius: 7px;
+    padding: 4px;
     display: flex;
     align-items: center;
     transition: background 0.15s, color 0.15s;
-    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    mat-icon { font-size: 22px; width: 22px; height: 22px; }
     &:hover {
       background: rgba(255,255,255,0.08);
-      color: $color-text;
+      color: #d4d4d4;
     }
   }
 
   &__month-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: $color-text;
+    font-size: 15px;
+    font-weight: 700;
+    color: #d4d4d4;
     letter-spacing: 0.01em;
   }
 
   &__weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    margin-bottom: 3px;
+    gap: 2px;
+    margin-bottom: 4px;
     span {
       text-align: center;
       font-size: 8px;
       font-weight: 700;
-      color: $color-text-muted;
-      padding: 1px 0;
+      color: rgba(212, 212, 212, 0.55);
+      padding: 2px 0;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -2269,7 +2462,7 @@
   &__grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
+    gap: 3px;
   }
 
   &__day {
@@ -2277,14 +2470,14 @@
     background: none;
     border: none;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 12px;
     font-family: inherit;
-    color: $color-text;
+    color: #d4d4d4;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.12s, color 0.12s;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
     line-height: 1;
 
     &:hover:not([disabled]):not(.is-selected) {
@@ -2292,25 +2485,57 @@
     }
 
     &.is-other-month {
-      color: $color-text-muted;
-      opacity: 0.35;
+      color: rgba(255,255,255,0.2);
     }
 
     &.is-past:not(.is-selected) {
-      color: $color-text-muted;
-      opacity: 0.38;
+      color: rgba(255,255,255,0.22);
     }
 
-    &.is-today:not(.is-selected) {
-      color: $color-primary;
+    // Geschlossener Tag (Wochentag oder Sonderschließung)
+    &.is-closed {
+      color: rgba(255,255,255,0.2);
+      cursor: not-allowed;
+      text-decoration: line-through;
+      text-decoration-color: rgba(255,255,255,0.2);
+      &:hover { background: none; }
+    }
+
+    // Offener, buchbarer Tag — gedimmtes Gelb
+    &.is-open:not(.is-selected):not(.is-today) {
+      background: rgba(220, 162, 0, 0.12);
+      border: 1.5px solid $color-border;
+      color: rgba(220, 162, 0, 0.95);
+      font-weight: 600;
+      border-radius: 7px;
+      &:hover {
+        background: rgba(220, 162, 0, 0.20);
+        border-color: rgba(220, 162, 0, 0.4);
+      }
+    }
+
+    // Heute + offen → gleiches Gelb
+    &.is-today.is-open:not(.is-selected) {
+      background: rgba(220, 162, 0, 0.12);
+      border: 1.5px solid $color-border;
+      color: rgba(220, 162, 0, 0.95);
       font-weight: 700;
-      background: rgba(41, 121, 255, 0.13);
-      border-radius: 6px;
+      border-radius: 7px;
+      &:hover {
+        background: rgba(220, 162, 0, 0.20);
+        border-color: rgba(220, 162, 0, 0.4);
+      }
+    }
+
+    // Heute + geschlossen (kein Slot mehr verfügbar)
+    &.is-today:not(.is-open):not(.is-selected) {
+      color: rgba(255,255,255,0.38);
+      font-weight: 700;
     }
 
     &.is-selected {
       background: rgba(var(--color-accent-rgb), 0.15);
-      border: 1.5px solid $color-accent;
+      border: 2.5px solid $color-accent;
       color: $color-accent;
       font-weight: 700;
       border-radius: 7px;
@@ -2652,7 +2877,7 @@
   flex: 0 0 auto;  // Felder nicht strecken — nur rf-notes / --grow wächst
 
   &__label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     color: $color-text-muted;
     text-transform: uppercase;
@@ -2678,8 +2903,8 @@
     border: 1px solid $color-border;
     border-radius: 6px;
     color: $color-text-on-dark;
-    font-size: 13px;
-    padding: 7px 9px;
+    font-size: 15px;
+    padding: 8px 10px;
     font-family: inherit;
 
     &:focus { outline: none; border-color: $color-primary; }
@@ -2841,22 +3066,137 @@
   border-bottom: 1px solid $color-border;
 }
 
+.gc-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.gc-avatar-confirm {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  // kleines Dreieck oben
+  &::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 18px;
+    width: 10px;
+    height: 10px;
+    background: $color-surface;
+    border-left: 1px solid $color-border;
+    border-top: 1px solid $color-border;
+    transform: rotate(45deg);
+  }
+
+  &__text {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  &__yes {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid rgba(41, 121, 255, 0.4);
+    background: rgba(41, 121, 255, 0.12);
+    color: $color-primary;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s;
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+    &:hover { background: rgba(41, 121, 255, 0.22); }
+  }
+
+  &__no {
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid $color-border;
+    background: transparent;
+    color: $color-text-muted;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s;
+    &:hover { background: rgba(var(--color-text-rgb), .06); }
+  }
+}
+
 .gc-avatar {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: $color-primary;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-primary) 90%, #000) 0%,
+    color-mix(in srgb, var(--color-primary) 60%, #000) 100%
+  );
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-accent) 70%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+
+  &__silhouette {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.15);
+  }
+
+  &__initials {
+    position: relative;
+    z-index: 1;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+
+  &--clickable {
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    &:hover {
+      transform: scale(1.07);
+      box-shadow:
+        0 0 0 2px var(--color-accent),
+        0 6px 16px rgba(0, 0, 0, 0.35);
+    }
+  }
 
   &--warn {
-    background: #e53935; // Rot wenn ≥ 2× No-Show
-    box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.25);
+    background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+    box-shadow:
+      0 0 0 2px rgba(229, 57, 53, 0.55),
+      0 4px 12px rgba(229, 57, 53, 0.3);
   }
 }
 
@@ -2999,19 +3339,155 @@
 
 // ── Linke Spalte: Reservierungsdetails ────────────────────────────────────
 .gc-res-panel {
+  --res-color: #{$color-primary};
+
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 0;
   border-right: 1px solid $color-border;
+  overflow: hidden;
+}
+
+// Hero-Zone
+.gc-res-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 20px 18px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--res-color) 18%, transparent),
+    color-mix(in srgb, var(--res-color) 5%, transparent)
+  );
+  border-bottom: 1px solid color-mix(in srgb, var(--res-color) 18%, transparent);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--res-color);
+    border-radius: 0 2px 2px 0;
+  }
+
+  &__time {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    color: $color-text-on-dark;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__date {
+    font-size: 12px;
+    font-weight: 500;
+    color: $color-text-muted;
+  }
+
+  &__dur {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--res-color);
+    background: color-mix(in srgb, var(--res-color) 14%, transparent);
+    padding: 1px 7px;
+    border-radius: 20px;
+  }
+
+  &__pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    background: color-mix(in srgb, var(--res-color) 20%, transparent);
+    color: var(--res-color);
+    border: 1px solid color-mix(in srgb, var(--res-color) 35%, transparent);
+  }
+}
+
+// Detail-Rows
+.gc-detail-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 10px 14px;
+  gap: 2px;
+}
+
+.gc-detail {
+  display: grid;
+  grid-template-columns: 28px 68px 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 4px;
+  border-radius: 7px;
+  transition: background .12s;
+
+  &:hover { background: rgba(var(--color-text-rgb), .04); }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: rgba(var(--color-text-rgb), .07);
+    flex-shrink: 0;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: $color-text-muted;
+    }
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+
+  &__val {
+    font-size: 13px;
+    font-weight: 500;
+    color: $color-text-on-dark;
+  }
+
+  &--notes &__icon {
+    background: color-mix(in srgb, #{$color-accent} 15%, transparent);
+    mat-icon { color: $color-accent; }
+  }
+
+  &--notes &__val {
+    font-style: italic;
+    color: $color-text-muted;
+    font-size: 12px;
+  }
 }
 
 // ── Rechte Spalte: Gastkarte ──────────────────────────────────────────────
 .gc-profile-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 0;
+  padding: 0;
 }
 
 .gc-section-head {
@@ -3019,6 +3495,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding: 16px 20px 8px;
 }
 
 .gc-section-title {
@@ -3039,50 +3516,22 @@
   font-weight: 700;
 }
 
-.gc-detail-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-
-.gc-detail {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 13px;
-  color: $color-text-on-dark;
-
-  mat-icon {
-    font-size: 15px;
-    width: 15px;
-    height: 15px;
-    color: $color-text-muted;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  &--notes {
-    color: $color-text-muted;
-    font-size: 12px;
-    font-style: italic;
-  }
-}
-
 .gc-edit-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 12px;
+  margin: 0 14px 16px;
+  padding: 7px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(41, 121, 255, 0.4);
-  background: rgba(41, 121, 255, 0.08);
+  border: 1px solid rgba(41, 121, 255, 0.35);
+  background: rgba(41, 121, 255, 0.07);
   color: $color-primary;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   align-self: flex-start;
   transition: background .15s;
+  font-family: inherit;
 
   mat-icon { font-size: 14px; width: 14px; height: 14px; }
   &:hover { background: rgba(41, 121, 255, 0.18); }
@@ -3109,6 +3558,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 0 20px 16px;
 }
 
 .gc-two-col {
@@ -3252,6 +3702,7 @@
   margin-top: 0;
   border-top: 1px solid $color-border;
 }
+
 
 // ── Tags ──────────────────────────────────────────────────────────────────
 .gc-tags {
@@ -3565,27 +4016,33 @@
 
 .sub-filter__chip {
   font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #cfd6ff;
+  font-weight: 500;
+  padding: 8px 8px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease;
   user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  font-family: inherit;
+  margin-bottom: -1px;
 }
 
 .sub-filter__chip:hover {
-  background: rgba(41, 121, 255, 0.15);
-  border-color: rgba(41, 121, 255, 0.4);
-  color: #fff;
-  transform: translateY(-1px);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .sub-filter__chip--active {
-  background: rgba(41, 121, 255, 0.25);
-  border-color: #2979ff;
   color: #fff;
+  border-bottom-color: $color-accent;
+  filter: drop-shadow(0 1px 4px rgba(255, 183, 0, 0.5));
 }
 
 // ── Reservierungsformular: rf-* Layout-System ────────────────────────────────
@@ -3593,7 +4050,7 @@
 // Äußeres 2-Spalten-Grid: linke Detailkarte | rechte Seite (Datum + Tische)
 .rf-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 12px;
   align-items: stretch;  // linke Karte streckt sich auf volle Höhe
 }
@@ -3656,7 +4113,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  align-items: start;
+  align-items: stretch; // beide Spalten auf Kalender-Höhe
 }
 
 // Rechte Spalte im Datum-Bereich: Zeit, Personen, Notiz untereinander
@@ -3664,23 +4121,24 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: 100%; // füllt die gestreckte Grid-Zelle
 }
 
 // Kleine Abschnittsüberschrift (z. B. „Uhrzeit", „Personen")
 .rf-section-label {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 10px;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: $color-text-muted;
   margin-top: 2px;
 
   svg {
-    width: 13px;
-    height: 13px;
+    width: 17px;
+    height: 17px;
     color: $color-primary;
     flex-shrink: 0;
   }
@@ -3689,7 +4147,7 @@
 // Scrollbarer Container für die Zeitslots
 .rf-time-slots {
   overflow-y: auto;
-  max-height: 150px;
+  max-height: 220px;
   padding-right: 2px;
 }
 
@@ -4133,9 +4591,11 @@
   padding: 0 14px 16px;
 
   &__chips {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: transparent;
+    border-bottom: 1px solid rgba(var(--color-text-rgb), 0.10);
+    gap: 0;
   }
 }
 
@@ -4431,22 +4891,15 @@
 
   // ── Status-Bar Chips (Aktiv / Verspätet / …) ─────────────────────────────
   .sub-filter__chip {
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.14);
-    color: rgba(0, 0, 0, 0.60);
+    color: rgba(0, 0, 0, 0.40);
 
     &:hover {
-      background: rgba(0, 0, 0, 0.05);
-      border-color: rgba(0, 0, 0, 0.25);
-      color: rgba(0, 0, 0, 0.85);
-      transform: translateY(-1px);
+      color: rgba(0, 0, 0, 0.70);
     }
   }
 
   .sub-filter__chip--active {
-    background: rgba(var(--color-primary-rgb), 0.10);
-    border-color: rgba(var(--color-primary-rgb), 0.40);
-    color: var(--color-primary);
+    color: rgba(0, 0, 0, 0.85);
   }
 
   // ── Filter-Panel Count-Badge (Anzahl neben Chips) ─────────────────────────

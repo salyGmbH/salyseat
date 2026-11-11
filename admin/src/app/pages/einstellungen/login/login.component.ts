@@ -2,38 +2,40 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { TenantSettingsService } from '../../../services/tenant-settings.service';
 import { AuthService } from '../../../services/auth.service';
 
 interface SessionOption {
-  label: string;
+  labelKey: string;
   seconds: number;
 }
 
 @Component({
   selector: 'app-einstellungen-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
 export class LoginComponent implements OnInit {
   private readonly tenantSettings = inject(TenantSettingsService);
   private readonly auth           = inject(AuthService);
+  private readonly translate      = inject(TranslateService);
 
   readonly sessionOptions: SessionOption[] = [
-    { label: '1 Minute (Test)',  seconds: 60     },
-    { label: '30 Minuten',       seconds: 1800   },
-    { label: '1 Stunde',         seconds: 3600   },
-    { label: '2 Stunden',   seconds: 7200   },
-    { label: '4 Stunden',   seconds: 14400  },
-    { label: '8 Stunden',   seconds: 28800  },
-    { label: '1 Tag',       seconds: 86400  },
-    { label: '7 Tage',      seconds: 604800 },
-    { label: '30 Tage',     seconds: 2592000},
+    { labelKey: 'login_settings.session_1min',  seconds: 60      },
+    { labelKey: 'login_settings.session_30min', seconds: 1800    },
+    { labelKey: 'login_settings.session_1h',    seconds: 3600    },
+    { labelKey: 'login_settings.session_2h',    seconds: 7200    },
+    { labelKey: 'login_settings.session_4h',    seconds: 14400   },
+    { labelKey: 'login_settings.session_8h',    seconds: 28800   },
+    { labelKey: 'login_settings.session_1d',    seconds: 86400   },
+    { labelKey: 'login_settings.session_7d',    seconds: 604800  },
+    { labelKey: 'login_settings.session_30d',   seconds: 2592000 },
   ];
 
-  selectedTtl = signal(3600);
+  selectedTtl  = signal(3600);
   saving       = signal(false);
   saved        = signal(false);
   needsRelogin = signal(false);
@@ -60,13 +62,15 @@ export class LoginComponent implements OnInit {
       },
       error: () => {
         this.saving.set(false);
-        this.error.set('Fehler beim Speichern. Bitte erneut versuchen.');
+        this.error.set(this.translate.instant('login_settings.save_error'));
       },
     });
   }
 
   currentLabel(): string {
-    return this.sessionOptions.find(o => o.seconds === this.selectedTtl())?.label ?? '1 Stunde';
+    const key = this.sessionOptions.find(o => o.seconds === this.selectedTtl())?.labelKey
+      ?? 'login_settings.session_1h';
+    return this.translate.instant(key);
   }
 
   relogin(): void {

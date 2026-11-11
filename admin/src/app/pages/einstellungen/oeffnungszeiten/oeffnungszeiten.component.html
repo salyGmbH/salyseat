@@ -21,7 +21,7 @@
 
   <!-- Loading -->
   @if (loadingDays()) {
-    <div class="oh-loading"><span class="spinner"></span> Wird geladen…</div>
+    <div class="oh-loading"><span class="spinner"></span> {{ 'common.loading' | translate }}</div>
   }
 
   <!-- Grid -->
@@ -36,7 +36,7 @@
             <button class="toggle" [class.toggle--on]="day.open" (click)="toggleDay(day)">
               <span class="toggle__knob"></span>
             </button>
-            <span class="day-name">{{ day.label }}</span>
+            <span class="day-name">{{ day.label | translate }}</span>
           </div>
 
           <!-- Zeiten -->
@@ -83,7 +83,7 @@
     <div class="oh-footer">
       <button class="save-btn" [class.save-btn--saved]="savedDays()" [disabled]="savingDays()" (click)="saveHours()">
         @if (savingDays()) {
-          <span class="spinner spinner--sm"></span> Wird gespeichert…
+          <span class="spinner spinner--sm"></span> {{ 'common.saving' | translate }}
         } @else if (savedDays()) {
           <mat-icon>check</mat-icon> {{ 'common.saved' | translate }}
         } @else {
@@ -174,7 +174,7 @@
 
   <!-- Loading -->
   @if (loadingClosings()) {
-    <div class="oh-loading"><span class="spinner"></span> Wird geladen…</div>
+    <div class="oh-loading"><span class="spinner"></span> {{ 'common.loading' | translate }}</div>
   }
 
   <!-- Leer -->

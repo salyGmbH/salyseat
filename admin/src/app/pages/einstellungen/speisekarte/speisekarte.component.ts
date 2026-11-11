@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { jsPDF } from 'jspdf';
 import { TenantSettingsService } from '../../../services/tenant-settings.service';
 import { AllergenIconComponent } from '../../../shared/allergen-icon/allergen-icon.component';
@@ -41,7 +42,7 @@ export type AllergenDef = {
 @Component({
   selector: 'app-speisekarte',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, AllergenIconComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule, AllergenIconComponent],
   templateUrl: './speisekarte.component.html',
   styleUrl: './speisekarte.component.scss',
 })
@@ -178,11 +179,22 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.tenantSettings.load().subscribe(settings => {
-      // Allergenfarben aus den Tenant-Einstellungen
+      // Allergene aus den Tenant-Einstellungen übernehmen
       if (settings.allergene?.length) {
+        const usedLetters = new Set(this.allergene.map(a => a.letter));
+        let letterCode = 65; // 'A'
+
         settings.allergene.forEach((sa: any) => {
           const local = this.allergene.find(a => a.key === sa.key);
-          if (local && sa.color) local.color = sa.color;
+          if (local) {
+            if (sa.color) local.color = sa.color;
+          } else {
+            // Nächsten freien Buchstaben finden (nach A–N der EU-14)
+            while (usedLetters.has(String.fromCharCode(letterCode))) letterCode++;
+            const letter = String.fromCharCode(letterCode++);
+            usedLetters.add(letter);
+            this.allergene.push({ key: sa.key, label: sa.label, letter, color: sa.color ?? '#6b7280' });
+          }
         });
       }
 
