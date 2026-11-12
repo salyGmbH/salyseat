@@ -100,11 +100,12 @@ class ReservationController extends AbstractController
                 'walls'    => $v->getLayout()['walls']  ?? [],
                 'decors'   => $v->getLayout()['decors'] ?? [],
             ], $venueList),
-            'widgetDesign'      => $uiSettings['widgetDesign'] ?? null,
-            'widgetFunctional'  => array_merge(
+            'widgetDesign'         => $uiSettings['widgetDesign'] ?? null,
+            'widgetFunctional'     => array_merge(
                 $uiSettings['widgetFunctional'] ?? [],
                 ['defaultDurationMinutes' => $uiSettings['reservationTiming']['defaultDurationMinutes'] ?? 120],
             ),
+            'stripePublishableKey' => $uiSettings['stripeSettings']['publishableKey'] ?? null,
             'closedWeekdays'      => $closedWeekdays,
             'openingSchedule'     => $openingSchedule,
             'specialClosedRanges' => $specialClosedRanges,

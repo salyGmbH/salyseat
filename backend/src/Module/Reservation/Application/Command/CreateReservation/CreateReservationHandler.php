@@ -42,7 +42,7 @@ final class CreateReservationHandler
             }
         }
 
-        if ($guest->isBlocked()) {
+        if ($guest->isBlocked() && !$cmd->adminOverride) {
             throw new \DomainException('Diese E-Mail-Adresse kann aktuell keine Reservierungen vornehmen.');
         }
 

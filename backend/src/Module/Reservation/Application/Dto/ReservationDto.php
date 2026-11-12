@@ -31,6 +31,8 @@ final readonly class ReservationDto
         public bool $guestBlocked,
         public ?string $guestBlockedReason,
         public int $guestNoShowCount,
+        public ?string $paymentStatus,
+        public ?string $paymentCaptureMethod,
     ) {}
 
     public static function fromEntity(Reservation $r): self
@@ -58,6 +60,8 @@ final readonly class ReservationDto
             guestBlocked:         $r->getGuest()?->isBlocked() ?? false,
             guestBlockedReason:   $r->getGuest()?->getBlockedReason(),
             guestNoShowCount:     $r->getGuest()?->getNoShowCount() ?? 0,
+            paymentStatus:        $r->getPaymentStatus(),
+            paymentCaptureMethod: $r->getPaymentCaptureMethod(),
         );
     }
 
@@ -86,6 +90,8 @@ final readonly class ReservationDto
             'guest_blocked'         => $this->guestBlocked,
             'guest_blocked_reason'  => $this->guestBlockedReason,
             'guest_no_show_count'   => $this->guestNoShowCount,
+            'payment_status'         => $this->paymentStatus,
+            'payment_capture_method' => $this->paymentCaptureMethod,
         ];
     }
 }

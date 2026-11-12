@@ -63,6 +63,18 @@ class Reservation
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $adminNotes = null;
 
+    /** Stripe PaymentIntent ID — null wenn keine Zahlung erforderlich */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $paymentIntentId = null;
+
+    /** Zahlungsstatus: null | 'pending' | 'authorized' | 'paid' | 'captured' | 'released' | 'failed' | 'refunded' */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $paymentStatus = null;
+
+    /** Capture-Methode: null | 'automatic' (Sofortzahlung) | 'manual' (No-Show-Schutz) */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $paymentCaptureMethod = null;
+
     /** Zeitstempel wann die Erinnerungs-Mail versendet wurde (null = noch nicht gesendet) */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $reminderSentAt = null;
@@ -253,6 +265,24 @@ class Reservation
             $this->guestNotes = $guestNotes !== '' ? $guestNotes : null;
         }
     }
+
+    public function getPaymentIntentId(): ?string      { return $this->paymentIntentId;      }
+    public function getPaymentStatus(): ?string        { return $this->paymentStatus;         }
+    public function getPaymentCaptureMethod(): ?string { return $this->paymentCaptureMethod;  }
+
+    public function setPaymentIntent(string $intentId, string $captureMethod = 'automatic'): void
+    {
+        $this->paymentIntentId      = $intentId;
+        $this->paymentCaptureMethod = $captureMethod;
+        $this->paymentStatus        = $captureMethod === 'manual' ? 'authorized' : 'pending';
+    }
+
+    public function markPaymentPaid(): void      { $this->paymentStatus = 'paid';       }
+    public function markPaymentAuthorized(): void { $this->paymentStatus = 'authorized'; }
+    public function markPaymentCaptured(): void   { $this->paymentStatus = 'captured';   }
+    public function markPaymentReleased(): void   { $this->paymentStatus = 'released';   }
+    public function markPaymentFailed(): void     { $this->paymentStatus = 'failed';     }
+    public function markPaymentRefunded(): void   { $this->paymentStatus = 'refunded';   }
 
     public function isPending(): bool
     {

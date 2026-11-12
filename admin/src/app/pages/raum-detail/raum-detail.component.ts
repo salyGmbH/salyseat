@@ -16,6 +16,7 @@ import { ReservationTimingService } from '../../services/reservation-timing.serv
 import { GuestsService, Guest } from '../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../services/tenant-settings.service';
 import { OpeningHoursService, DayHours, SpecialClosing } from '../../services/opening-hours.service';
+import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
 import { PlacedTable, TableType, DecorType, SavedRoom } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
@@ -51,6 +52,7 @@ export class RaumDetailComponent implements OnInit {
   private readonly guestsService       = inject(GuestsService);
   private readonly tenantSettings      = inject(TenantSettingsService);
   private readonly ohService           = inject(OpeningHoursService);
+  private readonly roomBlocksSvc       = inject(RoomBlocksService);
   private readonly route               = inject(ActivatedRoute);
   private readonly router              = inject(Router);
   readonly getraenke                   = inject(GetraenkeReminderService);
@@ -65,6 +67,7 @@ export class RaumDetailComponent implements OnInit {
   allDayHours = signal<DayHours[]>([]);
   // Sonderschließungen (z.B. Feiertage, Betriebsferien)
   specialClosings = signal<SpecialClosing[]>([]);
+  venueBlocks     = signal<VenueBlock[]>([]);
 
   // Dynamische Start-/Endstunde: exakt der früheste/späteste Öffnungszeitraum, kein Puffer
   get tlStartH(): number {
@@ -337,13 +340,16 @@ export class RaumDetailComponent implements OnInit {
         if (!id) return of(null);
         this.layoutLoading.set(true);
 
-        // Öffnungszeiten & Sonderschließungen gelten pro Raum → bei jedem Raumwechsel neu laden
+        // Öffnungszeiten, Sonderschließungen & Sperrzeiten gelten pro Raum → bei jedem Raumwechsel neu laden
         this.ohService.getHours(id).subscribe(days => {
           this.allDayHours.set(days);
           this.closedWeekdays.set(days.filter(d => !d.open).map(d => d.weekday));
         });
         this.ohService.getSpecialClosings(id).subscribe(closings => {
           this.specialClosings.set(closings);
+        });
+        this.roomBlocksSvc.getBlocks(id).subscribe(blocks => {
+          this.venueBlocks.set(blocks);
         });
 
         // Bei Direktaufruf von /raum/:id ist die Venue-Liste evtl. noch leer,
@@ -539,6 +545,10 @@ export class RaumDetailComponent implements OnInit {
       const weekday = (new Date(fy, fm - 1, fd).getDay() + 6) % 7;
       const sc = this.specialClosings().find(s => formDateVal >= s.date_from && formDateVal <= s.date_to);
 
+      // Venue-Sperrzeit prüfen
+      const vb = this.venueBlocks().find(b => formDateVal >= b.date_from && formDateVal <= b.date_to);
+      if (vb?.full_day) return [];
+
       if (sc?.full_day) {
         // Vollständig geschlossen → keine Slots
         return [];
@@ -572,6 +582,19 @@ export class RaumDetailComponent implements OnInit {
           const [h, m] = slot.split(':').map(Number);
           const t = h * 60 + m;
           return t >= oMin && t < cMin;
+        });
+      }
+
+      // Zeitfenster-Sperren des Raums herausfiltern
+      if (vb && !vb.full_day && vb.time_from && vb.time_to) {
+        const [bfh, bfm] = vb.time_from.split(':').map(Number);
+        const [bth, btm] = vb.time_to.split(':').map(Number);
+        const blockFrom = bfh * 60 + bfm;
+        const blockTo   = bth * 60 + btm;
+        slots = slots.filter(slot => {
+          const [h, m] = slot.split(':').map(Number);
+          const t = h * 60 + m;
+          return t < blockFrom || t >= blockTo;
         });
       }
     }
@@ -658,6 +681,8 @@ export class RaumDetailComponent implements OnInit {
   gcSaving         = signal(false);
   gcError          = signal<string | null>(null);
   gcStatusLoading  = signal(false);
+  gcPaymentLoading = signal(false);
+  gcPaymentResult  = signal<'captured' | 'released' | 'error' | null>(null);
 
   // E-Mail erneut senden aus Gastkarte
   readonly gcMailTemplates = [
@@ -1001,21 +1026,31 @@ export class RaumDetailComponent implements OnInit {
   }
 
   // ── Tagesverlauf (kleine Sparkline-Punkte pro Stunde) ─────────────────
-  dayLoad = computed<Array<{ hour: number; count: number; isPeak: boolean; pct: number; loadLevel: 'empty' | 'green' | 'amber' | 'red' }>>(() => {
-    const buckets = new Map<number, number>();
+  /** Aktiv angeklickte Stunde in der Load-Bar (null = keine) */
+  activeLoadHour = signal<number | null>(null);
+
+  toggleLoadHour(hour: number): void {
+    this.activeLoadHour.set(this.activeLoadHour() === hour ? null : hour);
+  }
+
+  dayLoad = computed<Array<{ hour: number; count: number; guests: number; isPeak: boolean; pct: number; loadLevel: 'empty' | 'green' | 'amber' | 'red' }>>(() => {
+    const buckets    = new Map<number, number>();
+    const guestBuckets = new Map<number, number>();
     for (const r of this.allReservationsForDay()) {
       if (r.status === 'cancelled' || r.status === 'no-show') continue;
       const h = parseInt(r.time.split(':')[0], 10);
       buckets.set(h, (buckets.get(h) ?? 0) + 1);
+      guestBuckets.set(h, (guestBuckets.get(h) ?? 0) + (r.partySize ?? 0));
     }
     const totalTables = Math.max(1, this.room()?.tables.length ?? 1);
     const max = Math.max(1, ...buckets.values());
-    const result: Array<{ hour: number; count: number; isPeak: boolean; pct: number; loadLevel: 'empty' | 'green' | 'amber' | 'red' }> = [];
+    const result: Array<{ hour: number; count: number; guests: number; isPeak: boolean; pct: number; loadLevel: 'empty' | 'green' | 'amber' | 'red' }> = [];
     for (let h = 11; h <= 23; h++) {
-      const count = buckets.get(h) ?? 0;
+      const count  = buckets.get(h) ?? 0;
+      const guests = guestBuckets.get(h) ?? 0;
       const pct = Math.min(100, Math.round((count / totalTables) * 100));
       const loadLevel = count === 0 ? 'empty' : pct <= 40 ? 'green' : pct <= 70 ? 'amber' : 'red';
-      result.push({ hour: h, count, isPeak: count === max && count > 0, pct, loadLevel });
+      result.push({ hour: h, count, guests, isPeak: count === max && count > 0, pct, loadLevel });
     }
     return result;
   });
@@ -1172,6 +1207,9 @@ export class RaumDetailComponent implements OnInit {
    */
   private hasAvailableSlotsForDate(iso: string): boolean {
     const step = this.tenantSettings.snapshot.widgetFunctional?.intervall ?? 30;
+    // Venue-Sperrzeit (ganztägig)?
+    const vb = this.venueBlocks().find(b => iso >= b.date_from && iso <= b.date_to);
+    if (vb?.full_day) return false;
     // Sonderschließung?
     const sc = this.specialClosings().find(s => iso >= s.date_from && iso <= s.date_to);
     if (sc?.full_day) return false;
@@ -1866,14 +1904,16 @@ export class RaumDetailComponent implements OnInit {
       table_id:         primaryTableId || undefined,
     }).subscribe({
       next: res => {
-        // backendId setzen, dann initialen Status ans Backend senden
         this.reservationsService.update(local.id, { backendId: res.id });
         this.reservationsService.setStatus(local.id, local.status);
+        this.closeFormDialog();
       },
-      error: () => console.warn('Reservierung lokal gespeichert, Backend-Sync fehlgeschlagen.'),
+      error: (err) => {
+        this.reservationsService.remove(local.id);
+        const msg = err?.error?.error ?? 'Reservierung konnte nicht gespeichert werden.';
+        this.formError.set(msg);
+      },
     });
-
-    this.closeFormDialog();
   }
 
   // ── Status-Aktionen ───────────────────────────────────────────────────
@@ -1933,6 +1973,42 @@ export class RaumDetailComponent implements OnInit {
   markNoShow(res: FloorReservation) {
     this.getraenke.cancelTimer(res.id);
     this.reservationsService.setStatus(res.id, 'no-show');
+  }
+
+  capturePayment(res: FloorReservation) {
+    if (!res.backendId || this.gcPaymentLoading()) return;
+    this.gcPaymentLoading.set(true);
+    this.gcPaymentResult.set(null);
+    this.reservationsService.capturePayment(res.backendId).subscribe({
+      next: () => {
+        this.gcPaymentLoading.set(false);
+        this.gcPaymentResult.set('captured');
+        setTimeout(() => this.gcPaymentResult.set(null), 4000);
+      },
+      error: () => {
+        this.gcPaymentLoading.set(false);
+        this.gcPaymentResult.set('error');
+        setTimeout(() => this.gcPaymentResult.set(null), 4000);
+      },
+    });
+  }
+
+  releasePayment(res: FloorReservation) {
+    if (!res.backendId || this.gcPaymentLoading()) return;
+    this.gcPaymentLoading.set(true);
+    this.gcPaymentResult.set(null);
+    this.reservationsService.releasePayment(res.backendId).subscribe({
+      next: () => {
+        this.gcPaymentLoading.set(false);
+        this.gcPaymentResult.set('released');
+        setTimeout(() => this.gcPaymentResult.set(null), 4000);
+      },
+      error: () => {
+        this.gcPaymentLoading.set(false);
+        this.gcPaymentResult.set('error');
+        setTimeout(() => this.gcPaymentResult.set(null), 4000);
+      },
+    });
   }
 
   cancel(res: FloorReservation) {

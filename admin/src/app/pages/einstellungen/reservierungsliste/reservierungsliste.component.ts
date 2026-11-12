@@ -120,99 +120,22 @@ export class ReservierungslisteComponent implements OnInit {
       : [...this.activeTags, tag];
   }
 
-  // ── Export-Modal ───────────────────────────────────────────────────────
-  exportModal     = signal(false);
-  exportMode:     'print' | 'pdf' = 'print';
-  exportRange:    'day' | 'range' = 'day';
-  exportFrom      = '';
-  exportTo        = '';
-  selectedStatuses: string[] = [];
-
-  openExportModal(mode: 'print' | 'pdf'): void {
-    this.exportMode  = mode;
-    this.exportRange = this.filterFrom !== this.filterTo ? 'range' : 'day';
-    this.exportFrom  = this.filterFrom;
-    this.exportTo    = this.filterTo;
-    this.selectedStatuses = [];
-    this.exportModal.set(true);
-  }
-
-  closeExportModal(): void { this.exportModal.set(false); }
-
-  toggleStatus(value: string): void {
-    this.selectedStatuses = this.selectedStatuses.includes(value)
-      ? this.selectedStatuses.filter(s => s !== value)
-      : [...this.selectedStatuses, value];
-  }
-
-  // ── Daten für Export aufbereiten ───────────────────────────────────────
-  private filterExportData(data: Reservation[]): Reservation[] {
-    let result = [...data];
-    if (this.selectedStatuses.length) {
-      result = result.filter(r => this.selectedStatuses.includes(r.status));
-    }
-    return result.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-  }
-
-  private getExportData(): Reservation[] {
-    let data = [...this.reservations()];
-
-    if (this.exportRange === 'day') {
-      data = data.filter(r => r.starts_at.startsWith(this.exportFrom));
-    } else if (this.exportFrom && this.exportTo) {
-      data = data.filter(r => {
-        const d = r.starts_at.split('T')[0];
-        return d >= this.exportFrom && d <= this.exportTo;
-      });
-    }
-
-    if (this.selectedStatuses.length) {
-      data = data.filter(r => this.selectedStatuses.includes(r.status));
-    }
-
-    return data.sort((a, b) =>
-      new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
-    );
-  }
-
-  dateLabel(): string {
-    if (this.exportRange === 'day') return this.exportFrom;
-    return `${this.exportFrom} – ${this.exportTo}`;
-  }
-
-  // ── Drucken ────────────────────────────────────────────────────────────
+  // ── Export (direkt aus aktiven Filtern) ───────────────────────────────
   printReservations: Reservation[] = [];
 
-  runExport(): void {
-    this.closeExportModal();
+  dateLabel(): string {
+    if (!this.filterTo || this.filterFrom === this.filterTo) return this.filterFrom;
+    return `${this.filterFrom} – ${this.filterTo}`;
+  }
 
-    if (this.exportRange === 'range' && this.exportFrom && this.exportTo) {
-      const statusFilter = this.selectedStatuses.length === 1 ? this.selectedStatuses[0] : undefined;
-      this.svc.loadForExport({ status: statusFilter, dateFrom: this.exportFrom, dateTo: this.exportTo })
-        .subscribe(all => {
-          const data = this.filterExportData(all);
-          if (this.exportMode === 'print') {
-            this.printReservations = data;
-            setTimeout(() => { window.print(); this.printReservations = []; }, 120);
-          } else {
-            this.downloadPdf(data);
-          }
-        });
-      return;
-    }
-
-    const data = this.getExportData();
-
-    if (this.exportMode === 'print') {
+  startExport(mode: 'print' | 'pdf'): void {
+    const data = this.filteredReservations;
+    if (mode === 'print') {
       this.printReservations = data;
-      setTimeout(() => {
-        window.print();
-        this.printReservations = [];
-      }, 120);
-      return;
+      setTimeout(() => { window.print(); this.printReservations = []; }, 120);
+    } else {
+      this.downloadPdf(data);
     }
-
-    this.downloadPdf(data);
   }
 
   private downloadPdf(data: Reservation[]): void {

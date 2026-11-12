@@ -3936,6 +3936,27 @@
 // ─────────────────────────────────────────────────────────────────────────
 //  BILD-UPLOAD (Sektion 02 — nur bei Card- & Hotel-Stil sichtbar)
 // ─────────────────────────────────────────────────────────────────────────
+.image-upload-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  &__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
 .image-upload {
   display: flex;
   flex-direction: column;
@@ -4086,7 +4107,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 .settings-actions {
   position: sticky;
-  bottom: 0;
+  bottom: 32px;
   z-index: 10;
 
   display: flex;
@@ -4261,5 +4282,77 @@
 
   .spin {
     animation: spin 1s linear infinite;
+  }
+}
+
+// ─── Farbverlauf-Toggle ───────────────────────────────────────────────────────
+.gradient-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-top: 12px;
+  user-select: none;
+
+  input[type='checkbox'] { position: absolute; opacity: 0; width: 0; height: 0; }
+
+  &__box {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--color-border, #e5e7eb);
+    border-radius: 4px;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75em;
+    font-weight: 700;
+    color: #fff;
+    transition: 0.15s ease;
+  }
+
+  input:checked ~ &__box {
+    background: var(--color-primary, #2563eb);
+    border-color: var(--color-primary, #2563eb);
+    &::after { content: '✓'; }
+  }
+
+  &__label {
+    font-size: 0.85rem;
+    color: var(--color-text, #111);
+  }
+}
+
+.gradient-config {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__preview {
+    height: 48px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border, #e5e7eb);
+  }
+
+  &__pickers {
+    display: flex;
+    gap: 16px;
+  }
+
+  &__picker-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  &__picker-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
   }
 }

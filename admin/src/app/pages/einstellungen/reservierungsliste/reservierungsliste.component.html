@@ -43,10 +43,10 @@
       </div>
 
       <div class="filter-bar__actions">
-        <button class="action-btn action-btn--pdf" (click)="openExportModal('pdf')">
+        <button class="action-btn action-btn--pdf" (click)="startExport('pdf')">
           <mat-icon>picture_as_pdf</mat-icon><span>PDF</span>
         </button>
-        <button class="action-btn action-btn--print" (click)="openExportModal('print')">
+        <button class="action-btn action-btn--print" (click)="startExport('print')">
           <mat-icon>print</mat-icon><span>{{ 'reservierungsliste.print' | translate }}</span>
         </button>
         <button class="action-btn action-btn--refresh" (click)="resetToToday()" [disabled]="loading()">
@@ -110,75 +110,6 @@
     </div>
 
   </div>
-
-  <!-- EXPORT MODAL -->
-  @if (exportModal()) {
-    <div class="modal-backdrop" (click)="closeExportModal()">
-      <div class="modal export-modal" (click)="$event.stopPropagation()">
-
-        <div class="export-modal__header">
-          <mat-icon>{{ exportMode === 'pdf' ? 'picture_as_pdf' : 'print' }}</mat-icon>
-          <h3>{{ exportMode === 'pdf' ? ('reservierungsliste.export_pdf' | translate) : ('reservierungsliste.print' | translate) }}</h3>
-          <button class="export-modal__close" (click)="closeExportModal()">
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
-
-        <!-- Zeitraum -->
-        <div class="export-section">
-          <span class="export-label">{{ 'reservierungsliste.period' | translate }}</span>
-          <div class="export-range-tabs">
-            <button [class.active]="exportRange === 'day'" (click)="exportRange = 'day'">
-              {{ 'reservierungsliste.day' | translate }}
-            </button>
-            <button [class.active]="exportRange === 'range'" (click)="exportRange = 'range'">
-              {{ 'reservierungsliste.range' | translate }}
-            </button>
-          </div>
-
-          @if (exportRange === 'day') {
-            <input type="date" class="filter-input" [(ngModel)]="exportFrom" />
-          } @else {
-            <div class="export-date-range">
-              <input type="date" class="filter-input" [(ngModel)]="exportFrom" />
-              <span class="export-date-sep">–</span>
-              <input type="date" class="filter-input" [(ngModel)]="exportTo" />
-            </div>
-          }
-        </div>
-
-        <!-- Status -->
-        <div class="export-section">
-          <span class="export-label">{{ 'reservierungsliste.status' | translate }}</span>
-          <div class="export-chips">
-            @for (opt of statusOptions; track opt.value) {
-              @if (opt.value) {
-                <button
-                  class="export-chip"
-                  [class.active]="selectedStatuses.includes(opt.value)"
-                  (click)="toggleStatus(opt.value)">
-                  {{ opt.label }}
-                </button>
-              }
-            }
-          </div>
-          @if (selectedStatuses.length === 0) {
-            <span class="export-hint">{{ 'reservierungsliste.all_statuses' | translate }}</span>
-          }
-        </div>
-
-        <!-- Footer -->
-        <div class="export-modal__footer">
-          <button class="btn-cancel" (click)="closeExportModal()">{{ 'reservierungsliste.cancel' | translate }}</button>
-          <button class="btn-run" (click)="runExport()">
-            <mat-icon>{{ exportMode === 'pdf' ? 'download' : 'print' }}</mat-icon>
-            {{ exportMode === 'pdf' ? ('reservierungsliste.create_pdf' | translate) : ('reservierungsliste.print' | translate) }}
-          </button>
-        </div>
-
-      </div>
-    </div>
-  }
 
   <!-- Error -->
   @if (actionError()) {

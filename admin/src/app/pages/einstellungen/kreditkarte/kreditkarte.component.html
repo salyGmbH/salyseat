@@ -1,1 +1,248 @@
-<p>kreditkarte works!</p>
+<!-- Header -->
+<div class="settings-block">
+  <div class="page-hero">
+    <div class="page-hero__icon"><mat-icon>credit_card</mat-icon></div>
+    <div>
+      <h2 class="page-hero__title">{{ 'stripe_settings.title' | translate }}</h2>
+      <p class="page-hero__sub">{{ 'stripe_settings.subtitle' | translate }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- Stripe-Anbindung -->
+<div class="settings-block">
+  <div class="section-header">
+    <mat-icon>vpn_key</mat-icon>
+    <h3 class="section-title">{{ 'stripe_settings.stripe_title' | translate }}</h3>
+  </div>
+  <p class="section-desc">{{ 'stripe_settings.stripe_desc' | translate }}</p>
+
+  <div class="key-input-wrap">
+    <div class="key-input-field">
+      <mat-icon class="key-input-field__icon">key</mat-icon>
+      <input
+        class="key-input-field__input"
+        type="text"
+        [placeholder]="'stripe_settings.stripe_key_placeholder' | translate"
+        [(ngModel)]="publishableKey"
+        spellcheck="false"
+        autocomplete="off" />
+      @if (keyMode() !== 'empty') {
+        <button class="key-input-field__clear" (click)="publishableKey.set('')" title="Entfernen">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="key-badge" [class]="'key-badge--' + keyMode()">
+      @if (keyMode() === 'live') {
+        <mat-icon>check_circle</mat-icon>
+        {{ 'stripe_settings.stripe_key_hint_live' | translate }}
+      } @else if (keyMode() === 'test') {
+        <mat-icon>science</mat-icon>
+        {{ 'stripe_settings.stripe_key_hint_test' | translate }}
+      } @else {
+        <mat-icon>info_outline</mat-icon>
+        {{ 'stripe_settings.stripe_key_hint_empty' | translate }}
+      }
+    </div>
+  </div>
+
+  <p class="stripe-docs-hint">
+    <mat-icon>open_in_new</mat-icon>
+    {{ 'stripe_settings.stripe_docs' | translate }}
+  </p>
+</div>
+
+<!-- Online-Zahlung -->
+<div class="settings-block">
+  <div class="section-header">
+    <mat-icon>payments</mat-icon>
+    <h3 class="section-title">{{ 'stripe_settings.payment_title' | translate }}</h3>
+  </div>
+  <p class="section-desc">{{ 'stripe_settings.payment_desc' | translate }}</p>
+
+  <div class="toggle-row" [class.toggle-row--disabled]="!canActivate()" (click)="toggleZahlungAktiv()">
+    <div class="toggle-row__text">
+      <strong>{{ 'stripe_settings.payment_active_label' | translate }}</strong>
+      <span>{{ 'stripe_settings.payment_active_desc' | translate }}</span>
+    </div>
+    <div class="toggle" [class.toggle--on]="zahlungAktiv()">
+      <span class="toggle__knob"></span>
+    </div>
+  </div>
+
+  @if (!canActivate()) {
+    <div class="no-key-warning">
+      <mat-icon>warning_amber</mat-icon>
+      {{ 'stripe_settings.payment_no_key' | translate }}
+    </div>
+  }
+</div>
+
+<!-- Zahlungsoptionen (nur wenn aktiv) -->
+@if (zahlungAktiv()) {
+
+  <!-- Pflicht-Toggle -->
+  <div class="settings-block">
+    <div class="toggle-row" (click)="zahlungPflicht.set(!zahlungPflicht())">
+      <div class="toggle-row__text">
+        <strong>{{ 'stripe_settings.payment_required_label' | translate }}</strong>
+        <span>{{ 'stripe_settings.payment_required_desc' | translate }}</span>
+      </div>
+      <div class="toggle" [class.toggle--on]="zahlungPflicht()">
+        <span class="toggle__knob"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zahlungsmethoden -->
+  <div class="settings-block">
+    <div class="section-header">
+      <mat-icon>account_balance_wallet</mat-icon>
+      <h3 class="section-title">{{ 'stripe_settings.methods_title' | translate }}</h3>
+    </div>
+    <p class="section-desc">{{ 'stripe_settings.methods_desc' | translate }}</p>
+
+    <div class="method-grid">
+
+      <div class="method-card" [class.method-card--on]="methKreditkarte()" (click)="methKreditkarte.set(!methKreditkarte())">
+        <div class="method-card__icon">
+          <mat-icon>credit_card</mat-icon>
+        </div>
+        <div class="method-card__text">
+          <strong>{{ 'stripe_settings.method_card' | translate }}</strong>
+          <span>{{ 'stripe_settings.method_card_desc' | translate }}</span>
+        </div>
+        <div class="method-card__check">
+          <mat-icon>{{ methKreditkarte() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+      </div>
+
+      <div class="method-card" [class.method-card--on]="methSepa()" (click)="methSepa.set(!methSepa())">
+        <div class="method-card__icon">
+          <mat-icon>account_balance</mat-icon>
+        </div>
+        <div class="method-card__text">
+          <strong>{{ 'stripe_settings.method_sepa' | translate }}</strong>
+          <span>{{ 'stripe_settings.method_sepa_desc' | translate }}</span>
+        </div>
+        <div class="method-card__check">
+          <mat-icon>{{ methSepa() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+      </div>
+
+      <div class="method-card" [class.method-card--on]="methVorkasse()" (click)="methVorkasse.set(!methVorkasse())">
+        <div class="method-card__icon">
+          <mat-icon>send</mat-icon>
+        </div>
+        <div class="method-card__text">
+          <strong>{{ 'stripe_settings.method_vorkasse' | translate }}</strong>
+          <span>{{ 'stripe_settings.method_vorkasse_desc' | translate }}</span>
+        </div>
+        <div class="method-card__check">
+          <mat-icon>{{ methVorkasse() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+      </div>
+
+      <div class="method-card" [class.method-card--on]="methBar()" (click)="methBar.set(!methBar())">
+        <div class="method-card__icon">
+          <mat-icon>storefront</mat-icon>
+        </div>
+        <div class="method-card__text">
+          <strong>{{ 'stripe_settings.method_bar' | translate }}</strong>
+          <span>{{ 'stripe_settings.method_bar_desc' | translate }}</span>
+        </div>
+        <div class="method-card__check">
+          <mat-icon>{{ methBar() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- No-Show-Schutz -->
+<div class="settings-block">
+  <div class="section-header">
+    <mat-icon>person_off</mat-icon>
+    <h3 class="section-title">{{ 'stripe_settings.noshow_title' | translate }}</h3>
+  </div>
+  <p class="section-desc">{{ 'stripe_settings.noshow_desc' | translate }}</p>
+
+  <div class="toggle-row" [class.toggle-row--disabled]="!canActivate()" (click)="canActivate() && noShowSchutzAktiv.set(!noShowSchutzAktiv())">
+    <div class="toggle-row__text">
+      <strong>{{ 'stripe_settings.noshow_active_label' | translate }}</strong>
+      <span>{{ 'stripe_settings.noshow_active_desc' | translate }}</span>
+    </div>
+    <div class="toggle" [class.toggle--on]="noShowSchutzAktiv()">
+      <span class="toggle__knob"></span>
+    </div>
+  </div>
+
+  @if (!canActivate()) {
+    <div class="no-key-warning">
+      <mat-icon>warning_amber</mat-icon>
+      {{ 'stripe_settings.payment_no_key' | translate }}
+    </div>
+  }
+
+  @if (noShowSchutzAktiv()) {
+    <div class="noshow-fields">
+      <div class="noshow-field">
+        <label class="noshow-field__label">{{ 'stripe_settings.noshow_betrag_label' | translate }}</label>
+        <div class="noshow-field__input-wrap">
+          <span class="noshow-field__currency">€</span>
+          <input
+            class="noshow-field__input"
+            type="text"
+            inputmode="decimal"
+            [(ngModel)]="noShowBetragEuro"
+            placeholder="20,00" />
+        </div>
+        <p class="noshow-field__hint">{{ 'stripe_settings.noshow_betrag_hint' | translate }}</p>
+      </div>
+
+      <div class="noshow-field">
+        <label class="noshow-field__label">{{ 'stripe_settings.noshow_text_label' | translate }}</label>
+        <textarea
+          class="noshow-field__textarea"
+          rows="2"
+          [(ngModel)]="noShowWidgetText"
+          [placeholder]="'stripe_settings.noshow_text_placeholder' | translate">
+        </textarea>
+        <p class="noshow-field__hint">{{ 'stripe_settings.noshow_text_hint' | translate }}</p>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Fehler + Speichern -->
+<div class="settings-block">
+  @if (error()) {
+    <div class="settings-error">
+      <mat-icon>error_outline</mat-icon>
+      {{ error() }}
+    </div>
+  }
+
+  <div class="actions">
+    <button
+      class="save-button"
+      [class.save-button--saved]="saved()"
+      [class.save-button--loading]="saving()"
+      [disabled]="saving()"
+      (click)="save()">
+      @if (saving()) {
+        <mat-icon class="spin">sync</mat-icon>
+        {{ 'common.saving' | translate }}
+      } @else if (saved()) {
+        <mat-icon>check</mat-icon>
+        {{ 'common.saved' | translate }}
+      } @else {
+        <mat-icon>save</mat-icon>
+        {{ 'common.save' | translate }}
+      }
+    </button>
+  </div>
+</div>

@@ -86,6 +86,7 @@ class AvailabilityController extends AbstractController
                     'close_time'         => null,
                     'breaks'             => [],
                     'reason'             => $sc['reason'],
+                    'blockedRanges'      => [],
                     'bookedTableNumbers' => [],
                     'bookedPeriods'      => $bookedPeriods,
                     'totalTables'        => $totalTables,
@@ -98,11 +99,49 @@ class AvailabilityController extends AbstractController
                 'close_time'         => $sc['close_time'],
                 'breaks'             => [],
                 'reason'             => $sc['reason'],
+                'blockedRanges'      => [],
                 'bookedTableNumbers' => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
                 'bookedPeriods'      => $bookedPeriods,
                 'totalTables'        => $totalTables,
             ]);
         }
+
+        // 1b. Raumspezifische Sperrzeiten prüfen
+        $venueBlocks = $this->dbal->fetchAllAssociative(
+            'SELECT full_day, time_from, time_to, reason
+               FROM venue_blocks
+              WHERE venue_id = UNHEX(REPLACE(?, \'-\', \'\'))
+                AND date_from <= ?
+                AND date_to   >= ?
+              ORDER BY date_from ASC',
+            [$venue->getId()->toRfc4122(), $dateStr, $dateStr],
+        );
+
+        // Ganztägige Sperrung?
+        foreach ($venueBlocks as $vb) {
+            if ((bool) $vb['full_day']) {
+                return $this->json([
+                    'open'               => false,
+                    'open_time'          => null,
+                    'close_time'         => null,
+                    'breaks'             => [],
+                    'reason'             => $vb['reason'],
+                    'blockedRanges'      => [],
+                    'bookedTableNumbers' => [],
+                    'bookedPeriods'      => $bookedPeriods,
+                    'totalTables'        => $totalTables,
+                ]);
+            }
+        }
+
+        // Zeitfenster-Sperren sammeln (für die Antwort)
+        $blockedRanges = array_values(array_filter(
+            array_map(fn ($vb) => !$vb['full_day'] && $vb['time_from'] && $vb['time_to']
+                ? ['from' => $vb['time_from'], 'to' => $vb['time_to']]
+                : null,
+                $venueBlocks
+            )
+        ));
 
         // 2. Reguläre Öffnungszeiten — 0=Montag … 6=Sonntag
         $weekday = ((int) $date->format('N')) - 1;
@@ -116,6 +155,7 @@ class AvailabilityController extends AbstractController
                 'close_time'         => null,
                 'breaks'             => [],
                 'reason'             => null,
+                'blockedRanges'      => $blockedRanges,
                 'bookedTableNumbers' => [],
                 'bookedPeriods'      => $bookedPeriods,
                 'totalTables'        => $totalTables,
@@ -128,6 +168,7 @@ class AvailabilityController extends AbstractController
             'close_time'         => $oh->isOpen() ? $oh->getCloseTime() : null,
             'breaks'             => $oh->isOpen() ? ($oh->getBreaks() ?? []) : [],
             'reason'             => null,
+            'blockedRanges'      => $blockedRanges,
             'bookedTableNumbers' => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
             'bookedPeriods'      => $bookedPeriods,
             'totalTables'        => $totalTables,

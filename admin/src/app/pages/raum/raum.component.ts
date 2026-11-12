@@ -4,7 +4,6 @@ import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
-import { SavedRoom } from '../../services/room.types';
 
 @Component({
   selector: 'app-raum',
@@ -48,11 +47,4 @@ export class RaumComponent implements OnInit {
     this.confirmDeleteId = '';
   }
 
-  totalSeats(room: SavedRoom): number {
-    return room.tables.reduce((sum, t) => sum + t.seats, 0);
-  }
-
-  tableCount(room: SavedRoom): number {
-    return room.tables.length;
-  }
 }

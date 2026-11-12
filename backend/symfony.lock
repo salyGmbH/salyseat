@@ -86,6 +86,9 @@
             "bin/phpunit"
         ]
     },
+    "stripe/stripe-php": {
+        "version": "v23.0.0"
+    },
     "symfony/console": {
         "version": "7.4",
         "recipe": {

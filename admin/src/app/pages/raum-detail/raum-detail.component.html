@@ -18,7 +18,7 @@
               }
             </span>
             <span class="room-tab__meta">
-              {{ rm.tables.length }}&nbsp;Tische&ensp;·&ensp;{{ roomSeats(rm) }}&nbsp;Pl.
+              {{ rm.tableCount }}&nbsp;{{ 'raum.tables' | translate }}&ensp;·&ensp;{{ rm.seatCount }}&nbsp;{{ 'raum.seats' | translate }}
             </span>
           </button>
         }
@@ -554,8 +554,11 @@
           </div>
           <div class="day-load">
             @for (bucket of dayLoad(); track bucket.hour) {
-              <div class="day-load__cell" [class.is-peak]="bucket.isPeak"
-                   [title]="bucket.hour + ':00 · ' + bucket.count + ' Res. · ' + bucket.pct + '% Auslastung'">
+              <div class="day-load__cell"
+                   [class.is-peak]="bucket.isPeak"
+                   [class.is-active]="activeLoadHour() === bucket.hour"
+                   (click)="toggleLoadHour(bucket.hour)">
+
                 <div class="day-load__pct"
                      [class.is-green]="bucket.loadLevel === 'green'"
                      [class.is-amber]="bucket.loadLevel === 'amber'"
@@ -571,6 +574,43 @@
               </div>
             }
           </div>
+
+          <!-- Detail-Panel für angeklickte Stunde -->
+          @if (activeLoadHour() !== null) {
+            @for (bucket of dayLoad(); track bucket.hour) {
+              @if (bucket.hour === activeLoadHour()) {
+                <div class="day-load-detail">
+                  <div class="day-load-detail__head">
+                    <mat-icon>schedule</mat-icon>
+                    <strong>{{ bucket.hour }}:00 Uhr</strong>
+                    <span class="day-load-detail__badge"
+                          [class.is-green]="bucket.loadLevel === 'green'"
+                          [class.is-amber]="bucket.loadLevel === 'amber'"
+                          [class.is-red]="bucket.loadLevel === 'red'">
+                      {{ bucket.pct }}% Auslastung
+                    </span>
+                    <button class="day-load-detail__close" (click)="activeLoadHour.set(null)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                  <div class="day-load-detail__stats">
+                    <div class="day-load-detail__stat">
+                      <span class="day-load-detail__stat-val">{{ bucket.count }}</span>
+                      <span class="day-load-detail__stat-label">Reservierungen</span>
+                    </div>
+                    <div class="day-load-detail__stat">
+                      <span class="day-load-detail__stat-val">{{ bucket.guests }}</span>
+                      <span class="day-load-detail__stat-label">Gäste</span>
+                    </div>
+                    <div class="day-load-detail__stat">
+                      <span class="day-load-detail__stat-val">{{ bucket.pct }}%</span>
+                      <span class="day-load-detail__stat-label">Auslastung</span>
+                    </div>
+                  </div>
+                </div>
+              }
+            }
+          }
         </div>
 
         <div class="raum-detail__canvas"
@@ -1462,6 +1502,54 @@
               <button class="gc-action gc-action--reopen" (click)="gcDoStatus('reopen')" [disabled]="gcStatusLoading()">
                 <mat-icon>restart_alt</mat-icon>{{ 'raum_detail.gc_reopen' | translate }}
               </button>
+            }
+            @if (res.paymentCaptureMethod === 'manual' && res.paymentStatus === 'authorized') {
+              <button class="gc-action gc-action--capture"
+                      [disabled]="gcPaymentLoading()"
+                      (click)="capturePayment(res)">
+                @if (gcPaymentLoading()) {
+                  <mat-icon class="spin-icon">sync</mat-icon>Wird verarbeitet …
+                } @else {
+                  <mat-icon>price_check</mat-icon>Betrag einziehen
+                }
+              </button>
+              <button class="gc-action gc-action--release"
+                      [disabled]="gcPaymentLoading()"
+                      (click)="releasePayment(res)">
+                @if (gcPaymentLoading()) {
+                  <mat-icon class="spin-icon">sync</mat-icon>Wird verarbeitet …
+                } @else {
+                  <mat-icon>lock_open</mat-icon>Freigeben
+                }
+              </button>
+            }
+            @if (gcPaymentResult() === 'captured') {
+              <div class="gc-payment-feedback gc-payment-feedback--success">
+                <mat-icon>check_circle</mat-icon>
+                Betrag wurde erfolgreich eingezogen.
+              </div>
+            }
+            @if (gcPaymentResult() === 'released') {
+              <div class="gc-payment-feedback gc-payment-feedback--released">
+                <mat-icon>lock_open</mat-icon>
+                Karte wurde erfolgreich freigegeben.
+              </div>
+            }
+            @if (gcPaymentResult() === 'error') {
+              <div class="gc-payment-feedback gc-payment-feedback--error">
+                <mat-icon>error_outline</mat-icon>
+                Aktion fehlgeschlagen. Bitte erneut versuchen.
+              </div>
+            }
+            @if (res.paymentStatus === 'captured') {
+              <div class="gc-payment-badge gc-payment-badge--captured">
+                <mat-icon>price_check</mat-icon>No-Show-Betrag eingezogen
+              </div>
+            }
+            @if (res.paymentStatus === 'released') {
+              <div class="gc-payment-badge gc-payment-badge--released">
+                <mat-icon>lock_open</mat-icon>Karte freigegeben
+              </div>
             }
           </div>
 

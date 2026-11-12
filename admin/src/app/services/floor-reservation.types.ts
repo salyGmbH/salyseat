@@ -32,6 +32,8 @@ export interface FloorReservation {
   guestBlocked?: boolean;
   guestBlockedReason?: string;
   guestNoShowCount?: number;
+  paymentStatus?:        string | null;
+  paymentCaptureMethod?: string | null;
   createdAt: number;
   updatedAt: number;
 }

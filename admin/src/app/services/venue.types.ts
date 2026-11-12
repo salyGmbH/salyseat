@@ -12,6 +12,10 @@ export interface Venue {
   minAdvanceBookingHours: number;
   active: boolean;
   resourceCount: number;
+  tableCount: number;
+  seatCount: number;
+  isBlockedToday: boolean;
+  activeBlockIds: string[];
 }
 
 export interface VenueLayout {

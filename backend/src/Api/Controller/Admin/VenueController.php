@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\Admin;
 
+use App\Module\Availability\Domain\Entity\VenueBlock;
 use App\Module\User\Domain\Entity\User;
 use App\Module\Venue\Domain\Entity\Venue;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -99,8 +101,15 @@ class VenueController extends AbstractController
             return $this->json(['error' => 'Venue nicht gefunden.'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->em->remove($venue);
-        $this->em->flush();
+        try {
+            $this->em->remove($venue);
+            $this->em->flush();
+        } catch (ForeignKeyConstraintViolationException) {
+            return $this->json(
+                ['error' => 'Der Raum kann nicht gelöscht werden, da noch Reservierungen existieren.'],
+                Response::HTTP_CONFLICT,
+            );
+        }
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }
@@ -182,6 +191,18 @@ class VenueController extends AbstractController
 
     private function serialize(Venue $venue): array
     {
+        $today  = new \DateTimeImmutable('today');
+        $blocks = $this->em->getRepository(VenueBlock::class)->findBy(['venue' => $venue]);
+
+        $activeBlockIds = array_values(array_map(
+            fn(VenueBlock $b) => $b->getId()->toRfc4122(),
+            array_filter($blocks, fn(VenueBlock $b) => $b->affectsDate($today)),
+        ));
+
+        $tables     = $venue->getLayout()['tables'] ?? [];
+        $tableCount = count($tables);
+        $seatCount  = (int) array_sum(array_column($tables, 'seats'));
+
         return [
             'id'                     => $venue->getId()->toRfc4122(),
             'name'                   => $venue->getName(),
@@ -196,6 +217,10 @@ class VenueController extends AbstractController
             'minAdvanceBookingHours' => $venue->getMinAdvanceBookingHours(),
             'active'                 => $venue->isActive(),
             'resourceCount'          => $venue->getResources()->count(),
+            'tableCount'             => $tableCount,
+            'seatCount'              => $seatCount,
+            'isBlockedToday'         => count($activeBlockIds) > 0,
+            'activeBlockIds'         => $activeBlockIds,
         ];
     }
 }

@@ -6,7 +6,11 @@
     </a>
   </div>
 
-  @if (rooms().length === 0) {
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-icon class="spin">sync</mat-icon>
+    </div>
+  } @else if (rooms().length === 0) {
     <div class="empty-state">
       <div class="empty-state__icon"><mat-icon>meeting_room</mat-icon></div>
       <h2 class="empty-state__title">{{ 'raum.no_rooms' | translate }}</h2>
@@ -25,8 +29,8 @@
           <div class="room-card__body">
             <h3 class="room-card__name">{{ room.name }}</h3>
             <div class="room-card__meta">
-              <span class="meta-pill"><mat-icon>table_restaurant</mat-icon>{{ tableCount(room) }} {{ 'raum.tables' | translate }}</span>
-              <span class="meta-pill"><mat-icon>person</mat-icon>{{ totalSeats(room) }} {{ 'raum.seats' | translate }}</span>
+              <span class="meta-pill"><mat-icon>table_restaurant</mat-icon>{{ room.tableCount }} {{ 'raum.tables' | translate }}</span>
+              <span class="meta-pill"><mat-icon>person</mat-icon>{{ room.seatCount }} {{ 'raum.seats' | translate }}</span>
             </div>
             <div class="room-card__date">{{ 'raum.created' | translate }} {{ room.createdAt | date:'dd.MM.yyyy, HH:mm' }}</div>
           </div>

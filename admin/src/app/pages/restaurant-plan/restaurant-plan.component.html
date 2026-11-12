@@ -20,13 +20,24 @@
     } @else {
       <div class="rooms-grid">
         @for (room of savedRooms(); track room.id) {
-          <button class="room-card" (click)="editRoom(room.id)">
-            <div class="room-card__icon"><mat-icon>edit</mat-icon></div>
+          <button class="room-card" [class.room-card--blocked]="room.isBlockedToday" (click)="editRoom(room.id)">
+            <div class="room-card__icon">
+              @if (room.isBlockedToday) {
+                <mat-icon>block</mat-icon>
+              } @else {
+                <mat-icon>edit</mat-icon>
+              }
+            </div>
             <div class="room-card__body">
-              <h3 class="room-card__name">{{ room.name }}</h3>
+              <h3 class="room-card__name">
+                {{ room.name }}
+                @if (room.isBlockedToday) {
+                  <span class="room-card__blocked-badge">{{ 'restaurant_plan.blocked_badge' | translate }}</span>
+                }
+              </h3>
               <div class="room-card__meta">
-                <span><mat-icon>table_restaurant</mat-icon>{{ room.tables.length }} {{ 'restaurant_plan.tables' | translate }}</span>
-                <span><mat-icon>person</mat-icon>{{ totalSeats(room) }} {{ 'raum.seats' | translate }}</span>
+                <span><mat-icon>table_restaurant</mat-icon>{{ room.tableCount }} {{ 'restaurant_plan.tables' | translate }}</span>
+                <span><mat-icon>person</mat-icon>{{ room.seatCount }} {{ 'raum.seats' | translate }}</span>
               </div>
               <div class="room-card__date">{{ 'restaurant_plan.last_modified' | translate }} {{ room.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</div>
             </div>
@@ -55,6 +66,26 @@
         <span class="room-editor__feedback">
           <mat-icon>check_circle</mat-icon>{{ msg }}
         </span>
+      }
+      @if (editingRoomId()) {
+        @if (currentRoomIsBlocked()) {
+          <span class="room-blocked-indicator">
+            <mat-icon>block</mat-icon> {{ 'restaurant_plan.blocked_now' | translate }}
+          </span>
+          <button class="btn-header btn-header--lift" (click)="liftAllActiveBlocks()">
+            <mat-icon>lock_open</mat-icon> {{ 'restaurant_plan.lift_block' | translate }}
+          </button>
+        }
+        <button class="btn-header btn-header--lock" [class.btn-header--active]="venueBlocks().length > 0" (click)="openBlockModal()">
+          <mat-icon>block</mat-icon>
+          {{ 'restaurant_plan.block_room' | translate }}
+          @if (venueBlocks().length > 0) {
+            <span class="btn-header__badge">{{ venueBlocks().length }}</span>
+          }
+        </button>
+        <button class="btn-header btn-header--danger" (click)="openDeleteConfirm()">
+          <mat-icon>delete_outline</mat-icon> {{ 'restaurant_plan.delete_room' | translate }}
+        </button>
       }
       <button class="btn-primary btn-primary--small" (click)="openSaveDialog()">
         <mat-icon>save</mat-icon> {{ 'common.save' | translate }}
@@ -500,8 +531,8 @@
 
       <!-- ── Dialoge ──────────────────────────────────────────────────── -->
 
-      @if (mergeConfirmDialog() || mergeSeatsDialog() || splitDialog() !== null || saveDialogOpen() || discardDialogOpen()) {
-        <div class="dialog-backdrop" (click)="cancelMerge(); cancelSplit(); cancelSaveDialog(); cancelDiscard()"></div>
+      @if (mergeConfirmDialog() || mergeSeatsDialog() || splitDialog() !== null || saveDialogOpen() || discardDialogOpen() || deleteConfirmOpen() || blockModalOpen()) {
+        <div class="dialog-backdrop" (click)="cancelMerge(); cancelSplit(); cancelSaveDialog(); cancelDiscard(); cancelDelete(); closeBlockModal()"></div>
       }
 
       @if (discardDialogOpen()) {
@@ -512,6 +543,114 @@
           <div class="dialog__actions">
             <button class="dialog__btn dialog__btn--secondary" (click)="cancelDiscard()">{{ 'common.cancel' | translate }}</button>
             <button class="dialog__btn dialog__btn--primary"   (click)="confirmDiscard()">{{ 'restaurant_plan.leave_yes' | translate }}</button>
+          </div>
+        </div>
+      }
+
+      @if (deleteConfirmOpen()) {
+        <div class="dialog">
+          <div class="dialog__icon dialog__icon--danger"><mat-icon>delete_forever</mat-icon></div>
+          <h3 class="dialog__title">{{ 'restaurant_plan.delete_room_title' | translate }}</h3>
+          <p class="dialog__text">{{ 'restaurant_plan.delete_room_text' | translate:{ name: currentRoomName() } }}</p>
+          @if (deleteError()) {
+            <p class="dialog__error">{{ deleteError() }}</p>
+          }
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--secondary" (click)="cancelDelete()">{{ 'common.cancel' | translate }}</button>
+            <button class="dialog__btn dialog__btn--danger"    (click)="confirmDeleteRoom()">{{ 'restaurant_plan.delete_room_confirm' | translate }}</button>
+          </div>
+        </div>
+      }
+
+      @if (blockModalOpen()) {
+        <div class="dialog dialog--block-modal" (click)="$event.stopPropagation()">
+          <div class="dialog__icon dialog__icon--block"><mat-icon>block</mat-icon></div>
+          <h3 class="dialog__title">{{ 'restaurant_plan.block_room_title' | translate }}</h3>
+          <p class="dialog__text">{{ 'restaurant_plan.block_room_hint' | translate:{ name: currentRoomName() } }}</p>
+
+          <!-- Neuer Block: Formular -->
+          <div class="block-form">
+            <div class="block-form__row">
+              <label class="block-form__field">
+                <span>{{ 'restaurant_plan.block_from' | translate }}</span>
+                <input type="date" class="block-form__input" [value]="blockDateFrom"
+                       (input)="blockDateFrom = $any($event.target).value">
+              </label>
+              <label class="block-form__field">
+                <span>{{ 'restaurant_plan.block_to' | translate }}</span>
+                <input type="date" class="block-form__input" [value]="blockDateTo"
+                       (input)="blockDateTo = $any($event.target).value">
+              </label>
+            </div>
+
+            <label class="block-form__toggle">
+              <input type="checkbox" [checked]="blockFullDay"
+                     (change)="blockFullDay = $any($event.target).checked">
+              <span>{{ 'restaurant_plan.block_full_day' | translate }}</span>
+            </label>
+
+            @if (!blockFullDay) {
+              <div class="block-form__row">
+                <label class="block-form__field">
+                  <span>{{ 'restaurant_plan.block_from_time' | translate }}</span>
+                  <input type="time" class="block-form__input" [value]="blockTimeFrom"
+                         (input)="blockTimeFrom = $any($event.target).value">
+                </label>
+                <label class="block-form__field">
+                  <span>{{ 'restaurant_plan.block_to_time' | translate }}</span>
+                  <input type="time" class="block-form__input" [value]="blockTimeTo"
+                         (input)="blockTimeTo = $any($event.target).value">
+                </label>
+              </div>
+            }
+
+            <label class="block-form__field block-form__field--full">
+              <span>{{ 'restaurant_plan.block_reason' | translate }} <small>({{ 'common.optional' | translate }})</small></span>
+              <input type="text" class="block-form__input" [placeholder]="'restaurant_plan.block_reason_ph' | translate"
+                     [value]="blockReason" (input)="blockReason = $any($event.target).value">
+            </label>
+
+            @if (blockError()) {
+              <p class="dialog__error">{{ blockError() }}</p>
+            }
+
+            <button class="dialog__btn dialog__btn--primary block-form__submit"
+                    [disabled]="blockSaving()" (click)="saveBlock()">
+              <mat-icon>add</mat-icon>
+              {{ blockSaving() ? ('restaurant_plan.block_saving' | translate) : ('restaurant_plan.block_add' | translate) }}
+            </button>
+          </div>
+
+          <!-- Bestehende Sperrzeiten -->
+          @if (venueBlocks().length > 0) {
+            <div class="block-list">
+              <div class="block-list__header">{{ 'restaurant_plan.block_active' | translate }}</div>
+              @for (block of venueBlocks(); track block.id) {
+                <div class="block-list__item">
+                  <div class="block-list__info">
+                    <span class="block-list__dates">
+                      {{ block.date_from }}
+                      @if (block.date_from !== block.date_to) { → {{ block.date_to }} }
+                    </span>
+                    @if (!block.full_day && block.time_from && block.time_to) {
+                      <span class="block-list__time"> · {{ block.time_from }} – {{ block.time_to }}</span>
+                    } @else {
+                      <span class="block-list__time"> · {{ 'restaurant_plan.block_ganztaegig' | translate }}</span>
+                    }
+                    @if (block.reason) {
+                      <span class="block-list__reason">{{ block.reason }}</span>
+                    }
+                  </div>
+                  <button class="block-list__delete" (click)="removeBlock(block.id)" title="Löschen">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--secondary" (click)="closeBlockModal()">{{ 'restaurant_plan.block_close' | translate }}</button>
           </div>
         </div>
       }

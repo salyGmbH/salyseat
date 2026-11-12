@@ -153,8 +153,10 @@ export class FloorReservationsService {
       guestInternalNotes: br.guest_internal_notes ?? undefined,
       guestBlocked:       br.guest_blocked        ?? false,
       guestBlockedReason: br.guest_blocked_reason ?? undefined,
-      guestNoShowCount:   br.guest_no_show_count  ?? 0,
-      createdAt:          new Date(br.created_at).getTime(),
+      guestNoShowCount:    br.guest_no_show_count   ?? 0,
+      paymentStatus:       (br as any).payment_status        ?? null,
+      paymentCaptureMethod:(br as any).payment_capture_method ?? null,
+      createdAt:           new Date(br.created_at).getTime(),
       updatedAt:          Date.now(),
     };
   }
@@ -178,6 +180,26 @@ export class FloorReservationsService {
   /** late und expired sind transiente UI-Zustände — kein Backend-Sync */
   private isSyncableStatus(status: FloorReservationStatus): boolean {
     return status !== 'late' && status !== 'expired';
+  }
+
+  capturePayment(backendId: string): Observable<unknown> {
+    return this.http.post(`${this.BASE}/${backendId}/payment/capture`, {}).pipe(
+      map(() => {
+        this._reservations.update(rs =>
+          rs.map(r => r.backendId === backendId ? { ...r, paymentStatus: 'captured', updatedAt: Date.now() } : r)
+        );
+      }),
+    );
+  }
+
+  releasePayment(backendId: string): Observable<unknown> {
+    return this.http.post(`${this.BASE}/${backendId}/payment/release`, {}).pipe(
+      map(() => {
+        this._reservations.update(rs =>
+          rs.map(r => r.backendId === backendId ? { ...r, paymentStatus: 'released', updatedAt: Date.now() } : r)
+        );
+      }),
+    );
   }
 
   private syncStatus(backendId: string, status: FloorReservationStatus): Observable<unknown> {

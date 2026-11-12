@@ -105,13 +105,17 @@ export class RoomsService {
   private venueToRoom(venue: Venue, tables?: PlacedTable[], walls?: PlacedWall[], decors?: PlacedDecor[]): SavedRoom {
     const cached = this._layoutCache()[venue.id];
     return {
-      id:        venue.id,
-      name:      venue.name,
-      createdAt: 0,
-      updatedAt: 0,
-      tables:    tables ?? cached?.tables ?? [],
-      walls:     walls  ?? cached?.walls  ?? [],
-      decors:    decors ?? cached?.decors ?? [],
+      id:             venue.id,
+      name:           venue.name,
+      createdAt:      0,
+      updatedAt:      0,
+      tables:         tables ?? cached?.tables ?? [],
+      walls:          walls  ?? cached?.walls  ?? [],
+      decors:         decors ?? cached?.decors ?? [],
+      tableCount:     venue.tableCount      ?? 0,
+      seatCount:      venue.seatCount       ?? 0,
+      isBlockedToday: venue.isBlockedToday  ?? false,
+      activeBlockIds: venue.activeBlockIds  ?? [],
     };
   }
 

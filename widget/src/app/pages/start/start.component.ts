@@ -1,9 +1,10 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, NgZone, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { combineLatest, switchMap, of } from 'rxjs';
+import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
 
 import { environment } from '../../../environments/environment';
 import {
@@ -21,7 +22,7 @@ import {
   toAtomDateTime,
 } from '../../services/reservations.service';
 
-type SubmitState = 'loading' | 'idle' | 'submitting' | 'success' | 'error';
+type SubmitState = 'loading' | 'idle' | 'submitting' | 'success' | 'error' | 'payment' | 'paying';
 
 const DEFAULT_FROM = '10:00';
 const DEFAULT_TO   = '23:00';
@@ -54,6 +55,11 @@ export class StartComponent implements OnInit {
   private readonly reservations = inject(ReservationsService);
   private readonly route        = inject(ActivatedRoute);
   private readonly sanitizer    = inject(DomSanitizer);
+  private readonly zone         = inject(NgZone);
+
+  // ─── Stripe ──────────────────────────────────────────────────────────────
+  private _stripe:   Stripe | null = null;
+  private _elements: StripeElements | null = null;
 
   // ─── Config vom Backend ──────────────────────────────────────────────────
   restaurantName = signal('');
@@ -61,8 +67,11 @@ export class StartComponent implements OnInit {
   selectedVenue  = signal<WidgetVenue | null>(null);
 
   // ─── Widget-Design (aus widgetDesign-Settings) ───────────────────────────
-  layout           = signal<string>('card');
-  imageUrl         = signal<string | null>(null);
+  layout                = signal<string>('card');
+  imageUrl              = signal<string | null>(null);
+  cardBackgroundImage    = signal<string | null>(null);
+  stackedBackgroundImage = signal<string | null>(null);
+  plannerBackgroundImage = signal<string | null>(null);
   headingTitle     = signal('Tisch reservieren');
   headingSubtitle  = signal('');
   headingAlignment = signal<string>('center');
@@ -109,13 +118,15 @@ export class StartComponent implements OnInit {
   hinweistextUeberschrift = signal<string>('');
   hinweistextInhalt       = signal<string>('');
   hinweistextFooter       = signal<string>('');
-  maxPersonenText         = signal<string>('Für Gruppen ab dieser Personenzahl bitten wir um Kontaktaufnahme.');
+  maxPersonenText         = signal<string>('Für größere Gruppen bitten wir um Kontaktaufnahme.');
   maxPersonenPhone        = signal<string>('');
   maxPersonenEmail        = signal<string>('');
   raumauswahl             = signal<boolean>(false);
   raumauswahlAktiveIds    = signal<string[]>([]);
   menuOpen                = signal<boolean>(false);
   hinweisOpen             = signal<boolean>(false);
+  cardShowErrors          = signal<boolean>(false);
+  cardWasOnSummary        = signal<boolean>(false);
 
   dismissHinweis(): void {
     this.hinweisOpen.set(false);
@@ -174,6 +185,17 @@ export class StartComponent implements OnInit {
   // ─── Geschlossene Wochentage (0=Mo … 6=So) ───────────────────────────────
   closedWeekdays = signal<number[]>([]);
 
+  // ─── Sonder-Schließtage (Datumsbereiche) ─────────────────────────────────
+  specialClosedRanges = signal<{ date_from: string; date_to: string }[]>([]);
+
+  // ─── Öffnungszeiten-Schedule (Wochentag → Zeiten) ────────────────────────
+  openingSchedule = signal<Record<number, { open_time: string | null; close_time: string | null; breaks: { from: string; to: string }[] }>>({});
+
+  /** Gibt true zurück wenn ein YYYY-MM-DD Datum in einem Sonder-Schließbereich liegt. */
+  private isSpecialClosed(dateStr: string): boolean {
+    return this.specialClosedRanges().some(r => dateStr >= r.date_from && dateStr <= r.date_to);
+  }
+
   // ─── Online Änderungen / Stornierung ─────────────────────────────────────
   onlineAenderungen        = signal<boolean>(false);
   onlineAenderungenMinuten = signal<number>(120);
@@ -181,15 +203,19 @@ export class StartComponent implements OnInit {
   onlineStornierungMinuten = signal<number>(120);
 
   readonly weekdays: readonly string[] = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-  /** Personen-Auswahl 1 … maxPeople, die letzte Option mit "+" (Standard 8 → "8+ Gäste"). */
-  readonly seatOptions = computed<readonly { count: number; label: string }[]>(() => {
+  readonly seatOptions = computed<{ count: number; label: string }[]>(() => {
     const max = this.maxPeople();
     return Array.from({ length: max }, (_, i) => {
-      const count = i + 1;
-      const label = count === 1 ? '1 Gast' : count === max ? `${count}+ Gäste` : `${count} Gäste`;
-      return { count, label };
+      const n = i + 1;
+      if (n === 1) return { count: 1, label: '1 Gast' };
+      return { count: n, label: `${n} Gäste` };
     });
   });
+
+  /** Hinweisblock anzeigen wenn Telefon oder E-Mail hinterlegt ist – unabhängig von der gewählten Personenzahl. */
+  readonly showMaxPersonenInfo = computed(() =>
+    !!(this.maxPersonenPhone() || this.maxPersonenEmail())
+  );
 
   decrement(): void { this.people.update(n => Math.max(this.minPeople, n - 1)); }
   increment(): void { this.people.update(n => Math.min(this.maxPeople(), n + 1)); }
@@ -199,24 +225,31 @@ export class StartComponent implements OnInit {
   calendarYear  = signal<number>(new Date().getFullYear());
 
   // ─── Card-Layout-State ───────────────────────────────────────────────────
-  cardStep       = signal<1 | 2>(1);
+  cardStep       = signal<1 | 2 | 3>(1);
   cardOpenPicker = signal<'date' | 'time' | 'seats' | null>(null);
   cardConsent    = signal(false);
 
   // ─── Sidebar-Layout-State ─────────────────────────────────────────────────
-  sidebarStep       = signal<1 | 2>(1);
-  sidebarOpenPicker = signal<'date' | 'time' | 'seats' | null>(null);
-  sidebarConsent    = signal(false);
+  sidebarStep          = signal<1 | 2 | 3>(1);
+  sidebarOpenPicker    = signal<'date' | 'time' | 'seats' | null>(null);
+  sidebarConsent       = signal(false);
+  sidebarWasOnSummary  = signal(false);
+  sidebarShowErrors    = signal(false);
 
   // ─── Stacked-Layout-State ────────────────────────────────────────────────
-  stackedStep       = signal<1 | 2>(1);
-  stackedOpenPicker = signal<'date' | 'time' | 'seats' | null>(null);
-  stackedConsent    = signal(false);
+  stackedStep          = signal<1 | 2 | 3>(1);
+  stackedOpenPicker    = signal<'date' | 'time' | 'seats' | null>(null);
+  stackedConsent       = signal(false);
+  stackedShowErrors    = signal(false);
+  stackedWasOnSummary  = signal(false);
 
   // ─── Planner-Layout-State ────────────────────────────────────────────────
-  plannerStep      = signal<1 | 2 | 3 | 4>(1);
-  plannerConsent   = signal(false);
-  plannerDialPhase = signal<'hour' | 'minute'>('hour');
+  plannerStep         = signal<1 | 2 | 3 | 4 | 5>(1);
+  plannerMaxStep      = signal<number>(1);
+  plannerConsent      = signal(false);
+  plannerDialPhase    = signal<'hour' | 'minute'>('hour');
+  plannerShowErrors   = signal(false);
+  plannerWasOnSummary = signal(false);
 
   // ─── Tag-Verfügbarkeit (ohne Zeit) — für Slot-Filterung ──────────────────
   // Reagiert nur auf Venue + Datum, NICHT auf Zeit. Liefert bookedPeriods +
@@ -256,8 +289,11 @@ export class StartComponent implements OnInit {
   readonly isClosedDay = computed(() => this.dayAvail()?.open === false);
 
   readonly showMaxPersonenWarning = computed(() => this.people() >= this.maxPeople());
-  /** Gruppen-Hinweis (Kontakt bei großen Gruppen) — gleiche Bedingung wie die Warnung. */
-  readonly showMaxPersonenInfo    = computed(() => this.showMaxPersonenWarning());
+
+  readonly groupInfoText = computed(() => {
+    const threshold = this.maxPeople() + 1;
+    return `Ab ${threshold} Personen oder mehr bitten wir um direkte Kontaktaufnahme.`;
+  });
 
   readonly safeMenuUrl = computed<SafeResourceUrl>(() =>
     this.sanitizer.bypassSecurityTrustResourceUrl(this.speisekarteUrl() || '')
@@ -285,6 +321,20 @@ export class StartComponent implements OnInit {
       slots = slots.filter(s => {
         const [h, mm] = s.split(':').map(Number);
         return h * 60 + mm >= cutoff;
+      });
+    }
+
+    // Slots ausblenden die in einer Raumsperrung liegen
+    const blockedRanges = avail?.blockedRanges ?? [];
+    if (blockedRanges.length > 0) {
+      slots = slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotMin = sh * 60 + sm;
+        return !blockedRanges.some(br => {
+          const [fh, fm] = br.from.split(':').map(Number);
+          const [th, tm] = br.to.split(':').map(Number);
+          return slotMin >= fh * 60 + fm && slotMin < th * 60 + tm;
+        });
       });
     }
 
@@ -330,6 +380,15 @@ export class StartComponent implements OnInit {
   /** Gibt es tatsächlich buchbare Slots für das gewählte Datum? */
   readonly hasBookableSlots = computed(() => this.timeSlots().length > 0);
 
+  // ─── Zahlung ─────────────────────────────────────────────────────────────
+  zahlungAktiv         = signal(false);
+  zahlungPflicht       = signal(false);
+  noShowSchutzAktiv    = signal(false);
+  noShowWidgetText     = signal('Kreditkarte wird nur bei Nicht-Erscheinen belastet.');
+  stripePublishableKey = signal<string | null>(null);
+  paymentError         = signal('');
+  private _paymentMode: 'charge' | 'authorize' = 'charge';
+
   // ─── Submit-Status ───────────────────────────────────────────────────────
   state        = signal<SubmitState>('loading');
   errorMessage = signal<string>('');
@@ -352,7 +411,6 @@ export class StartComponent implements OnInit {
       this.hasBookableSlots() &&       // echte Slots müssen vorhanden sein
       !!this.validTime() &&
       !this.isClosedDay() &&
-      !this.showMaxPersonenWarning() &&
       this.people() >= this.minPeople &&
       this.guestName().trim().length >= 2 &&
       this.emailLooksOk() &&
@@ -362,6 +420,34 @@ export class StartComponent implements OnInit {
       consent &&
       this.state() !== 'submitting';
   });
+
+  /** Prüft ob Formulardaten vollständig sind → für "Weiter zur Zusammenfassung" */
+  readonly canGoToSummary = computed(() => {
+    const req = this.requiredFields();
+    const l = this.layout();
+    const consent = l === 'sidebar' ? this.sidebarConsent() :
+                    l === 'stacked' ? this.stackedConsent() :
+                    l === 'planner' ? this.plannerConsent() :
+                    this.cardConsent();
+    return this.guestName().trim().length >= 2 &&
+      this.emailLooksOk() &&
+      (!req.includes('phone') || this.guestPhone().trim().length > 0) &&
+      (!req.includes('notes') || this.notes().trim().length > 0) &&
+      (!this.tischartenAktiv() || this.tischartenModus() !== 'liste' || !!this.selectedTischart()) &&
+      consent;
+  });
+
+  /** Label der gewählten Tischart (für Zusammenfassung) */
+  readonly selectedTischartenLabel = computed(() =>
+    this.alleTischarten.find(t => t.key === this.selectedTischart())?.label ?? this.selectedTischart()
+  );
+
+  /** Kommagetrennte Allergenlabels (für Zusammenfassung) */
+  readonly selectedAllergeneLabels = computed(() =>
+    this.selectedAllergene()
+      .map(key => this.verfuegbareAllergene().find(a => a.key === key)?.label ?? key)
+      .join(', ')
+  );
 
   // ─── Computed: selectedDay ───────────────────────────────────────────────
   readonly selectedDay = computed(() => {
@@ -399,14 +485,47 @@ export class StartComponent implements OnInit {
       maxD.setMonth(maxD.getMonth() + this.vorausbuchungWert());
     }
     maxD.setHours(23, 59, 59, 999);
-    const closed = this.closedWeekdays();
+    const closed        = this.closedWeekdays();
+    const specialRanges = this.specialClosedRanges();
+    const schedule      = this.openingSchedule();
+    const step          = this.stepMinutes();
+    const minLead       = this.mindestvorlaufMinuten();
+    const nowMinutes    = now.getHours() * 60 + now.getMinutes();
+
     const cells: { day: number | null; isToday: boolean; isSelected: boolean; isDisabled: boolean }[] = [];
     for (let i = 0; i < monthStartWeekday; i++) cells.push({ day: null, isToday: false, isSelected: false, isDisabled: false });
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(y, m, d);
-      const weekday = (cellDate.getDay() + 6) % 7;
-      const isDisabled = cellDate < todayStart || cellDate > maxD || closed.includes(weekday);
-      cells.push({ day: d, isToday: isCurrentMonth && d === todayDay, isSelected: d === sel, isDisabled });
+      const weekday  = (cellDate.getDay() + 6) % 7;
+      const dateStr  = StartComponent.localDate(cellDate);
+      const isCellToday = isCurrentMonth && d === todayDay;
+
+      const isSpecialClosed = specialRanges.some(r => dateStr >= r.date_from && dateStr <= r.date_to);
+
+      let isDisabled = cellDate < todayStart || cellDate > maxD || closed.includes(weekday) || isSpecialClosed;
+
+      // Prüfen ob an diesem Tag noch buchbare Slots verbleiben.
+      // Für heute: echte Schließzeit aus dem Schedule nutzen statt 23:00 hardcoded.
+      // Für zukünftige Tage: Prüfen ob überhaupt Öffnungszeiten existieren die Slots liefern.
+      if (!isDisabled) {
+        const sched      = schedule[weekday];
+        const openStr    = sched?.open_time  ?? DEFAULT_FROM;
+        const closeStr   = sched?.close_time ?? DEFAULT_TO;
+        const [oh, om]   = openStr.split(':').map(Number);
+        const [ch, cm]   = closeStr.split(':').map(Number);
+        const openMin    = oh * 60 + om;
+        const closeMin   = ch * 60 + cm;
+        const cutoff     = isCellToday ? nowMinutes + minLead : openMin;
+
+        // Ersten gültigen Slot suchen: start >= cutoff und < closeMin
+        let firstSlot = openMin;
+        while (firstSlot < closeMin && firstSlot < cutoff) firstSlot += step;
+        if (firstSlot >= closeMin) {
+          isDisabled = true;
+        }
+      }
+
+      cells.push({ day: d, isToday: isCellToday, isSelected: d === sel, isDisabled });
     }
     return cells;
   });
@@ -510,7 +629,7 @@ export class StartComponent implements OnInit {
    * Verfügbare Stunden = isAvailable true.
    */
   readonly dialPhaseHourDots = computed(() => {
-    const cx = 70, cy = 70, r = 55;
+    const cx = 70, cy = 70, r = 49;
     const round = (n: number) => Math.round(n * 100) / 100;
     const availableSet = new Set(this.dialAvailableHours());
     return Array.from({ length: 24 }, (_, h) => {
@@ -527,12 +646,12 @@ export class StartComponent implements OnInit {
     });
   });
 
-  /** Y-Endpunkt der Nadel — immer äußerer Ring (r=55 → y=15). */
-  readonly dialPhaseNeedleEndY = computed(() => 15);
+  /** Y-Endpunkt der Nadel — folgt dem Dot-Radius (r=49 → y=21). */
+  readonly dialPhaseNeedleEndY = computed(() => 21);
 
   /** SVG-Positionen der Minuten-Dots je nach Intervall. */
   readonly dialPhaseMinuteDots = computed(() => {
-    const cx = 70, cy = 70, r = 53;
+    const cx = 70, cy = 70, r = 46;
     const interval = this.dialIntervalMinutes();
     const round = (n: number) => Math.round(n * 100) / 100;
     const minutes: number[] = [];
@@ -625,7 +744,22 @@ export class StartComponent implements OnInit {
       this.cardStep.set(2);
     }
   }
-  cardPrevStep(): void { this.cardStep.set(1); }
+  cardGoToSummary(): void {
+    if (this.canGoToSummary()) {
+      this.cardShowErrors.set(false);
+      this.cardWasOnSummary.set(true);
+      this.cardStep.set(3);
+    } else {
+      this.cardShowErrors.set(true);
+      setTimeout(() => {
+        const el = document.querySelector<HTMLElement>(
+          '.preview-card__field--error, .preview-card__consent.is-error'
+        );
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+  }
+  cardPrevStep(): void { this.cardStep.update(s => Math.max(1, s - 1) as 1 | 2 | 3); }
   cardToggleConsent(): void { this.cardConsent.update(v => !v); }
   cardDecSeats(): void { this.people.update(n => Math.max(1, n - 1)); }
   cardIncSeats(): void { this.people.update(n => Math.min(this.maxPeople(), n + 1)); }
@@ -646,7 +780,22 @@ export class StartComponent implements OnInit {
       this.sidebarStep.set(2);
     }
   }
-  sidebarPrevStep(): void { this.sidebarStep.set(1); }
+  sidebarGoToSummary(): void {
+    if (this.canGoToSummary()) {
+      this.sidebarShowErrors.set(false);
+      this.sidebarWasOnSummary.set(true);
+      this.sidebarStep.set(3);
+    } else {
+      this.sidebarShowErrors.set(true);
+      setTimeout(() => {
+        const el = document.querySelector<HTMLElement>(
+          '.preview-sidebar__group--error, .preview-sidebar__consent.is-error'
+        );
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+  }
+  sidebarPrevStep(): void { this.sidebarStep.update(s => Math.max(1, s - 1) as 1 | 2 | 3); }
   sidebarToggleConsent(): void { this.sidebarConsent.update(v => !v); }
   sidebarSelectDay(day: number): void { this.selectDay(day); this.sidebarClosePicker(); }
   sidebarSelectTime(t: string): void { this.time.set(t); this.sidebarClosePicker(); }
@@ -665,7 +814,23 @@ export class StartComponent implements OnInit {
       this.stackedStep.set(2);
     }
   }
-  stackedPrevStep(): void { this.stackedStep.set(1); }
+  stackedGoToSummary(): void {
+    if (this.canGoToSummary()) {
+      this.stackedShowErrors.set(false);
+      this.stackedWasOnSummary.set(true);
+      this.stackedStep.set(3);
+    } else {
+      this.stackedShowErrors.set(true);
+      setTimeout(() => {
+        const el = document.querySelector<HTMLElement>('.preview-stacked__field--error input, .preview-stacked__consent.is-error');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+  }
+  stackedPrevStep(): void {
+    if (this.stackedStep() === 3) { this.stackedWasOnSummary.set(true); }
+    this.stackedStep.update(s => Math.max(1, s - 1) as 1 | 2 | 3);
+  }
   stackedToggleConsent(): void { this.stackedConsent.update(v => !v); }
   stackedSelectDay(day: number): void { this.selectDay(day); this.stackedClosePicker(); }
   stackedSelectTime(t: string): void { this.time.set(t); this.stackedClosePicker(); }
@@ -779,23 +944,43 @@ export class StartComponent implements OnInit {
   }
 
   // ─── Planner methods ──────────────────────────────────────────────────────
-  setPlannerStep(s: 1 | 2 | 3 | 4): void { this.plannerStep.set(s); }
+  private plannerAdvanceTo(s: 1 | 2 | 3 | 4 | 5): void {
+    this.plannerStep.set(s);
+    if (s > this.plannerMaxStep()) this.plannerMaxStep.set(s);
+  }
+  setPlannerStep(s: 1 | 2 | 3 | 4 | 5): void { this.plannerAdvanceTo(s); }
   plannerPrev(): void {
     // Im Minuten-Modus: erst zurück zur Stunden-Auswahl
     if (this.plannerStep() === 2 && this.plannerDialPhase() === 'minute') {
       this.plannerDialPhase.set('hour');
       return;
     }
+    if (this.plannerStep() === 5) { this.plannerWasOnSummary.set(true); }
     const s = this.plannerStep();
-    if (s > 1) this.plannerStep.set((s - 1) as 1 | 2 | 3 | 4);
+    if (s > 1) this.plannerStep.set((s - 1) as 1 | 2 | 3 | 4 | 5);
+    // plannerMaxStep bleibt, damit Vorwärts-Pfeil erhalten bleibt
   }
   plannerNext(): void {
     const s = this.plannerStep();
-    if (s < 4) this.plannerStep.set((s + 1) as 1 | 2 | 3 | 4);
+    if (s === 4) {
+      if (this.canGoToSummary()) {
+        this.plannerShowErrors.set(false);
+        this.plannerWasOnSummary.set(true);
+        this.plannerAdvanceTo(5);
+      } else {
+        this.plannerShowErrors.set(true);
+        setTimeout(() => {
+          const el = document.querySelector<HTMLElement>('.preview-planner__form-group--error input, .preview-planner__consent.is-error');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
+      }
+      return;
+    }
+    if (s < 5) this.plannerAdvanceTo((s + 1) as 1 | 2 | 3 | 4 | 5);
   }
   plannerToggleConsent(): void { this.plannerConsent.update(v => !v); }
-  selectPlannerDay(day: number): void { this.selectDay(day); this.setPlannerStep(2); }
-  selectPlannerTime(t: string): void { this.time.set(t); this.setPlannerStep(3); }
+  selectPlannerDay(day: number): void { this.selectDay(day); this.plannerAdvanceTo(2); }
+  selectPlannerTime(t: string): void { this.time.set(t); this.plannerAdvanceTo(3); }
 
   /** Phase 1: Stunde wählen → wechselt zu Minuten-Phase (oder direkt zu Schritt 3 bei 60-Min-Intervall). */
   selectPlannerHour(hour: number): void {
@@ -893,27 +1078,47 @@ export class StartComponent implements OnInit {
       this.applyDesign(config.widgetDesign);
       this.applyFunctional(config.widgetFunctional);
       if (Array.isArray(config.allergene)) this.verfuegbareAllergene.set(config.allergene);
+      this.stripePublishableKey.set(config.stripePublishableKey ?? null);
 
       const closed = config.closedWeekdays ?? [];
       this.closedWeekdays.set(closed);
 
-      // Find the first selectable day: not a closed weekday, and if it's today
-      // still has time slots left (current time + mindestvorlauf < latest slot).
+      const specialRanges = config.specialClosedRanges ?? [];
+      this.specialClosedRanges.set(specialRanges);
+
+      const schedule = config.openingSchedule ?? {};
+      this.openingSchedule.set(schedule);
+
+      // Find the first selectable day: not a closed weekday, not a special closing,
+      // and still has at least one bookable time slot left.
       {
-        const now = new Date();
+        const now        = new Date();
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        const cutoff = nowMinutes + this.mindestvorlaufMinuten();
-        // Conservative latest slot: 23:00 = 1380 min. If cutoff >= that, today has no slots.
-        const latestSlotMinutes = 23 * 60;
+        const step       = this.stepMinutes();
+        const minLead    = this.mindestvorlaufMinuten();
+
+        const hasSlots = (wd: number, isToday: boolean): boolean => {
+          const sched    = schedule[wd];
+          const openStr  = sched?.open_time  ?? DEFAULT_FROM;
+          const closeStr = sched?.close_time ?? DEFAULT_TO;
+          const [oh, om] = openStr.split(':').map(Number);
+          const [ch, cm] = closeStr.split(':').map(Number);
+          const openMin  = oh * 60 + om;
+          const closeMin = ch * 60 + cm;
+          const cutoff   = isToday ? nowMinutes + minLead : openMin;
+          let   cur      = openMin;
+          while (cur < closeMin && cur < cutoff) cur += step;
+          return cur < closeMin;
+        };
 
         let d = new Date(this.today + 'T00:00:00');
         for (let i = 0; i < 60; i++) {
           const wd = (d.getDay() + 6) % 7;
-          // Wichtig: localDate() statt toISOString() verwenden, damit der
-          // Vergleich in der lokalen Zeitzone stimmt, nicht in UTC.
-          const isToday = StartComponent.localDate(d) === this.today;
-          if (closed.includes(wd)) { d.setDate(d.getDate() + 1); continue; }
-          if (isToday && cutoff >= latestSlotMinutes) { d.setDate(d.getDate() + 1); continue; }
+          const ds = StartComponent.localDate(d);
+          const isToday = ds === this.today;
+          const isSpecialClosed = specialRanges.some(r => ds >= r.date_from && ds <= r.date_to);
+          if (closed.includes(wd) || isSpecialClosed) { d.setDate(d.getDate() + 1); continue; }
+          if (!hasSlots(wd, isToday))                 { d.setDate(d.getDate() + 1); continue; }
           break;
         }
         const iso = StartComponent.localDate(d);
@@ -997,20 +1202,38 @@ export class StartComponent implements OnInit {
     root.style.setProperty('--preview-card-bg', cardBg);
 
     // Seiten-Hintergrund auf body anwenden
+    // Layout-spezifisches Hintergrundbild überschreibt pageBackground wenn gesetzt
     const body = document.body;
+    const html = document.documentElement;
+    const layoutBgImage =
+      design.layout === 'card'    ? (design.cardBackgroundImage    ?? null) :
+      design.layout === 'stacked' ? (design.stackedBackgroundImage ?? null) :
+      design.layout === 'planner' ? (design.plannerBackgroundImage ?? null) :
+      null;
     const pb = design.pageBackground;
-    if (pb) {
-      if (pb.type === 'color' && pb.value) {
-        body.style.background = pb.value;
-      } else if (pb.type === 'image' && pb.value) {
+    if (layoutBgImage) {
+      body.style.background = `url(${layoutBgImage}) center/cover no-repeat fixed`;
+      html.style.background = `url(${layoutBgImage}) center/cover no-repeat fixed`;
+    } else if (pb) {
+      if (pb.type === 'image' && pb.value) {
         body.style.background = `url(${pb.value}) center/cover no-repeat fixed`;
+        html.style.background = `url(${pb.value}) center/cover no-repeat fixed`;
+      } else if (pb.type === 'color' && pb.gradient && pb.gradientColor2) {
+        const grad = `linear-gradient(135deg, ${pb.value}, ${pb.gradientColor2})`;
+        body.style.background = grad;
+        html.style.background = grad;
+      } else if (pb.type === 'color' && pb.value) {
+        body.style.background = pb.value;
+        html.style.background = pb.value;
       }
     }
 
     const isDark = this.isDarkBackground(design.colorBackground ?? '#ffffff');
-    root.style.setProperty('--preview-muted',  isDark ? 'rgba(255,255,255,0.6)' : '#6b7280');
-    root.style.setProperty('--preview-border', isDark ? 'rgba(255,255,255,0.14)' : '#e5e7eb');
-    root.style.setProperty('--preview-soft',   isDark ? 'rgba(255,255,255,0.06)' : '#f9fafb');
+    root.style.setProperty('--preview-muted',  isDark
+      ? 'rgba(255,255,255,0.6)'
+      : 'color-mix(in srgb, var(--preview-text) 52%, transparent)');
+    root.style.setProperty('--preview-border', isDark ? 'rgba(255,255,255,0.14)' : 'color-mix(in srgb, var(--preview-text) 14%, transparent)');
+    root.style.setProperty('--preview-soft',   isDark ? 'rgba(255,255,255,0.06)' : 'color-mix(in srgb, var(--preview-text) 4%, transparent)');
     if (fontStack) root.style.setProperty('--preview-font', fontStack);
     if (fontSize)  root.style.setProperty('--preview-base', fontSize);
     const capped = Math.min(radiusPx ?? 10, 14);
@@ -1020,6 +1243,9 @@ export class StartComponent implements OnInit {
     // Signal assignments
     if (design.layout)           this.layout.set(design.layout);
     if (design.imageUrl !== undefined) this.imageUrl.set(design.imageUrl);
+    if (design.cardBackgroundImage    !== undefined) this.cardBackgroundImage.set(design.cardBackgroundImage ?? null);
+    if (design.stackedBackgroundImage !== undefined) this.stackedBackgroundImage.set(design.stackedBackgroundImage ?? null);
+    if (design.plannerBackgroundImage !== undefined) this.plannerBackgroundImage.set(design.plannerBackgroundImage ?? null);
     if (design.headingAlignment) this.headingAlignment.set(design.headingAlignment);
     if (design.headingTitle)     this.headingTitle.set(design.headingTitle);
     if (design.headingSubtitle !== undefined) this.headingSubtitle.set(design.headingSubtitle ?? '');
@@ -1068,6 +1294,10 @@ export class StartComponent implements OnInit {
     if (typeof func.onlineAenderungenMinuten === 'number') this.onlineAenderungenMinuten.set(func.onlineAenderungenMinuten);
     if (typeof func.onlineStornierung === 'boolean')   this.onlineStornierung.set(func.onlineStornierung);
     if (typeof func.onlineStornierungMinuten === 'number') this.onlineStornierungMinuten.set(func.onlineStornierungMinuten);
+    if (typeof func.zahlungAktiv === 'boolean')        this.zahlungAktiv.set(func.zahlungAktiv);
+    if (typeof func.zahlungPflicht === 'boolean')      this.zahlungPflicht.set(func.zahlungPflicht);
+    if (typeof func.noShowSchutzAktiv === 'boolean')   this.noShowSchutzAktiv.set(func.noShowSchutzAktiv);
+    if (func.noShowWidgetText)                         this.noShowWidgetText.set(func.noShowWidgetText);
   }
 
   private isDarkBackground(hex: string): boolean {
@@ -1091,6 +1321,44 @@ export class StartComponent implements OnInit {
     const g = Math.max(0, parseInt(h.slice(2, 4), 16) - amount).toString(16).padStart(2, '0');
     const b = Math.max(0, parseInt(h.slice(4, 6), 16) - amount).toString(16).padStart(2, '0');
     return `#${r}${g}${b}`;
+  }
+
+  // ─── Stripe Payment ───────────────────────────────────────────────────────
+  private async initStripePayment(clientSecret: string): Promise<void> {
+    this._stripe = await loadStripe(this.stripePublishableKey()!);
+    if (!this._stripe) return;
+
+    this._elements = this._stripe.elements({ clientSecret, locale: 'de' });
+    const el = this._elements.create('payment');
+
+    // DOM muss im 'payment'-State gerendert sein bevor wir mounten
+    setTimeout(() => {
+      this.zone.run(() => {
+        el.mount('#stripe-payment-element');
+      });
+    }, 150);
+  }
+
+  async confirmPayment(): Promise<void> {
+    if (!this._stripe || !this._elements) return;
+
+    this.state.set('paying');
+    this.paymentError.set('');
+
+    const { error } = await this._stripe.confirmPayment({
+      elements:      this._elements,
+      confirmParams: { return_url: window.location.href },
+      redirect:      'if_required',
+    });
+
+    this.zone.run(() => {
+      if (error) {
+        this.state.set('payment');
+        this.paymentError.set(error.message ?? 'Zahlung fehlgeschlagen. Bitte erneut versuchen.');
+      } else {
+        this.state.set('success');
+      }
+    });
   }
 
   toggleMenu(): void { this.menuOpen.update(v => !v); }
@@ -1160,6 +1428,14 @@ export class StartComponent implements OnInit {
       }
     }
 
+    const successData = {
+      name:   this.guestName().trim(),
+      date:   this.date(),
+      time:   time,
+      people: this.people(),
+      venue:  venue.name,
+    };
+
     this.reservations.create({
       venue_id:          venue.id,
       guest_name:        this.guestName().trim(),
@@ -1171,15 +1447,31 @@ export class StartComponent implements OnInit {
       table_id:          tableId,
       duration_minutes:  this.defaultDurationMinutes(),
     }).subscribe({
-      next: () => {
-        this.state.set('success');
-        this.successInfo.set({
-          name:   this.guestName().trim(),
-          date:   this.date(),
-          time:   time,
-          people: this.people(),
-          venue:  venue.name,
-        });
+      next: res => {
+        // No-Show-Schutz hat Vorrang vor Sofortzahlung
+        const needsAuthorize = this.noShowSchutzAktiv() && !!this.stripePublishableKey();
+        const needsCharge    = !needsAuthorize && this.zahlungAktiv() && this.zahlungPflicht() && !!this.stripePublishableKey();
+        const needsPayment   = needsAuthorize || needsCharge;
+        this._paymentMode    = needsAuthorize ? 'authorize' : 'charge';
+
+        if (needsPayment) {
+          this.successInfo.set(successData);
+          this.state.set('payment');
+          this.reservations.createPaymentIntent(res.reservation.token, this._paymentMode).subscribe({
+            next: async ({ client_secret }) => {
+              await this.initStripePayment(client_secret);
+            },
+            error: () => {
+              this.zone.run(() => {
+                this.state.set('error');
+                this.errorMessage.set('Zahlung konnte nicht initialisiert werden. Bitte erneut versuchen.');
+              });
+            },
+          });
+        } else {
+          this.state.set('success');
+          this.successInfo.set(successData);
+        }
       },
       error: err => {
         this.state.set('error');
@@ -1213,8 +1505,13 @@ export class StartComponent implements OnInit {
     this.sidebarConsent.set(false);
     this.stackedStep.set(1);
     this.stackedConsent.set(false);
+    this.stackedShowErrors.set(false);
+    this.stackedWasOnSummary.set(false);
     this.plannerStep.set(1);
+    this.plannerMaxStep.set(1);
     this.plannerConsent.set(false);
+    this.plannerShowErrors.set(false);
+    this.plannerWasOnSummary.set(false);
     if (this.filteredVenues().length > 0) {
       this.selectedVenue.set(this.filteredVenues()[0]);
     }

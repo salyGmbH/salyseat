@@ -53,4 +53,8 @@ export interface SavedRoom {
   tables: PlacedTable[];
   walls: PlacedWall[];
   decors: PlacedDecor[];
+  tableCount: number;
+  seatCount: number;
+  isBlockedToday: boolean;
+  activeBlockIds: string[];
 }

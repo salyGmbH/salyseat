@@ -47,8 +47,10 @@ export interface WidgetVenue {
 }
 
 export interface WidgetPageBackground {
-  type:  'color' | 'image';
-  value: string;
+  type:           'color' | 'image';
+  value:          string;
+  gradient?:      boolean;
+  gradientColor2?: string;
 }
 
 export interface WidgetDesignConfig {
@@ -63,8 +65,11 @@ export interface WidgetDesignConfig {
   colorPrimary:     string;
   colorText:        string;
   colorBackground:  string;
-  cardBackground?:  string;
-  pageBackground?:  WidgetPageBackground;
+  cardBackground?:        string;
+  cardBackgroundImage?:   string | null;
+  stackedBackgroundImage?: string | null;
+  plannerBackgroundImage?: string | null;
+  pageBackground?:        WidgetPageBackground;
   buttonLabel:      string;
   cornerRadius:     string;
 }
@@ -111,6 +116,11 @@ export interface WidgetFunctionalConfig {
   onlineStornierung:       boolean;
   onlineStornierungMinuten: number;
   defaultDurationMinutes?: number;
+  zahlungAktiv?:           boolean;
+  zahlungPflicht?:         boolean;
+  noShowSchutzAktiv?:      boolean;
+  noShowBetragCents?:      number;
+  noShowWidgetText?:       string;
 }
 
 export interface WidgetConfig {
@@ -122,6 +132,7 @@ export interface WidgetConfig {
   openingSchedule?:     Record<number, { open_time: string | null; close_time: string | null; breaks: { from: string; to: string }[] }>;
   specialClosedRanges?: { date_from: string; date_to: string }[];
   allergene?:           WidgetAllergen[];
+  stripePublishableKey?: string | null;
 }
 
 export interface CreateReservationPayload {
@@ -139,6 +150,7 @@ export interface CreateReservationPayload {
 export interface CreateReservationResponse {
   reservation: {
     id:         string;
+    token:      string;
     venue_id:   string;
     guest_name: string;
     party_size: number;
@@ -148,6 +160,12 @@ export interface CreateReservationResponse {
     [key: string]: unknown;
   };
   message: string;
+}
+
+export interface PaymentIntentResponse {
+  client_secret: string;
+  amount_cents:  number;
+  currency:      string;
 }
 
 export interface Break {
@@ -170,6 +188,8 @@ export interface DayAvailability {
   bookedTableNumbers: number[];
   bookedPeriods?: BookedPeriod[];
   totalTables?: number;
+  /** Zeitfenster-Sperren für diesen Raum (nicht ganztägig) */
+  blockedRanges?: { from: string; to: string }[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -193,6 +213,13 @@ export class ReservationsService {
 
   create(payload: CreateReservationPayload): Observable<CreateReservationResponse> {
     return this.http.post<CreateReservationResponse>(this.base, payload);
+  }
+
+  createPaymentIntent(reservationToken: string, mode: 'charge' | 'authorize' = 'charge'): Observable<PaymentIntentResponse> {
+    return this.http.post<PaymentIntentResponse>(
+      `${environment.apiUrl}/widget/payment-intent`,
+      { reservation_token: reservationToken, mode },
+    );
   }
 }
 

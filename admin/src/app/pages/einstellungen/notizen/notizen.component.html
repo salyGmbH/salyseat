@@ -73,35 +73,37 @@
 
         <div class="nz-all__list" *ngIf="!loading() && allNotizen().length > 0">
           <div
-            class="nz-item nz-item--full"
+            class="nz-card"
             *ngFor="let n of allNotizen(); trackBy: trackById"
-            [class]="'nz-item--full nz-item--' + n.color"
-            [class.nz-item--done]="n.done"
+            [class]="'nz-card nz-card--' + n.color"
+            [class.nz-card--done]="n.done"
             (click)="openView(n); selectDay(n.date); calYear.set(+n.date.slice(0,4)); calMonth.set(+n.date.slice(5,7)-1)">
-            <div class="nz-item__meta">
-              <span class="nz-item__date">{{ formatDate(n.date) }}</span>
-              <span class="nz-item__time-tag" *ngIf="n.time">{{ n.time }} Uhr</span>
-              <span class="nz-item__time-tag nz-item__time-tag--day" *ngIf="!n.time">{{ 'notizen.all_day' | translate }}</span>
+            <!-- Zeile 1: Datum + Zeit + Actions -->
+            <div class="nz-card__top">
+              <span class="nz-card__date">{{ formatDate(n.date) }}</span>
+              <span class="nz-card__time" *ngIf="n.time">· {{ n.time }} Uhr</span>
+              <span class="nz-card__time nz-card__time--day" *ngIf="!n.time">· {{ 'notizen.all_day' | translate }}</span>
+              <div class="nz-card__actions" (click)="$event.stopPropagation()">
+                <button class="btn-icon btn-icon--sm" (click)="openEdit(n)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="delete(n)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
             </div>
-            <div class="nz-item__body">
-              <span class="nz-item__title">{{ n.title }}</span>
-              <span class="nz-item__text" *ngIf="n.text">{{ n.text }}</span>
-            </div>
-            <span class="nz-creator" *ngIf="n.createdBy">
-              <mat-icon>person</mat-icon>{{ creatorLabel(n.createdBy) }}
-            </span>
-            <button class="nz-status-badge"
-                    [class.nz-status-badge--done]="n.done"
-                    (click)="toggleDone(n, $event)"
-                    [title]="n.done ? ('notizen.mark_open' | translate) : ('notizen.mark_done' | translate)">
-              {{ n.done ? ('notizen.status_done' | translate) : ('notizen.status_open' | translate) }}
-            </button>
-            <div class="nz-item__actions" (click)="$event.stopPropagation()">
-              <button class="btn-icon btn-icon--sm" (click)="openEdit(n)">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="delete(n)">
-                <mat-icon>delete</mat-icon>
+            <!-- Zeile 2: Titel -->
+            <div class="nz-card__title">{{ n.title }}</div>
+            <!-- Zeile 3: Creator + Status -->
+            <div class="nz-card__bottom">
+              <span class="nz-creator" *ngIf="n.createdBy">
+                <mat-icon>person</mat-icon>{{ creatorLabel(n.createdBy) }}
+              </span>
+              <button class="nz-status-badge"
+                      [class.nz-status-badge--done]="n.done"
+                      (click)="toggleDone(n, $event)"
+                      [title]="n.done ? ('notizen.mark_open' | translate) : ('notizen.mark_done' | translate)">
+                {{ n.done ? ('notizen.status_done' | translate) : ('notizen.status_open' | translate) }}
               </button>
             </div>
           </div>
@@ -208,17 +210,22 @@
         <!-- Uhrzeit -->
         <div class="nz-field">
           <label class="nz-field__label">{{ 'notizen.time_label' | translate }}</label>
-          <div class="nz-time-row">
-            <label class="nz-toggle">
-              <input type="checkbox" [(ngModel)]="form.allDay" />
-              <span>{{ 'notizen.all_day' | translate }}</span>
-            </label>
-            <input
-              class="nz-field__input nz-field__input--time"
-              type="time"
-              [(ngModel)]="form.time"
-              [disabled]="form.allDay" />
+          <div class="nz-time-seg">
+            <button type="button" class="nz-time-seg__opt" [class.is-active]="form.allDay"
+                    (click)="form.allDay = true; form.time = ''">
+              <mat-icon>wb_sunny</mat-icon>
+              {{ 'notizen.all_day' | translate }}
+            </button>
+            <button type="button" class="nz-time-seg__opt" [class.is-active]="!form.allDay"
+                    (click)="form.allDay = false">
+              <mat-icon>access_time</mat-icon>
+              Uhrzeit wählen
+            </button>
           </div>
+          <input *ngIf="!form.allDay"
+            class="nz-field__input nz-field__input--time-inline"
+            type="time"
+            [(ngModel)]="form.time" />
         </div>
 
         <!-- Titel -->

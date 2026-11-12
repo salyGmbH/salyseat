@@ -121,7 +121,7 @@
   </div>
 
 
-  <!-- ===================== 02  BILD (Card- & Hotel-Stil) ===================== -->
+  <!-- ===================== 02  BILD ===================== -->
   @if (needsImage()) {
     <div class="settings-block">
 
@@ -139,36 +139,152 @@
         </span>
       </div>
 
-      <div class="image-upload">
-        @if (imageUploading()) {
-          <div class="image-upload__uploading">
-            <mat-icon class="image-upload__spin">autorenew</mat-icon>
-            <span>{{ 'widget.uploading' | translate }}</span>
+      <div class="image-upload-row">
+
+        <!-- Hauptbild (Hero / Sidebar-Hintergrund) — nur für Design 1 & 2 -->
+        @if (selectedLayout() === 'card' || selectedLayout() === 'sidebar') {
+        <div class="image-upload-row__item">
+          <span class="image-upload-row__label">Hauptbild</span>
+          <div class="image-upload">
+            @if (imageUploading()) {
+              <div class="image-upload__uploading">
+                <mat-icon class="image-upload__spin">autorenew</mat-icon>
+                <span>{{ 'widget.uploading' | translate }}</span>
+              </div>
+            } @else if (imageUrl()) {
+              <div class="image-upload__preview">
+                <img [src]="imageUrl()!" alt="Vorschau">
+                <button type="button" class="image-upload__remove" (click)="clearImage()">
+                  <mat-icon>close</mat-icon>
+                  {{ 'widget.remove' | translate }}
+                </button>
+              </div>
+            } @else {
+              <label class="image-upload__dropzone">
+                <input type="file" accept="image/*" (change)="onImageSelected($event)">
+                <mat-icon class="image-upload__dropzone-icon">add_photo_alternate</mat-icon>
+                <span class="image-upload__dropzone-title">{{ 'widget.choose_image' | translate }}</span>
+                <span class="image-upload__dropzone-hint">{{ 'widget.image_formats' | translate }}</span>
+              </label>
+            }
+            @if (imageUploadError()) {
+              <p class="image-upload__error">
+                <mat-icon>error_outline</mat-icon>
+                {{ imageUploadError() }}
+              </p>
+            }
           </div>
-        } @else if (imageUrl()) {
-          <div class="image-upload__preview">
-            <img [src]="imageUrl()!" alt="Vorschau">
-            <button type="button" class="image-upload__remove" (click)="clearImage()">
-              <mat-icon>close</mat-icon>
-              {{ 'widget.remove' | translate }}
-            </button>
+        </div>
+        }
+
+        <!-- Karten-Hintergrundbild (nur Karten-Stil) -->
+        @if (selectedLayout() === 'card') {
+          <div class="image-upload-row__item">
+            <span class="image-upload-row__label">Kartenhintergrund</span>
+            <div class="image-upload">
+              @if (cardBgImageUploading()) {
+                <div class="image-upload__uploading">
+                  <mat-icon class="image-upload__spin">autorenew</mat-icon>
+                  <span>{{ 'widget.uploading' | translate }}</span>
+                </div>
+              } @else if (cardBgImageUrl()) {
+                <div class="image-upload__preview">
+                  <img [src]="cardBgImageUrl()!" alt="Kartenhintergrund Vorschau">
+                  <button type="button" class="image-upload__remove" (click)="clearCardBgImage()">
+                    <mat-icon>close</mat-icon>
+                    {{ 'widget.remove' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <label class="image-upload__dropzone">
+                  <input type="file" accept="image/*" (change)="onCardBgImageSelected($event)">
+                  <mat-icon class="image-upload__dropzone-icon">wallpaper</mat-icon>
+                  <span class="image-upload__dropzone-title">Hintergrundbild</span>
+                  <span class="image-upload__dropzone-hint">Ersetzt die Hintergrundfarbe der Karte</span>
+                </label>
+              }
+              @if (cardBgImageUploadError()) {
+                <p class="image-upload__error">
+                  <mat-icon>error_outline</mat-icon>
+                  {{ cardBgImageUploadError() }}
+                </p>
+              }
+            </div>
           </div>
-        } @else {
-          <label class="image-upload__dropzone">
-            <input type="file"
-                   accept="image/*"
-                   (change)="onImageSelected($event)">
-            <mat-icon class="image-upload__dropzone-icon">add_photo_alternate</mat-icon>
-            <span class="image-upload__dropzone-title">{{ 'widget.choose_image' | translate }}</span>
-            <span class="image-upload__dropzone-hint">{{ 'widget.image_formats' | translate }}</span>
-          </label>
         }
-        @if (imageUploadError()) {
-          <p class="image-upload__error">
-            <mat-icon>error_outline</mat-icon>
-            {{ imageUploadError() }}
-          </p>
+
+        <!-- Stacked-Hintergrundbild (nur Design 3) -->
+        @if (selectedLayout() === 'stacked') {
+          <div class="image-upload-row__item">
+            <span class="image-upload-row__label">Seitenhintergrund</span>
+            <div class="image-upload">
+              @if (stackedBgImageUploading()) {
+                <div class="image-upload__uploading">
+                  <mat-icon class="image-upload__spin">autorenew</mat-icon>
+                  <span>{{ 'widget.uploading' | translate }}</span>
+                </div>
+              } @else if (stackedBgImageUrl()) {
+                <div class="image-upload__preview">
+                  <img [src]="stackedBgImageUrl()!" alt="Stacked Hintergrund Vorschau">
+                  <button type="button" class="image-upload__remove" (click)="clearStackedBgImage()">
+                    <mat-icon>close</mat-icon>
+                    {{ 'widget.remove' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <label class="image-upload__dropzone">
+                  <input type="file" accept="image/*" (change)="onStackedBgImageSelected($event)">
+                  <mat-icon class="image-upload__dropzone-icon">wallpaper</mat-icon>
+                  <span class="image-upload__dropzone-title">Hintergrundbild</span>
+                  <span class="image-upload__dropzone-hint">Ersetzt die Hintergrundfarbe der Seite</span>
+                </label>
+              }
+              @if (stackedBgImageUploadError()) {
+                <p class="image-upload__error">
+                  <mat-icon>error_outline</mat-icon>
+                  {{ stackedBgImageUploadError() }}
+                </p>
+              }
+            </div>
+          </div>
         }
+
+        <!-- Planner-Hintergrundbild (nur Design 4) -->
+        @if (selectedLayout() === 'planner') {
+          <div class="image-upload-row__item">
+            <span class="image-upload-row__label">Seitenhintergrund</span>
+            <div class="image-upload">
+              @if (plannerBgImageUploading()) {
+                <div class="image-upload__uploading">
+                  <mat-icon class="image-upload__spin">autorenew</mat-icon>
+                  <span>{{ 'widget.uploading' | translate }}</span>
+                </div>
+              } @else if (plannerBgImageUrl()) {
+                <div class="image-upload__preview">
+                  <img [src]="plannerBgImageUrl()!" alt="Planner Hintergrund Vorschau">
+                  <button type="button" class="image-upload__remove" (click)="clearPlannerBgImage()">
+                    <mat-icon>close</mat-icon>
+                    {{ 'widget.remove' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <label class="image-upload__dropzone">
+                  <input type="file" accept="image/*" (change)="onPlannerBgImageSelected($event)">
+                  <mat-icon class="image-upload__dropzone-icon">wallpaper</mat-icon>
+                  <span class="image-upload__dropzone-title">Hintergrundbild</span>
+                  <span class="image-upload__dropzone-hint">Ersetzt die Hintergrundfarbe der Seite</span>
+                </label>
+              }
+              @if (plannerBgImageUploadError()) {
+                <p class="image-upload__error">
+                  <mat-icon>error_outline</mat-icon>
+                  {{ plannerBgImageUploadError() }}
+                </p>
+              }
+            </div>
+          </div>
+        }
+
       </div>
     </div>
   }
@@ -446,6 +562,45 @@
               }
             </div>
           </div>
+
+          <!-- Farbverlauf -->
+          <label class="gradient-toggle">
+            <input type="checkbox"
+                   [checked]="pageGradientEnabled()"
+                   (change)="togglePageGradient()">
+            <span class="gradient-toggle__box"></span>
+            <span class="gradient-toggle__label">Farbverlauf aktivieren</span>
+          </label>
+
+          @if (pageGradientEnabled()) {
+            <div class="gradient-config">
+              <div class="gradient-config__preview"
+                   [style.background]="'linear-gradient(135deg,' + pageBackground().value + ',' + pageGradientColor2() + ')'">
+              </div>
+              <div class="gradient-config__pickers">
+                <div class="gradient-config__picker-group">
+                  <span class="gradient-config__picker-label">Farbe 1</span>
+                  <label class="color-input">
+                    <input type="color"
+                           [value]="pageBackground().value"
+                           (input)="setPageBgColor($any($event.target).value)">
+                    <span class="color-input__swatch" [style.background]="pageBackground().value"></span>
+                    <span class="color-input__hex">{{ pageBackground().value }}</span>
+                  </label>
+                </div>
+                <div class="gradient-config__picker-group">
+                  <span class="gradient-config__picker-label">Farbe 2</span>
+                  <label class="color-input">
+                    <input type="color"
+                           [value]="pageGradientColor2()"
+                           (input)="setPageGradientColor2($any($event.target).value)">
+                    <span class="color-input__swatch" [style.background]="pageGradientColor2()"></span>
+                    <span class="color-input__hex">{{ pageGradientColor2() }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          }
         } @else {
           <div class="page-bg-image" style="margin-top:10px">
             @if (pageBgUploading()) {

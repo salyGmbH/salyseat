@@ -37,11 +37,11 @@ export class OverviewComponent {
     { label: 'Speisekarte',               route: 'speisekarte',            icon: 'menu_book' },
     { label: 'settings.widget_designer',  route: 'widget',                 icon: 'palette' },
     { label: 'settings.widget_settings',  route: 'widget-einstellungen',   icon: 'widgets' },
+    { label: 'settings.payments',        route: 'kreditkarte',            icon: 'credit_card' },
     // TEMPORÄR ausgeblendet — wieder aktivieren wenn Funktion fertig:
     // { label: 'Automatisierte Hotelreservierung', route: 'hotel-automatisch',     icon: 'hotel' },
     // { label: 'Backup & Export',                 route: 'backup',                 icon: 'backup' },
     // { label: 'Integrationen',                   route: 'integrationen',          icon: 'extension' },
-    // { label: 'Kreditkarte',                     route: 'kreditkarte',            icon: 'credit_card' },
     // { label: 'Sicherheit',                      route: 'sicherheit',             icon: 'security' },
   ];
 }

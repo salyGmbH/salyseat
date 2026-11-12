@@ -109,6 +109,7 @@ class ReservationController extends AbstractController
                 guestNotes:      ($data['notes'] ?? '') !== '' ? (string) $data['notes'] : null,
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
                 tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
+                adminOverride:   true,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -116,7 +117,7 @@ class ReservationController extends AbstractController
 
         return $this->json(ReservationDto::fromEntity($reservation)->toArray(), Response::HTTP_CREATED);
     }
-    
+
     #[Route('', name: 'admin_reservation_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] User $user): JsonResponse
     {

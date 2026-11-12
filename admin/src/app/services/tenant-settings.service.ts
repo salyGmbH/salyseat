@@ -24,6 +24,10 @@ export interface PageBackground {
   type:  PageBackgroundType;
   /** Hex-Farbe (type=color) oder Upload-URL (type=image). */
   value: string;
+  /** Farbverlauf aktiviert (nur type=color). */
+  gradient?: boolean;
+  /** Zweite Farbe für den Farbverlauf. */
+  gradientColor2?: string;
 }
 
 export interface WidgetDesignSettings {
@@ -41,6 +45,12 @@ export interface WidgetDesignSettings {
   colorBackground:  string;
   /** Hintergrundfarbe der Widget-Kachel (unabhängig von colorBackground). */
   cardBackground:   string;
+  /** Hintergrundbild der Widget-Kachel (Design 1 Karten-Stil). Überschreibt cardBackground wenn gesetzt. */
+  cardBackgroundImage?: string | null;
+  /** Hintergrundbild für Design 3 (Stacked-Stil). Überschreibt pageBackground wenn gesetzt. */
+  stackedBackgroundImage?: string | null;
+  /** Hintergrundbild für Design 4 (Planner-Stil). Überschreibt pageBackground wenn gesetzt. */
+  plannerBackgroundImage?: string | null;
   /** Hintergrund des gesamten Seiten-Body: Farbe oder Bild. */
   pageBackground:   PageBackground;
   buttonLabel:      string;
@@ -59,8 +69,11 @@ export const DEFAULT_WIDGET_DESIGN: WidgetDesignSettings = {
   colorPrimary:     '#2563eb',
   colorText:        '#1f2937',
   colorBackground:  '#ffffff',
-  cardBackground:   '#ffffff',
-  pageBackground:   { type: 'color', value: '#f4f5f7' },
+  cardBackground:      '#ffffff',
+  cardBackgroundImage:    null,
+  stackedBackgroundImage: null,
+  plannerBackgroundImage: null,
+  pageBackground:         { type: 'color', value: '#f4f5f7' },
   buttonLabel:      'Reservieren',
   cornerRadius:     'soft',
 };
@@ -140,6 +153,11 @@ export interface TenantUiSettings {
    * Standard: 3600 (1 Stunde). Wird beim nächsten Login aktiv.
    */
   sessionTtlSeconds?: number;
+
+  /** Stripe-Anbindung — nur Publishable Key (pk_live_… / pk_test_…). Secret Key bleibt auf dem Server. */
+  stripeSettings?: {
+    publishableKey: string;
+  };
 
   /** E-Mail-Einstellungen (Aktivierung, Design, Inhalte, Social). */
   emailSettings?: {
@@ -232,12 +250,30 @@ export interface WidgetFunctionalSettings {
   /** Online Stornierung */
   onlineStornierung: boolean;
   onlineStornierungMinuten: number;
+  /** Anzahlungsbetrag in Cent (z. B. 1000 = 10,00 €). 0 = Backend-Default (10 €). */
+  zahlungBetragCents: number;
+  /** No-Show-Schutz: Karte hinterlegen ohne sofortige Abbuchung. */
+  noShowSchutzAktiv: boolean;
+  /** Betrag in Cent der bei No-Show eingezogen wird. */
+  noShowBetragCents: number;
+  /** Text der im Widget unter dem Kreditkartenformular angezeigt wird. */
+  noShowWidgetText: string;
   /** Warteliste */
   wartelisteAktiv: boolean;
   wartelisteMaxPlaetze: number;
   wartelisteKanal: 'email' | 'telefon' | 'beide';
   wartelisteAntwortStunden: number;
   wartelisteHinweis: string;
+  /** Online-Zahlung im Widget */
+  zahlungAktiv: boolean;
+  /** Zahlung beim Buchen erzwingen (true) oder optional anbieten (false). */
+  zahlungPflicht: boolean;
+  zahlungsmethoden: {
+    kreditkarte: boolean;
+    sepa: boolean;
+    vorkasse: boolean;
+    bar: boolean;
+  };
 }
 
 export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
@@ -284,6 +320,18 @@ export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
   wartelisteKanal:          'email',
   wartelisteAntwortStunden: 24,
   wartelisteHinweis:        '',
+  zahlungBetragCents:       0,
+  zahlungAktiv:             false,
+  noShowSchutzAktiv:        false,
+  noShowBetragCents:        2000,
+  noShowWidgetText:         'Kreditkarte wird nur bei Nicht-Erscheinen belastet.',
+  zahlungPflicht:           false,
+  zahlungsmethoden: {
+    kreditkarte: false,
+    sepa:        false,
+    vorkasse:    false,
+    bar:         false,
+  },
 };
 
 export interface ReservationTimingSettings {

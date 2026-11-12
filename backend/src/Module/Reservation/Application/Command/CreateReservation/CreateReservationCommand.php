@@ -14,5 +14,8 @@ final readonly class CreateReservationCommand
         public \DateTimeImmutable $startsAt,
         public ?string $guestPhone = null,
         public ?string $guestNotes = null,
+        public ?int $tableNumber = null,
+        public ?int $durationMinutes = null,
+        public bool $adminOverride = false,
     ) {}
 }

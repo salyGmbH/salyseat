@@ -248,9 +248,16 @@
   &--full {
     align-items: center;
 
-    // Status-Badge + Actions immer ganz rechts, feste Breiten
+    .nz-item__side {
+      margin-left: auto;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
     .nz-status-badge {
-      margin-left: auto;  // schiebt Badge nach rechts
       flex-shrink: 0;
       min-width: 64px;
       text-align: center;
@@ -289,7 +296,7 @@
 // ── Status-Badge (Offen / Erledigt) ──────────────────────────────────────────
 .nz-status-badge {
   flex-shrink: 0;
-  margin-left: auto;
+  margin-left: auto; // in Tagesansicht: nach rechts schieben; in --full überschrieben
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
@@ -583,6 +590,13 @@
 
     &--time { width: auto; }
 
+    &--time-inline {
+      width: 100%;
+      color-scheme: dark;
+      letter-spacing: 0.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
     &--ta {
       resize: vertical;
       min-height: 90px;
@@ -591,26 +605,43 @@
   }
 }
 
-.nz-time-row {
+// ── Zeit-Segmented-Toggle ─────────────────────────────────────────────────────
+.nz-time-seg {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid $color-border;
+  background: rgba(0,0,0, 0.2);
 
-.nz-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: $color-text;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
-    accent-color: $color-primary;
+  &__opt {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: $color-text-muted;
+    background: transparent;
+    border: none;
     cursor: pointer;
+    transition: all .15s;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+
+    & + & { border-left: 1px solid $color-border; }
+
+    &.is-active {
+      background: rgba(var(--color-primary-rgb), 0.15);
+      color: $color-primary;
+      font-weight: 600;
+    }
+
+    &:hover:not(.is-active) {
+      background: rgba(255,255,255, 0.04);
+      color: $color-text;
+    }
   }
 }
 
@@ -802,4 +833,76 @@
   color: $color-text-muted;
 
   mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+
+// ── Alle-Notizen Karten-Layout ─────────────────────────────────────────────
+.nz-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 3px solid $color-border;
+  background: rgba(0,0,0, 0.15);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  margin-bottom: 8px;
+
+  &:last-child { margin-bottom: 0; }
+  &:hover { background: rgba(0,0,0, 0.25); }
+
+  &--default { border-left-color: $color-border; }
+  &--info    { border-left-color: $color-primary; }
+  &--success { border-left-color: $color-success; }
+  &--warn    { border-left-color: $color-warn; }
+
+  &--done { opacity: 0.6; }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__date {
+    font-size: 11px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+  }
+
+  &__time {
+    font-size: 11px;
+    color: $color-primary;
+    font-weight: 500;
+    white-space: nowrap;
+
+    &--day { color: $color-text-muted; }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__bottom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+
+    .nz-status-badge {
+      margin-left: auto;
+    }
+  }
 }

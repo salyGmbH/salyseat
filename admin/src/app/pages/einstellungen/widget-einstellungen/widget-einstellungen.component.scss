@@ -1064,9 +1064,14 @@
     background: rgba(var(--color-text-rgb), 0.05);
     transition: all 0.15s;
 
-    &--round  { width: 44px; height: 44px; border-radius: 50%; }
-    &--square { width: 44px; height: 44px; border-radius: 6px; }
-    &--long   { width: 70px; height: 30px; border-radius: 6px; }
+    &--round   { width: 44px; height: 44px; border-radius: 50%; }
+    &--square  { width: 44px; height: 44px; border-radius: 6px; }
+    &--long    { width: 70px; height: 30px; border-radius: 6px; }
+    &--payment {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: $color-text-muted;
+    }
   }
 
   &__label {
@@ -1075,6 +1080,12 @@
     color: $color-text-muted;
     text-align: center;
     transition: color 0.15s;
+  }
+
+  &__sub {
+    font-size: 10px;
+    color: rgba(var(--color-text-rgb), 0.40);
+    text-align: center;
   }
 
   &__check {

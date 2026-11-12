@@ -21,3 +21,11 @@ services:
         exclude:
             - '../src/Kernel.php'
             - '../src/Module/*/Domain/Entity/'
+
+    App\Module\Payment\Infrastructure\Stripe\StripeGateway:
+        arguments:
+            $stripeSecretKey:     '%env(STRIPE_SECRET_KEY)%'
+            $stripeWebhookSecret: '%env(STRIPE_WEBHOOK_SECRET)%'
+
+    App\Module\Payment\Domain\Gateway\PaymentGatewayInterface:
+        alias: App\Module\Payment\Infrastructure\Stripe\StripeGateway

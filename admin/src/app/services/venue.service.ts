@@ -65,6 +65,13 @@ export class VenueService {
   ): Observable<{ layout: VenueLayout }> {
     return this.http.put<{ layout: VenueLayout }>(`${this.base}/${venueId}/layout`, {
       layout: { tables, walls, decors },
-    });
+    }).pipe(
+      tap(() => {
+        const seatCount = tables.reduce((s, t) => s + t.seats, 0);
+        this._venues.update(vs => vs.map(v =>
+          v.id === venueId ? { ...v, tableCount: tables.length, seatCount } : v,
+        ));
+      }),
+    );
   }
 }

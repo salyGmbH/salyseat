@@ -120,7 +120,13 @@ export class WidgetComponent {
         this.colorText.set(s.colorText);
         this.colorBackground.set(s.colorBackground);
         this.cardBackground.set(s.cardBackground ?? s.colorBackground);
-        this.pageBackground.set(s.pageBackground ?? { type: 'color', value: '#f4f5f7' });
+        this.cardBgImageUrl.set(s.cardBackgroundImage ?? null);
+        this.stackedBgImageUrl.set(s.stackedBackgroundImage ?? null);
+        this.plannerBgImageUrl.set(s.plannerBackgroundImage ?? null);
+        const pb = s.pageBackground ?? { type: 'color', value: '#f4f5f7' };
+        this.pageBackground.set(pb);
+        this.pageGradientEnabled.set(pb.gradient ?? false);
+        this.pageGradientColor2.set(pb.gradientColor2 ?? '#ffffff');
         this.buttonLabel.set(s.buttonLabel);
         this.selectedRadius.set(s.cornerRadius);
       });
@@ -140,9 +146,8 @@ export class WidgetComponent {
   setLayout(mode: WidgetLayoutMode): void { this.selectedLayout.set(mode); }
   readonly previewClass = computed(() => `preview--${this.selectedLayout()}`);
 
-  /** True, wenn das aktuelle Layout ein Bild benötigt. */
-  readonly needsImage = computed(() =>
-    this.selectedLayout() === 'card' || this.selectedLayout() === 'sidebar');
+  /** True, wenn das aktuelle Layout ein Bild unterstützt (alle Layouts). */
+  readonly needsImage = computed(() => true);
 
   /** Titel in einzelne Wörter zerlegt — für den Sidebar-Stil, wo jedes Wort
    *  auf einer eigenen Zeile uppercase erscheint (BUCHEN / ONLINE). */
@@ -173,7 +178,7 @@ export class WidgetComponent {
   /** DSGVO-Einwilligung für Layout-4-Daten-Step. Pflichtfeld vor Submit. */
   readonly plannerConsent       = signal<boolean>(false);
 
-  readonly plannerCalendarMonth = signal<number>(4);  
+  readonly plannerCalendarMonth = signal<number>(4);   
   readonly plannerCalendarYear  = signal<number>(2026);
   readonly plannerCalendarMonthLabel = computed(() => {
     const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -673,6 +678,120 @@ export class WidgetComponent {
   }
 
   // ──────────────────────────────────────────────────────────────────────
+  //  02b  Karten-Hintergrundbild (nur Karten-Stil)
+  // ──────────────────────────────────────────────────────────────────────
+  readonly cardBgImageUrl         = signal<string | null>(null);
+  readonly cardBgImageUploading   = signal<boolean>(false);
+  readonly cardBgImageUploadError = signal<string | null>(null);
+
+  // ──────────────────────────────────────────────────────────────────────
+  //  02c  Stacked-Hintergrundbild (nur Design 3)
+  // ──────────────────────────────────────────────────────────────────────
+  readonly stackedBgImageUrl         = signal<string | null>(null);
+  readonly stackedBgImageUploading   = signal<boolean>(false);
+  readonly stackedBgImageUploadError = signal<string | null>(null);
+
+  // ──────────────────────────────────────────────────────────────────────
+  //  02d  Planner-Hintergrundbild (nur Design 4)
+  // ──────────────────────────────────────────────────────────────────────
+  readonly plannerBgImageUrl         = signal<string | null>(null);
+  readonly plannerBgImageUploading   = signal<boolean>(false);
+  readonly plannerBgImageUploadError = signal<string | null>(null);
+
+  onCardBgImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.cardBgImageUploadError.set(this.translate.instant('widget.upload_size_error'));
+      input.value = '';
+      return;
+    }
+
+    this.cardBgImageUploadError.set(null);
+    this.cardBgImageUploading.set(true);
+
+    const body = new FormData();
+    body.append('image', file);
+
+    this.http.post<{ url: string }>('/api/v1/admin/upload/image', body).subscribe({
+      next: (res) => {
+        this.cardBgImageUrl.set(res.url);
+        this.cardBgImageUploading.set(false);
+      },
+      error: (err) => {
+        const msg = err?.error?.error ?? this.translate.instant('widget.upload_error');
+        this.cardBgImageUploadError.set(msg);
+        this.cardBgImageUploading.set(false);
+      },
+    });
+
+    input.value = '';
+  }
+
+  clearCardBgImage(): void {
+    this.cardBgImageUrl.set(null);
+    this.cardBgImageUploadError.set(null);
+  }
+
+  onStackedBgImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      this.stackedBgImageUploadError.set(this.translate.instant('widget.upload_size_error'));
+      input.value = '';
+      return;
+    }
+    this.stackedBgImageUploadError.set(null);
+    this.stackedBgImageUploading.set(true);
+    const body = new FormData();
+    body.append('image', file);
+    this.http.post<{ url: string }>('/api/v1/admin/upload/image', body).subscribe({
+      next: (res) => { this.stackedBgImageUrl.set(res.url); this.stackedBgImageUploading.set(false); },
+      error: (err) => {
+        this.stackedBgImageUploadError.set(err?.error?.error ?? this.translate.instant('widget.upload_error'));
+        this.stackedBgImageUploading.set(false);
+      },
+    });
+    input.value = '';
+  }
+
+  clearStackedBgImage(): void {
+    this.stackedBgImageUrl.set(null);
+    this.stackedBgImageUploadError.set(null);
+  }
+
+  onPlannerBgImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      this.plannerBgImageUploadError.set(this.translate.instant('widget.upload_size_error'));
+      input.value = '';
+      return;
+    }
+    this.plannerBgImageUploadError.set(null);
+    this.plannerBgImageUploading.set(true);
+    const body = new FormData();
+    body.append('image', file);
+    this.http.post<{ url: string }>('/api/v1/admin/upload/image', body).subscribe({
+      next: (res) => { this.plannerBgImageUrl.set(res.url); this.plannerBgImageUploading.set(false); },
+      error: (err) => {
+        this.plannerBgImageUploadError.set(err?.error?.error ?? this.translate.instant('widget.upload_error'));
+        this.plannerBgImageUploading.set(false);
+      },
+    });
+    input.value = '';
+  }
+
+  clearPlannerBgImage(): void {
+    this.plannerBgImageUrl.set(null);
+    this.plannerBgImageUploadError.set(null);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────
   //  03  Überschrift / Texte
   // ──────────────────────────────────────────────────────────────────────
   readonly headingTitle    = signal<string>('Tisch reservieren');
@@ -791,15 +910,37 @@ export class WidgetComponent {
   setColorBackground(c: string): void { this.colorBackground.set(c); }
   setCardBackground(c: string):  void { this.cardBackground.set(c); }
 
+  /** Farbverlauf-Optionen für den Seitenhintergrund. */
+  readonly pageGradientEnabled  = signal<boolean>(false);
+  readonly pageGradientColor2   = signal<string>('#ffffff');
+
   setPageBgType(t: PageBackgroundType): void {
-    // Bei Wechsel zu 'image' value leeren, damit der Upload-Dropzone erscheint
     const currentValue = this.pageBackground().value;
     const newValue = t === 'image' ? '' : (currentValue || '#f4f5f7');
-    this.pageBackground.set({ type: t, value: newValue });
+    this.pageBackground.set({
+      type: t, value: newValue,
+      gradient: this.pageGradientEnabled(),
+      gradientColor2: this.pageGradientColor2(),
+    });
     this.pageBgUploadError.set(null);
   }
   setPageBgColor(c: string): void {
-    this.pageBackground.set({ type: 'color', value: c });
+    this.pageBackground.set({
+      type: 'color', value: c,
+      gradient: this.pageGradientEnabled(),
+      gradientColor2: this.pageGradientColor2(),
+    });
+  }
+  togglePageGradient(): void {
+    const enabled = !this.pageGradientEnabled();
+    this.pageGradientEnabled.set(enabled);
+    const pb = this.pageBackground();
+    this.pageBackground.set({ ...pb, gradient: enabled, gradientColor2: this.pageGradientColor2() });
+  }
+  setPageGradientColor2(c: string): void {
+    this.pageGradientColor2.set(c);
+    const pb = this.pageBackground();
+    this.pageBackground.set({ ...pb, gradient: true, gradientColor2: c });
   }
 
   onPageBgImageSelected(event: Event): void {
@@ -880,17 +1021,28 @@ export class WidgetComponent {
   //  Einstellungen live durchschlagen.
   // ──────────────────────────────────────────────────────────────────────
   readonly previewStyle = computed<Record<string, string>>(() => {
-    const radius = this.currentRadiusPx();
-    const pb = this.pageBackground();
-    const pageBgStyle = pb.type === 'image' && pb.value
-      ? `url(${pb.value}) center/cover no-repeat`
-      : pb.value;
+    const radius   = this.currentRadiusPx();
+    const pb       = this.pageBackground();
+    const layout   = this.selectedLayout();
+    const layoutBgImage =
+      layout === 'card'    ? this.cardBgImageUrl() :
+      layout === 'stacked' ? this.stackedBgImageUrl() :
+      layout === 'planner' ? this.plannerBgImageUrl() :
+      null;
+    const pageBgStyle = layoutBgImage
+      ? `url(${layoutBgImage}) center/cover no-repeat`
+      : pb.type === 'image' && pb.value
+        ? `url(${pb.value}) center/cover no-repeat`
+        : pb.gradient && pb.gradientColor2
+          ? `linear-gradient(135deg, ${pb.value}, ${pb.gradientColor2})`
+          : pb.value;
     return {
       '--preview-text':        this.colorText(),
       '--preview-bg':          this.colorBackground(),
-      '--preview-card-bg':     this.cardBackground(),
-      '--preview-page-bg':     pb.type === 'color' ? pb.value : 'transparent',
-      '--preview-page-image':  pb.type === 'image' && pb.value ? `url(${pb.value})` : 'none',
+      '--preview-card-bg':        this.cardBackground(),
+      '--preview-card-bg-image':  this.cardBgImageUrl() ? `url(${this.cardBgImageUrl()})` : 'none',
+      '--preview-page-bg':     layoutBgImage ? 'transparent' : (pb.type === 'color' ? pb.value : 'transparent'),
+      '--preview-page-image':  layoutBgImage ? `url(${layoutBgImage})` : (pb.type === 'image' && pb.value ? `url(${pb.value})` : 'none'),
       '--preview-primary':     this.colorPrimary(),
       '--preview-muted':       this.previewMutedColor(),
       '--preview-border':      this.previewBorderColor(),
@@ -919,7 +1071,10 @@ export class WidgetComponent {
     this.isSaving.set(true);
     this.widgetDesign.save({
       layout:           this.selectedLayout(),
-      imageUrl:         this.imageUrl(),
+      imageUrl:               this.imageUrl(),
+      cardBackgroundImage:    this.cardBgImageUrl(),
+      stackedBackgroundImage: this.stackedBgImageUrl(),
+      plannerBackgroundImage: this.plannerBgImageUrl(),
       headingTitle:     this.headingTitle(),
       headingSubtitle:  this.headingSubtitle(),
       headingAlignment: this.headingAlignment(),
@@ -963,7 +1118,12 @@ export class WidgetComponent {
     this.colorText.set(d.colorText);
     this.colorBackground.set(d.colorBackground);
     this.cardBackground.set(d.cardBackground);
+    this.cardBgImageUrl.set(null);
+    this.stackedBgImageUrl.set(null);
+    this.plannerBgImageUrl.set(null);
     this.pageBackground.set(d.pageBackground);
+    this.pageGradientEnabled.set(false);
+    this.pageGradientColor2.set('#ffffff');
     this.buttonLabel.set(d.buttonLabel);
     this.selectedRadius.set(d.cornerRadius);
     this.widgetDesign.reset();

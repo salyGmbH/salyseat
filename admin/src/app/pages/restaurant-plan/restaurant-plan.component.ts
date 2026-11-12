@@ -1,10 +1,11 @@
-import { Component, ElementRef, HostListener, OnInit, computed, inject, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, computed, inject, signal, ViewChild, Signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
+import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
 import { PlacedTable, PlacedWall, PlacedDecor, SavedRoom, TableType, DecorType } from '../../services/room.types';
 
 interface MergeDialogData {
@@ -53,8 +54,23 @@ export class RestaurantPlanComponent implements OnInit {
   saveDialogOpen     = signal(false);
   saveError          = signal<string | null>(null);
   discardDialogOpen  = signal(false);
+  deleteConfirmOpen  = signal(false);
+  deleteError        = signal<string | null>(null);
   mergeSeatsInput    = 8;
   roomNameInput      = '';
+
+  // Raum sperren — Modal & Formular
+  blockModalOpen = signal(false);
+  venueBlocks    = signal<VenueBlock[]>([]);
+  blockError     = signal<string | null>(null);
+  blockSaving    = signal(false);
+
+  blockDateFrom = '';
+  blockDateTo   = '';
+  blockFullDay  = true;
+  blockTimeFrom = '';
+  blockTimeTo   = '';
+  blockReason   = '';
 
   private nextId     = 1;
   private activeDrag: ActiveDrag | null = null;
@@ -81,18 +97,22 @@ export class RestaurantPlanComponent implements OnInit {
     cashier:  'restaurant_plan.cashier',
   };
 
-  private readonly roomsService = inject(RoomsService);
-  private readonly router       = inject(Router);
-  private readonly route        = inject(ActivatedRoute);
+  private readonly roomsService  = inject(RoomsService);
+  private readonly roomBlocksSvc = inject(RoomBlocksService);
+  private readonly router        = inject(Router);
+  private readonly route         = inject(ActivatedRoute);
+  private readonly translate     = inject(TranslateService);
 
   private readonly paramMap = toSignal(this.route.paramMap);
 
   // Liste der gespeicherten Räume (für die Landing Page)
   savedRooms = this.roomsService.rooms;
 
-  totalSeats(room: SavedRoom): number {
-    return room.tables.reduce((sum, t) => sum + t.seats, 0);
-  }
+  readonly currentRoomIsBlocked = computed(() => {
+    const id = this.editingRoomId();
+    if (!id) return false;
+    return this.savedRooms().find(r => r.id === id)?.isBlockedToday ?? false;
+  });
 
   readonly saving = signal(false);
 
@@ -179,7 +199,7 @@ export class RestaurantPlanComponent implements OnInit {
 
   openSaveDialog() {
     if (!this.hasAnyContent()) {
-      this.saveError.set('Füge zuerst mindestens einen Tisch, Raumtrenner oder ein Dekor-Element hinzu.');
+      this.saveError.set(this.translate.instant('restaurant_plan.save_error_empty'));
       this.saveDialogOpen.set(true);
       return;
     }
@@ -202,11 +222,11 @@ export class RestaurantPlanComponent implements OnInit {
   confirmSaveRoom() {
     const name = this.roomNameInput.trim();
     if (!name) {
-      this.saveError.set('Bitte gib einen Namen für den Raum ein.');
+      this.saveError.set(this.translate.instant('restaurant_plan.save_error_name'));
       return;
     }
     if (!this.hasAnyContent()) {
-      this.saveError.set('Füge zuerst mindestens einen Tisch, Raumtrenner oder ein Dekor-Element hinzu.');
+      this.saveError.set(this.translate.instant('restaurant_plan.save_error_content'));
       return;
     }
 
@@ -225,11 +245,11 @@ export class RestaurantPlanComponent implements OnInit {
           this.currentRoomName.set(name);
           this.saveDialogOpen.set(false);
           this.saveError.set(null);
-          this.showSaveFeedback(`"${name}" wurde aktualisiert.`);
+          this.showSaveFeedback(`"${name}" ${this.translate.instant('restaurant_plan.updated')}`);
         },
         error: () => {
           this.saving.set(false);
-          this.saveError.set('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+          this.saveError.set(this.translate.instant('restaurant_plan.save_generic_error'));
         },
       });
     } else {
@@ -238,11 +258,11 @@ export class RestaurantPlanComponent implements OnInit {
           this.saving.set(false);
           this.saveDialogOpen.set(false);
           this.saveError.set(null);
-          this.router.navigate(['/raum', room.id]);
+          this.router.navigate(['/restaurant-plan', room.id]);
         },
         error: () => {
           this.saving.set(false);
-          this.saveError.set('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+          this.saveError.set(this.translate.instant('restaurant_plan.save_generic_error'));
         },
       });
     }
@@ -272,6 +292,123 @@ export class RestaurantPlanComponent implements OnInit {
   confirmDiscard() {
     this.discardDialogOpen.set(false);
     this.closeEditor();
+  }
+
+  // ── Raum löschen ──────────────────────────────────────────────────────────
+  openDeleteConfirm() {
+    this.deleteConfirmOpen.set(true);
+  }
+
+  cancelDelete() {
+    this.deleteConfirmOpen.set(false);
+    this.deleteError.set(null);
+  }
+
+  confirmDeleteRoom() {
+    const id = this.editingRoomId();
+    if (!id) return;
+    this.deleteError.set(null);
+    this.roomsService.removeRoom(id).subscribe({
+      next: () => {
+        this.deleteConfirmOpen.set(false);
+        this.closeEditor();
+      },
+      error: (err) => {
+        const msg = err?.error?.error ?? this.translate.instant('restaurant_plan.delete_room_error');
+        this.deleteError.set(msg);
+      },
+    });
+  }
+
+  // ── Raum sperren — Modal ─────────────────────────────────────────────────
+  openBlockModal() {
+    const id = this.editingRoomId();
+    if (!id) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    this.blockDateFrom = today;
+    this.blockDateTo   = today;
+    this.blockFullDay  = true;
+    this.blockTimeFrom = '';
+    this.blockTimeTo   = '';
+    this.blockReason   = '';
+    this.blockError.set(null);
+
+    this.roomBlocksSvc.getBlocks(id).subscribe({
+      next: blocks => this.venueBlocks.set(blocks),
+      error: () => this.venueBlocks.set([]),
+    });
+    this.blockModalOpen.set(true);
+  }
+
+  closeBlockModal() {
+    this.blockModalOpen.set(false);
+  }
+
+  saveBlock() {
+    const id = this.editingRoomId();
+    if (!id) return;
+
+    if (!this.blockDateFrom || !this.blockDateTo) {
+      this.blockError.set(this.translate.instant('restaurant_plan.block_date_required'));
+      return;
+    }
+    if (!this.blockFullDay && (!this.blockTimeFrom || !this.blockTimeTo)) {
+      this.blockError.set(this.translate.instant('restaurant_plan.block_time_required'));
+      return;
+    }
+
+    this.blockSaving.set(true);
+    this.blockError.set(null);
+
+    this.roomBlocksSvc.createBlock(id, {
+      date_from: this.blockDateFrom,
+      date_to:   this.blockDateTo,
+      full_day:  this.blockFullDay,
+      time_from: this.blockFullDay ? undefined : this.blockTimeFrom,
+      time_to:   this.blockFullDay ? undefined : this.blockTimeTo,
+      reason:    this.blockReason.trim() || undefined,
+    }).subscribe({
+      next: (block) => {
+        this.blockSaving.set(false);
+        this.venueBlocks.update(bs => [...bs, block]);
+        this.blockDateFrom = new Date().toISOString().slice(0, 10);
+        this.blockDateTo   = this.blockDateFrom;
+        this.blockReason   = '';
+      },
+      error: () => {
+        this.blockSaving.set(false);
+        this.blockError.set(this.translate.instant('restaurant_plan.block_save_error'));
+      },
+    });
+  }
+
+  removeBlock(blockId: string) {
+    const id = this.editingRoomId();
+    if (!id) return;
+    this.roomBlocksSvc.deleteBlock(id, blockId).subscribe(() => {
+      this.venueBlocks.update(bs => bs.filter(b => b.id !== blockId));
+      this.roomsService.load().subscribe();
+    });
+  }
+
+  liftAllActiveBlocks() {
+    const id = this.editingRoomId();
+    if (!id) return;
+    const room = this.roomsService.getRoom(id);
+    if (!room?.activeBlockIds?.length) return;
+
+    const deletes = room.activeBlockIds.map(bid =>
+      this.roomBlocksSvc.deleteBlock(id, bid)
+    );
+    let done = 0;
+    deletes.forEach(obs => obs.subscribe(() => {
+      done++;
+      if (done === deletes.length) {
+        this.venueBlocks.update(bs => bs.filter(b => !room.activeBlockIds.includes(b.id)));
+        this.roomsService.load().subscribe();
+      }
+    }));
   }
 
   // ── Selektion ─────────────────────────────────────────────────────────────

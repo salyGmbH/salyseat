@@ -8,6 +8,31 @@
     </div>
   }
 
+  <!-- ─── Payment ─────────────────────────────────────────────────────────── -->
+  @else if (state() === 'payment' || state() === 'paying') {
+    <div class="payment-card">
+      <div class="payment-card__icon">💳</div>
+      <h2 class="payment-card__title">
+        {{ noShowSchutzAktiv() ? 'Kreditkarte hinterlegen' : 'Zahlung abschließen' }}
+      </h2>
+      <p class="payment-card__lead">
+        {{ noShowSchutzAktiv() ? noShowWidgetText() : 'Deine Reservierung ist vorgemerkt. Bitte schließe jetzt die Zahlung ab.' }}
+      </p>
+      <div id="stripe-payment-element" class="payment-card__element"></div>
+      @if (paymentError()) {
+        <div class="payment-card__error">{{ paymentError() }}</div>
+      }
+      <button
+        type="button"
+        class="payment-card__btn"
+        [disabled]="state() === 'paying'"
+        (click)="confirmPayment()">
+        @if (state() === 'paying') { Wird verarbeitet … } @else { Jetzt bezahlen }
+      </button>
+      <button type="button" class="btn-secondary" (click)="reset()">Abbrechen</button>
+    </div>
+  }
+
   <!-- ─── Success ──────────────────────────────────────────────────────────── -->
   @else if (state() === 'success') {
     <div class="success-card">
@@ -39,6 +64,13 @@
   <!-- ─── Layouts ──────────────────────────────────────────────────────────── -->
   @else {
 
+    @if (noShowSchutzAktiv() && stripePublishableKey()) {
+      <div class="noshow-notice">
+        <span class="noshow-notice__icon">💳</span>
+        <span>{{ noShowWidgetText() }}</span>
+      </div>
+    }
+
     @if (hinweisOpen()) {
       <div class="widget-menu-overlay" (click)="dismissHinweis()">
         <div class="widget-menu-overlay__box widget-menu-overlay__box--hinweis" (click)="$event.stopPropagation()">
@@ -68,6 +100,26 @@
       ════════════════════════════════════════════════ -->
       @case ('card') {
         <div class="preview-card" [class.has-picker-open]="cardOpenPicker() !== null">
+          <!-- Back header (Step 2+) -->
+          @if (cardStep() > 1) {
+            <div class="preview-card__topbar">
+              <button class="preview-card__topbar-back" type="button" (click)="cardPrevStep()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <polyline points="13,4 7,10 13,16"/>
+                </svg>
+                Zurück
+              </button>
+              @if (cardStep() === 2 && cardWasOnSummary()) {
+                <button class="preview-card__topbar-fwd" type="button" (click)="cardGoToSummary()">
+                  Zusammenfassung
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <polyline points="7,4 13,10 7,16"/>
+                  </svg>
+                </button>
+              }
+            </div>
+          }
+
           <!-- Hero image area -->
           <div class="preview-card__hero"
                [class.has-image]="!!imageUrl()"
@@ -108,7 +160,6 @@
                   </div>
                 </div>
               }
-              <div class="preview-card__label">Personen</div>
               <div class="preview-card__stepper">
                 <button type="button" class="preview-card__stepper-btn" (click)="cardDecSeats()">−</button>
                 <button type="button"
@@ -170,7 +221,6 @@
                   </div>
                 </div>
               }
-              <div class="preview-card__label">Datum &amp; Uhrzeit</div>
               <div class="preview-card__datetime">
                 <button class="preview-card__datetime-field"
                         type="button"
@@ -227,12 +277,6 @@
               </div>
             }
 
-            @if (speisekarte()) {
-              <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
-                🍽 Speisekarte ansehen
-              </button>
-            }
-
             @if (showMaxPersonenInfo()) {
               <div class="widget-group-info">
                 <div class="widget-group-info__header">
@@ -242,7 +286,7 @@
                     <circle cx="14" cy="6" r="2.5"/>
                     <path d="M13 12.2A5.5 5.5 0 0 1 19 17.5"/>
                   </svg>
-                  <p class="widget-group-info__text">{{ maxPersonenText() }}</p>
+                  <p class="widget-group-info__text">{{ groupInfoText() }}</p>
                 </div>
                 <div class="widget-group-info__contacts">
                   @if (maxPersonenPhone()) {
@@ -265,13 +309,24 @@
                 </div>
               </div>
             }
+
+            @if (speisekarte()) {
+              <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                  <path d="M6 2v4M8 2v4M7 6v12"/>
+                  <path d="M6 6a1 1 0 0 0 2 0"/>
+                  <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
+                </svg>
+                Speisekarte ansehen
+              </button>
+            }
+
             <button class="preview-card__cta" type="button" (click)="cardNextStep()">
               {{ buttonLabel() || 'Reservieren' }}
             </button>
 
-          } @else {
+          } @else if (cardStep() === 2) {
             <!-- Step 2: guest data -->
-            <h4 class="preview-card__title">Deine Daten</h4>
             <p class="preview-card__subtitle">
               {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
               · {{ selectedDateLabel() }}
@@ -294,21 +349,25 @@
               }
 
               <div class="preview-card__form-row preview-card__form-row--split">
-                <div class="preview-card__field">
-                  <label class="preview-card__field-label" for="card-name">Name</label>
+                <div class="preview-card__field preview-card__field--required"
+                     [class.preview-card__field--error]="cardShowErrors() && guestName().trim().length < 2">
+                  <label class="preview-card__field-label" for="card-name">Name <span class="field-required">*</span></label>
                   <input id="card-name" type="text" class="preview-card__field-input preview-card__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
                          placeholder="Vor- und Nachname" autocomplete="name" name="cardName">
                 </div>
-                <div class="preview-card__field">
-                  <label class="preview-card__field-label" for="card-email">E-Mail</label>
+                <div class="preview-card__field preview-card__field--required"
+                     [class.preview-card__field--error]="cardShowErrors() && !emailLooksOk()">
+                  <label class="preview-card__field-label" for="card-email">E-Mail <span class="field-required">*</span></label>
                   <input id="card-email" type="email" class="preview-card__field-input preview-card__field-input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
                          placeholder="name@beispiel.de" autocomplete="email" name="cardEmail">
                 </div>
               </div>
 
-              <div class="preview-card__field">
+              <div class="preview-card__field"
+                   [class.preview-card__field--required]="isRequired('phone')"
+                   [class.preview-card__field--error]="cardShowErrors() && isRequired('phone') && !guestPhone().trim()">
                 <label class="preview-card__field-label" for="card-phone">
                   Telefon
                   @if (isRequired('phone')) { <span class="field-required">*</span> }
@@ -380,7 +439,9 @@
                 </div>
               }
 
-              <div class="preview-card__field">
+              <div class="preview-card__field"
+                   [class.preview-card__field--required]="isRequired('notes')"
+                   [class.preview-card__field--error]="cardShowErrors() && isRequired('notes') && !notes().trim()">
                 <label class="preview-card__field-label" for="card-notes">
                   Notizen
                   @if (isRequired('notes')) { <span class="field-required">*</span> }
@@ -393,25 +454,91 @@
               </div>
             </div>
 
-            @if (state() === 'error') {
-              <div class="widget-alert">{{ errorMessage() }}</div>
-            }
-
-            <label class="preview-card__consent" [class.is-checked]="cardConsent()">
+            <label class="preview-card__consent"
+                   [class.is-checked]="cardConsent()"
+                   [class.is-error]="cardShowErrors() && !cardConsent()">
               <input type="checkbox" class="preview-card__consent-input"
                      [checked]="cardConsent()" (change)="cardToggleConsent()">
               <span class="preview-card__consent-box" aria-hidden="true">
                 @if (cardConsent()) { <span class="check-icon">✓</span> }
               </span>
               <span class="preview-card__consent-text">
-                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
               </span>
             </label>
 
             <div class="preview-card__nav">
-              <button class="preview-card__back" type="button" (click)="cardPrevStep()">
-                ‹ Zurück
+              <button class="preview-card__cta"
+                      type="button"
+                      (click)="cardGoToSummary()">
+                Weiter zur Zusammenfassung
               </button>
+            </div>
+
+          } @else {
+            <!-- Step 3: Zusammenfassung -->
+
+            <div class="widget-summary">
+              <div class="widget-summary__booking">
+                <div class="widget-summary__booking-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
+                  <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                </div>
+                <div class="widget-summary__booking-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
+                  <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                </div>
+                <div class="widget-summary__booking-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+                  <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                </div>
+                @if (raumauswahl() && filteredVenues().length > 1) {
+                  <div class="widget-summary__booking-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
+                    <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                  </div>
+                }
+              </div>
+
+              <div class="widget-summary__guest">
+                <div class="widget-summary__field">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                </div>
+                <div class="widget-summary__field">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                </div>
+                @if (guestPhone()) {
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                  </div>
+                }
+                @if (notes()) {
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                  </div>
+                }
+              </div>
+
+              @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+                <div class="widget-summary__extras">
+                  @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
+                  @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
+                  @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                  @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
+                  @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                </div>
+              }
+            </div>
+
+            @if (state() === 'error') {
+              <div class="widget-alert">{{ errorMessage() }}</div>
+            }
+
+            <div class="preview-card__nav">
               <button class="preview-card__cta preview-card__cta--submit"
                       type="button"
                       [class.is-disabled]="!canSubmit()"
@@ -422,6 +549,7 @@
               </button>
             </div>
           }
+          <div class="saly-credit">created by <a class="saly-credit__name" href="https://saly-tech.de/" target="_blank" rel="noopener">SALY</a></div>
         </div>
       }
 
@@ -499,7 +627,12 @@
 
               @if (speisekarte()) {
                 <button type="button" class="widget-menu-btn" (click)="toggleMenu()">
-                  🍽 Speisekarte ansehen
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                    <path d="M6 2v4M8 2v4M7 6v12"/>
+                    <path d="M6 6a1 1 0 0 0 2 0"/>
+                    <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
+                  </svg>
+                  Speisekarte ansehen
                 </button>
               }
 
@@ -512,7 +645,7 @@
                       <circle cx="14" cy="6" r="2.5"/>
                       <path d="M13 12.2A5.5 5.5 0 0 1 19 17.5"/>
                     </svg>
-                    <p class="widget-group-info__text">{{ maxPersonenText() }}</p>
+                    <p class="widget-group-info__text">{{ groupInfoText() }}</p>
                   </div>
                   <div class="widget-group-info__contacts">
                     @if (maxPersonenPhone()) {
@@ -541,9 +674,18 @@
 
             } @else if (sidebarStep() === 2) {
               <!-- Step 2: guest data -->
+              <div class="preview-sidebar__topbar">
+                <button class="preview-sidebar__topbar-back" type="button" (click)="sidebarPrevStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13,4 7,10 13,16"/></svg>
+                </button>
+                @if (sidebarWasOnSummary()) {
+                  <button class="preview-sidebar__topbar-fwd" type="button" (click)="sidebarGoToSummary()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="7,4 13,10 7,16"/></svg>
+                  </button>
+                }
+              </div>
               <h4 class="preview-sidebar__title">
-                <span>Deine</span>
-                <span>Daten</span>
+                <span>Deine Daten</span>
               </h4>
               <p class="preview-sidebar__subtitle">
                 {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
@@ -566,14 +708,16 @@
               }
 
               <div class="preview-sidebar__row">
-                <div class="preview-sidebar__group">
-                  <label class="preview-sidebar__label" for="sb-name">Name</label>
+                <div class="preview-sidebar__group"
+                     [class.preview-sidebar__group--error]="sidebarShowErrors() && guestName().trim().length < 2">
+                  <label class="preview-sidebar__label" for="sb-name">Name <span class="field-required">*</span></label>
                   <input id="sb-name" type="text" class="preview-sidebar__input preview-sidebar__input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
                          placeholder="Vor- und Nachname" autocomplete="name" name="sbName">
                 </div>
-                <div class="preview-sidebar__group">
-                  <label class="preview-sidebar__label" for="sb-email">E-Mail</label>
+                <div class="preview-sidebar__group"
+                     [class.preview-sidebar__group--error]="sidebarShowErrors() && !emailLooksOk()">
+                  <label class="preview-sidebar__label" for="sb-email">E-Mail <span class="field-required">*</span></label>
                   <input id="sb-email" type="email" class="preview-sidebar__input preview-sidebar__input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
                          placeholder="name@beispiel.de" autocomplete="email" name="sbEmail">
@@ -664,23 +808,97 @@
                           name="sbNotes" rows="2"></textarea>
               </div>
 
-              @if (state() === 'error') {
-                <div class="widget-alert">{{ errorMessage() }}</div>
-              }
-
-              <label class="preview-sidebar__consent" [class.is-checked]="sidebarConsent()">
+              <label class="preview-sidebar__consent"
+                     [class.is-checked]="sidebarConsent()"
+                     [class.is-error]="sidebarShowErrors() && !sidebarConsent()">
                 <input type="checkbox" class="preview-sidebar__consent-input"
                        [checked]="sidebarConsent()" (change)="sidebarToggleConsent()">
                 <span class="preview-sidebar__consent-box" aria-hidden="true">
                   @if (sidebarConsent()) { <span class="check-icon">✓</span> }
                 </span>
                 <span class="preview-sidebar__consent-text">
-                  Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+                  Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
                 </span>
               </label>
 
               <div class="preview-sidebar__nav">
-                <button class="preview-sidebar__back" type="button" (click)="sidebarPrevStep()">←</button>
+                <button class="preview-sidebar__cta"
+                        type="button"
+                        (click)="sidebarGoToSummary()">
+                  Weiter zur Zusammenfassung
+                </button>
+              </div>
+
+            } @else if (sidebarStep() === 3) {
+              <!-- Step 3: Zusammenfassung -->
+              <div class="preview-sidebar__topbar">
+                <button class="preview-sidebar__topbar-back" type="button" (click)="sidebarPrevStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13,4 7,10 13,16"/></svg>
+                </button>
+              </div>
+              <h4 class="preview-sidebar__title"><span>Zusammen-</span><span>fassung</span></h4>
+
+              <div class="widget-summary">
+                <div class="widget-summary__booking">
+                  <div class="widget-summary__booking-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
+                    <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                  </div>
+                  <div class="widget-summary__booking-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
+                    <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                  </div>
+                  <div class="widget-summary__booking-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+                    <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                  </div>
+                  @if (raumauswahl() && filteredVenues().length > 1) {
+                    <div class="widget-summary__booking-item">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
+                      <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                    </div>
+                  }
+                </div>
+
+                <div class="widget-summary__guest">
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                  </div>
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                  </div>
+                  @if (guestPhone()) {
+                    <div class="widget-summary__field">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
+                      <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                    </div>
+                  }
+                  @if (notes()) {
+                    <div class="widget-summary__field">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
+                      <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                    </div>
+                  }
+                </div>
+
+                @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+                  <div class="widget-summary__extras">
+                    @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
+                    @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
+                    @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                    @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
+                    @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                  </div>
+                }
+              </div>
+
+              @if (state() === 'error') {
+                <div class="widget-alert">{{ errorMessage() }}</div>
+              }
+
+              <div class="preview-sidebar__nav">
                 <button class="preview-sidebar__cta preview-sidebar__cta--submit"
                         type="button"
                         [class.is-disabled]="!canSubmit()"
@@ -695,7 +913,9 @@
               <!-- Picker overlay -->
               <div class="preview-sidebar__picker">
                 <div class="preview-sidebar__picker-head">
-                  <button class="preview-sidebar__picker-back" type="button" (click)="sidebarClosePicker()">←</button>
+                  <button class="preview-sidebar__picker-back" type="button" (click)="sidebarClosePicker()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13,4 7,10 13,16"/></svg>
+                  </button>
                   <span class="preview-sidebar__picker-title">
                     @switch (sidebarOpenPicker()) {
                       @case ('date')  { Datum wählen }
@@ -710,9 +930,13 @@
                   @case ('date') {
                     <div class="preview-sidebar__cal">
                       <div class="preview-sidebar__cal-bar">
-                        <button class="preview-sidebar__cal-nav" type="button" (click)="prevMonth()">‹</button>
+                        <button class="preview-sidebar__cal-nav" type="button" (click)="prevMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="13,4 7,10 13,16"/></svg>
+                        </button>
                         <span class="preview-sidebar__cal-month">{{ calendarMonthLabel() }}</span>
-                        <button class="preview-sidebar__cal-nav" type="button" (click)="nextMonth()">›</button>
+                        <button class="preview-sidebar__cal-nav" type="button" (click)="nextMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="7,4 13,10 7,16"/></svg>
+                        </button>
                       </div>
                       <div class="preview-sidebar__cal-weekdays">
                         @for (wd of weekdays; track $index) {
@@ -772,6 +996,7 @@
                 }
               </div>
             }
+          <div class="saly-credit">created by <a class="saly-credit__name" href="https://saly-tech.de/" target="_blank" rel="noopener">SALY</a></div>
           </div>
         </div>
       }
@@ -782,31 +1007,50 @@
       @case ('stacked') {
         <div class="preview-stacked" [class.is-step-2]="stackedStep() === 2" [class.has-picker-open]="stackedOpenPicker() !== null">
 
-          <div class="preview-stacked__statusbar">
-            <div class="preview-stacked__live">
-              <span class="preview-stacked__live-dot" aria-hidden="true"></span>
-              <span class="preview-stacked__live-label">Live · Tisch buchen</span>
+          <div class="preview-stacked__head">
+            <div class="preview-stacked__head-top">
+              @if (stackedStep() > 1) {
+                <button class="preview-stacked__topbar-back" type="button" (click)="stackedPrevStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <polyline points="13,4 7,10 13,16"/>
+                  </svg>
+                </button>
+              } @else {
+                <div class="preview-stacked__live">
+                  <span class="preview-stacked__live-dot" aria-hidden="true"></span>
+                  <span class="preview-stacked__live-label">Live · Tisch buchen</span>
+                </div>
+              }
+              <div class="preview-stacked__steps">
+                <span class="preview-stacked__step"
+                      [class.is-active]="stackedStep() === 1"
+                      [class.is-done]="stackedStep() > 1">1</span>
+                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 1"></span>
+                <span class="preview-stacked__step"
+                      [class.is-active]="stackedStep() === 2"
+                      [class.is-done]="stackedStep() > 2">2</span>
+                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 2"></span>
+                <span class="preview-stacked__step" [class.is-active]="stackedStep() === 3">3</span>
+              </div>
+              @if (stackedStep() === 2 && stackedWasOnSummary()) {
+                <button class="preview-stacked__topbar-fwd" type="button" (click)="stackedGoToSummary()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <polyline points="7,4 13,10 7,16"/>
+                  </svg>
+                </button>
+              }
             </div>
-            <div class="preview-stacked__steps">
-              <span class="preview-stacked__step"
-                    [class.is-active]="stackedStep() === 1"
-                    [class.is-done]="stackedStep() > 1">1</span>
-              <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 1"></span>
-              <span class="preview-stacked__step" [class.is-active]="stackedStep() === 2">2</span>
+            <header class="preview-stacked__header">
+              <h4 class="preview-stacked__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+              @if (showSubtitle() && headingSubtitle()) {
+                <p class="preview-stacked__subtitle">{{ headingSubtitle() }}</p>
+              }
+            </header>
+            <div class="preview-stacked__accent" aria-hidden="true">
+              <span class="preview-stacked__accent-fill"
+                    [style.width.%]="stackedStep() === 1 ? 33 : stackedStep() === 2 ? 66 : 100"></span>
             </div>
           </div>
-
-          <div class="preview-stacked__accent" aria-hidden="true">
-            <span class="preview-stacked__accent-fill"
-                  [style.width.%]="stackedStep() === 1 ? 50 : 100"></span>
-          </div>
-
-          <header class="preview-stacked__header">
-            <h4 class="preview-stacked__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
-            @if (showSubtitle() && headingSubtitle()) {
-              <p class="preview-stacked__subtitle">{{ headingSubtitle() }}</p>
-            }
-          </header>
 
           @if (stackedStep() === 1) {
             <div class="preview-stacked__tiles-host">
@@ -872,9 +1116,17 @@
                   @case ('date') {
                     <div class="preview-stacked__cal">
                       <div class="preview-stacked__cal-bar">
-                        <button class="preview-stacked__cal-nav" type="button" (click)="prevMonth()">‹</button>
+                        <button class="preview-stacked__cal-nav" type="button" (click)="prevMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                            <polyline points="13,4 7,10 13,16"/>
+                          </svg>
+                        </button>
                         <span class="preview-stacked__cal-month">{{ calendarMonthLabel() }}</span>
-                        <button class="preview-stacked__cal-nav" type="button" (click)="nextMonth()">›</button>
+                        <button class="preview-stacked__cal-nav" type="button" (click)="nextMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                            <polyline points="7,4 13,10 7,16"/>
+                          </svg>
+                        </button>
                       </div>
                       <div class="preview-stacked__cal-weekdays">
                         @for (wd of weekdays; track wd) {
@@ -946,42 +1198,50 @@
               </div>
             }
 
-            @if (speisekarte()) {
-              <button type="button" class="widget-menu-btn widget-menu-btn--stacked" (click)="toggleMenu()">
-                🍽 Speisekarte ansehen
-              </button>
-            }
-
-            @if (showMaxPersonenInfo()) {
-              <div class="widget-group-info">
-                <div class="widget-group-info__header">
-                  <svg class="widget-group-info__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
-                    <circle cx="7" cy="6" r="3"/>
-                    <path d="M1 18c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
-                    <circle cx="14" cy="6" r="2.5"/>
-                    <path d="M13 12.2A5.5 5.5 0 0 1 19 17.5"/>
-                  </svg>
-                  <p class="widget-group-info__text">{{ maxPersonenText() }}</p>
-                </div>
-                <div class="widget-group-info__contacts">
-                  @if (maxPersonenPhone()) {
-                    <a class="widget-group-info__link" [href]="'tel:' + maxPersonenPhone()">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
-                        <path d="M3 3.5c0 7.18 5.82 13 13 13l1-3-3.5-1.5-1 1.5C10 12 8 10 6.5 7.5L8 6.5 6.5 3H3.5z"/>
+            @if (showMaxPersonenInfo() || speisekarte()) {
+              <div class="preview-stacked__extras">
+                @if (showMaxPersonenInfo()) {
+                  <div class="widget-group-info">
+                    <div class="widget-group-info__header">
+                      <svg class="widget-group-info__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                        <circle cx="7" cy="6" r="3"/>
+                        <path d="M1 18c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
+                        <circle cx="14" cy="6" r="2.5"/>
+                        <path d="M13 12.2A5.5 5.5 0 0 1 19 17.5"/>
                       </svg>
-                      {{ maxPersonenPhone() }}
-                    </a>
-                  }
-                  @if (maxPersonenEmail()) {
-                    <a class="widget-group-info__link" [href]="'mailto:' + maxPersonenEmail()">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
-                        <rect x="2" y="4" width="16" height="12" rx="2"/>
-                        <polyline points="2,4 10,11 18,4"/>
-                      </svg>
-                      {{ maxPersonenEmail() }}
-                    </a>
-                  }
-                </div>
+                      <p class="widget-group-info__text">{{ groupInfoText() }}</p>
+                    </div>
+                    <div class="widget-group-info__contacts">
+                      @if (maxPersonenPhone()) {
+                        <a class="widget-group-info__link" [href]="'tel:' + maxPersonenPhone()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                            <path d="M3 3.5c0 7.18 5.82 13 13 13l1-3-3.5-1.5-1 1.5C10 12 8 10 6.5 7.5L8 6.5 6.5 3H3.5z"/>
+                          </svg>
+                          {{ maxPersonenPhone() }}
+                        </a>
+                      }
+                      @if (maxPersonenEmail()) {
+                        <a class="widget-group-info__link" [href]="'mailto:' + maxPersonenEmail()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                            <rect x="2" y="4" width="16" height="12" rx="2"/>
+                            <polyline points="2,4 10,11 18,4"/>
+                          </svg>
+                          {{ maxPersonenEmail() }}
+                        </a>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (speisekarte()) {
+                  <button type="button" class="widget-menu-btn widget-menu-btn--stacked" (click)="toggleMenu()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                      <path d="M6 2v4M8 2v4M7 6v12"/>
+                      <path d="M6 6a1 1 0 0 0 2 0"/>
+                      <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
+                    </svg>
+                    Speisekarte ansehen
+                  </button>
+                }
               </div>
             }
             <button class="preview-stacked__cta" type="button" (click)="stackedNextStep()">
@@ -989,7 +1249,7 @@
               <span>→</span>
             </button>
 
-          } @else {
+          } @else if (stackedStep() === 2) {
             <!-- Step 2 -->
             <p class="preview-stacked__summary">
               {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
@@ -1015,21 +1275,24 @@
 
             <div class="preview-stacked__form">
               <div class="preview-stacked__row">
-                <div class="preview-stacked__field">
-                  <label class="preview-stacked__field-label" for="st-name">Name</label>
+                <div class="preview-stacked__field"
+                     [class.preview-stacked__field--error]="stackedShowErrors() && guestName().trim().length < 2">
+                  <label class="preview-stacked__field-label" for="st-name">Name <span class="field-required">*</span></label>
                   <input id="st-name" type="text" class="preview-stacked__field-input preview-stacked__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
                          placeholder="Vor- und Nachname" autocomplete="name" name="stName">
                 </div>
-                <div class="preview-stacked__field">
-                  <label class="preview-stacked__field-label" for="st-email">E-Mail</label>
+                <div class="preview-stacked__field"
+                     [class.preview-stacked__field--error]="stackedShowErrors() && !emailLooksOk()">
+                  <label class="preview-stacked__field-label" for="st-email">E-Mail <span class="field-required">*</span></label>
                   <input id="st-email" type="email" class="preview-stacked__field-input preview-stacked__field-input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
                          placeholder="name@beispiel.de" autocomplete="email" name="stEmail">
                 </div>
               </div>
 
-              <div class="preview-stacked__field">
+              <div class="preview-stacked__field"
+                   [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('phone') && !guestPhone().trim()">
                 <label class="preview-stacked__field-label" for="st-phone">
                   Telefon
                   @if (isRequired('phone')) { <span class="field-required">*</span> }
@@ -1101,7 +1364,8 @@
                 </div>
               }
 
-              <div class="preview-stacked__field">
+              <div class="preview-stacked__field"
+                   [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('notes') && !notes().trim()">
                 <label class="preview-stacked__field-label" for="st-notes">
                   Anmerkungen
                   @if (isRequired('notes')) { <span class="field-required">*</span> }
@@ -1114,25 +1378,99 @@
               </div>
             </div>
 
-            @if (state() === 'error') {
-              <div class="widget-alert" style="margin: 0 20px;">{{ errorMessage() }}</div>
-            }
-
             <label class="preview-stacked__consent"
                    [class.is-checked]="stackedConsent()"
-                   (click)="stackedToggleConsent(); $event.preventDefault()">
+                   [class.is-error]="stackedShowErrors() && !stackedConsent()">
               <input type="checkbox" class="preview-stacked__consent-input"
-                     [checked]="stackedConsent()">
+                     [checked]="stackedConsent()" (change)="stackedToggleConsent()">
               <span class="preview-stacked__consent-box" aria-hidden="true">
                 @if (stackedConsent()) { <span class="check-icon">✓</span> }
               </span>
               <span class="preview-stacked__consent-text">
-                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
               </span>
             </label>
 
+            @if (state() === 'error') {
+              <div class="widget-alert" style="margin: 0 20px;">{{ errorMessage() }}</div>
+            }
+
             <div class="preview-stacked__nav">
-              <button class="preview-stacked__back" type="button" (click)="stackedPrevStep()">←</button>
+              <button class="preview-stacked__cta preview-stacked__cta--goto-summary"
+                      type="button"
+                      (click)="stackedGoToSummary()">
+                Weiter zur Zusammenfassung
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <polyline points="7,4 13,10 7,16"/>
+                </svg>
+              </button>
+            </div>
+
+          } @else {
+            <!-- Step 3: Zusammenfassung -->
+            <h4 class="preview-stacked__summary-title">Zusammenfassung</h4>
+
+            <div class="widget-summary">
+              <div class="widget-summary__booking">
+                <div class="widget-summary__booking-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
+                  <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                </div>
+                <div class="widget-summary__booking-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
+                  <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                </div>
+                <div class="widget-summary__booking-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+                  <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                </div>
+                @if (raumauswahl() && filteredVenues().length > 1) {
+                  <div class="widget-summary__booking-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
+                    <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                  </div>
+                }
+              </div>
+
+              <div class="widget-summary__guest">
+                <div class="widget-summary__field">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                </div>
+                <div class="widget-summary__field">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                </div>
+                @if (guestPhone()) {
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                  </div>
+                }
+                @if (notes()) {
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                  </div>
+                }
+              </div>
+
+              @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+                <div class="widget-summary__extras">
+                  @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
+                  @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
+                  @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                  @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
+                  @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                </div>
+              }
+            </div>
+
+            @if (state() === 'error') {
+              <div class="widget-alert">{{ errorMessage() }}</div>
+            }
+
+            <div class="preview-stacked__nav">
               <button class="preview-stacked__cta preview-stacked__cta--submit"
                       type="button"
                       [class.is-disabled]="!canSubmit()"
@@ -1143,6 +1481,7 @@
               </button>
             </div>
           }
+          <div class="saly-credit">created by <a class="saly-credit__name" href="https://saly-tech.de/" target="_blank" rel="noopener">SALY</a></div>
         </div>
       }
 
@@ -1158,14 +1497,27 @@
                 <p class="preview__subtitle">{{ headingSubtitle() }}</p>
               }
             </div>
-            @if (speisekarte()) {
-              <button type="button" class="widget-menu-btn widget-menu-btn--planner" (click)="toggleMenu()">
-                🍽 Speisekarte
-              </button>
-            }
           </header>
 
           <div class="preview-planner" [attr.data-step]="plannerStep()">
+
+            <!-- Topbar navigation (step 2+) -->
+            @if (plannerStep() > 1) {
+              <div class="preview-planner__topbar">
+                <button class="preview-planner__topbar-back" type="button" (click)="plannerPrev()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <polyline points="13,4 7,10 13,16"/>
+                  </svg>
+                </button>
+                @if (plannerStep() < plannerMaxStep()) {
+                  <button class="preview-planner__topbar-fwd" type="button" (click)="plannerNext()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <polyline points="7,4 13,10 7,16"/>
+                    </svg>
+                  </button>
+                }
+              </div>
+            }
 
             <!-- Step indicator -->
             <div class="preview-planner__steps">
@@ -1211,9 +1563,22 @@
               <button type="button"
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 4"
+                      [class.is-done]="plannerStep() > 4"
                       (click)="setPlannerStep(4)">
-                <span class="preview-planner__step-num">4</span>
+                <span class="preview-planner__step-num">
+                  @if (plannerStep() > 4) { ✓ } @else { 4 }
+                </span>
                 <span class="preview-planner__step-label">Daten</span>
+              </button>
+
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 4"></span>
+
+              <button type="button"
+                      class="preview-planner__step"
+                      [class.is-active]="plannerStep() === 5"
+                      (click)="canGoToSummary() && setPlannerStep(5)">
+                <span class="preview-planner__step-num">5</span>
+                <span class="preview-planner__step-label">Übersicht</span>
               </button>
             </div>
 
@@ -1270,7 +1635,7 @@
               </section>
 
               <!-- Panel 2: Time (dial) -->
-              <section class="preview-planner__panel" [class.is-active]="plannerStep() === 2">
+              <section class="preview-planner__panel preview-planner__panel--time" [class.is-active]="plannerStep() === 2">
                 <div class="preview-planner__panel-head">
                   <span class="preview-planner__panel-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="16" height="16">
@@ -1287,6 +1652,15 @@
                        aria-hidden="true">
                     <circle cx="70" cy="70" r="62" class="preview-planner__dial-ring"/>
 
+                    <!-- Nadel zuerst rendern, damit Dots + Labels darüber liegen -->
+                    <g class="preview-planner__dial-needle"
+                       [attr.transform]="'rotate(' + dialPhaseNeedleAngle() + ' 70 70)'">
+                      <line x1="70" y1="70" x2="70" [attr.y2]="dialPhaseNeedleEndY()"
+                            class="preview-planner__dial-needle-line"/>
+                      <circle cx="70" [attr.cy]="dialPhaseNeedleEndY()" r="6"
+                              class="preview-planner__dial-needle-tip"/>
+                    </g>
+
                     @if (plannerDialPhase() === 'hour') {
                       @for (h of dialPhaseHourDots(); track h.hour) {
                         <circle [attr.cx]="h.x" [attr.cy]="h.y"
@@ -1302,23 +1676,15 @@
                       }
                     } @else {
                       @for (m of dialPhaseMinuteDots(); track m.minute) {
-                        <circle [attr.cx]="m.x" [attr.cy]="m.y" r="9"
+                        <circle [attr.cx]="m.x" [attr.cy]="m.y" r="10"
                                 class="preview-planner__dial-phase-dot is-available"
                                 [class.is-selected]="m.minute === +validTime().split(':')[1]"/>
                         <text [attr.x]="m.x" [attr.y]="m.y"
-                              class="preview-planner__dial-phase-label is-available"
+                              class="preview-planner__dial-phase-label is-available is-minute"
                               [class.is-selected]="m.minute === +validTime().split(':')[1]"
                               text-anchor="middle" dominant-baseline="central">{{ m.label }}</text>
                       }
                     }
-
-                    <g class="preview-planner__dial-needle"
-                       [attr.transform]="'rotate(' + dialPhaseNeedleAngle() + ' 70 70)'">
-                      <line x1="70" y1="70" x2="70" [attr.y2]="dialPhaseNeedleEndY()"
-                            class="preview-planner__dial-needle-line"/>
-                      <circle cx="70" [attr.cy]="dialPhaseNeedleEndY()" r="6"
-                              class="preview-planner__dial-needle-tip"/>
-                    </g>
 
                     <circle cx="70" cy="70" r="18" class="preview-planner__dial-hub"/>
                   </svg>
@@ -1394,7 +1760,7 @@
                         <circle cx="14" cy="6" r="2.5"/>
                         <path d="M13 12.2A5.5 5.5 0 0 1 19 17.5"/>
                       </svg>
-                      <p class="widget-group-info__text">{{ maxPersonenText() }}</p>
+                      <p class="widget-group-info__text">{{ groupInfoText() }}</p>
                     </div>
                     <div class="widget-group-info__contacts">
                       @if (maxPersonenPhone()) {
@@ -1416,6 +1782,17 @@
                       }
                     </div>
                   </div>
+                }
+
+                @if (speisekarte()) {
+                  <button type="button" class="widget-menu-btn widget-menu-btn--planner" (click)="toggleMenu()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                      <path d="M6 2v4M8 2v4M7 6v12"/>
+                      <path d="M6 6a1 1 0 0 0 2 0"/>
+                      <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
+                    </svg>
+                    Speisekarte ansehen
+                  </button>
                 }
               </section>
 
@@ -1481,23 +1858,24 @@
                 }
 
                 <div class="preview-planner__form">
-                  <div class="preview-planner__form-row">
-                    <div class="preview-planner__form-group">
-                      <label class="preview-planner__form-label" for="pl-name">Name</label>
+                  <!-- Zeile 1: Name | E-Mail | Telefon -->
+                  <div class="preview-planner__form-row preview-planner__form-row--3col">
+                    <div class="preview-planner__form-group"
+                         [class.preview-planner__form-group--error]="plannerShowErrors() && guestName().trim().length < 2">
+                      <label class="preview-planner__form-label" for="pl-name">Name <span class="field-required">*</span></label>
                       <input id="pl-name" type="text" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
                              placeholder="Vor- und Nachname" autocomplete="name" name="plName">
                     </div>
-                    <div class="preview-planner__form-group">
-                      <label class="preview-planner__form-label" for="pl-email">E-Mail</label>
+                    <div class="preview-planner__form-group"
+                         [class.preview-planner__form-group--error]="plannerShowErrors() && !emailLooksOk()">
+                      <label class="preview-planner__form-label" for="pl-email">E-Mail <span class="field-required">*</span></label>
                       <input id="pl-email" type="email" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
                              placeholder="name@beispiel.de" autocomplete="email" name="plEmail">
                     </div>
-                  </div>
-
-                  <div class="preview-planner__form-row">
-                    <div class="preview-planner__form-group">
+                    <div class="preview-planner__form-group"
+                         [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('phone') && !guestPhone().trim()">
                       <label class="preview-planner__form-label" for="pl-phone">
                         Telefon
                         @if (isRequired('phone')) { <span class="field-required">*</span> }
@@ -1507,133 +1885,220 @@
                              [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
                              placeholder="+49 …" autocomplete="tel" name="plPhone">
                     </div>
-                    <div class="preview-planner__form-group">
-                      <label class="preview-planner__form-label" for="pl-notes">
-                        Notizen
-                        @if (isRequired('notes')) { <span class="field-required">*</span> }
-                        @else { <span class="preview-planner__form-optional">(optional)</span> }
-                      </label>
-                      <textarea id="pl-notes" class="preview-planner__form-input preview-planner__form-input--real preview-planner__form-input--area"
-                                [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                                placeholder="Allergien, Kinderstuhl …"
-                                name="plNotes" rows="2"></textarea>
+                  </div>
+
+                  <!-- Zeile 2: Notizen (links) | Extras (rechts) -->
+                  <div class="preview-planner__form-extras-row">
+                    <!-- Notizen — wächst auf Höhe der rechten Spalte -->
+                    <div class="preview-planner__form-notes-col">
+                      <div class="preview-planner__form-group preview-planner__form-group--stretch"
+                           [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('notes') && !notes().trim()">
+                        <label class="preview-planner__form-label" for="pl-notes">
+                          Notizen
+                          @if (isRequired('notes')) { <span class="field-required">*</span> }
+                          @else { <span class="preview-planner__form-optional">(optional)</span> }
+                        </label>
+                        <textarea id="pl-notes" class="preview-planner__form-input preview-planner__form-input--real preview-planner__form-input--area preview-planner__form-input--stretch"
+                                  [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                                  placeholder="Besondere Wünsche, Anmerkungen …"
+                                  name="plNotes" rows="2"></textarea>
+                      </div>
+                    </div>
+
+                    <!-- Extras rechts -->
+                    <div class="preview-planner__form-extras-col">
+                      @if (tischartenAktiv() && tischartenModus() === 'liste' && availableTischarten().length > 0) {
+                        <div class="tischart-picker tischart-picker--planner">
+                          <div class="tischart-picker__label">Tischart</div>
+                          <div class="tischart-picker__chips">
+                            @for (t of availableTischarten(); track t.key) {
+                              <button type="button"
+                                      class="tischart-chip"
+                                      [class.is-active]="selectedTischart() === t.key"
+                                      (click)="selectedTischart.set(t.key)">
+                                <span>{{ t.icon }}</span> {{ t.label }}
+                              </button>
+                            }
+                          </div>
+                        </div>
+                      }
+
+                      @if (tischartenAktiv() && tischartenModus() === 'plan' && selectedTableId() !== null) {
+                        <div class="plan-selected-badge">
+                          <span class="plan-selected-badge__icon">✓</span>
+                          <span class="plan-selected-badge__text">Tisch #{{ selectedTableId() }} ausgewählt</span>
+                          <button type="button" class="plan-selected-badge__change" (click)="tischplanOverlayOpen.set(true)">Ändern</button>
+                        </div>
+                      }
+
+                      @if (kinderStuehleAktiv()) {
+                        <div class="preview-planner__form-group">
+                          <label class="preview-planner__form-label">Kinderstühle</label>
+                          <div class="kinder-stepper">
+                            <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
+                            <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
+                            <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
+                            <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                          </div>
+                        </div>
+                      }
+                      @if (rollstuhlAktiv()) {
+                        <label class="extra-checkbox">
+                          <input type="checkbox" [checked]="rollstuhl()" (change)="rollstuhl.set(!rollstuhl())">
+                          <span class="extra-checkbox__box"></span>
+                          <span class="extra-checkbox__label">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                              <circle cx="13.5" cy="3.5" r="1.5"/>
+                              <path d="M10 7h3.5v4.5"/>
+                              <path d="M10 11.5h3.5"/>
+                              <path d="M10 11.5v2.5"/>
+                              <path d="M8.5 14h3.5"/>
+                              <circle cx="10.5" cy="16.5" r="2"/>
+                              <path d="M14 8l2.5 6.5"/>
+                            </svg>
+                            Rollstuhlgerechter Platz gewünscht
+                          </span>
+                        </label>
+                      }
+                      @if (hundAktiv()) {
+                        <label class="extra-checkbox">
+                          <input type="checkbox" [checked]="hund()" (change)="hund.set(!hund())">
+                          <span class="extra-checkbox__box"></span>
+                          <span class="extra-checkbox__label">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                              <path d="M3 13.5c0-2 1-3.5 2.5-3.5h7c1.5 0 2.5 1 2.5 2.5s-1 2.5-2.5 2.5h-7C4 15 3 14.5 3 13.5z"/>
+                              <path d="M13 10V8.5c0-1 .5-2 1.5-2.5l1.5-.5"/>
+                              <path d="M16 5.5c.5-1 1.5-1 2-.5s.5 1.5 0 2"/>
+                              <path d="M3 13.5c-.5-1-1-2.5-.5-4"/>
+                              <line x1="11.5" y1="15" x2="11.5" y2="17.5"/>
+                              <line x1="9.5" y1="15" x2="9.5" y2="17.5"/>
+                              <line x1="6.5" y1="15" x2="6.5" y2="17.5"/>
+                              <line x1="4.5" y1="15" x2="4.5" y2="17.5"/>
+                            </svg>
+                            Hund dabei
+                          </span>
+                        </label>
+                      }
+                      @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
+                        <div class="allergen-picker">
+                          <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                          <div class="allergen-picker__chips">
+                            @for (a of verfuegbareAllergene(); track a.key) {
+                              <button type="button" class="allergen-chip"
+                                      [class.is-selected]="isAllergenSelected(a.key)"
+                                      (click)="toggleAllergen(a.key)">{{ a.label }}</button>
+                            }
+                          </div>
+                        </div>
+                      }
                     </div>
                   </div>
 
-                  @if (tischartenAktiv() && tischartenModus() === 'liste' && availableTischarten().length > 0) {
-                    <div class="tischart-picker tischart-picker--planner">
-                      <div class="tischart-picker__label">Tischart</div>
-                      <div class="tischart-picker__chips">
-                        @for (t of availableTischarten(); track t.key) {
-                          <button type="button"
-                                  class="tischart-chip"
-                                  [class.is-active]="selectedTischart() === t.key"
-                                  (click)="selectedTischart.set(t.key)">
-                            <span>{{ t.icon }}</span> {{ t.label }}
-                          </button>
-                        }
-                      </div>
-                    </div>
-                  }
-
-                  @if (tischartenAktiv() && tischartenModus() === 'plan' && selectedTableId() !== null) {
-                    <div class="plan-selected-badge">
-                      <span class="plan-selected-badge__icon">✓</span>
-                      <span class="plan-selected-badge__text">Tisch #{{ selectedTableId() }} ausgewählt</span>
-                      <button type="button" class="plan-selected-badge__change" (click)="tischplanOverlayOpen.set(true)">Ändern</button>
-                    </div>
-                  }
-
-                  @if (kinderStuehleAktiv()) {
-                    <div class="preview-planner__form-group">
-                      <label class="preview-planner__form-label">Kinderstühle</label>
-                      <div class="kinder-stepper">
-                        <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
-                        <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
-                        <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
-                        <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
-                      </div>
-                    </div>
-                  }
-                  @if (rollstuhlAktiv()) {
-                    <label class="extra-checkbox">
-                      <input type="checkbox" [checked]="rollstuhl()" (change)="rollstuhl.set(!rollstuhl())">
-                      <span class="extra-checkbox__box"></span>
-                      <span class="extra-checkbox__label">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                      <circle cx="13.5" cy="3.5" r="1.5"/>
-                      <path d="M10 7h3.5v4.5"/>
-                      <path d="M10 11.5h3.5"/>
-                      <path d="M10 11.5v2.5"/>
-                      <path d="M8.5 14h3.5"/>
-                      <circle cx="10.5" cy="16.5" r="2"/>
-                      <path d="M14 8l2.5 6.5"/>
-                    </svg>
-                    Rollstuhlgerechter Platz gewünscht
-                  </span>
-                    </label>
-                  }
-                  @if (hundAktiv()) {
-                    <label class="extra-checkbox">
-                      <input type="checkbox" [checked]="hund()" (change)="hund.set(!hund())">
-                      <span class="extra-checkbox__box"></span>
-                      <span class="extra-checkbox__label">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                      <path d="M3 13.5c0-2 1-3.5 2.5-3.5h7c1.5 0 2.5 1 2.5 2.5s-1 2.5-2.5 2.5h-7C4 15 3 14.5 3 13.5z"/>
-                      <path d="M13 10V8.5c0-1 .5-2 1.5-2.5l1.5-.5"/>
-                      <path d="M16 5.5c.5-1 1.5-1 2-.5s.5 1.5 0 2"/>
-                      <path d="M3 13.5c-.5-1-1-2.5-.5-4"/>
-                      <line x1="11.5" y1="15" x2="11.5" y2="17.5"/>
-                      <line x1="9.5" y1="15" x2="9.5" y2="17.5"/>
-                      <line x1="6.5" y1="15" x2="6.5" y2="17.5"/>
-                      <line x1="4.5" y1="15" x2="4.5" y2="17.5"/>
-                    </svg>
-                    Hund dabei
-                  </span>
-                    </label>
-                  }
-                  @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
-                    <div class="allergen-picker">
-                      <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
-                      <div class="allergen-picker__chips">
-                        @for (a of verfuegbareAllergene(); track a.key) {
-                          <button type="button" class="allergen-chip"
-                                  [class.is-selected]="isAllergenSelected(a.key)"
-                                  (click)="toggleAllergen(a.key)">{{ a.label }}</button>
-                        }
-                      </div>
-                    </div>
-                  }
-
-                  @if (state() === 'error') {
-                    <div class="widget-alert">{{ errorMessage() }}</div>
-                  }
-
-                  <label class="preview-planner__consent" [class.is-checked]="plannerConsent()">
+                  <label class="preview-planner__consent"
+                         [class.is-checked]="plannerConsent()"
+                         [class.is-error]="plannerShowErrors() && !plannerConsent()">
                     <input type="checkbox" class="preview-planner__consent-input"
                            [checked]="plannerConsent()" (change)="plannerToggleConsent()">
                     <span class="preview-planner__consent-box" aria-hidden="true">
                       @if (plannerConsent()) { <span class="check-icon">✓</span> }
                     </span>
                     <span class="preview-planner__consent-text">
-                      Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden.
+                      Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
                     </span>
                   </label>
+                </div>
+              </section>
+
+              <!-- Panel 5: Zusammenfassung -->
+              <section class="preview-planner__panel preview-planner__panel--data" [class.is-active]="plannerStep() === 5">
+                <div class="preview-planner__panel-head">
+                  <span class="preview-planner__panel-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <path d="M4 6h12M4 10h8M4 14h6"/>
+                    </svg>
+                  </span>
+                  <span class="preview-planner__panel-title">Zusammenfassung</span>
+                </div>
+
+                <div class="preview-planner__summary-body">
+                  <div class="widget-summary">
+                    <div class="widget-summary__booking">
+                      <div class="widget-summary__booking-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
+                        <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                      </div>
+                      <div class="widget-summary__booking-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
+                        <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                      </div>
+                      <div class="widget-summary__booking-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+                        <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                      </div>
+                      @if (raumauswahl() && filteredVenues().length > 1) {
+                        <div class="widget-summary__booking-item">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
+                          <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                        </div>
+                      }
+                    </div>
+
+                    <div class="widget-summary__guest">
+                      <div class="widget-summary__field">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
+                        <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                      </div>
+                      <div class="widget-summary__field">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
+                        <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                      </div>
+                      @if (guestPhone()) {
+                        <div class="widget-summary__field">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
+                          <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                        </div>
+                      }
+                      @if (notes()) {
+                        <div class="widget-summary__field">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
+                          <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                        </div>
+                      }
+                    </div>
+
+                    @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+                      <div class="widget-summary__extras">
+                        @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
+                        @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
+                        @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                        @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
+                        @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                      </div>
+                    }
+                  </div>
+
+                  @if (state() === 'error') {
+                    <div class="widget-alert">{{ errorMessage() }}</div>
+                  }
+
                 </div>
               </section>
             </div>
 
             <!-- Footer nav -->
             <div class="preview-planner__nav">
-              <button type="button" class="preview-planner__back" (click)="plannerPrev()">
-                ‹ Zurück
-              </button>
-
               @if (plannerStep() < 4) {
                 <button class="preview__cta preview-planner__cta"
                         type="button"
                         (click)="plannerNext()">
                   Weiter
+                  <span class="preview-planner__cta-icon">›</span>
+                </button>
+              } @else if (plannerStep() === 4) {
+                <button class="preview__cta preview-planner__cta"
+                        type="button"
+                        (click)="plannerNext()">
+                  Weiter zur Zusammenfassung
                   <span class="preview-planner__cta-icon">›</span>
                 </button>
               } @else {
@@ -1647,6 +2112,7 @@
                 </button>
               }
             </div>
+          <div class="saly-credit">created by <a class="saly-credit__name" href="https://saly-tech.de/" target="_blank" rel="noopener">SALY</a></div>
           </div>
         </div>
       }
@@ -1656,9 +2122,6 @@
         <div class="widget-alert">Unbekanntes Layout: {{ layout() }}</div>
       }
     }
-
-    <!-- ─── Branding ───────────────────────────────────────────────────────── -->
-    <div class="saly-credit">created by <span class="saly-credit__name">saly</span></div>
 
     <!-- ─── Tisch-Wahl Zwischenschritt (Tablet+, Plan-Modus) ──────────────── -->
     @if (tischwahlActive()) {
@@ -1930,7 +2393,14 @@
       <div class="widget-menu-overlay" (click)="menuOpen.set(false)">
         <div class="widget-menu-overlay__box" (click)="$event.stopPropagation()">
           <div class="widget-menu-overlay__header">
-            <span>🍽 Speisekarte</span>
+            <span class="widget-menu-overlay__title-row">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <path d="M6 2v4M8 2v4M7 6v12"/>
+                <path d="M6 6a1 1 0 0 0 2 0"/>
+                <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
+              </svg>
+              Speisekarte
+            </span>
             <button type="button" class="widget-menu-overlay__close" (click)="menuOpen.set(false)">✕</button>
           </div>
           @if (speisekarteUrl()) {
