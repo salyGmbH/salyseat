@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Module\Reservation\Application\Command\CreateReservation;
 
 use App\Messenger\Message\SendConfirmationEmail;
+use App\Module\Availability\Infrastructure\Persistence\DoctrineTableBlockRepository;
 use App\Module\Reservation\Domain\Entity\Guest;
 use App\Module\Reservation\Domain\Entity\Reservation;
 use App\Module\Reservation\Domain\Repository\GuestRepositoryInterface;
 use App\Module\Venue\Domain\Entity\Venue;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class CreateReservationHandler
@@ -20,6 +22,8 @@ final class CreateReservationHandler
         private readonly GuestRepositoryInterface $guests,
         private readonly MessageBusInterface $bus,
         private readonly Connection $dbal,
+        private readonly DoctrineTableBlockRepository $tableBlockRepo,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function __invoke(CreateReservationCommand $cmd): Reservation
@@ -43,6 +47,10 @@ final class CreateReservationHandler
         }
 
         if ($guest->isBlocked() && !$cmd->adminOverride) {
+            $this->logger->warning('Reservierungsversuch von gesperrtem Gast abgelehnt', [
+                'email'    => $cmd->guestEmail,
+                'venue_id' => $cmd->venueId,
+            ]);
             throw new \DomainException('Diese E-Mail-Adresse kann aktuell keine Reservierungen vornehmen.');
         }
 
@@ -71,6 +79,7 @@ final class CreateReservationHandler
                 startsAt:  $cmd->startsAt,
                 endsAt:    $endsAt,
                 tables:    $venue->getLayout()['tables'] ?? [],
+                venue:     $venue,
             );
 
             if ($tableNumber !== null) {
@@ -82,6 +91,17 @@ final class CreateReservationHandler
             }
             // Kein Tisch verfügbar → Reservierung bleibt pending/ohne Tisch
         } else {
+            // Prüfen ob der explizit gewählte Tisch gesperrt ist
+            if ($this->isTableBlocked($venue, $cmd->tableNumber, $cmd->startsAt)) {
+                $this->logger->warning('Reservierungsversuch auf gesperrtem Tisch abgelehnt', [
+                    'venue_id'     => $cmd->venueId,
+                    'table_number' => $cmd->tableNumber,
+                    'starts_at'    => $cmd->startsAt->format(\DateTimeInterface::ATOM),
+                    'email'        => $cmd->guestEmail,
+                ]);
+                throw new \DomainException('Dieser Tisch ist für das gewählte Datum gesperrt und kann nicht reserviert werden.');
+            }
+
             $reservation->setTableNumber($cmd->tableNumber);
 
             // Explizit gewählter Tisch: direkt bestätigen (Widget-seitig ist kein
@@ -103,6 +123,15 @@ final class CreateReservationHandler
         $this->em->persist($reservation);
         $this->em->flush();
 
+        $this->logger->info('Reservierung erstellt', [
+            'reservation_id' => $reservation->getId()->toRfc4122(),
+            'venue_id'       => $cmd->venueId,
+            'email'          => $cmd->guestEmail,
+            'starts_at'      => $cmd->startsAt->format(\DateTimeInterface::ATOM),
+            'party_size'     => $cmd->partySize,
+            'table_number'   => $reservation->getTableNumber(),
+        ]);
+
         $this->bus->dispatch(new SendConfirmationEmail(
             reservationId:    $reservation->getId()->toRfc4122(),
             guestEmail:       $cmd->guestEmail,
@@ -117,6 +146,17 @@ final class CreateReservationHandler
         return $reservation;
     }
 
+    private function isTableBlocked(Venue $venue, int $tableNumber, \DateTimeImmutable $startsAt): bool
+    {
+        $blocks = $this->tableBlockRepo->findByVenueAndTable($venue, $tableNumber);
+        foreach ($blocks as $block) {
+            if ($block->isActiveAt($startsAt)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Findet den kleinsten verfügbaren Tisch der mind. $partySize Plätze hat
      * und im Zeitfenster [$startsAt, $endsAt) noch nicht belegt ist.
@@ -129,6 +169,7 @@ final class CreateReservationHandler
         \DateTimeImmutable $startsAt,
         \DateTimeImmutable $endsAt,
         array $tables,
+        Venue $venue,
     ): ?int {
         if (empty($tables)) {
             return null;
@@ -165,6 +206,9 @@ final class CreateReservationHandler
                 continue;
             }
             if (in_array($num, $bookedSet, true)) {
+                continue;
+            }
+            if ($this->isTableBlocked($venue, $num, $startsAt)) {
                 continue;
             }
 

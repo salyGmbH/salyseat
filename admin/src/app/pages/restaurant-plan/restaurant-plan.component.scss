@@ -403,15 +403,81 @@
   flex: 1;
   position: relative;
   overflow: hidden;
-  touch-action: none; // Pointer Events auf Touch-Geräten ohne Browser-Scroll-Interferenz
-  // Eigener Stacking-Context, damit z-indizes von Tisch/Wand nur
-  // innerhalb des Canvas wirken und nichts von außen mitspielt.
+  touch-action: none;
   isolation: isolate;
   background-color: #0d1117;
   background-image:
     linear-gradient(rgba(var(--color-text-rgb), 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(var(--color-text-rgb), 0.04) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+// ── Canvas-Inner (transform-Träger für Pan & Zoom) ─────────────────────────
+
+.canvas-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+// ── Zoom-Buttons ──────────────────────────────────────────────────────────
+
+.zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 20, 30, 0.85);
+  border: 1px solid rgba(var(--color-text-rgb), 0.12);
+  border-radius: 10px;
+  padding: 6px;
+  backdrop-filter: blur(6px);
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: rgba(var(--color-text-rgb), 0.6);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover {
+    background: rgba(var(--color-text-rgb), 0.08);
+    color: rgba(var(--color-text-rgb), 0.9);
+  }
+
+  &--reset {
+    margin-top: 2px;
+    border-top: 1px solid rgba(var(--color-text-rgb), 0.1);
+    padding-top: 4px;
+    width: 32px;
+    height: 36px;
+  }
+}
+
+.zoom-level {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(var(--color-text-rgb), 0.45);
+  letter-spacing: 0.04em;
+  min-width: 32px;
+  text-align: center;
 }
 
 .room-canvas__hint {

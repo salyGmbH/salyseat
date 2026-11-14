@@ -45,6 +45,10 @@ final class UpdateReservationHandler
             $reservation->setTableNumber(is_int($cmd->tableNumber) ? $cmd->tableNumber : null);
         }
 
+        if ($cmd->tableIds !== false) {
+            $reservation->setTableIds(is_array($cmd->tableIds) ? array_map('intval', $cmd->tableIds) : null);
+        }
+
         if ($cmd->venueId !== null) {
             $newVenue = $this->em->getRepository(Venue::class)->find($cmd->venueId)
                 ?? throw new \DomainException('Ziel-Venue nicht gefunden.');

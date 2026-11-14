@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, OnInit, computed, inject, signal, ViewChild, Signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
@@ -26,12 +26,63 @@ type ActiveDrag =
 @Component({
   selector: 'app-restaurant-plan',
   standalone: true,
-  imports: [MatIconModule, RouterLink, DatePipe, TranslateModule],
+  imports: [MatIconModule, RouterLink, DatePipe, DecimalPipe, TranslateModule],
   templateUrl: './restaurant-plan.component.html',
   styleUrl: './restaurant-plan.component.scss'
 })
 export class RestaurantPlanComponent implements OnInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLDivElement>;
+
+  // ── Pan & Zoom ────────────────────────────────────────────────────────────
+  panX  = signal(0);
+  panY  = signal(0);
+  zoom  = signal(1);
+
+  readonly ZOOM_MIN = 0.25;
+  readonly ZOOM_MAX = 3;
+  readonly ZOOM_STEP = 0.15;
+
+  canvasTransform = computed(() =>
+    `translate(${this.panX()}px, ${this.panY()}px) scale(${this.zoom()})`
+  );
+
+  zoomIn()  { this.zoom.update(z => Math.min(this.ZOOM_MAX, +(z + this.ZOOM_STEP).toFixed(2))); }
+  zoomOut() { this.zoom.update(z => Math.max(this.ZOOM_MIN, +(z - this.ZOOM_STEP).toFixed(2))); }
+  zoomReset() { this.zoom.set(1); this.panX.set(0); this.panY.set(0); }
+
+  /** Konvertiert Client-Koordinaten in Welt-Koordinaten (berücksichtigt Pan & Zoom). */
+  private clientToWorld(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left  - this.panX()) / this.zoom(),
+      y: (clientY - rect.top   - this.panY()) / this.zoom(),
+    };
+  }
+
+  // Auto-Pan während Drag
+  private autoPanRAF: number | null = null;
+  private autoPanVX = 0;
+  private autoPanVY = 0;
+
+  private startAutoPan() {
+    if (this.autoPanRAF !== null) return;
+    const step = () => {
+      if (this.autoPanVX === 0 && this.autoPanVY === 0) {
+        this.autoPanRAF = null;
+        return;
+      }
+      this.panX.update(p => p + this.autoPanVX);
+      this.panY.update(p => p + this.autoPanVY);
+      this.autoPanRAF = requestAnimationFrame(step);
+    };
+    this.autoPanRAF = requestAnimationFrame(step);
+  }
+
+  private stopAutoPan() {
+    if (this.autoPanRAF !== null) { cancelAnimationFrame(this.autoPanRAF); this.autoPanRAF = null; }
+    this.autoPanVX = 0;
+    this.autoPanVY = 0;
+  }
 
   isEditing       = signal(false);
   placedTables    = signal<PlacedTable[]>([]);
@@ -186,6 +237,9 @@ export class RestaurantPlanComponent implements OnInit {
     this.saveFeedback.set(null);
     this.saveError.set(null);
     this.nextId = 1;
+    this.panX.set(0);
+    this.panY.set(0);
+    this.zoom.set(1);
   }
 
   /** True, wenn überhaupt etwas im Plan liegt (Tisch, Wand oder Dekor). */
@@ -419,9 +473,7 @@ export class RestaurantPlanComponent implements OnInit {
     const selectedTable = this.selectedTableId();
     if (selectedTable !== null) {
       // Ausgewählten Tisch zur angeklickten Stelle verschieben (zentriert)
-      const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-      const cx = event.clientX - rect.left;
-      const cy = event.clientY - rect.top;
+      const { x: cx, y: cy } = this.clientToWorld(event.clientX, event.clientY);
       this.placedTables.update(ts => ts.map(t => {
         if (t.id !== selectedTable) return t;
         const { w, h } = this.getTableSize(t.type);
@@ -438,6 +490,102 @@ export class RestaurantPlanComponent implements OnInit {
     this.selectedWallId.set(null);
     this.selectedDecorId.set(null);
     this.editingSeatsId.set(null);
+  }
+
+  // ── Maus-Rad Zoom ────────────────────────────────────────────────────────
+
+  onCanvasWheel(event: WheelEvent) {
+    event.preventDefault();
+
+    if (event.ctrlKey) {
+      // Trackpad-Pinch oder Ctrl+Scroll → Zoom um Cursor-Position
+      const rect   = this.canvasRef.nativeElement.getBoundingClientRect();
+      const mx     = event.clientX - rect.left;
+      const my     = event.clientY - rect.top;
+      const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
+      const newZ   = Math.min(this.ZOOM_MAX, Math.max(this.ZOOM_MIN, this.zoom() * factor));
+      this.panX.update(p => mx - (mx - p) * (newZ / this.zoom()));
+      this.panY.update(p => my - (my - p) * (newZ / this.zoom()));
+      this.zoom.set(+newZ.toFixed(3));
+    } else {
+      // Zwei-Finger-Scroll (Trackpad) oder Mausrad → Pan
+      this.panX.update(p => p - event.deltaX);
+      this.panY.update(p => p - event.deltaY);
+    }
+  }
+
+  // ── Touch-Pan (2-Finger oder leerer Canvas 1-Finger) ─────────────────────
+
+  private touchPan: { id: number; lastX: number; lastY: number } | null = null;
+  private pinch: { id0: number; id1: number; lastDist: number; lastMidX: number; lastMidY: number } | null = null;
+
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent) {
+    if (!this.isEditing()) return;
+    // Nur pan, wenn kein Drag aktiv
+    if (this.activeDrag) return;
+
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const t0 = event.touches[0], t1 = event.touches[1];
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      const midX = (t0.clientX + t1.clientX) / 2;
+      const midY = (t0.clientY + t1.clientY) / 2;
+      this.pinch = { id0: t0.identifier, id1: t1.identifier, lastDist: dist, lastMidX: midX, lastMidY: midY };
+      this.touchPan = null;
+    } else if (event.touches.length === 1) {
+      const target = event.target as HTMLElement;
+      // 1-Finger-Pan nur auf dem Canvas-Hintergrund (nicht auf Elementen)
+      if (target === this.canvasRef.nativeElement || target.classList.contains('canvas-inner')) {
+        const t = event.touches[0];
+        this.touchPan = { id: t.identifier, lastX: t.clientX, lastY: t.clientY };
+      }
+    }
+  }
+
+  @HostListener('touchmove', ['$event'])
+  onTouchMove(event: TouchEvent) {
+    if (!this.isEditing()) return;
+
+    if (this.pinch && event.touches.length === 2) {
+      event.preventDefault();
+      const t0 = Array.from(event.touches).find(t => t.identifier === this.pinch!.id0);
+      const t1 = Array.from(event.touches).find(t => t.identifier === this.pinch!.id1);
+      if (!t0 || !t1) return;
+      const rect    = this.canvasRef.nativeElement.getBoundingClientRect();
+      const dist    = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      const midX    = (t0.clientX + t1.clientX) / 2 - rect.left;
+      const midY    = (t0.clientY + t1.clientY) / 2 - rect.top;
+      const scale   = dist / this.pinch.lastDist;
+      const newZ    = Math.min(this.ZOOM_MAX, Math.max(this.ZOOM_MIN, this.zoom() * scale));
+      this.panX.update(p => midX - (midX - p) * (newZ / this.zoom()));
+      this.panY.update(p => midY - (midY - p) * (newZ / this.zoom()));
+      this.zoom.set(+newZ.toFixed(3));
+      // Pan vom Pinch-Mittelpunkt
+      const dmx = midX - (this.pinch.lastMidX - rect.left);
+      const dmy = midY - (this.pinch.lastMidY - rect.top);
+      this.panX.update(p => p + dmx);
+      this.panY.update(p => p + dmy);
+      this.pinch.lastDist = dist;
+      this.pinch.lastMidX = t0.clientX + (t1.clientX - t0.clientX) / 2;
+      this.pinch.lastMidY = t0.clientY + (t1.clientY - t0.clientY) / 2;
+    } else if (this.touchPan && event.touches.length === 1) {
+      const t = Array.from(event.touches).find(t => t.identifier === this.touchPan!.id);
+      if (!t) return;
+      if (!this.activeDrag) {
+        event.preventDefault();
+        this.panX.update(p => p + t.clientX - this.touchPan!.lastX);
+        this.panY.update(p => p + t.clientY - this.touchPan!.lastY);
+      }
+      this.touchPan.lastX = t.clientX;
+      this.touchPan.lastY = t.clientY;
+    }
+  }
+
+  @HostListener('touchend', ['$event'])
+  onTouchEnd(_event: TouchEvent) {
+    this.pinch    = null;
+    this.touchPan = null;
   }
 
   // ── Tisch-Dimensionen ─────────────────────────────────────────────────────
@@ -478,6 +626,19 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Palette → Canvas ──────────────────────────────────────────────────────
 
+  /** Typ des gerade aus der Palette gezogenen Elements (Pointer-Methode). */
+  private palettePointerType: TableType | 'wall' | DecorType | null = null;
+
+  /**
+   * Pointer-Down auf Palette-Item: merkt sich den Typ.
+   * Sobald der Cursor in den Canvas kommt (pointermove), wird das Element
+   * sofort platziert und der normale Drag-Modus aktiviert.
+   */
+  onPalettePointerDown(event: PointerEvent, type: TableType | 'wall' | DecorType) {
+    // Drag-API weiterhin aktiv lassen (Fallback)
+    this.palettePointerType = type;
+  }
+
   onPaletteDragStart(event: DragEvent, type: TableType | 'wall' | DecorType) {
     this.dragFromPalette = type;
     event.dataTransfer!.effectAllowed = 'copy';
@@ -490,10 +651,9 @@ export class RestaurantPlanComponent implements OnInit {
 
   onCanvasDrop(event: DragEvent) {
     event.preventDefault();
+    // Falls bereits per Pointer platziert, nichts tun
     if (!this.dragFromPalette) return;
-    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const cx   = event.clientX - rect.left;
-    const cy   = event.clientY - rect.top;
+    const { x: cx, y: cy } = this.clientToWorld(event.clientX, event.clientY);
 
     if (this.dragFromPalette === 'wall') {
       this.placedWalls.update(ws => [...ws, { id: this.nextId++, x: cx, y: cy, length: 120, rotation: 0 }]);
@@ -516,6 +676,7 @@ export class RestaurantPlanComponent implements OnInit {
       }]);
     }
     this.dragFromPalette = null;
+    this.palettePointerType = null;
   }
 
   // ── Tisch: Verschieben ────────────────────────────────────────────────────
@@ -526,11 +687,11 @@ export class RestaurantPlanComponent implements OnInit {
     this.selectedWallId.set(null);
     this.selectedDecorId.set(null);
     this.editingSeatsId.set(null);
-    const rect  = this.canvasRef.nativeElement.getBoundingClientRect();
     const table = this.placedTables().find(t => t.id === id)!;
+    const w = this.clientToWorld(event.clientX, event.clientY);
     this.activeDrag = { mode: 'move-table', id,
-      offsetX: event.clientX - rect.left - table.x,
-      offsetY: event.clientY - rect.top  - table.y };
+      offsetX: w.x - table.x,
+      offsetY: w.y - table.y };
   }
 
   // ── Tisch: Drehen & Skalieren ─────────────────────────────────────────────
@@ -538,21 +699,24 @@ export class RestaurantPlanComponent implements OnInit {
   onRotateHandleMouseDown(event: PointerEvent, id: number, kind: 'table' | 'wall' | 'decor') {
     event.preventDefault(); event.stopPropagation();
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const z    = this.zoom();
+    const px   = this.panX();
+    const py   = this.panY();
     let cx: number, cy: number, startRotation: number;
 
     if (kind === 'table') {
       const t  = this.placedTables().find(t => t.id === id)!;
       const c  = this.getTableCenter(t);
-      cx = c.x + rect.left; cy = c.y + rect.top;
+      cx = c.x * z + px + rect.left; cy = c.y * z + py + rect.top;
       startRotation = t.rotation;
     } else if (kind === 'wall') {
       const w  = this.placedWalls().find(w => w.id === id)!;
-      cx = w.x + rect.left; cy = w.y + rect.top;
+      cx = w.x * z + px + rect.left; cy = w.y * z + py + rect.top;
       startRotation = w.rotation;
     } else {
       const d  = this.placedDecors().find(d => d.id === id)!;
       const c  = this.getDecorCenter(d);
-      cx = c.x + rect.left; cy = c.y + rect.top;
+      cx = c.x * z + px + rect.left; cy = c.y * z + py + rect.top;
       startRotation = d.rotation;
     }
 
@@ -564,17 +728,20 @@ export class RestaurantPlanComponent implements OnInit {
   onResizeHandleMouseDown(event: PointerEvent, id: number, kind: 'table' | 'decor' = 'table') {
     event.preventDefault(); event.stopPropagation();
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const z    = this.zoom();
+    const px   = this.panX();
+    const py   = this.panY();
     let cx: number, cy: number, startScale: number;
 
     if (kind === 'table') {
       const t = this.placedTables().find(t => t.id === id)!;
       const c = this.getTableCenter(t);
-      cx = c.x + rect.left; cy = c.y + rect.top;
+      cx = c.x * z + px + rect.left; cy = c.y * z + py + rect.top;
       startScale = t.scale;
     } else {
       const d = this.placedDecors().find(d => d.id === id)!;
       const c = this.getDecorCenter(d);
-      cx = c.x + rect.left; cy = c.y + rect.top;
+      cx = c.x * z + px + rect.left; cy = c.y * z + py + rect.top;
       startScale = d.scale;
     }
 
@@ -708,6 +875,7 @@ export class RestaurantPlanComponent implements OnInit {
       return t;
     }));
     this.mergeSeatsDialog.set(null);
+    this.autoSaveLayout();
   }
 
   // ── Auseinander stellen ───────────────────────────────────────────────────
@@ -737,9 +905,23 @@ export class RestaurantPlanComponent implements OnInit {
     }));
     this.splitDialog.set(null);
     this.selectedTableId.set(null);
+    this.autoSaveLayout();
   }
 
   cancelSplit() { this.splitDialog.set(null); }
+
+  /** Speichert das aktuelle Layout still im Hintergrund (kein Dialog, kein Name-Check). */
+  private autoSaveLayout(): void {
+    const id = this.editingRoomId();
+    if (!id) return;
+    this.roomsService.updateRoom(id, {
+      tables: this.placedTables(),
+      walls:  this.placedWalls(),
+      decors: this.placedDecors(),
+    }).subscribe({
+      error: () => console.warn('Auto-Speichern fehlgeschlagen'),
+    });
+  }
 
   // ── Merge-Paare für Darstellung ───────────────────────────────────────────
 
@@ -786,11 +968,11 @@ export class RestaurantPlanComponent implements OnInit {
     this.selectedWallId.set(id);
     this.selectedTableId.set(null);
     this.selectedDecorId.set(null);
-    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     const wall = this.placedWalls().find(w => w.id === id)!;
+    const w    = this.clientToWorld(event.clientX, event.clientY);
     this.activeDrag = { mode: 'move-wall', id,
-      offsetX: event.clientX - rect.left - wall.x,
-      offsetY: event.clientY - rect.top  - wall.y };
+      offsetX: w.x - wall.x,
+      offsetY: w.y - wall.y };
   }
 
   onWallEndMouseDown(event: PointerEvent, id: number, end: 'left' | 'right') {
@@ -823,11 +1005,11 @@ export class RestaurantPlanComponent implements OnInit {
     this.selectedTableId.set(null);
     this.selectedWallId.set(null);
     this.editingSeatsId.set(null);
-    const rect  = this.canvasRef.nativeElement.getBoundingClientRect();
     const decor = this.placedDecors().find(d => d.id === id)!;
+    const w     = this.clientToWorld(event.clientX, event.clientY);
     this.activeDrag = { mode: 'move-decor', id,
-      offsetX: event.clientX - rect.left - decor.x,
-      offsetY: event.clientY - rect.top  - decor.y };
+      offsetX: w.x - decor.x,
+      offsetY: w.y - decor.y };
   }
 
   removeDecor(event: Event, id: number) {
@@ -840,16 +1022,75 @@ export class RestaurantPlanComponent implements OnInit {
 
   @HostListener('document:pointermove', ['$event'])
   onMouseMove(event: PointerEvent) {
+    // ── Palette-Pointer: Element direkt beim Eintreten in den Canvas platzieren ──
+    if (this.palettePointerType && !this.activeDrag && this.canvasRef) {
+      const r = this.canvasRef.nativeElement.getBoundingClientRect();
+      if (event.clientX >= r.left && event.clientX <= r.right &&
+          event.clientY >= r.top  && event.clientY <= r.bottom) {
+        const type = this.palettePointerType;
+        this.palettePointerType = null;
+        this.dragFromPalette    = null;
+        const { x: wx, y: wy } = this.clientToWorld(event.clientX, event.clientY);
+        const newId = this.nextId++;
+
+        if (type === 'wall') {
+          this.placedWalls.update(ws => [...ws, { id: newId, x: wx, y: wy, length: 120, rotation: 0 }]);
+          this.selectedWallId.set(newId);
+          this.selectedTableId.set(null);
+          this.selectedDecorId.set(null);
+          this.activeDrag = { mode: 'move-wall', id: newId, offsetX: 0, offsetY: 0 };
+        } else if (this.isDecorType(type)) {
+          const { w, h } = this.getDecorSize(type);
+          this.placedDecors.update(ds => [...ds, {
+            id: newId, type, x: wx - w / 2, y: wy - h / 2, rotation: 0, scale: 1,
+          }]);
+          this.selectedDecorId.set(newId);
+          this.selectedTableId.set(null);
+          this.selectedWallId.set(null);
+          this.activeDrag = { mode: 'move-decor', id: newId, offsetX: w / 2, offsetY: h / 2 };
+        } else {
+          const ttype = type as TableType;
+          const { w, h } = this.getTableSize(ttype);
+          this.placedTables.update(ts => [...ts, {
+            id: newId, type: ttype,
+            x: wx - w / 2, y: wy - h / 2,
+            rotation: 0, scale: 1,
+            seats: ttype === 'long' ? 6 : 4,
+          }]);
+          this.selectedTableId.set(newId);
+          this.selectedWallId.set(null);
+          this.selectedDecorId.set(null);
+          this.activeDrag = { mode: 'move-table', id: newId, offsetX: w / 2, offsetY: h / 2 };
+        }
+      }
+      return;
+    }
+
     if (!this.activeDrag) return;
     const drag = this.activeDrag;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mx   = event.clientX - rect.left;
+    const mx   = event.clientX - rect.left; // canvas-relativ (px)
     const my   = event.clientY - rect.top;
+    const wx   = (mx - this.panX()) / this.zoom(); // Welt-Koordinaten
+    const wy   = (my - this.panY()) / this.zoom();
+
+    // Auto-Pan: wenn Drag-Modus und nah am Rand
+    const isMoving = drag.mode === 'move-table' || drag.mode === 'move-wall' || drag.mode === 'move-decor';
+    if (isMoving) {
+      const THRESH = 80;
+      const SPEED  = 6;
+      const cw = rect.width;
+      const ch = rect.height;
+      this.autoPanVX = mx < THRESH ? SPEED : mx > cw - THRESH ? -SPEED : 0;
+      this.autoPanVY = my < THRESH ? SPEED : my > ch - THRESH ? -SPEED : 0;
+      if (this.autoPanVX !== 0 || this.autoPanVY !== 0) this.startAutoPan();
+      else this.stopAutoPan();
+    }
 
     switch (drag.mode) {
       case 'move-table':
         this.placedTables.update(ts => ts.map(t => t.id === drag.id
-          ? { ...t, x: Math.max(0, mx - drag.offsetX), y: Math.max(0, my - drag.offsetY) } : t));
+          ? { ...t, x: Math.max(0, wx - drag.offsetX), y: Math.max(0, wy - drag.offsetY) } : t));
         break;
 
       case 'rotate': {
@@ -867,32 +1108,40 @@ export class RestaurantPlanComponent implements OnInit {
       case 'resize': {
         const dist     = Math.hypot(event.clientX - drag.cx, event.clientY - drag.cy);
         const newScale = Math.min(3, Math.max(0.4, drag.startScale * (dist / drag.startDist)));
+        const z        = this.zoom();
+        const px       = this.panX();
+        const py       = this.panY();
 
         if (drag.kind === 'table') {
           const table    = this.placedTables().find(t => t.id === drag.id)!;
           const { w, h } = this.getTableSize(table.type);
+          // cx/cy sind in client-Koordinaten → in Welt umrechnen
+          const wcx = (drag.cx - rect.left - px) / z;
+          const wcy = (drag.cy - rect.top  - py) / z;
           this.placedTables.update(ts => ts.map(t => t.id === drag.id
             ? { ...t, scale: newScale,
-                x: drag.cx - rect.left - (w * newScale) / 2,
-                y: drag.cy - rect.top  - (h * newScale) / 2 } : t));
+                x: wcx - (w * newScale) / 2,
+                y: wcy - (h * newScale) / 2 } : t));
         } else {
           const decor    = this.placedDecors().find(d => d.id === drag.id)!;
           const { w, h } = this.getDecorSize(decor.type);
+          const wcx = (drag.cx - rect.left - px) / z;
+          const wcy = (drag.cy - rect.top  - py) / z;
           this.placedDecors.update(ds => ds.map(d => d.id === drag.id
             ? { ...d, scale: newScale,
-                x: drag.cx - rect.left - (w * newScale) / 2,
-                y: drag.cy - rect.top  - (h * newScale) / 2 } : d));
+                x: wcx - (w * newScale) / 2,
+                y: wcy - (h * newScale) / 2 } : d));
         }
         break;
       }
 
       case 'move-wall':
         this.placedWalls.update(ws => ws.map(w => w.id === drag.id
-          ? { ...w, x: mx - drag.offsetX, y: my - drag.offsetY } : w));
+          ? { ...w, x: wx - drag.offsetX, y: wy - drag.offsetY } : w));
         break;
 
       case 'wall-len': {
-        const proj = (mx - drag.fixedX) * drag.axisX + (my - drag.fixedY) * drag.axisY;
+        const proj = (wx - drag.fixedX) * drag.axisX + (wy - drag.fixedY) * drag.axisY;
         const len  = Math.max(40, proj);
         this.placedWalls.update(ws => ws.map(w => w.id === drag.id
           ? { ...w, length: len,
@@ -903,7 +1152,7 @@ export class RestaurantPlanComponent implements OnInit {
 
       case 'move-decor':
         this.placedDecors.update(ds => ds.map(d => d.id === drag.id
-          ? { ...d, x: Math.max(0, mx - drag.offsetX), y: Math.max(0, my - drag.offsetY) } : d));
+          ? { ...d, x: Math.max(0, wx - drag.offsetX), y: Math.max(0, wy - drag.offsetY) } : d));
         break;
     }
   }
@@ -914,5 +1163,7 @@ export class RestaurantPlanComponent implements OnInit {
       this.checkMerge(this.activeDrag.id);
     }
     this.activeDrag = null;
+    this.palettePointerType = null;
+    this.stopAutoPan();
   }
 }

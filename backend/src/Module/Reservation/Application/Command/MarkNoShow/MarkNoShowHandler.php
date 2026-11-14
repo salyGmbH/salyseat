@@ -8,6 +8,7 @@ use App\Messenger\Message\SendNoShowEmail;
 use App\Module\Reservation\Domain\Entity\Reservation;
 use App\Module\Reservation\Domain\Repository\ReservationRepositoryInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -17,6 +18,7 @@ final class MarkNoShowHandler
         private readonly ReservationRepositoryInterface $reservations,
         private readonly EntityManagerInterface         $em,
         private readonly MessageBusInterface            $bus,
+        private readonly LoggerInterface                $logger,
     ) {}
 
     public function __invoke(MarkNoShowCommand $cmd): Reservation
@@ -28,6 +30,13 @@ final class MarkNoShowHandler
         }
 
         $reservation->markAsNoShow();
+
+        $this->logger->info('Reservierung als No-Show markiert', [
+            'reservation_id' => $cmd->reservationId,
+            'email'          => $reservation->getGuestEmail(),
+            'venue'          => $reservation->getVenue()->getName(),
+            'starts_at'      => $reservation->getStartsAt()->format(\DateTimeInterface::ATOM),
+        ]);
 
         // Gast-Counter hochzählen; ggf. automatisch sperren
         $guest = $reservation->getGuest();
@@ -45,6 +54,11 @@ final class MarkNoShowHandler
                 $guest->block(
                     'Automatisch gesperrt nach ' . $count . ' No-Show' . ($count !== 1 ? 's' : ''),
                 );
+                $this->logger->warning('Gast automatisch gesperrt nach No-Show-Schwellenwert', [
+                    'guest_email'   => $guest->getEmail(),
+                    'no_show_count' => $count,
+                    'threshold'     => $threshold,
+                ]);
             }
 
             // Auto-Tag: ab 3 No-Shows gilt der Gast als unzuverlässig

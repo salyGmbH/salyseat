@@ -186,6 +186,7 @@ export interface DayAvailability {
   breaks: Break[];
   reason: string | null;
   bookedTableNumbers: number[];
+  blockedTableNumbers?: number[];
   bookedPeriods?: BookedPeriod[];
   totalTables?: number;
   /** Zeitfenster-Sperren für diesen Raum (nicht ganztägig) */

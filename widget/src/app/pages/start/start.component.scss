@@ -3713,6 +3713,20 @@
     }
   }
 
+  // Tisch ist gesperrt → rötlich eingefärbt, nicht klickbar
+  &.is-blocked {
+    cursor: not-allowed;
+    fill: rgba(239, 68, 68, 0.12);
+    stroke: rgba(239, 68, 68, 0.5);
+    stroke-width: 1.5;
+    opacity: 0.75;
+
+    &:hover {
+      fill: rgba(239, 68, 68, 0.12);
+      stroke: rgba(239, 68, 68, 0.5);
+    }
+  }
+
   &__label {
     font-size: 10px;
     fill: var(--w-color-text, #1f2937);

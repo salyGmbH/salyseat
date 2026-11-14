@@ -7,6 +7,7 @@ namespace App\Api\Controller\Webhook;
 use App\Module\Payment\Domain\Gateway\PaymentGatewayInterface;
 use App\Module\Reservation\Domain\Entity\Reservation;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +27,7 @@ class StripeWebhookController extends AbstractController
     public function __construct(
         private readonly PaymentGatewayInterface $payment,
         private readonly EntityManagerInterface  $em,
+        private readonly LoggerInterface         $logger,
     ) {}
 
     public function __invoke(Request $request): JsonResponse
@@ -35,11 +37,19 @@ class StripeWebhookController extends AbstractController
 
         try {
             $event = $this->payment->constructWebhookEvent($payload, $sigHeader);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Stripe-Webhook: Signaturprüfung fehlgeschlagen', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => 'Webhook-Signatur ungültig.'], Response::HTTP_BAD_REQUEST);
         }
 
         $intent = $event->data->object ?? null;
+
+        $this->logger->info('Stripe-Webhook empfangen', [
+            'type'      => $event->type,
+            'intent_id' => $intent->id ?? null,
+        ]);
 
         match ($event->type) {
             'payment_intent.succeeded'                => $this->handleSucceeded($intent),
@@ -55,9 +65,23 @@ class StripeWebhookController extends AbstractController
     private function findReservation(object $intent): ?Reservation
     {
         $token = $intent->metadata['reservation_token'] ?? null;
-        if (!$token) return null;
+        if (!$token) {
+            $this->logger->warning('Stripe-Webhook: kein reservation_token in Metadaten', [
+                'intent_id' => $intent->id ?? null,
+            ]);
+            return null;
+        }
 
-        return $this->em->getRepository(Reservation::class)->findOneBy(['token' => $token]);
+        $reservation = $this->em->getRepository(Reservation::class)->findOneBy(['token' => $token]);
+
+        if ($reservation === null) {
+            $this->logger->warning('Stripe-Webhook: Reservierung zum Token nicht gefunden', [
+                'token'     => $token,
+                'intent_id' => $intent->id ?? null,
+            ]);
+        }
+
+        return $reservation;
     }
 
     private function handleSucceeded(object $intent): void

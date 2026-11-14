@@ -50,6 +50,9 @@ class Reservation
     #[ORM\Column(nullable: true)]
     private ?int $tableNumber = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $tableIds = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $startsAt;
 
@@ -196,6 +199,15 @@ class Reservation
     public function setTableNumber(?int $n): void
     {
         $this->tableNumber = $n;
+    }
+
+    public function getTableIds(): ?array
+    {
+        return $this->tableIds;
+    }
+    public function setTableIds(?array $ids): void
+    {
+        $this->tableIds = $ids;
     }
     public function getStartsAt(): \DateTimeImmutable
     {

@@ -2347,8 +2347,9 @@
             @for (t of venueTables(); track t.id) {
               @let tw = t.type === 'long' ? 140 * t.scale : 70 * t.scale;
               @let th = 70 * t.scale;
-              @let isSelected = selectedTableId() === t.id;
-              @let isSuitable = suitableTables().includes(t);
+              @let isSelected  = selectedTableId() === t.id;
+              @let isBlocked   = blockedTableIds().includes(t.id);
+              @let isSuitable  = !isBlocked && suitableTables().includes(t);
               @if (t.type === 'round') {
                 <circle
                   [attr.cx]="t.x + tw / 2"
@@ -2357,12 +2358,13 @@
                   class="plan-table plan-table--round"
                   [class.is-selected]="isSelected"
                   [class.is-dimmed]="!isSuitable"
+                  [class.is-blocked]="isBlocked"
                   (click)="isSuitable ? selectTable(t.id) : null" />
                 <text [attr.x]="t.x + tw / 2" [attr.y]="t.y + th / 2 + 5"
                       class="plan-table__label"
                       [class.is-dimmed]="!isSuitable"
                       text-anchor="middle">
-                  {{ t.seats }}P
+                  {{ isBlocked ? '🔒' : t.seats + 'P' }}
                 </text>
               } @else {
                 <rect
@@ -2374,12 +2376,13 @@
                   class="plan-table plan-table--rect"
                   [class.is-selected]="isSelected"
                   [class.is-dimmed]="!isSuitable"
+                  [class.is-blocked]="isBlocked"
                   (click)="isSuitable ? selectTable(t.id) : null" />
                 <text [attr.x]="t.x + tw / 2" [attr.y]="t.y + th / 2 + 5"
                       class="plan-table__label"
                       [class.is-dimmed]="!isSuitable"
                       text-anchor="middle">
-                  {{ t.seats }}P
+                  {{ isBlocked ? '🔒' : t.seats + 'P' }}
                 </text>
               }
             }

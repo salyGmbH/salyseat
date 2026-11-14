@@ -62,8 +62,9 @@ class AvailabilityController extends AbstractController
             return $this->json(['error' => 'Ungültiges Datum.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $bookedPeriods = $this->fetchBookedPeriods($venue, $dateStr);
-        $totalTables   = count($venue->getLayout()['tables'] ?? []);
+        $bookedPeriods        = $this->fetchBookedPeriods($venue, $dateStr);
+        $blockedTableNumbers  = $this->fetchBlockedTableNumbers($venue, $dateStr, $timeStr);
+        $totalTables          = count($venue->getLayout()['tables'] ?? []);
 
         // 1. Sondertage prüfen — überschreiben reguläre Zeiten
         $specials = $this->dbal->fetchAllAssociative(
@@ -81,28 +82,30 @@ class AvailabilityController extends AbstractController
 
             if ((bool) $sc['full_day']) {
                 return $this->json([
-                    'open'               => false,
-                    'open_time'          => null,
-                    'close_time'         => null,
-                    'breaks'             => [],
-                    'reason'             => $sc['reason'],
-                    'blockedRanges'      => [],
-                    'bookedTableNumbers' => [],
-                    'bookedPeriods'      => $bookedPeriods,
-                    'totalTables'        => $totalTables,
+                    'open'                 => false,
+                    'open_time'            => null,
+                    'close_time'           => null,
+                    'breaks'               => [],
+                    'reason'               => $sc['reason'],
+                    'blockedRanges'        => [],
+                    'bookedTableNumbers'   => [],
+                    'blockedTableNumbers'  => $blockedTableNumbers,
+                    'bookedPeriods'        => $bookedPeriods,
+                    'totalTables'          => $totalTables,
                 ]);
             }
 
             return $this->json([
-                'open'               => true,
-                'open_time'          => $sc['open_time'],
-                'close_time'         => $sc['close_time'],
-                'breaks'             => [],
-                'reason'             => $sc['reason'],
-                'blockedRanges'      => [],
-                'bookedTableNumbers' => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
-                'bookedPeriods'      => $bookedPeriods,
-                'totalTables'        => $totalTables,
+                'open'                 => true,
+                'open_time'            => $sc['open_time'],
+                'close_time'           => $sc['close_time'],
+                'breaks'               => [],
+                'reason'               => $sc['reason'],
+                'blockedRanges'        => [],
+                'bookedTableNumbers'   => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
+                'blockedTableNumbers'  => $blockedTableNumbers,
+                'bookedPeriods'        => $bookedPeriods,
+                'totalTables'          => $totalTables,
             ]);
         }
 
@@ -121,15 +124,16 @@ class AvailabilityController extends AbstractController
         foreach ($venueBlocks as $vb) {
             if ((bool) $vb['full_day']) {
                 return $this->json([
-                    'open'               => false,
-                    'open_time'          => null,
-                    'close_time'         => null,
-                    'breaks'             => [],
-                    'reason'             => $vb['reason'],
-                    'blockedRanges'      => [],
-                    'bookedTableNumbers' => [],
-                    'bookedPeriods'      => $bookedPeriods,
-                    'totalTables'        => $totalTables,
+                    'open'                => false,
+                    'open_time'           => null,
+                    'close_time'          => null,
+                    'breaks'              => [],
+                    'reason'              => $vb['reason'],
+                    'blockedRanges'       => [],
+                    'bookedTableNumbers'  => [],
+                    'blockedTableNumbers' => $blockedTableNumbers,
+                    'bookedPeriods'       => $bookedPeriods,
+                    'totalTables'         => $totalTables,
                 ]);
             }
         }
@@ -150,28 +154,30 @@ class AvailabilityController extends AbstractController
 
         if ($oh === null) {
             return $this->json([
-                'open'               => true,
-                'open_time'          => null,
-                'close_time'         => null,
-                'breaks'             => [],
-                'reason'             => null,
-                'blockedRanges'      => $blockedRanges,
-                'bookedTableNumbers' => [],
-                'bookedPeriods'      => $bookedPeriods,
-                'totalTables'        => $totalTables,
+                'open'                => true,
+                'open_time'           => null,
+                'close_time'          => null,
+                'breaks'              => [],
+                'reason'              => null,
+                'blockedRanges'       => $blockedRanges,
+                'bookedTableNumbers'  => [],
+                'blockedTableNumbers' => $blockedTableNumbers,
+                'bookedPeriods'       => $bookedPeriods,
+                'totalTables'         => $totalTables,
             ]);
         }
 
         return $this->json([
-            'open'               => $oh->isOpen(),
-            'open_time'          => $oh->isOpen() ? $oh->getOpenTime()  : null,
-            'close_time'         => $oh->isOpen() ? $oh->getCloseTime() : null,
-            'breaks'             => $oh->isOpen() ? ($oh->getBreaks() ?? []) : [],
-            'reason'             => null,
-            'blockedRanges'      => $blockedRanges,
-            'bookedTableNumbers' => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
-            'bookedPeriods'      => $bookedPeriods,
-            'totalTables'        => $totalTables,
+            'open'                => $oh->isOpen(),
+            'open_time'           => $oh->isOpen() ? $oh->getOpenTime()  : null,
+            'close_time'          => $oh->isOpen() ? $oh->getCloseTime() : null,
+            'breaks'              => $oh->isOpen() ? ($oh->getBreaks() ?? []) : [],
+            'reason'              => null,
+            'blockedRanges'       => $blockedRanges,
+            'bookedTableNumbers'  => $this->fetchBookedTableNumbers($venue, $dateStr, $timeStr),
+            'blockedTableNumbers' => $blockedTableNumbers,
+            'bookedPeriods'       => $bookedPeriods,
+            'totalTables'         => $totalTables,
         ]);
     }
 
@@ -197,6 +203,32 @@ class AvailabilityController extends AbstractController
             'from'        => $r['from'],
             'to'          => $r['to'],
         ], $rows);
+    }
+
+    private function fetchBlockedTableNumbers(Venue $venue, string $dateStr, string $timeStr): array
+    {
+        if ($timeStr !== '') {
+            $rows = $this->dbal->fetchFirstColumn(
+                'SELECT DISTINCT table_number
+                   FROM table_blocks
+                  WHERE venue_id  = UNHEX(REPLACE(?, \'-\', \'\'))
+                    AND date_from <= ?
+                    AND date_to   >= ?
+                    AND (full_day = 1 OR (time_from <= ? AND time_to > ?))',
+                [$venue->getId()->toRfc4122(), $dateStr, $dateStr, $timeStr, $timeStr],
+            );
+        } else {
+            $rows = $this->dbal->fetchFirstColumn(
+                'SELECT DISTINCT table_number
+                   FROM table_blocks
+                  WHERE venue_id  = UNHEX(REPLACE(?, \'-\', \'\'))
+                    AND date_from <= ?
+                    AND date_to   >= ?',
+                [$venue->getId()->toRfc4122(), $dateStr, $dateStr],
+            );
+        }
+
+        return array_map('intval', $rows);
     }
 
     private function fetchBookedTableNumbers(Venue $venue, string $dateStr, string $timeStr): array

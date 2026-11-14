@@ -137,6 +137,7 @@ class VenueController extends AbstractController
 
         $data = json_decode($request->getContent(), true) ?? [];
         $venue->setLayout($data['layout'] ?? null);
+        $this->em->persist($venue);
         $this->em->flush();
 
         return $this->json(['layout' => $venue->getLayout()]);

@@ -26,7 +26,7 @@
       <!-- Timeline / Plan Toggle -->
       <button class="btn-view-toggle"
               [class.btn-view-toggle--active]="showTimeline()"
-              (click)="showTimeline.set(!showTimeline())"
+              (click)="toggleView()"
               [title]="showTimeline() ? ('raum_detail.back_to_plan' | translate) : ('raum_detail.view_timeline' | translate)">
         @if (!showTimeline()) {
           <!-- Timeline-Icon: Gantt-Balken -->
@@ -50,6 +50,21 @@
           </svg>
           <span>{{ 'raum_detail.floor_plan' | translate }}</span>
         }
+      </button>
+
+      <button class="plan-settings-btn plan-settings-btn--label" (click)="planSettingsOpen.set(true)" title="Tischplan-Einstellungen">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="10.5" y="2" width="3" height="2.5" rx="1" fill="currentColor" opacity="0.7"/>
+          <rect x="10.5" y="19.5" width="3" height="2.5" rx="1" fill="currentColor" opacity="0.7"/>
+          <rect x="2" y="10.5" width="2.5" height="3" rx="1" fill="currentColor" opacity="0.7"/>
+          <rect x="19.5" y="10.5" width="2.5" height="3" rx="1" fill="currentColor" opacity="0.7"/>
+          <path d="M12 7.5 L12 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M12 16.5 L12 19" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M7.5 12 L5 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M16.5 12 L19 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Einstellungen
       </button>
 
       <a class="btn-secondary" [routerLink]="['/restaurant-plan', r.id]">
@@ -99,7 +114,7 @@
                  [value]="selectedDateAsDate()"
                  [matDatepickerFilter]="dateFilter"
                  (dateChange)="onDateSelected($event)" />
-          <mat-datepicker #picker panelClass="salyseat-datepicker-panel"></mat-datepicker>
+          <mat-datepicker #picker panelClass="saly-datepicker-panel"></mat-datepicker>
 
           @if (isSelectedDayClosed()) {
             <div class="date-card__closed-banner">
@@ -614,8 +629,27 @@
         </div>
 
         <div class="raum-detail__canvas"
+             #planCanvas
              [class.is-reassigning]="reassignMode()"
-             (click)="onCanvasClick()">
+             [class.is-pan-enabled]="planAnyActive()"
+             (click)="onCanvasClick()"
+             (wheel)="onPlanWheel($event)"
+             (touchstart)="onPlanTouchStart($event)"
+             (touchmove)="onPlanTouchMove($event)"
+             (touchend)="onPlanTouchEnd()">
+
+          <!-- Zoom-Controls (wenn Zoom oder Pan aktiviert) -->
+          @if (planZoomBtnEnabled() || planPanEnabled()) {
+            <div class="plan-zoom-controls" (click)="$event.stopPropagation()">
+              <button class="plan-zoom-btn" (click)="planZoomIn()" title="Vergrößern"><mat-icon>add</mat-icon></button>
+              <span class="plan-zoom-level">{{ (planZoom() * 100) | number:'1.0-0' }}%</span>
+              <button class="plan-zoom-btn" (click)="planZoomOut()" title="Verkleinern"><mat-icon>remove</mat-icon></button>
+              <button class="plan-zoom-btn plan-zoom-btn--reset" (click)="planZoomReset()" title="Zurücksetzen"><mat-icon>center_focus_strong</mat-icon></button>
+            </div>
+          }
+
+          <!-- Inner canvas (Pan & Zoom Träger) -->
+          <div class="plan-canvas-inner" [style.transform]="planAnyActive() ? planTransform() : 'none'">
 
         <!-- Hinweis-Banner im Umplatzier-Modus -->
         @if (reassignMode()) {
@@ -815,6 +849,7 @@
           <div class="merge-badge"
                [style]="getMidpointStyle(pair.a, pair.b)"
                (pointerdown)="$event.stopPropagation()"
+               (touchstart)="$event.stopPropagation()"
                (click)="openRoomSplitDialog(pair.a.id, $event)"
                [title]="'raum_detail.split_room_badge' | translate">
             <mat-icon>link</mat-icon>
@@ -839,16 +874,14 @@
             </div>
           </div>
         }
-        <!-- Merge-Verbindungslinien (Reservierungs-Tischgruppen) -->
-        @for (pair of getReservationMergePairs(); track pair.a.id + '-' + pair.b.id) {
-          <div class="merge-line merge-line--reservation" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
-        }
+        <!-- Merge-Verbindungslinien (Reservierungs-Tischgruppen) — ersetzt durch Farbcodierung am Chip -->
 
         <!-- Tische -->
         @for (table of r.tables; track table.id) {
           <div class="placed-table" [class]="tableStatusClass(table.id)"
                [class.is-reassign-source]="reassignMode()?.sourceTableId === table.id"
                [class.is-reassign-target]="reassignMode() && reassignMode()?.sourceTableId !== table.id"
+               [class.is-table-blocked]="isTableBlockedOnSelectedDate(table.id)"
                [style.left.px]="table.x"
                [style.top.px]="table.y"
                [style.width.px]="getTableSize(table.type).w * table.scale"
@@ -858,6 +891,7 @@
                (pointerup)="onTablePointerEnd()"
                (pointerleave)="onTablePointerEnd()"
                (pointercancel)="onTablePointerEnd()"
+               (touchstart)="$event.stopPropagation()"
                (click)="onTableClick(table.id, $event)"
                [title]="reassignMode()
                           ? (reassignMode()?.sourceTableId === table.id
@@ -891,22 +925,38 @@
 
             <div class="placed-table__label">
               <span class="placed-table__label-id">#{{ table.id }}</span>
-              <span class="placed-table__label-seats">
-                <svg viewBox="0 0 12 12" width="9" height="9"><circle cx="6" cy="3.5" r="2.2" fill="currentColor"/><path d="M2 10.5 Q2 7 6 7 Q10 7 10 10.5Z" fill="currentColor"/></svg>{{ table.seats }}
-              </span>
+              @if (tableAllActiveReservations(table.id).length > 0) {
+                <span class="placed-table__label-info">
+                  {{ tableAllActiveReservations(table.id)[0].partySize }}
+                  <span class="placed-table__label-sep"></span>
+                  {{ tableAllActiveReservations(table.id)[0].time }}
+                </span>
+              } @else {
+                <span class="placed-table__label-seats">{{ table.seats }}</span>
+              }
             </div>
 
             @if (tableAllActiveReservations(table.id).length > 0) {
+              @if (tableSplitColor(table.id); as sc0) {
+                <div class="placed-table__split-badge"
+                     [style.--split-badge-color]="sc0"
+                     [style.background]="sc0">
+                  <mat-icon>call_split</mat-icon>
+                </div>
+              }
               <div class="placed-table__guests">
                 @for (res of visibleGuestReservations(table.id); track res.id) {
                   <div class="placed-table__guest"
                        [class.is-multi]="tableAllActiveReservations(table.id).length > 1"
+                       [class.is-split]="splitColor(res.id) !== null"
+                       [style.border-left-color]="splitColor(res.id) ?? ''"
                        (click)="onGuestChipClick(table.id, res, $event)"
                        [title]="reassignMode() ? ('raum_detail.reassign_here' | translate) : 'Klick: Gastkartei öffnen'"
                        style="cursor: pointer;">
-                    <mat-icon>person</mat-icon>
+                    @if (splitColor(res.id); as sc) {
+                      <span class="placed-table__guest-dot" [style.background]="sc"></span>
+                    }
                     <span>{{ res.guestName }}</span>
-                    <small>{{ res.time }}</small>
                     @if (tableAllActiveReservations(table.id).length > 1 && !reassignMode()) {
                       <button class="placed-table__guest-remove"
                               (click)="removeFromTable(res.id, $event)"
@@ -925,6 +975,17 @@
                       <mat-icon>expand_more</mat-icon>
                     }
                   </button>
+                }
+              </div>
+            }
+
+            <!-- Tisch-Sperre Overlay -->
+            @if (isTableBlockedOnSelectedDate(table.id)) {
+              <div class="table-blocked-overlay" [title]="tableBlockReasonOnDate(table.id) || 'Tisch gesperrt'">
+                <mat-icon>lock</mat-icon>
+                <span>Gesperrt</span>
+                @if (tableBlockReasonOnDate(table.id)) {
+                  <small>{{ tableBlockReasonOnDate(table.id) }}</small>
                 }
               </div>
             }
@@ -961,12 +1022,208 @@
             </div>
           </div>
         }
+          </div><!-- /plan-canvas-inner -->
+
       </div><!-- /raum-detail__canvas -->
 
       } <!-- /if !showTimeline -->
 
       </div><!-- /raum-detail__right -->
     </div><!-- /raum-detail__body -->
+
+    <!-- ── Tischplan-Einstellungs-Modal ─────────────────────────────── -->
+    @if (planSettingsOpen()) {
+      <div class="plan-settings-backdrop" (click)="planSettingsOpen.set(false)"></div>
+      <div class="plan-settings-modal" (click)="$event.stopPropagation()">
+        <div class="plan-settings-modal__header">
+          <div class="plan-settings-modal__icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/>
+              <rect x="10.5" y="2" width="3" height="2.5" rx="1" fill="currentColor" opacity="0.7"/>
+              <rect x="10.5" y="19.5" width="3" height="2.5" rx="1" fill="currentColor" opacity="0.7"/>
+              <rect x="2" y="10.5" width="2.5" height="3" rx="1" fill="currentColor" opacity="0.7"/>
+              <rect x="19.5" y="10.5" width="2.5" height="3" rx="1" fill="currentColor" opacity="0.7"/>
+              <path d="M12 7.5 L12 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M12 16.5 L12 19" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M7.5 12 L5 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M16.5 12 L19 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="plan-settings-modal__title">Tischplan-Einstellungen</h3>
+            <p class="plan-settings-modal__subtitle">Persönliche Ansichts-Einstellungen</p>
+          </div>
+          <button class="plan-settings-modal__close" (click)="planSettingsOpen.set(false)"><mat-icon>close</mat-icon></button>
+        </div>
+
+        <div class="psm-body">
+
+          <!-- ── Kategorie: Ansicht ─────────────────────────── -->
+          <div class="psm-card">
+            <div class="psm-card__header">
+              <div class="psm-card__icon psm-card__icon--view">
+                <mat-icon>visibility</mat-icon>
+              </div>
+              <span class="psm-card__title">Ansicht</span>
+            </div>
+
+            <div class="psm-card__row">
+              <div class="psm-card__label">
+                <span class="psm-card__label-title">Plan verschiebbar</span>
+                <span class="psm-card__label-hint">Mit Finger oder Trackpad frei verschieben</span>
+              </div>
+              <button class="plan-toggle" [class.is-on]="planPanEnabled()" (click)="togglePlanPan(!planPanEnabled())">
+                <span class="plan-toggle__thumb"></span>
+              </button>
+            </div>
+
+            <div class="psm-card__divider"></div>
+
+            <div class="psm-card__row">
+              <div class="psm-card__label">
+                <span class="psm-card__label-title">Zoom-Buttons anzeigen</span>
+                <span class="psm-card__label-hint">+ / − Buttons und Pinch-to-Zoom</span>
+              </div>
+              <button class="plan-toggle" [class.is-on]="planZoomBtnEnabled()" (click)="togglePlanZoom(!planZoomBtnEnabled())">
+                <span class="plan-toggle__thumb"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Kategorie: Tische sperren ──────────────────── -->
+          <div class="psm-card">
+            <button type="button" class="psm-card__header psm-card__header--btn"
+                    [class.is-open]="psBlockSectionOpen()"
+                    (click)="psBlockSectionOpen.set(!psBlockSectionOpen()); $event.stopPropagation()">
+              <div class="psm-card__icon psm-card__icon--block">
+                <mat-icon>block</mat-icon>
+              </div>
+              <span class="psm-card__title">Tische sperren</span>
+              <span class="psm-card__hint">Zeitraum pro Tisch blockieren</span>
+              <mat-icon class="psm-card__chevron" [class.is-open]="psBlockSectionOpen()">expand_more</mat-icon>
+            </button>
+
+            @if (psBlockSectionOpen()) {
+              @if (room(); as r) {
+              <div class="ps-table-list">
+                @for (table of r.tables; track table.id) {
+                  @let tblBlocks = tableBlockSvc.blocksForTable(r.id, table.id);
+                  @let tblActive = isTableBlockedNow(table.id);
+
+                  <div class="ps-table" [class.has-blocks]="tblBlocks.length > 0">
+                    <!-- Tisch-Zeile -->
+                    <div class="ps-table__row">
+                      <div class="ps-table__dot" [class.is-blocked]="tblActive"></div>
+                      <span class="ps-table__name">Tisch #{{ table.id }}</span>
+                      <span class="ps-table__seats">{{ table.seats }} Pl.</span>
+                      @if (tblBlocks.length > 0) {
+                        <span class="ps-table__count">{{ tblBlocks.length }}</span>
+                      }
+                      <button type="button" class="ps-table__add" style="background:var(--color-primary);color:#fff;border:none;" (click)="psOpenForm(r.id, table.id); $event.stopPropagation()" title="Sperrzeit hinzufügen">
+                        <mat-icon>add</mat-icon>
+                      </button>
+                    </div>
+
+                    <!-- Bestehende Sperrzeiten -->
+                    @if (tblBlocks.length > 0) {
+                      <div class="ps-blocks">
+                        @for (blk of tblBlocks; track blk.id) {
+                          <div class="ps-block" [class.is-active]="isBlockActiveNow(blk)">
+                            <div class="ps-block__info">
+                              <span class="ps-block__range">{{ formatBlockLabel(blk) }}</span>
+                              @if (blk.reason) { <span class="ps-block__reason">{{ blk.reason }}</span> }
+                              @if (isBlockActiveNow(blk)) { <span class="ps-block__badge">Jetzt aktiv</span> }
+                            </div>
+                            <button type="button" class="ps-block__del" (click)="confirmRemoveBlock(blk.id, $event)" title="Sperrung aufheben">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <!-- Inline-Formular -->
+                    @if (psFormFor()?.tableId === table.id && psFormFor()?.roomId === r.id) {
+                      <div class="ps-form" (click)="$event.stopPropagation()">
+                        <div class="ps-form__row">
+                          <label class="ps-form__field">
+                            <span>Von</span>
+                            <input type="date" [value]="psDateFrom" (input)="psDateFrom = $any($event.target).value">
+                          </label>
+                          <label class="ps-form__field">
+                            <span>Bis</span>
+                            <input type="date" [value]="psDateTo" (input)="psDateTo = $any($event.target).value">
+                          </label>
+                        </div>
+
+                        <label class="ps-form__toggle">
+                          <input type="checkbox" [checked]="psFullDay" (change)="psFullDay = $any($event.target).checked">
+                          <span>Ganztägig</span>
+                        </label>
+
+                        @if (!psFullDay) {
+                          <div class="ps-form__row">
+                            <label class="ps-form__field">
+                              <span>Von Uhrzeit</span>
+                              <input type="time" [value]="psTimeFrom" (input)="psTimeFrom = $any($event.target).value">
+                            </label>
+                            <label class="ps-form__field">
+                              <span>Bis Uhrzeit</span>
+                              <input type="time" [value]="psTimeTo" (input)="psTimeTo = $any($event.target).value">
+                            </label>
+                          </div>
+                        }
+
+                        <label class="ps-form__field ps-form__field--full">
+                          <span>Grund <small>(optional)</small></span>
+                          <input type="text" placeholder="z.B. Reserviert für Event …"
+                                 [value]="psReason" (input)="psReason = $any($event.target).value">
+                        </label>
+
+                        @if (psError()) { <p class="ps-form__error">{{ psError() }}</p> }
+
+                        <div class="ps-form__actions">
+                          <button type="button" class="ps-form__cancel" (click)="psFormFor.set(null)">Abbrechen</button>
+                          <button type="button" class="ps-form__save" (click)="psSave()" [disabled]="psSaving()">
+                            <mat-icon>lock</mat-icon> {{ psSaving() ? 'Speichern …' : 'Speichern' }}
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+              } <!-- /room -->
+            } <!-- /psBlockSectionOpen -->
+          </div>
+
+        </div><!-- /psm-body -->
+
+        <div class="plan-settings-modal__footer">
+          <button class="plan-settings-modal__done" (click)="planSettingsOpen.set(false)">Fertig</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Sperrung-Aufheben Bestätigungs-Modal ─────────────────────────── -->
+    @if (confirmDeleteBlockId()) {
+      <div class="confirm-backdrop" (click)="confirmDeleteBlockId.set(null)"></div>
+      <div class="confirm-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="confirm-modal__icon">
+          <mat-icon>lock_open</mat-icon>
+        </div>
+        <h3 class="confirm-modal__title">Sperrung aufheben?</h3>
+        <p class="confirm-modal__text">Diese Tisch-Sperrung wird dauerhaft entfernt.</p>
+        <div class="confirm-modal__actions">
+          <button type="button" class="confirm-modal__cancel" (click)="confirmDeleteBlockId.set(null)">
+            Abbrechen
+          </button>
+          <button type="button" class="confirm-modal__confirm" (click)="executeRemoveBlock()">
+            <mat-icon>lock_open</mat-icon> Ja, aufheben
+          </button>
+        </div>
+      </div>
+    }
 
     <!-- ── Dialoge ────────────────────────────────────────────────────── -->
     @if (newDialogOpen() || editDialogOpen() || tablePickerFor()) {
@@ -1313,18 +1570,25 @@
                       @let tooSmall         = !actuallyOccupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id);
                       @let isSuggested      = bestMergeSuggestion() === t.id && !isTableSelected(t.id);
                       @let mergeIdx         = form.tableIds.indexOf(t.id);
+                      @let isMerged         = isTableMerged(t.id);
+                      @let partners         = mergePartners(t.id);
+                      @let isBlocked        = isTableBlockedForForm(t.id);
                       <button type="button" class="table-inline__card"
-                              [class.table-inline__card--selected]="isTableSelected(t.id) && !selectedOccupied"
+                              [class.table-inline__card--selected]="isTableSelected(t.id) && !selectedOccupied && !isBlocked"
                               [class.table-inline__card--selected-full]="selectedOccupied"
                               [class.table-inline__card--full]="occupied"
-                              [class.table-inline__card--small]="tooSmall && !isSuggested"
-                              [class.table-inline__card--suggested]="isSuggested"
-                              [class.table-inline__card--merge]="isTableSelected(t.id) && form.tableIds.length > 1 && !selectedOccupied"
-                              [disabled]="occupied"
+                              [class.table-inline__card--blocked]="isBlocked"
+                              [class.table-inline__card--small]="tooSmall && !isSuggested && !isBlocked"
+                              [class.table-inline__card--suggested]="isSuggested && !isBlocked"
+                              [class.table-inline__card--merge]="isTableSelected(t.id) && form.tableIds.length > 1 && !selectedOccupied && !isBlocked"
+                              [class.table-inline__card--linked]="isMerged && !isTableSelected(t.id) && !occupied && !isBlocked"
+                              [disabled]="occupied || isBlocked"
                               (click)="toggleTableSelection(t.id)">
                         <span class="table-inline__num">#{{ t.id }}</span>
                         <span class="table-inline__lbl">{{ tableLabel(t.id) }}</span>
-                        @if (occupied || selectedOccupied) {
+                        @if (isBlocked) {
+                          <span class="table-inline__badge table-inline__badge--blocked">Gesperrt</span>
+                        } @else if (occupied || selectedOccupied) {
                           <span class="table-inline__badge">{{ 'raum_detail.occupied' | translate }}</span>
                         } @else if (isSuggested) {
                           <span class="table-inline__badge table-inline__badge--suggested">{{ 'raum_detail.best_combo' | translate }}</span>
@@ -1332,6 +1596,13 @@
                           <span class="table-inline__badge table-inline__badge--small">+ Kombinieren</span>
                         } @else if (isTableSelected(t.id) && form.tableIds.length > 1) {
                           <span class="table-inline__badge table-inline__badge--merge">{{ mergeIdx + 1 }}</span>
+                        } @else if (isMerged && !isTableSelected(t.id)) {
+                          <span class="table-inline__badge table-inline__badge--linked">
+                            + #{{ partners[0] }}
+                          </span>
+                        }
+                        @if (isMerged) {
+                          <span class="table-inline__link-dot"></span>
                         }
                       </button>
                     }

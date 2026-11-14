@@ -177,6 +177,12 @@ export interface TenantUiSettings {
     social?:  { instagram: string; facebook: string; tiktok: string };
     attachments?: { url: string; name: string; assignedMails: Record<string, boolean> }[];
   };
+
+  /**
+   * Tischplan-Ansicht (Raum-Übersicht): Pan & Zoom aktiviert?
+   * Standard: false (klassisches statisches Scrollen).
+   */
+  planPanEnabled?: boolean;
 }
 
 // ─── Widget-Functional-Typen ──────────────────────────────────────────────────

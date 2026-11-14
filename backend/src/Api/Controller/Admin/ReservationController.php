@@ -196,6 +196,12 @@ class ReservationController extends AbstractController
             $tableNumber = $data['table_id'] === null ? null : (int) $data['table_id'];
         }
 
+        // table_ids: array of int (multi-table split), null = clear, key absent = no change
+        $tableIds = false;
+        if (array_key_exists('table_ids', $data)) {
+            $tableIds = is_array($data['table_ids']) ? $data['table_ids'] : null;
+        }
+
         $venueId = isset($data['venue_id']) ? trim((string) $data['venue_id']) : null;
         if ($venueId === '') $venueId = null;
 
@@ -210,6 +216,7 @@ class ReservationController extends AbstractController
                 guestPhone:      isset($data['guest_phone']) ? trim((string) $data['guest_phone']) : null,
                 guestNotes:      isset($data['notes']) ? trim((string) $data['notes']) : null,
                 tableNumber:     $tableNumber,
+                tableIds:        $tableIds,
                 venueId:         $venueId,
             ));
         } catch (\DomainException $e) {

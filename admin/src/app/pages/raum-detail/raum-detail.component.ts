@@ -1,5 +1,5 @@
-import { Component, computed, effect, HostListener, inject, OnInit, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { Component, computed, effect, ElementRef, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule, MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { MatInputModule } from '@angular/material/input';
@@ -17,6 +17,7 @@ import { GuestsService, Guest } from '../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../services/tenant-settings.service';
 import { OpeningHoursService, DayHours, SpecialClosing } from '../../services/opening-hours.service';
 import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
+import { TableBlockService, TableBlock } from '../../services/table-block.service';
 import { PlacedTable, TableType, DecorType, SavedRoom } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
@@ -38,6 +39,7 @@ type StatusFilter = 'all' | 'active' | FloorReservationStatus;
     FormsModule,
     StatusIconComponent,
     DatePipe,
+    DecimalPipe,
     TranslateModule,
   ],
   templateUrl: './raum-detail.component.html',
@@ -56,9 +58,164 @@ export class RaumDetailComponent implements OnInit {
   private readonly route               = inject(ActivatedRoute);
   private readonly router              = inject(Router);
   readonly getraenke                   = inject(GetraenkeReminderService);
+  readonly tableBlockSvc               = inject(TableBlockService);
+
+  // ── Tischplan Pan & Zoom ─────────────────────────────────────────────────
+
+  @ViewChild('planCanvas') planCanvasRef?: ElementRef<HTMLDivElement>;
+
+  private readonly PLAN_PAN_KEY  = 'salyseat_plan_pan_enabled';
+  private readonly PLAN_ZOOM_KEY = 'salyseat_plan_zoom_enabled';
+
+  /** Plan verschiebbar (persönliche Einstellung, localStorage). */
+  planPanEnabled = signal<boolean>(
+    localStorage.getItem(this.PLAN_PAN_KEY) === 'true'
+  );
+
+  /** Zoom-Buttons (+/−) sichtbar (persönliche Einstellung, localStorage). */
+  planZoomBtnEnabled = signal<boolean>(
+    localStorage.getItem(this.PLAN_ZOOM_KEY) === 'true'
+  );
+
+  /** Ist irgendeine Transform-Funktion aktiv? (für canvas-inner + overflow) */
+  planAnyActive = computed(() => this.planPanEnabled() || this.planZoomBtnEnabled());
+
+  /** Einstellungs-Modal offen? */
+  planSettingsOpen = signal(false);
+
+  /** Pan/Zoom-State */
+  planPanX = signal(0);
+  planPanY = signal(0);
+  planZoom = signal(1);
+
+  readonly PLAN_ZOOM_MIN = 0.3;
+  readonly PLAN_ZOOM_MAX = 3;
+
+  planTransform = computed(() =>
+    `translate(${this.planPanX()}px, ${this.planPanY()}px) scale(${this.planZoom()})`
+  );
+
+  togglePlanPan(enabled: boolean) {
+    this.planPanEnabled.set(enabled);
+    localStorage.setItem(this.PLAN_PAN_KEY, String(enabled));
+    if (!enabled && !this.planZoomBtnEnabled()) {
+      this.planPanX.set(0); this.planPanY.set(0); this.planZoom.set(1);
+    }
+  }
+
+  togglePlanZoom(enabled: boolean) {
+    this.planZoomBtnEnabled.set(enabled);
+    localStorage.setItem(this.PLAN_ZOOM_KEY, String(enabled));
+    if (!enabled && !this.planPanEnabled()) {
+      this.planPanX.set(0); this.planPanY.set(0); this.planZoom.set(1);
+    }
+  }
+
+  planZoomIn()    { this.planZoom.update(z => Math.min(this.PLAN_ZOOM_MAX, +(z + 0.15).toFixed(2))); }
+  planZoomOut()   { this.planZoom.update(z => Math.max(this.PLAN_ZOOM_MIN, +(z - 0.15).toFixed(2))); }
+  planZoomReset() { this.planPanX.set(0); this.planPanY.set(0); this.planZoom.set(1); }
+
+  onPlanWheel(event: WheelEvent) {
+    if (!this.planAnyActive()) return;
+    const el = this.planCanvasRef?.nativeElement;
+    if (!el) return;
+
+    if (event.ctrlKey && this.planZoomBtnEnabled()) {
+      // Pinch / Ctrl+Scroll → Zoom
+      event.preventDefault();
+      const rect   = el.getBoundingClientRect();
+      const mx     = event.clientX - rect.left;
+      const my     = event.clientY - rect.top;
+      const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
+      const newZ   = Math.min(this.PLAN_ZOOM_MAX, Math.max(this.PLAN_ZOOM_MIN, this.planZoom() * factor));
+      this.planPanX.update(p => mx - (mx - p) * (newZ / this.planZoom()));
+      this.planPanY.update(p => my - (my - p) * (newZ / this.planZoom()));
+      this.planZoom.set(+newZ.toFixed(3));
+    } else if (!event.ctrlKey && this.planPanEnabled()) {
+      // Zwei-Finger-Scroll → Pan
+      event.preventDefault();
+      this.planPanX.update(p => p - event.deltaX);
+      this.planPanY.update(p => p - event.deltaY);
+    }
+  }
+
+  // Touch-Pan auf dem Tischplan (1-Finger pan, 2-Finger pinch)
+  private planTouchPan: { id: number; lastX: number; lastY: number } | null = null;
+  private planPinch: { id0: number; id1: number; lastDist: number; lastMidX: number; lastMidY: number } | null = null;
+
+  onPlanTouchStart(event: TouchEvent) {
+    if (!this.planAnyActive()) return;
+    // Kein Pan starten wenn Touch auf einem Tisch oder Merge-Badge landet
+    const target = event.target as HTMLElement;
+    if (target.closest('.placed-table, .merge-badge')) return;
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const t0 = event.touches[0], t1 = event.touches[1];
+      this.planPinch = {
+        id0: t0.identifier, id1: t1.identifier,
+        lastDist: Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY),
+        lastMidX: (t0.clientX + t1.clientX) / 2,
+        lastMidY: (t0.clientY + t1.clientY) / 2,
+      };
+      this.planTouchPan = null;
+    } else if (event.touches.length === 1) {
+      const t = event.touches[0];
+      this.planTouchPan = { id: t.identifier, lastX: t.clientX, lastY: t.clientY };
+    }
+  }
+
+  onPlanTouchMove(event: TouchEvent) {
+    if (!this.planAnyActive()) return;
+    const el = this.planCanvasRef?.nativeElement;
+    if (!el) return;
+
+    if (this.planPinch && event.touches.length === 2 && this.planZoomBtnEnabled()) {
+      event.preventDefault();
+      const t0 = Array.from(event.touches).find(t => t.identifier === this.planPinch!.id0);
+      const t1 = Array.from(event.touches).find(t => t.identifier === this.planPinch!.id1);
+      if (!t0 || !t1) return;
+      const rect  = el.getBoundingClientRect();
+      const dist  = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      const midX  = (t0.clientX + t1.clientX) / 2 - rect.left;
+      const midY  = (t0.clientY + t1.clientY) / 2 - rect.top;
+      const scale = dist / this.planPinch.lastDist;
+      const newZ  = Math.min(this.PLAN_ZOOM_MAX, Math.max(this.PLAN_ZOOM_MIN, this.planZoom() * scale));
+      this.planPanX.update(p => midX - (midX - p) * (newZ / this.planZoom()));
+      this.planPanY.update(p => midY - (midY - p) * (newZ / this.planZoom()));
+      this.planZoom.set(+newZ.toFixed(3));
+      if (this.planPanEnabled()) {
+        const prevMidX = this.planPinch.lastMidX - rect.left;
+        const prevMidY = this.planPinch.lastMidY - rect.top;
+        this.planPanX.update(p => p + midX - prevMidX);
+        this.planPanY.update(p => p + midY - prevMidY);
+      }
+      this.planPinch.lastDist = dist;
+      this.planPinch.lastMidX = (t0.clientX + t1.clientX) / 2;
+      this.planPinch.lastMidY = (t0.clientY + t1.clientY) / 2;
+    } else if (this.planTouchPan && event.touches.length === 1 && this.planPanEnabled()) {
+      event.preventDefault();
+      const t = Array.from(event.touches).find(t => t.identifier === this.planTouchPan!.id);
+      if (!t) return;
+      this.planPanX.update(p => p + t.clientX - this.planTouchPan!.lastX);
+      this.planPanY.update(p => p + t.clientY - this.planTouchPan!.lastY);
+      this.planTouchPan.lastX = t.clientX;
+      this.planTouchPan.lastY = t.clientY;
+    }
+  }
+
+  onPlanTouchEnd() {
+    this.planPinch    = null;
+    this.planTouchPan = null;
+  }
 
   // ── Timeline-Übersicht ────────────────────────────────────────────────────
-  showTimeline = signal(false);
+  showTimeline = signal(localStorage.getItem('raum-detail:view') === 'timeline');
+
+  toggleView(): void {
+    const next = !this.showTimeline();
+    this.showTimeline.set(next);
+    localStorage.setItem('raum-detail:view', next ? 'timeline' : 'plan');
+  }
 
   // 24px pro 30-Min-Slot
   readonly tlSlotPx = 24;
@@ -351,6 +508,7 @@ export class RaumDetailComponent implements OnInit {
         this.roomBlocksSvc.getBlocks(id).subscribe(blocks => {
           this.venueBlocks.set(blocks);
         });
+        this.tableBlockSvc.loadForVenue(id).subscribe();
 
         // Bei Direktaufruf von /raum/:id ist die Venue-Liste evtl. noch leer,
         // weil sonst nur /raum sie lädt. Erst Räume holen, dann das Layout.
@@ -368,6 +526,7 @@ export class RaumDetailComponent implements OnInit {
         if (!id) return;
         this.layoutLoading.set(false);
         this.syncFromBackend(id, this.selectedDate());
+        this.tableBlockSvc.loadForVenue(id).subscribe();
 
         // xmove nur einmal beim ersten Laden aktivieren
         if (!xmoveHandled && xmove && fromTable) {
@@ -1287,8 +1446,12 @@ export class RaumDetailComponent implements OnInit {
       ...preset,
     };
     // tableIds aus tableId ableiten falls nicht explizit gesetzt
+    // → dabei alle zusammengeführten Tische mit einschließen
     if (!this.form.tableIds?.length && this.form.tableId) {
-      this.form.tableIds = [this.form.tableId];
+      this.form.tableIds = this.getMergedTableIds(
+        this.form.tableId,
+        this.room()?.tables ?? []
+      );
     }
     // Falls preset einen kombinierten guestName mitbringt → in vorname übernehmen
     if (this.form.guestName && !this.form.vorname) {
@@ -1488,9 +1651,11 @@ export class RaumDetailComponent implements OnInit {
     const mode   = this.reassignMode();
     const choice = this.reassignChoice();
     if (!mode || !choice) return;
-    const tid = choice.targetTableId;
-    this.reservationsService.update(mode.reservationId, { tableId: tid, tableIds: [tid] });
-    this.syncTableToBackend(mode.reservationId, tid);
+    // Alle zusammengeführten Tische des Ziels einschließen
+    const targetIds = this.getMergedTableIds(choice.targetTableId, this.room()?.tables ?? []);
+    const primaryId = targetIds[0];
+    this.reservationsService.update(mode.reservationId, { tableId: primaryId, tableIds: targetIds });
+    this.syncTableToBackend(mode.reservationId, primaryId, targetIds);
     this.reassignChoice.set(null);
     this.reassignMode.set(null);
   }
@@ -1502,19 +1667,18 @@ export class RaumDetailComponent implements OnInit {
     if (!mode || !choice) return;
     const res = this.reservationsService.reservations().find(r => r.id === mode.reservationId);
     const currentIds = res?.tableIds?.length ? res.tableIds : (res?.tableId ? [res.tableId] : []);
-    const newIds = [...new Set([...currentIds, choice.targetTableId])];
-    this.reservationsService.update(mode.reservationId, {
-      tableIds: newIds,
-      tableId:  currentIds[0] ?? choice.targetTableId,
-    });
-    this.syncTableToBackend(mode.reservationId, currentIds[0] ?? choice.targetTableId);
+    // Alle zusammengeführten Tische des Ziels mit einschließen
+    const targetMergedIds = this.getMergedTableIds(choice.targetTableId, this.room()?.tables ?? []);
+    const newIds = [...new Set([...currentIds, ...targetMergedIds])];
+    const primaryId = currentIds[0] ?? targetMergedIds[0];
+    this.reservationsService.update(mode.reservationId, { tableIds: newIds, tableId: primaryId });
+    this.syncTableToBackend(mode.reservationId, primaryId, newIds);
     this.reassignChoice.set(null);
     this.reassignMode.set(null);
   }
 
   /**
    * Quelltisch aus dem Split entfernen — die restlichen Tische bleiben erhalten.
-   * Beispiel: Split [2, 3, 4], Quelltisch 3 auf Tisch 4 ziehen → bleibt [2, 4].
    */
   doMerge(): void {
     const mode   = this.reassignMode();
@@ -1522,13 +1686,12 @@ export class RaumDetailComponent implements OnInit {
     if (!mode || !choice) return;
     const res = this.reservationsService.reservations().find(r => r.id === mode.reservationId);
     const currentIds = res?.tableIds?.length ? res.tableIds : (res?.tableId ? [res.tableId] : []);
-    const newIds = currentIds.filter(id => id !== mode.sourceTableId);
+    // Quelltisch-Gruppe (inkl. Merge-Partner) aus den IDs entfernen
+    const sourceGroup = this.getMergedTableIds(mode.sourceTableId, this.room()?.tables ?? []);
+    const newIds = currentIds.filter(id => !sourceGroup.includes(id));
     const primaryId = newIds[0] ?? choice.targetTableId;
-    this.reservationsService.update(mode.reservationId, {
-      tableId:  primaryId,
-      tableIds: newIds,
-    });
-    this.syncTableToBackend(mode.reservationId, primaryId);
+    this.reservationsService.update(mode.reservationId, { tableId: primaryId, tableIds: newIds });
+    this.syncTableToBackend(mode.reservationId, primaryId, newIds);
     this.reassignChoice.set(null);
     this.reassignMode.set(null);
   }
@@ -1547,11 +1710,14 @@ export class RaumDetailComponent implements OnInit {
     return ids.length > 1 && ids.includes(choice.targetTableId);
   }
 
-  /** Schreibt die Tisch-Zuweisung einer lokalen Reservierung ins Backend (fire-and-forget). */
-  private syncTableToBackend(localId: string, tableId: number | null): void {
-    const backendId = this.reservationsService.reservations().find(r => r.id === localId)?.backendId;
+  /** Schreibt Tisch-Zuweisung + tableIds ins Backend (fire-and-forget). */
+  private syncTableToBackend(localId: string, tableId: number | null, tableIds?: number[]): void {
+    const res = this.reservationsService.reservations().find(r => r.id === localId);
+    const backendId = res?.backendId;
     if (!backendId) return;
-    this.apiReservations.update(backendId, { table_id: tableId }).subscribe({
+    const payload: any = { table_id: tableId };
+    if (tableIds !== undefined) payload.table_ids = tableIds;
+    this.apiReservations.update(backendId, payload).subscribe({
       error: () => console.warn('Tisch-Sync fehlgeschlagen für', backendId),
     });
   }
@@ -1594,6 +1760,41 @@ export class RaumDetailComponent implements OnInit {
   }
 
   cancelRoomSplit(): void { this.splitRoomTableId.set(null); }
+
+  /** Farb-Palette für gesplittete Reservierungen (10 Farben) */
+  private readonly SPLIT_COLORS = [
+    '#5DCAA5', '#7F77DD', '#EF9F27', '#D4537E',
+    '#378ADD', '#D85A30', '#639922', '#BA7517',
+    '#1D9E75', '#534AB7',
+  ];
+
+  /**
+   * Gibt Reservierungen zurück die mehr als einen Tisch belegen (gesplittet).
+   * Liefert eine Map reservationId → Farbe.
+   */
+  readonly splitColorMap = computed(() => {
+    const map = new Map<string, string>();
+    let colorIndex = 0;
+    for (const res of this.allReservationsForDay()) {
+      const ids = res.tableIds?.length ? res.tableIds : [];
+      if (ids.length > 1) {
+        map.set(res.id, this.SPLIT_COLORS[colorIndex % this.SPLIT_COLORS.length]);
+        colorIndex++;
+      }
+    }
+    return map;
+  });
+
+  /** Farbe für eine Reservierung (nur wenn gesplittet, sonst null). */
+  splitColor(resId: string): string | null {
+    return this.splitColorMap().get(resId) ?? null;
+  }
+
+  /** Gibt die Split-Farbe für den ersten gesplitteten Gast an einem Tisch zurück (für Badge). */
+  tableSplitColor(tableId: number): string | null {
+    const res = this.tableAllActiveReservations(tableId).find(r => this.splitColorMap().has(r.id));
+    return res ? (this.splitColorMap().get(res.id) ?? null) : null;
+  }
 
   readonly unassignedForDay = computed(() =>
     this.allReservationsForDay().filter(r =>
@@ -1929,11 +2130,43 @@ export class RaumDetailComponent implements OnInit {
   assignTableAndCheckIn(tableId: number) {
     const id = this.tablePickerFor();
     if (!id) return;
-    this.reservationsService.update(id, { tableId });
+
+    // Alle zusammengeführten Tische einsammeln
+    const room = this.room();
+    const tableIds = this.getMergedTableIds(tableId, room?.tables ?? []);
+
+    this.reservationsService.update(id, { tableId, tableIds });
     this.syncTableToBackend(id, tableId);
     this.reservationsService.setStatus(id, 'seated');
     this.getraenke.startTimer(id);
     this.tablePickerFor.set(null);
+  }
+
+  /** Gibt die IDs aller Tische zurück die mit tableId zusammengeführt sind (inkl. sich selbst). */
+  /** Gibt true zurück wenn der Tisch aktuell mit einem anderen zusammengeführt ist. */
+  isTableMerged(tableId: number): boolean {
+    const tables = this.room()?.tables ?? [];
+    const t = tables.find(x => x.id === tableId);
+    if (t?.mergedWith !== undefined) return true;
+    return tables.some(x => x.mergedWith === tableId);
+  }
+
+  /** Gibt die IDs der Merge-Partner zurück (ohne den Tisch selbst), oder []. */
+  mergePartners(tableId: number): number[] {
+    return this.getMergedTableIds(tableId, this.room()?.tables ?? [])
+      .filter(id => id !== tableId);
+  }
+
+  private getMergedTableIds(tableId: number, tables: PlacedTable[]): number[] {
+    const ids = new Set<number>([tableId]);
+    // Direkt verlinkter Partner
+    const clicked = tables.find(t => t.id === tableId);
+    if (clicked?.mergedWith !== undefined) ids.add(clicked.mergedWith);
+    // Rückwärts: Tische die auf diesen zeigen
+    for (const t of tables) {
+      if (t.mergedWith === tableId) ids.add(t.id);
+    }
+    return Array.from(ids);
   }
 
   skipTableAndCheckIn() {
@@ -2095,14 +2328,19 @@ export class RaumDetailComponent implements OnInit {
     }, 0);
   }
 
-  /** Wechselt einen Tisch in/aus der Mehrfachauswahl. */
+  /** Wechselt einen Tisch in/aus der Mehrfachauswahl.
+   *  Zusammengeführte Tische werden immer als Gruppe ein-/ausgewählt. */
   toggleTableSelection(id: number): void {
     if (id === 0) { this.form.tableIds = []; return; }
-    const idx = this.form.tableIds.indexOf(id);
-    if (idx >= 0) {
-      this.form.tableIds = this.form.tableIds.filter(x => x !== id);
+    const mergedIds = this.getMergedTableIds(id, this.room()?.tables ?? []);
+    const isSelected = this.form.tableIds.includes(id);
+    if (isSelected) {
+      // Alle Merge-Partner raus
+      this.form.tableIds = this.form.tableIds.filter(x => !mergedIds.includes(x));
     } else {
-      this.form.tableIds = [...this.form.tableIds, id];
+      // Alle Merge-Partner rein
+      const combined = new Set([...this.form.tableIds, ...mergedIds]);
+      this.form.tableIds = Array.from(combined);
     }
     this.form.tableId = this.form.tableIds[0] ?? 0;
   }
@@ -2271,6 +2509,141 @@ export class RaumDetailComponent implements OnInit {
     if (s === 'confirmed') return 'is-confirmed';
     if (s === 'upcoming')  return 'is-upcoming';
     return '';
+  }
+
+  // ── Tisch-Sperren (inline im Plan-Settings-Modal) ────────────────────────
+
+  psBlockSectionOpen = signal(false);
+
+  psFormFor  = signal<{ roomId: string; tableId: number } | null>(null);
+  psDateFrom = '';
+  psDateTo   = '';
+  psFullDay  = true;
+  psTimeFrom = '';
+  psTimeTo   = '';
+  psReason   = '';
+  psError    = signal<string | null>(null);
+  psSaving   = signal(false);
+
+  psOpenForm(roomId: string, tableId: number) {
+    const today = new Date().toISOString().slice(0, 10);
+    this.psDateFrom = today;
+    this.psDateTo   = today;
+    this.psFullDay  = true;
+    this.psTimeFrom = '';
+    this.psTimeTo   = '';
+    this.psReason   = '';
+    this.psError.set(null);
+    this.psFormFor.set({ roomId, tableId });
+  }
+
+  psSave() {
+    const ctx = this.psFormFor();
+    if (!ctx || this.psSaving()) return;
+    if (!this.psDateFrom || !this.psDateTo) {
+      this.psError.set('Bitte Start- und Enddatum angeben.'); return;
+    }
+    if (this.psDateTo < this.psDateFrom) {
+      this.psError.set('Das Enddatum darf nicht vor dem Startdatum liegen.'); return;
+    }
+    if (!this.psFullDay) {
+      if (!this.psTimeFrom || !this.psTimeTo) {
+        this.psError.set('Bitte Start- und Endzeit angeben.'); return;
+      }
+      if (this.psDateFrom === this.psDateTo && this.psTimeTo <= this.psTimeFrom) {
+        this.psError.set('Die Endzeit muss nach der Startzeit liegen.'); return;
+      }
+    }
+    this.psSaving.set(true);
+    this.psError.set(null);
+    this.tableBlockSvc.addBlock(ctx.roomId, {
+      tableId:  ctx.tableId,
+      dateFrom: this.psDateFrom,
+      dateTo:   this.psDateTo,
+      fullDay:  this.psFullDay,
+      timeFrom: this.psFullDay ? undefined : this.psTimeFrom,
+      timeTo:   this.psFullDay ? undefined : this.psTimeTo,
+      reason:   this.psReason.trim() || undefined,
+    }).subscribe({
+      next: () => {
+        this.psSaving.set(false);
+        this.psFormFor.set(null);
+      },
+      error: () => {
+        this.psSaving.set(false);
+        this.psError.set('Fehler beim Speichern der Sperrzeit.');
+      },
+    });
+  }
+
+  // ── Bestätigungs-Modal für Sperrung aufheben ─────────────────────────────
+  confirmDeleteBlockId = signal<string | null>(null);
+
+  confirmRemoveBlock(blockId: string, event: Event) {
+    event.stopPropagation();
+    this.confirmDeleteBlockId.set(blockId);
+  }
+
+  executeRemoveBlock() {
+    const id = this.confirmDeleteBlockId();
+    if (!id) return;
+    const venueId = this.room()?.id;
+    if (!venueId) { this.confirmDeleteBlockId.set(null); return; }
+    this.confirmDeleteBlockId.set(null);
+    this.tableBlockSvc.removeBlock(venueId, id).subscribe();
+  }
+
+  isBlockActiveNow(b: TableBlock): boolean {
+    const now   = new Date();
+    const today = now.toISOString().slice(0, 10);
+    if (today < b.dateFrom || today > b.dateTo) return false;
+    if (b.fullDay) return true;
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const [fh, fm] = (b.timeFrom ?? '00:00').split(':').map(Number);
+    const [th, tm] = (b.timeTo   ?? '23:59').split(':').map(Number);
+    return nowMin >= fh * 60 + fm && nowMin < th * 60 + tm;
+  }
+
+  formatBlockLabel(b: TableBlock): string {
+    const from = b.dateFrom === b.dateTo ? b.dateFrom : `${b.dateFrom} – ${b.dateTo}`;
+    if (b.fullDay) return `${from} (ganztägig)`;
+    return `${from}  ${b.timeFrom}–${b.timeTo}`;
+  }
+
+  isTableBlockedNow(tableId: number): boolean {
+    const roomId = this.room()?.id;
+    if (!roomId) return false;
+    return this.tableBlockSvc.isBlockedNow(roomId, tableId);
+  }
+
+  /** Prüft ob der Tisch am aktuell angezeigten Datum gesperrt ist (für Plan-Ansicht). */
+  isTableBlockedOnSelectedDate(tableId: number): boolean {
+    const roomId = this.room()?.id;
+    if (!roomId) return false;
+    return this.tableBlockSvc.isBlockedAt(roomId, tableId, this.selectedDate());
+  }
+
+  /** Prüft ob der Tisch am Formular-Datum + Formular-Uhrzeit gesperrt ist (für Tisch-Picker). */
+  isTableBlockedForForm(tableId: number): boolean {
+    const roomId = this.room()?.id;
+    if (!roomId) return false;
+    return this.tableBlockSvc.isBlockedAt(roomId, tableId, this.formDate(), this.form.time);
+  }
+
+  tableBlockReason(tableId: number): string | undefined {
+    const roomId = this.room()?.id;
+    if (!roomId) return undefined;
+    const active = this.tableBlockSvc.blocksForTable(roomId, tableId)
+      .find(b => this.tableBlockSvc.isBlockedNow(roomId, tableId));
+    return active?.reason;
+  }
+
+  tableBlockReasonOnDate(tableId: number): string | undefined {
+    const roomId = this.room()?.id;
+    if (!roomId) return undefined;
+    return this.tableBlockSvc.blocksForTable(roomId, tableId)
+      .find(b => this.tableBlockSvc.isBlockedAt(roomId, tableId, this.selectedDate()))
+      ?.reason;
   }
 
   // Für den Tisch-Picker im Dialog: alle (nicht gemergten Partner)

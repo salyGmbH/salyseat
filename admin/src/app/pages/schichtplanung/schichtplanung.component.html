@@ -1,0 +1,454 @@
+<div class="sp">
+
+  <!-- ══════ Header ══════ -->
+  <div class="sp__header">
+    <div class="sp__header-left">
+      <h1 class="sp__title"><mat-icon>calendar_month</mat-icon> {{ 'shift.title' | translate }}</h1>
+      <div class="sp__week-label">{{ weekLabel() }}</div>
+    </div>
+    <div class="sp__header-actions">
+      <button class="sp__btn sp__btn--ghost" (click)="copyLastWeek()">
+        <mat-icon>content_copy</mat-icon> {{ 'shift.copy_last_week' | translate }}
+      </button>
+      <button class="sp__btn sp__btn--ghost" (click)="printPlan()">
+        <mat-icon>print</mat-icon> {{ 'shift.print' | translate }}
+      </button>
+      <button class="sp__btn sp__btn--ghost" (click)="sidebarOpen.set(!sidebarOpen())">
+        <mat-icon>{{ sidebarOpen() ? 'menu_open' : 'menu' }}</mat-icon>
+      </button>
+      <div class="sp__week-nav">
+        <button class="sp__nav-btn" (click)="prevWeek()"><mat-icon>chevron_left</mat-icon></button>
+        <button class="sp__nav-btn sp__nav-btn--today"
+                [class.sp__nav-btn--today-active]="isCurrentWeek()"
+                (click)="goToday()">{{ 'shift.today' | translate }}</button>
+        <button class="sp__nav-btn" (click)="nextWeek()"><mat-icon>chevron_right</mat-icon></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ Sidebar (über Legende + Grid) ══════ -->
+  @if (sidebarOpen()) {
+    <aside class="sp__sidebar">
+
+      <div class="sp__sidebar-tabs">
+        <button class="sp__sidebar-tab" [class.active]="sidebarTab() === 'availability'"
+                (click)="sidebarTab.set('availability')">
+          <mat-icon>event_available</mat-icon> {{ 'shift.tab_availability' | translate }}
+        </button>
+        <button class="sp__sidebar-tab" [class.active]="sidebarTab() === 'templates'"
+                (click)="sidebarTab.set('templates')">
+          <mat-icon>bookmarks</mat-icon> {{ 'shift.tab_templates' | translate }}
+        </button>
+        <button class="sp__sidebar-tab" [class.active]="sidebarTab() === 'requests'"
+                (click)="sidebarTab.set('requests')">
+          <mat-icon>swap_horiz</mat-icon> {{ 'shift.tab_requests' | translate }}
+          @if (pendingSwaps().length > 0) {
+            <span class="sp__tab-badge">{{ pendingSwaps().length }}</span>
+          }
+        </button>
+        <button class="sp__sidebar-tab" [class.active]="sidebarTab() === 'settings'"
+                (click)="sidebarTab.set('settings')">
+          <mat-icon>tune</mat-icon> {{ 'shift.tab_settings' | translate }}
+        </button>
+      </div>
+
+      <!-- ════ TAB: Vorlagen ════ -->
+      @if (sidebarTab() === 'templates') {
+        <div class="sp__sidebar-body sp__sidebar-body--row">
+
+          <!-- Neue Vorlage speichern -->
+          <div class="sp__sb-col sp__sb-col--narrow">
+            <div class="sp__section-head">{{ 'shift.save_as_template' | translate }}</div>
+            @if (showTemplateSave) {
+              <div class="sp__inline-save">
+                <input class="sp__input" [(ngModel)]="templateNameInput"
+                       [placeholder]="'shift.template_name_placeholder' | translate">
+                <button class="sp__sm-btn sp__sm-btn--primary" (click)="saveTemplate()">{{ 'shift.save' | translate }}</button>
+                <button class="sp__sm-btn" (click)="showTemplateSave = false">✕</button>
+              </div>
+            } @else {
+              <button class="sp__sm-btn sp__sm-btn--primary" (click)="showTemplateSave = true">
+                <mat-icon>add</mat-icon> {{ 'shift.save_as_template' | translate }}
+              </button>
+            }
+          </div>
+
+          <!-- Gespeicherte Vorlagen -->
+          <div class="sp__sb-col">
+            <div class="sp__section-head">{{ 'shift.saved_templates' | translate }}</div>
+            @if (templates().length === 0) {
+              <div class="sp__empty">{{ 'shift.no_templates' | translate }}</div>
+            }
+            <div class="sp__template-list">
+              @for (tpl of templates(); track tpl.id) {
+                <div class="sp__template-item">
+                  <div class="sp__template-info">
+                    <mat-icon>bookmark</mat-icon>
+                    <span>{{ tpl.name }}</span>
+                    <span class="sp__template-count">{{ tpl.entries.length }} {{ 'shift.template_entries' | translate }}</span>
+                  </div>
+                  <div class="sp__template-actions">
+                    <button class="sp__icon-btn" [title]="'shift.entry_save' | translate" (click)="applyTemplate(tpl)">
+                      <mat-icon>play_arrow</mat-icon>
+                    </button>
+                    <button class="sp__icon-btn sp__icon-btn--danger" [title]="'shift.delete' | translate" (click)="deleteTemplate(tpl.id)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+        </div>
+      }
+
+      <!-- ════ TAB: Verfügbarkeit ════ -->
+      @if (sidebarTab() === 'availability') {
+        <div class="sp__sidebar-body sp__sidebar-body--row">
+
+          <!-- Legende -->
+          <div class="sp__sb-col sp__sb-col--narrow sp__avail-legend">
+            <div class="sp__section-head">{{ 'shift.avail_legend_title' | translate }}</div>
+            @for (av of availTypes; track av.key) {
+              <div class="sp__avail-legend-item">
+                <div class="sp__avail-dot sp__avail-dot--{{ av.key }}">
+                  <mat-icon>{{ av.icon }}</mat-icon>
+                </div>
+                <div class="sp__avail-legend-text">
+                  <span class="sp__avail-legend-label">{{ av.label | translate }}</span>
+                  <span class="sp__avail-legend-desc">{{ ('shift.avail_desc_' + av.key) | translate }}</span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Grid -->
+          <div class="sp__sb-col">
+          <div class="sp__avail-grid">
+            <div class="sp__avail-head-emp"></div>
+            @for (wd of weekdayLabels; track $index) {
+              <div class="sp__avail-head-day">{{ wd }}</div>
+            }
+            @for (emp of activeEmployees(); track emp.id) {
+              <div class="sp__avail-emp">{{ emp.name }}</div>
+              @for (wd of weekdayLabels; track $index; let wi = $index) {
+                @let avail = getAvailability(emp.id, wi);
+                <button class="sp__avail-dot"
+                        [class.sp__avail-dot--preferred]="avail === 'preferred'"
+                        [class.sp__avail-dot--available]="avail === 'available'"
+                        [class.sp__avail-dot--unavailable]="avail === 'unavailable'"
+                        (click)="cycleAvailability(emp.id, wi)">
+                  @if (avail) { <mat-icon>{{ availIcon(avail) }}</mat-icon> }
+                </button>
+              }
+            }
+          </div>
+          </div>
+
+        </div>
+      }
+
+      <!-- ════ TAB: Tausch-Anfragen ════ -->
+      @if (sidebarTab() === 'requests') {
+        <div class="sp__sidebar-body sp__sidebar-body--row">
+
+          <!-- Offen -->
+          <div class="sp__sb-col">
+            <div class="sp__section-head">{{ 'shift.open_requests' | translate }}</div>
+            @if (pendingSwaps().length === 0) {
+              <div class="sp__empty">{{ 'shift.no_pending' | translate }}</div>
+            }
+            @for (req of swapRequests(); track req.id) {
+              @if (req.status === 'pending') {
+                <div class="sp__swap-card">
+                  <div class="sp__swap-info">
+                    <span class="sp__swap-names">{{ swapFromName(req) }} → {{ swapToName(req) }}</span>
+                    <span class="sp__swap-date">{{ swapDateLabel(req) }}</span>
+                    @if (req.note) { <span class="sp__swap-note">{{ req.note }}</span> }
+                  </div>
+                  <div class="sp__swap-btns">
+                    <button class="sp__icon-btn sp__icon-btn--success" (click)="resolveSwap(req.id, true)"><mat-icon>check</mat-icon></button>
+                    <button class="sp__icon-btn sp__icon-btn--danger"  (click)="resolveSwap(req.id, false)"><mat-icon>close</mat-icon></button>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+
+          <!-- Erledigt -->
+          <div class="sp__sb-col">
+            <div class="sp__section-head">{{ 'shift.resolved_requests' | translate }}</div>
+            @if (resolvedSwaps().length === 0) {
+              <div class="sp__empty">{{ 'shift.no_resolved' | translate }}</div>
+            }
+            @for (req of swapRequests(); track req.id) {
+              @if (req.status !== 'pending') {
+                <div class="sp__swap-card sp__swap-card--done">
+                  <div class="sp__swap-info">
+                    <span class="sp__swap-names">{{ swapFromName(req) }} ↔ {{ swapToName(req) }}</span>
+                    <span class="sp__swap-date">{{ swapDateLabel(req) }}</span>
+                  </div>
+                  <div class="sp__swap-status" [class.sp__swap-status--accepted]="req.status === 'accepted'">
+                    {{ (req.status === 'accepted' ? 'shift.accepted' : 'shift.rejected') | translate }}
+                  </div>
+                  <button class="sp__icon-btn" (click)="deleteSwap(req.id)"><mat-icon>delete</mat-icon></button>
+                </div>
+              }
+            }
+          </div>
+
+        </div>
+      }
+
+      <!-- ════ TAB: Einstellungen ════ -->
+      @if (sidebarTab() === 'settings') {
+        <div class="sp__sidebar-body sp__sidebar-body--row">
+
+          <!-- Überstunden-Limit -->
+          <div class="sp__sb-col sp__sb-col--narrow">
+            <div class="sp__section-head">{{ 'shift.overtime_limit' | translate }}</div>
+            <div class="sp__setting-row">
+              <label>{{ 'shift.hours_per_week' | translate }}</label>
+              <input type="number" class="sp__input sp__input--sm"
+                     [ngModel]="settings().overtimeLimit"
+                     (ngModelChange)="setOvertimeLimit($event)" min="1" max="80">
+            </div>
+          </div>
+
+          <!-- Mindestbesetzung: 3-Spalten-Grid -->
+          <div class="sp__sb-col">
+            <div class="sp__section-head">{{ 'shift.min_staff' | translate }}</div>
+            <div class="sp__minstaff-grid">
+              @for (wd of weekdayFull; track $index; let wi = $index) {
+                <div class="sp__minstaff-cell">
+                  <label>{{ wd }}</label>
+                  <input type="number" class="sp__input sp__input--sm"
+                         [ngModel]="getMinStaff(wi)"
+                         (ngModelChange)="setMinStaff(wi, $event)" min="0" max="20">
+                </div>
+              }
+            </div>
+          </div>
+
+        </div>
+      }
+
+    </aside>
+  }
+
+  <!-- ══════ Legende ══════ -->
+  <div class="sp__legend">
+    @for (def of shiftDefs; track def.key) {
+      <div class="sp__legend-item">
+        <span class="sp__legend-dot" [style.background]="def.color"></span>
+        <span>{{ def.label | translate }}</span>
+        @if (def.defaultStart) { <span class="sp__legend-time">{{ def.defaultStart }}–{{ def.defaultEnd }}</span> }
+      </div>
+    }
+    <span class="sp__legend-sep"></span>
+    @for (av of availTypes; track av.key) {
+      <div class="sp__legend-item">
+        <mat-icon class="sp__legend-small-icon" [style.color]="av.color">{{ av.icon }}</mat-icon>
+        <span>{{ av.label | translate }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- ══════ Body: Grid + Sidebar ══════ -->
+  <div class="sp__body">
+
+    <!-- ── Grid-Bereich ── -->
+    <div class="sp__main">
+      @if (loading()) {
+        <div class="sp__loading">
+          <mat-icon class="sp__loading-spin">sync</mat-icon> {{ 'shift.loading' | translate }}
+        </div>
+      } @else {
+        <div class="sp__grid-wrap">
+          <div class="sp__grid">
+
+            <!-- ── Spalten-Header ── -->
+            <div class="sp__col-head sp__col-head--employee">{{ 'shift.employee_col' | translate }}</div>
+            @for (day of weekDays(); track $index; let i = $index) {
+              @let iso = toIso(day);
+              @let resCount = reservationsForDay(iso);
+              @let understaffed = isUnderstaffed(day, i);
+              <div class="sp__col-head"
+                   [class.sp__col-head--today]="isToday(day)"
+                   [class.sp__col-head--past]="isPast(day)"
+                   [class.sp__col-head--weekend]="i >= 5"
+                   [class.sp__col-head--warn]="understaffed">
+                <span class="sp__col-head-wd">{{ weekdayLabels[i] }}</span>
+                <span class="sp__col-head-date">{{ day.getDate() }}.</span>
+                <div class="sp__col-head-badges">
+                  @if (resCount > 0) {
+                    <span class="sp__badge sp__badge--res" title="{{ resCount }} Reservierungen">
+                      <mat-icon>table_restaurant</mat-icon>{{ resCount }}
+                    </span>
+                  }
+                  @if (understaffed) {
+                    <span class="sp__badge sp__badge--warn">
+                      <mat-icon>warning</mat-icon>{{ staffCountForDay(iso) }}/{{ getMinStaff(i) }}
+                    </span>
+                  } @else if (hoursForDay(iso) > 0) {
+                    <span class="sp__badge sp__badge--ok">{{ formatHours(hoursForDay(iso)) }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- ── Mitarbeiter-Zeilen ── -->
+            @for (emp of activeEmployees(); track emp.id) {
+              <div class="sp__emp">
+                <div class="sp__emp-avatar">{{ initials(emp.name) }}</div>
+                <div class="sp__emp-info">
+                  <span class="sp__emp-name">{{ emp.name }}</span>
+                  <span class="sp__emp-role">{{ roleLabel(emp.role) }}</span>
+                </div>
+              </div>
+
+              @for (day of weekDays(); track $index; let di = $index) {
+                @let shift = getShift(emp.id, toIso(day));
+                @let avail = getAvailability(emp.id, di);
+                <div class="sp__cell"
+                     [class.sp__cell--today]="isToday(day)"
+                     [class.sp__cell--past]="isPast(day)"
+                     [class.sp__cell--weekend]="di >= 5"
+                     [class.sp__cell--filled]="!!shift"
+                     [class.sp__cell--preferred]="!shift && avail === 'preferred'"
+                     [class.sp__cell--unavailable]="!shift && avail === 'unavailable'"
+                     (click)="openCell(emp.id, day)">
+                  @if (shift) {
+                    @let def = shiftMap[shift.type];
+                    <div class="sp__shift" [style.--shift-color]="def.color">
+                      <mat-icon class="sp__shift-icon">{{ def.icon }}</mat-icon>
+                      <div class="sp__shift-body">
+                        <span class="sp__shift-label">{{ def.label | translate }}</span>
+                        @if (shift.startTime && shift.endTime) {
+                          <span class="sp__shift-time">{{ shift.startTime }}–{{ shift.endTime }}</span>
+                        }
+                        @if (shift.note) { <span class="sp__shift-note">{{ shift.note }}</span> }
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="sp__cell-empty">
+                      @if (avail) {
+                        <mat-icon class="sp__cell-avail-icon" [style.color]="availColor(avail)">{{ availIcon(avail) }}</mat-icon>
+                      }
+                      <mat-icon class="sp__cell-add-icon">add</mat-icon>
+                    </div>
+                  }
+                </div>
+              }
+
+            }
+
+
+          </div>
+        </div>
+      }
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ══════ Schicht-Popup ══════ -->
+@if (popup()) {
+  <div class="sp-popup-overlay" (click)="closePopup()"></div>
+  <div class="sp-popup">
+
+    <div class="sp-popup__head">
+      <div class="sp-popup__who">
+        <div class="sp-popup__avatar">{{ initials(popupEmployee()?.name ?? '') }}</div>
+        <div>
+          <div class="sp-popup__name">{{ popupEmployee()?.name }}</div>
+          <div class="sp-popup__date">{{ popupDateLabel() }}</div>
+        </div>
+      </div>
+      <button class="sp-popup__close" (click)="closePopup()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    @if (!popup()?.showSwapForm) {
+
+      <div class="sp-popup__types">
+        @for (def of shiftDefs; track def.key) {
+          <button class="sp-popup__type-btn"
+                  [class.sp-popup__type-btn--active]="popupType === def.key"
+                  [style.--btn-color]="def.color"
+                  (click)="selectPopupType(def.key)">
+            <mat-icon>{{ def.icon }}</mat-icon>
+            <span>{{ def.label | translate }}</span>
+          </button>
+        }
+      </div>
+
+      @if (popupType !== 'off' && popupType !== 'vacation' && popupType !== 'sick') {
+        <div class="sp-popup__times">
+          <div class="sp-popup__field">
+            <label>{{ 'shift.from' | translate }}</label>
+            <input type="time" [(ngModel)]="popupStart" class="sp-popup__time-input">
+          </div>
+          <div class="sp-popup__sep">–</div>
+          <div class="sp-popup__field">
+            <label>{{ 'shift.to' | translate }}</label>
+            <input type="time" [(ngModel)]="popupEnd" class="sp-popup__time-input">
+          </div>
+        </div>
+      }
+
+      <div class="sp-popup__note-wrap">
+        <input type="text" class="sp-popup__note" [(ngModel)]="popupNote"
+               [placeholder]="'shift.note_placeholder' | translate">
+      </div>
+
+      <div class="sp-popup__actions">
+        @if (popup()?.mode === 'edit') {
+          <button class="sp-popup__btn sp-popup__btn--ghost" (click)="openSwapForm()">
+            <mat-icon>swap_horiz</mat-icon> {{ 'shift.swap_request' | translate }}
+          </button>
+          <button class="sp-popup__btn sp-popup__btn--delete" (click)="deleteShift()">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+        <button class="sp-popup__btn sp-popup__btn--save" (click)="savePopup()">
+          <mat-icon>check</mat-icon>
+          {{ (popup()?.mode === 'edit' ? 'shift.save' : 'shift.entry_save') | translate }}
+        </button>
+      </div>
+
+    } @else {
+
+      <div class="sp-popup__swap">
+        <div class="sp-popup__swap-title">
+          <mat-icon>swap_horiz</mat-icon> {{ 'shift.swap_title' | translate }}
+        </div>
+        <div class="sp-popup__field">
+          <label>{{ 'shift.swap_with' | translate }}</label>
+          <select class="sp-popup__select" [(ngModel)]="swapTargetId">
+            <option value="">{{ 'shift.swap_employee_placeholder' | translate }}</option>
+            @for (emp of otherEmployees(); track emp.id) {
+              <option [value]="emp.id">{{ emp.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="sp-popup__field">
+          <label>{{ 'shift.note_placeholder' | translate }}</label>
+          <input type="text" class="sp-popup__note" [(ngModel)]="swapNote"
+                 [placeholder]="'shift.swap_note_placeholder' | translate">
+        </div>
+        <div class="sp-popup__actions">
+          <button class="sp-popup__btn sp-popup__btn--ghost" (click)="closeSwapForm()">
+            {{ 'shift.back' | translate }}
+          </button>
+          <button class="sp-popup__btn sp-popup__btn--save" [disabled]="!swapTargetId" (click)="submitSwap()">
+            <mat-icon>send</mat-icon> {{ 'shift.send' | translate }}
+          </button>
+        </div>
+      </div>
+
+    }
+
+  </div>
+}

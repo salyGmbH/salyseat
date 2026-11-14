@@ -369,9 +369,13 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-
-.salyseat-datepicker-panel.mat-datepicker-content,
-.salyseat-datepicker-panel .mat-datepicker-content {
+// ─────────────────────────────────────────────────────────────────────────
+//  MatDatepicker — Panel-Style (reagiert automatisch aufs Theme)
+//  Das Popup lebt in einem CDK-Overlay außerhalb der Komponente,
+//  deswegen hier global via panelClass="saly-datepicker-panel".
+// ─────────────────────────────────────────────────────────────────────────
+.saly-datepicker-panel.mat-datepicker-content,
+.saly-datepicker-panel .mat-datepicker-content {
   background: $color-surface;
   color: $color-text-on-dark;
   border: 1px solid $color-border;

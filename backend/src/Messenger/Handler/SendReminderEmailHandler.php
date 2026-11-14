@@ -6,6 +6,7 @@ namespace App\Messenger\Handler;
 
 use App\Messenger\Message\SendReminderEmail;
 use App\Messenger\Service\TenantEmailSettingsProvider;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Email;
@@ -18,6 +19,7 @@ final class SendReminderEmailHandler
         private readonly MailerInterface              $mailer,
         private readonly Environment                 $twig,
         private readonly TenantEmailSettingsProvider $settings,
+        private readonly LoggerInterface             $logger,
         private readonly string                      $mailerSender,
         private readonly string                      $publicDir,
     ) {}
@@ -52,6 +54,20 @@ final class SendReminderEmailHandler
             }
         }
 
-        $this->mailer->send($email);
+        try {
+            $this->mailer->send($email);
+            $this->logger->info('Erinnerungsmail gesendet', [
+                'reservation_id' => $message->reservationId,
+                'to'             => $message->guestEmail,
+                'venue'          => $message->venueName,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('Erinnerungsmail fehlgeschlagen', [
+                'reservation_id' => $message->reservationId,
+                'to'             => $message->guestEmail,
+                'error'          => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 }

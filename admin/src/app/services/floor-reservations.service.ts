@@ -143,6 +143,7 @@ export class FloorReservationsService {
       time,
       durationMinutes,
       tableId:            br.table_number ?? undefined,
+      tableIds:           (br as any).table_ids?.length ? (br as any).table_ids : (br.table_number ? [br.table_number] : undefined),
       status:             this.mapBackendStatus(br.status, br.table_number),
       notes:              br.guest_notes          ?? undefined,
       phone:              br.guest_phone          ?? undefined,

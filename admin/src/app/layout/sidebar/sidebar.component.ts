@@ -25,8 +25,8 @@ export class SidebarComponent implements OnDestroy {
 
   collapsed = signal(false);
 
-  restaurants = ['Salyseat Restaurant', 'Restaurant X', 'Cafe Y'];
-  selectedRestaurant = signal('Salyseat Restaurant');
+  restaurants = ['SALY Restaurant', 'Restaurant X', 'Cafe Y'];
+  selectedRestaurant = signal('SALY Restaurant');
 
   // Eingeloggten User für die Sidebar zugänglich machen
   currentUserEmail = computed(() => this.auth.user()?.email ?? '');

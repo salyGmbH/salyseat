@@ -862,9 +862,14 @@ export class StartComponent implements OnInit {
   );
 
   readonly availableTables = computed<WidgetVenueTable[]>(() => {
-    const booked = this.availability()?.bookedTableNumbers ?? [];
-    return this.venueTables().filter(t => !booked.includes(t.id));
+    const booked   = this.availability()?.bookedTableNumbers  ?? [];
+    const blocked  = this.availability()?.blockedTableNumbers ?? [];
+    return this.venueTables().filter(t => !booked.includes(t.id) && !blocked.includes(t.id));
   });
+
+  readonly blockedTableIds = computed<number[]>(() =>
+    this.availability()?.blockedTableNumbers ?? []
+  );
 
   // Tische die zur Personenzahl passen (für Vollbild-Overlay).
   // Zeigt nur die kleinste passende Tischgröße (engste Passung).

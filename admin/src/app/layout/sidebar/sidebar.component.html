@@ -36,6 +36,11 @@
       <mat-icon>bar_chart</mat-icon>
       @if (!collapsed()) { <span>{{ 'nav.statistics' | translate }}</span> }
     </a>
+    <a routerLink="/schichtplanung" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? ('nav.shift_planning' | translate) : ''" (click)="layout.closeMobile()">
+      <mat-icon>calendar_month</mat-icon>
+      @if (!collapsed()) { <span>{{ 'nav.shift_planning' | translate }}</span> }
+    </a>
     <a routerLink="/einstellungen/notizen" routerLinkActive="active" class="nav-item"
        [title]="collapsed() ? ('nav.notes' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>sticky_note_2</mat-icon>

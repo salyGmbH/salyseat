@@ -95,7 +95,7 @@
     <!-- Palette -->
     <div class="palette">
       <span class="palette__label">{{ 'restaurant_plan.tables' | translate }}</span>
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'round')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'round')" (pointerdown)="onPalettePointerDown($event, 'round')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <circle cx="35" cy="5"  r="5" fill="#2979ff" opacity="0.8"/>
           <circle cx="35" cy="65" r="5" fill="#2979ff" opacity="0.8"/>
@@ -105,7 +105,7 @@
         </svg>
         <span>{{ 'restaurant_plan.round_table' | translate }}</span>
       </div>
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'square')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'square')" (pointerdown)="onPalettePointerDown($event, 'square')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <rect x="25" y="1"  width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
           <rect x="25" y="59" width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
@@ -115,7 +115,7 @@
         </svg>
         <span>{{ 'restaurant_plan.square_table' | translate }}</span>
       </div>
-      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'long')">
+      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'long')" (pointerdown)="onPalettePointerDown($event, 'long')">
         <svg viewBox="0 0 140 70" class="table-svg table-svg--wide">
           <rect x="18" y="2"  width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
           <rect x="60" y="2"  width="20" height="10" rx="3" fill="#2979ff" opacity="0.8"/>
@@ -129,13 +129,13 @@
       </div>
       <div class="palette__divider"></div>
       <span class="palette__label">{{ 'restaurant_plan.room_divider' | translate }}</span>
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'wall')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'wall')" (pointerdown)="onPalettePointerDown($event, 'wall')">
         <svg viewBox="0 0 70 24" class="wall-svg">
           <rect x="0" y="8" width="70" height="8" rx="2" fill="#546e7a" stroke="#78909c" stroke-width="1"/>
         </svg>
         <span>{{ 'restaurant_plan.room_divider' | translate }}</span>
       </div>
-      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'window')">
+      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'window')" (pointerdown)="onPalettePointerDown($event, 'window')">
         <svg viewBox="0 0 140 32" class="wall-svg table-svg--wide">
           <rect x="6"   y="10" width="128" height="12" rx="2" fill="#1a1f2e" stroke="#2979ff" stroke-width="1.6"/>
           <line x1="20" y1="16" x2="120" y2="16" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.4"/>
@@ -149,7 +149,7 @@
       <div class="palette__divider"></div>
       <span class="palette__label">{{ 'restaurant_plan.decor' | translate }}</span>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'entrance')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'entrance')" (pointerdown)="onPalettePointerDown($event, 'entrance')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <rect x="8" y="10" width="54" height="50" rx="4" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <path d="M 18 35 L 50 35 M 42 27 L 50 35 L 42 43" fill="none" stroke="#ffb700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -158,7 +158,7 @@
         <span>{{ 'restaurant_plan.entrance' | translate }}</span>
       </div>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'cashier')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'cashier')" (pointerdown)="onPalettePointerDown($event, 'cashier')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <rect x="10" y="22" width="50" height="34" rx="4" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <rect x="22" y="10" width="26" height="14" rx="3" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
@@ -173,7 +173,7 @@
         <span>{{ 'restaurant_plan.cashier' | translate }}</span>
       </div>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'plant')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'plant')" (pointerdown)="onPalettePointerDown($event, 'plant')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <path d="M 22 50 L 26 64 L 44 64 L 48 50 Z" fill="#1a1f2e" stroke="#2979ff" stroke-width="2" stroke-linejoin="round"/>
           <line x1="22" y1="52" x2="48" y2="52" stroke="#2979ff" stroke-width="2"/>
@@ -184,7 +184,7 @@
         <span>{{ 'restaurant_plan.plant' | translate }}</span>
       </div>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'pillar')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'pillar')" (pointerdown)="onPalettePointerDown($event, 'pillar')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <circle cx="35" cy="35" r="22" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <circle cx="35" cy="35" r="14" fill="none" stroke="#2979ff" stroke-opacity="0.5" stroke-width="1.4"/>
@@ -193,7 +193,7 @@
         <span>{{ 'restaurant_plan.pillar' | translate }}</span>
       </div>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'door')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'door')" (pointerdown)="onPalettePointerDown($event, 'door')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <rect x="14" y="6"  width="42" height="58" rx="2" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <rect x="20" y="12" width="30" height="22" rx="1.5" fill="none" stroke="#2979ff" stroke-opacity="0.55" stroke-width="1.4"/>
@@ -203,7 +203,7 @@
         <span>{{ 'restaurant_plan.door' | translate }}</span>
       </div>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'wc')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'wc')" (pointerdown)="onPalettePointerDown($event, 'wc')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <rect x="10" y="10" width="50" height="50" rx="6" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <circle cx="35" cy="26" r="6" fill="#2979ff" opacity="0.85"/>
@@ -213,7 +213,7 @@
         <span>{{ 'restaurant_plan.wc' | translate }}</span>
       </div>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'stairs')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'stairs')" (pointerdown)="onPalettePointerDown($event, 'stairs')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <rect x="8" y="10" width="54" height="50" rx="4" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <line x1="8" y1="20" x2="62" y2="20" stroke="#2979ff" stroke-opacity="0.7" stroke-width="1.4"/>
@@ -225,7 +225,7 @@
         <span>{{ 'restaurant_plan.stairs' | translate }}</span>
       </div>
 
-      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'coatrack')">
+      <div class="palette__item" draggable="true" (dragstart)="onPaletteDragStart($event, 'coatrack')" (pointerdown)="onPalettePointerDown($event, 'coatrack')">
         <svg viewBox="0 0 70 70" class="table-svg">
           <rect x="20" y="56" width="30" height="6" rx="2" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <line x1="35" y1="56" x2="35" y2="14" stroke="#2979ff" stroke-width="2.4" stroke-linecap="round"/>
@@ -238,7 +238,7 @@
         <span>{{ 'restaurant_plan.coatrack' | translate }}</span>
       </div>
 
-      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'bar')">
+      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'bar')" (pointerdown)="onPalettePointerDown($event, 'bar')">
         <svg viewBox="0 0 140 70" class="table-svg table-svg--wide">
           <circle cx="20"  cy="60" r="5" fill="#2979ff" opacity="0.8"/>
           <circle cx="50"  cy="60" r="5" fill="#2979ff" opacity="0.8"/>
@@ -251,7 +251,7 @@
         <span>{{ 'restaurant_plan.bar' | translate }}</span>
       </div>
 
-      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'stage')">
+      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'stage')" (pointerdown)="onPalettePointerDown($event, 'stage')">
         <svg viewBox="0 0 140 70" class="table-svg table-svg--wide">
           <rect x="6" y="14" width="128" height="42" rx="4" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <line x1="20" y1="56" x2="120" y2="56" stroke="#2979ff" stroke-opacity="0.5" stroke-width="1.4"/>
@@ -265,7 +265,7 @@
         <span>{{ 'restaurant_plan.stage' | translate }}</span>
       </div>
 
-      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'sofa')">
+      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'sofa')" (pointerdown)="onPalettePointerDown($event, 'sofa')">
         <svg viewBox="0 0 140 70" class="table-svg table-svg--wide">
           <rect x="6" y="10" width="128" height="14" rx="6" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
           <rect x="6" y="24" width="128" height="30" rx="6" fill="#1a1f2e" stroke="#2979ff" stroke-width="2"/>
@@ -284,7 +284,19 @@
     <div class="room-canvas" #canvas
          (pointerdown)="onCanvasMouseDown($event)"
          (dragover)="onCanvasDragOver($event)"
-         (drop)="onCanvasDrop($event)">
+         (drop)="onCanvasDrop($event)"
+         (wheel)="onCanvasWheel($event)">
+
+      <!-- Zoom Controls -->
+      <div class="zoom-controls" (pointerdown)="$event.stopPropagation()">
+        <button class="zoom-btn" (click)="zoomIn()" title="Vergrößern"><mat-icon>add</mat-icon></button>
+        <span class="zoom-level">{{ (zoom() * 100) | number:'1.0-0' }}%</span>
+        <button class="zoom-btn" (click)="zoomOut()" title="Verkleinern"><mat-icon>remove</mat-icon></button>
+        <button class="zoom-btn zoom-btn--reset" (click)="zoomReset()" title="Zurücksetzen"><mat-icon>center_focus_strong</mat-icon></button>
+      </div>
+
+      <!-- Inner canvas — verschiebbarer & zoombarer Bereich -->
+      <div class="canvas-inner" [style.transform]="canvasTransform()">
 
       @if (placedTables().length === 0 && placedWalls().length === 0 && placedDecors().length === 0) {
         <div class="room-canvas__hint">
@@ -528,6 +540,8 @@
           </div>
         }
       }
+
+      </div><!-- /canvas-inner -->
 
       <!-- ── Dialoge ──────────────────────────────────────────────────── -->
 

@@ -6,6 +6,7 @@ namespace App\Messenger\Handler;
 
 use App\Messenger\Message\SendConfirmationEmail;
 use App\Messenger\Service\TenantEmailSettingsProvider;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Email;
@@ -18,9 +19,9 @@ final class SendConfirmationEmailHandler
         private readonly MailerInterface              $mailer,
         private readonly Environment                 $twig,
         private readonly TenantEmailSettingsProvider $settings,
+        private readonly LoggerInterface             $logger,
         private readonly string                      $mailerSender,
         private readonly string                      $publicDir,
-        private readonly string                      $widgetBaseUrl,
     ) {}
 
     public function __invoke(SendConfirmationEmail $message): void
@@ -32,7 +33,7 @@ final class SendConfirmationEmailHandler
             'venue_name'  => $message->venueName,
             'starts_at'   => $message->startsAt,
             'party_size'  => $message->partySize,
-            'cancel_url'  => sprintf('%s/cancel/%s', rtrim($this->widgetBaseUrl, '/'), $message->reservationToken),
+            'cancel_url'  => sprintf('https://widget.salyseat.io/cancel/%s', $message->reservationToken),
             'mail_content' => $s['content']['confirmation'],
             'design'       => $s['design'],
             'social'       => $s['social'],
@@ -54,6 +55,20 @@ final class SendConfirmationEmailHandler
             }
         }
 
-        $this->mailer->send($email);
+        try {
+            $this->mailer->send($email);
+            $this->logger->info('Bestätigungsmail gesendet', [
+                'reservation_id' => $message->reservationId,
+                'to'             => $message->guestEmail,
+                'venue'          => $message->venueName,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('Bestätigungsmail fehlgeschlagen', [
+                'reservation_id' => $message->reservationId,
+                'to'             => $message->guestEmail,
+                'error'          => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 }

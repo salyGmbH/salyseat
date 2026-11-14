@@ -7,6 +7,7 @@ namespace App\Module\Reservation\Application\Command\AdminCancelReservation;
 use App\Messenger\Message\SendCancellationEmail;
 use App\Module\Reservation\Domain\Entity\Reservation;
 use App\Module\Reservation\Domain\Repository\ReservationRepositoryInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -15,6 +16,7 @@ final class AdminCancelReservationHandler
     public function __construct(
         private readonly ReservationRepositoryInterface $reservations,
         private readonly MessageBusInterface $bus,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function __invoke(AdminCancelReservationCommand $cmd): Reservation
@@ -31,6 +33,12 @@ final class AdminCancelReservationHandler
         }
 
         $reservation->cancel();
+
+        $this->logger->info('Reservierung storniert (Admin)', [
+            'reservation_id' => $cmd->reservationId,
+            'email'          => $reservation->getGuestEmail(),
+            'venue'          => $reservation->getVenue()->getName(),
+        ]);
 
         // Stornierungen beim Gast zählen
         $guest = $reservation->getGuest();
