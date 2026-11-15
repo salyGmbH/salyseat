@@ -1522,6 +1522,141 @@
 }
 
 
+// ─── Venue Order List (Block 0) ───────────────────────────────────────────────
+.venue-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.venue-order-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), 0.02);
+  transition: background 0.15s, border-color 0.15s;
+
+  &--offline {
+    opacity: 0.55;
+  }
+
+  &__rank {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(var(--color-primary-rgb), 0.10);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: $color-primary;
+    flex-shrink: 0;
+  }
+
+  &__icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $color-text-muted;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: $color-text-on-dark;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+    background: rgba(var(--color-success-rgb), 0.12);
+    border: 1px solid rgba(var(--color-success-rgb), 0.30);
+    color: $color-success;
+
+    &--offline {
+      background: rgba(var(--color-text-rgb), 0.06);
+      border-color: rgba(var(--color-text-rgb), 0.18);
+      color: $color-text-muted;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+}
+
+.venue-order-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), 0.03);
+  color: $color-text-muted;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $color-primary;
+    color: $color-primary;
+    background: rgba(var(--color-primary-rgb), 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+
+  &--toggle {
+    width: auto;
+    padding: 0 10px;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &.venue-order-btn--online {
+      border-color: rgba(var(--color-success-rgb), 0.35);
+      color: $color-success;
+      background: rgba(var(--color-success-rgb), 0.08);
+
+      &:hover { background: rgba(var(--color-success-rgb), 0.15); }
+    }
+
+    &.venue-order-btn--offline {
+      border-color: rgba(var(--color-text-rgb), 0.18);
+      color: $color-text-muted;
+      background: rgba(var(--color-text-rgb), 0.04);
+
+      &:hover { border-color: $color-warn; color: $color-warn; background: rgba(var(--color-warn-rgb), 0.07); }
+    }
+  }
+}
+
 // ─── Speisekarte-Generator Hinweis ───────────────────────────────────────────
 .speisekarte-gen-hint {
   display: flex;

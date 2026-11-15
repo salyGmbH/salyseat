@@ -123,6 +123,7 @@ export class StartComponent implements OnInit {
   maxPersonenEmail        = signal<string>('');
   raumauswahl             = signal<boolean>(false);
   raumauswahlAktiveIds    = signal<string[]>([]);
+  venueReihenfolge        = signal<{ venueId: string; onlineVerfuegbar: boolean }[]>([]);
   menuOpen                = signal<boolean>(false);
   hinweisOpen             = signal<boolean>(false);
   cardShowErrors          = signal<boolean>(false);
@@ -301,9 +302,34 @@ export class StartComponent implements OnInit {
 
   readonly filteredVenues = computed<WidgetVenue[]>(() => {
     const all = this.venues();
-    if (!this.raumauswahl() || this.raumauswahlAktiveIds().length === 0) return all;
-    const ids = this.raumauswahlAktiveIds();
-    return all.filter(v => ids.includes(v.id));
+    const reihenfolge = this.venueReihenfolge();
+
+    // Step 1: apply raumauswahl filter (active room IDs)
+    let result = all;
+    if (this.raumauswahl() && this.raumauswahlAktiveIds().length > 0) {
+      const ids = this.raumauswahlAktiveIds();
+      result = result.filter(v => ids.includes(v.id));
+    }
+
+    // Step 2: filter out venues explicitly marked as offline
+    if (reihenfolge.length > 0) {
+      const offlineIds = new Set(
+        reihenfolge.filter(r => !r.onlineVerfuegbar).map(r => r.venueId)
+      );
+      result = result.filter(v => !offlineIds.has(v.id));
+    }
+
+    // Step 3: sort by venueReihenfolge position (unlisted venues go to end)
+    if (reihenfolge.length > 0) {
+      const posMap = new Map(reihenfolge.map((r, i) => [r.venueId, i]));
+      result = [...result].sort((a, b) => {
+        const posA = posMap.has(a.id) ? posMap.get(a.id)! : 9999;
+        const posB = posMap.has(b.id) ? posMap.get(b.id)! : 9999;
+        return posA - posB;
+      });
+    }
+
+    return result;
   });
 
   readonly timeSlots = computed<string[]>(() => {
@@ -1303,6 +1329,7 @@ export class StartComponent implements OnInit {
     if (typeof func.zahlungPflicht === 'boolean')      this.zahlungPflicht.set(func.zahlungPflicht);
     if (typeof func.noShowSchutzAktiv === 'boolean')   this.noShowSchutzAktiv.set(func.noShowSchutzAktiv);
     if (func.noShowWidgetText)                         this.noShowWidgetText.set(func.noShowWidgetText);
+    if (Array.isArray(func.venueReihenfolge))          this.venueReihenfolge.set(func.venueReihenfolge);
   }
 
   private isDarkBackground(hex: string): boolean {

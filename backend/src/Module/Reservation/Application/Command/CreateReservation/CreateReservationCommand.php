@@ -17,5 +17,6 @@ final readonly class CreateReservationCommand
         public ?int $tableNumber = null,
         public ?int $durationMinutes = null,
         public bool $adminOverride = false,
+        public ?string $source = null,
     ) {}
 }

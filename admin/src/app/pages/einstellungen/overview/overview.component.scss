@@ -4,19 +4,19 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(6, auto);
   grid-auto-flow: column;
   gap: 16px;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(9, auto);
+    grid-auto-flow: row;
+    grid-template-rows: none !important; // Inline-Binding überschreiben
   }
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
-    grid-template-rows: none;
     grid-auto-flow: row;
+    grid-template-rows: none !important;
   }
 }
 .item {

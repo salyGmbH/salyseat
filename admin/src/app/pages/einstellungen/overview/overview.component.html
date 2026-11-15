@@ -1,6 +1,6 @@
-<div class="grid">
+<div class="grid" [style.grid-template-rows]="'repeat(' + rows() + ', auto)'">
   <a class="item"
-     *ngFor="let item of items"
+     *ngFor="let item of items()"
      [routerLink]="item.route"
      routerLinkActive="active">
     <div class="icon">

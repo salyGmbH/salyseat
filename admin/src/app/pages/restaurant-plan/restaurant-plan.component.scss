@@ -108,7 +108,7 @@
   transition: background 0.2s, color 0.2s;
 
   mat-icon { font-size: 20px; width: 20px; height: 20px; }
-  &:hover { background-color: rgba(var(--color-text-rgb), 0.06); color: $color-white; }
+  &:hover { background-color: rgba(var(--color-text-rgb), 0.06); color: $color-text; }
 }
 
 // ── Room Editor ───────────────────────────────────────────────────────────────
@@ -405,7 +405,7 @@
   overflow: hidden;
   touch-action: none;
   isolation: isolate;
-  background-color: #0d1117;
+  background-color: $color-bg;
   background-image:
     linear-gradient(rgba(var(--color-text-rgb), 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(var(--color-text-rgb), 0.04) 1px, transparent 1px);
@@ -435,8 +435,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background: rgba(15, 20, 30, 0.85);
-  border: 1px solid rgba(var(--color-text-rgb), 0.12);
+  background: $color-surface;
+  border: 1px solid $color-border;
   border-radius: 10px;
   padding: 6px;
   backdrop-filter: blur(6px);
@@ -684,7 +684,7 @@
     background: $color-bg;
     border: 1px solid $color-border;
     border-radius: 6px;
-    color: $color-white;
+    color: $color-text;
     text-align: center;
     font-size: 16px;
     font-weight: 700;
@@ -850,7 +850,7 @@
     margin: 0;
     font-size: 16px;
     font-weight: 700;
-    color: #fff;
+    color: $color-text-on-dark;
   }
 
   &__text {
@@ -865,7 +865,7 @@
     background: var(--color-bg);
     border: 1px solid rgba(var(--color-text-rgb), 0.12);
     border-radius: 8px;
-    color: #fff;
+    color: $color-text;
     text-align: center;
     font-size: 22px;
     font-weight: 700;
@@ -882,7 +882,7 @@
     background: var(--color-bg);
     border: 1px solid rgba(var(--color-text-rgb), 0.12);
     border-radius: 8px;
-    color: #fff;
+    color: $color-text;
     font-size: 14px;
     padding: 10px 12px;
     margin: 4px 0;
@@ -1062,7 +1062,7 @@
     background: rgba(var(--color-text-rgb), 0.06);
     border: 1px solid rgba(var(--color-text-rgb), 0.12);
     border-radius: 7px;
-    color: #d4d4d4;
+    color: $color-text-on-dark;
     font-size: 13px;
     padding: 8px 10px;
     width: 100%;
@@ -1072,8 +1072,6 @@
     &::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
     &::-webkit-inner-spin-button { display: none; }
 
-    // date/time inputs on dark bg
-    color-scheme: dark;
   }
 
   &__toggle {
@@ -1081,7 +1079,7 @@
     align-items: center;
     gap: 8px;
     font-size: 13px;
-    color: #d4d4d4;
+    color: $color-text-on-dark;
     cursor: pointer;
 
     input[type='checkbox'] {

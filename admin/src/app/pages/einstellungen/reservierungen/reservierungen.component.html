@@ -330,43 +330,40 @@
   </div>
 
 
-  <!-- ====================================================================
-       No-Show Auto-Sperre
-  ===================================================================== -->
-  <section class="setting-card">
-    <div class="setting-card__header">
-      <div class="setting-card__icon setting-card__icon--danger">
-        <mat-icon>block</mat-icon>
-      </div>
-      <div class="setting-card__heading">
-        <div class="setting-card__title">{{ 'reservierungen_settings.auto_block' | translate }}</div>
-        <div class="setting-card__subtitle">
-          {{ 'reservierungen_settings.subtitle_block' | translate }}
+  <!-- ══════════════════════════════════════════════════════════
+       6. NO-SHOW AUTO-SPERRE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <div class="section-icon-wrap section-icon-wrap--danger">
+          <mat-icon>block</mat-icon>
         </div>
-      </div>
+        {{ 'reservierungen_settings.auto_block' | translate }}
+      </h2>
     </div>
 
-    <div class="setting-card__body">
-      <p class="setting-card__label">{{ 'reservierungen_settings.block_after' | translate }}</p>
-      <div class="preset-row">
+    <p class="section-subtitle">{{ 'reservierungen_settings.subtitle_block' | translate }}</p>
+
+    <p class="field-label">{{ 'reservierungen_settings.block_after' | translate }}</p>
+    <div class="preset-row">
+      <button type="button"
+              class="preset-chip preset-chip--danger"
+              [class.active]="noShowThreshold() === null"
+              (click)="setNoShowThreshold(null)">
+        {{ 'reservierungen_settings.block_disabled' | translate }}
+      </button>
+      @for (n of noShowPresets; track n) {
         <button type="button"
                 class="preset-chip preset-chip--danger"
-                [class.active]="noShowThreshold() === null"
-                (click)="setNoShowThreshold(null)">
-          {{ 'reservierungen_settings.block_disabled' | translate }}
+                [class.active]="noShowThreshold() === n"
+                (click)="setNoShowThreshold(n)">
+          {{ 'reservierungen_settings.block_after_n' | translate }} {{ n }}
         </button>
-        @for (n of noShowPresets; track n) {
-          <button type="button"
-                  class="preset-chip preset-chip--danger"
-                  [class.active]="noShowThreshold() === n"
-                  (click)="setNoShowThreshold(n)">
-            {{ 'reservierungen_settings.block_after_n' | translate }} {{ n }}
-          </button>
-        }
-      </div>
+      }
     </div>
 
-    <div class="setting-card__hint" [class.setting-card__hint--muted]="noShowThreshold() === null">
+    <div class="status-hint" [class.status-hint--active]="noShowThreshold() !== null">
       <mat-icon>{{ noShowThreshold() !== null ? 'gpp_bad' : 'radio_button_unchecked' }}</mat-icon>
       @if (noShowThreshold() !== null) {
         {{ 'reservierungen_settings.block_on' | translate }}
@@ -375,15 +372,58 @@
       }
     </div>
 
-    <div class="setting-card__footer">
-      <button type="button"
-              class="save-button save-button--card"
-              [class.saved]="savedNoShowThreshold()"
-              (click)="saveNoShowThreshold()">
+    <div class="actions">
+      <button type="button" class="save-button" [class.saved]="savedNoShowThreshold()" (click)="saveNoShowThreshold()">
         {{ savedNoShowThreshold() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
-  </section>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       7. AUTOMATISCHES AUSCHECKEN
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <div class="section-icon-wrap section-icon-wrap--accent">
+          <mat-icon>logout</mat-icon>
+        </div>
+        Automatisches Auschecken
+      </h2>
+      <div class="section-header__right">
+        <button class="info-button" [class.active]="info6()" (click)="info6.set(!info6())">
+          <mat-icon>info</mat-icon>
+        </button>
+        <label class="toggle">
+          <input type="checkbox" [checked]="autoCheckout()" (change)="toggleAutoCheckout()" />
+          <span class="toggle__track"><span class="toggle__thumb"></span></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="info-box" [class.open]="info6()">
+      Wenn aktiv, werden täglich um 23:57 Uhr alle Gäste automatisch ausgecheckt —
+      nur aus Räumen, die zu diesem Restaurant gehören.
+    </div>
+
+    <p class="section-subtitle">Sollen am Ende des Tages alle Gäste automatisch ausgecheckt werden?</p>
+
+    <div class="status-hint" [class.status-hint--active]="autoCheckout()">
+      <mat-icon>{{ autoCheckout() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+      @if (autoCheckout()) {
+        Alle Gäste werden täglich um 23:57 Uhr automatisch ausgecheckt.
+      } @else {
+        Automatisches Auschecken ist deaktiviert.
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="save-button" [class.saved]="savedAutoCheckout()" (click)="saveAutoCheckout()">
+        {{ savedAutoCheckout() ? ('common.saved' | translate) : ('common.save' | translate) }}
+      </button>
+    </div>
+  </div>
 
 
   <!-- ══════════════════════════════════════════════════════════

@@ -34,6 +34,7 @@ final readonly class ReservationDto
         public int $guestNoShowCount,
         public ?string $paymentStatus,
         public ?string $paymentCaptureMethod,
+        public ?string $source,
     ) {}
 
     public static function fromEntity(Reservation $r): self
@@ -64,6 +65,7 @@ final readonly class ReservationDto
             guestNoShowCount:     $r->getGuest()?->getNoShowCount() ?? 0,
             paymentStatus:        $r->getPaymentStatus(),
             paymentCaptureMethod: $r->getPaymentCaptureMethod(),
+            source:               $r->getSource(),
         );
     }
 
@@ -95,6 +97,7 @@ final readonly class ReservationDto
             'guest_no_show_count'   => $this->guestNoShowCount,
             'payment_status'         => $this->paymentStatus,
             'payment_capture_method' => $this->paymentCaptureMethod,
+            'source'                 => $this->source,
         ];
     }
 }

@@ -78,6 +78,10 @@ class Reservation
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $paymentCaptureMethod = null;
 
+    /** Buchungskanal: 'online' | 'admin' | 'walk_in' */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $source = null;
+
     /** Zeitstempel wann die Erinnerungs-Mail versendet wurde (null = noch nicht gesendet) */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $reminderSentAt = null;
@@ -295,6 +299,9 @@ class Reservation
     public function markPaymentReleased(): void   { $this->paymentStatus = 'released';   }
     public function markPaymentFailed(): void     { $this->paymentStatus = 'failed';     }
     public function markPaymentRefunded(): void   { $this->paymentStatus = 'refunded';   }
+
+    public function getSource(): ?string { return $this->source; }
+    public function setSource(?string $source): void { $this->source = $source; }
 
     public function isPending(): bool
     {

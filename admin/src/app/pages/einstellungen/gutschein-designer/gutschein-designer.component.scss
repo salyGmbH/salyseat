@@ -1,0 +1,277 @@
+@use '../../../../styles/variables' as *;
+
+.gd {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// ── Kopfzeile ────────────────────────────────────────────────────────────────
+.gd__head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 32px;
+}
+.gd__head-left {
+  display: flex; align-items: center; gap: 14px;
+}
+.gd__head-icon {
+  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(var(--color-accent-rgb), 0.12);
+  display: flex; align-items: center; justify-content: center;
+  mat-icon { font-size: 22px; width: 22px; height: 22px; color: $color-accent; }
+}
+.gd__title { margin: 0 0 3px; font-size: 20px; font-weight: 700; color: $color-text-on-dark; }
+.gd__sub   { margin: 0; font-size: 13px; color: $color-text-muted; }
+.gd__head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.gd__btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: 8px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &--primary {
+    background: $color-accent; color: #111;
+    &:hover { background: $color-accent-dark; }
+  }
+  &--ghost {
+    background: rgba(var(--color-text-rgb), 0.06); color: $color-text-on-dark;
+    border: 1px solid $color-border;
+    &:hover { background: rgba(var(--color-text-rgb), 0.1); }
+  }
+}
+
+// ── Layout: Editor | Vorschau ─────────────────────────────────────────────────
+.gd__layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 32px;
+  align-items: start;
+}
+
+// ── Editor-Blöcke ─────────────────────────────────────────────────────────────
+.gd__editor { display: flex; flex-direction: column; gap: 16px; }
+
+.gd__block {
+  padding: 20px 22px; border-radius: 12px;
+  background: $color-surface; border: 1px solid $color-border;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.gd__block-head {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.gd__block-num {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.05em;
+  color: $color-primary; background: rgba(var(--color-primary-rgb), 0.1);
+  padding: 2px 7px; border-radius: 6px; flex-shrink: 0; margin-top: 1px;
+}
+.gd__block-title { font-size: 14px; font-weight: 700; color: $color-text-on-dark; }
+.gd__block-sub   { font-size: 12px; color: $color-text-muted; margin-top: 1px; }
+
+.gd__field { display: flex; flex-direction: column; gap: 7px; }
+.gd__label { font-size: 12px; font-weight: 600; color: $color-text-muted; }
+
+.gd__input {
+  background: rgba(var(--color-text-rgb), 0.05); border: 1px solid $color-border;
+  border-radius: 8px; padding: 9px 12px; color: $color-text-on-dark;
+  font-size: 13px; font-family: inherit; width: 100%; box-sizing: border-box;
+  &:focus { outline: none; border-color: rgba(var(--color-primary-rgb), 0.5); }
+  &::placeholder { color: $color-text-muted; }
+}
+
+// ── Hintergrund-Tabs ─────────────────────────────────────────────────────────
+.gd__bg-tabs { display: flex; gap: 6px; }
+.gd__bg-tab {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border-radius: 8px; border: 1px solid $color-border;
+  background: transparent; color: $color-text-muted; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .12s;
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &--active {
+    border-color: rgba(var(--color-primary-rgb), 0.4);
+    background: rgba(var(--color-primary-rgb), 0.08);
+    color: $color-primary;
+  }
+  &:hover:not(.gd__bg-tab--active) { background: rgba(var(--color-text-rgb), 0.04); }
+}
+
+// ── Farb-Zeile ───────────────────────────────────────────────────────────────
+.gd__color-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.gd__color-picker {
+  width: 38px; height: 38px; border-radius: 8px; border: 2px solid $color-border;
+  cursor: pointer; padding: 2px; background: transparent; flex-shrink: 0;
+  &::-webkit-color-swatch-wrapper { padding: 0; border-radius: 5px; }
+  &::-webkit-color-swatch { border-radius: 5px; border: none; }
+}
+.gd__presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.gd__preset-swatch {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: transform .1s, border-color .1s; padding: 0;
+  &:hover { transform: scale(1.15); }
+  &--active { border-color: $color-text-on-dark; }
+}
+
+// ── Upload-Zone ───────────────────────────────────────────────────────────────
+.gd__upload-zone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 28px; border-radius: 10px;
+  border: 2px dashed $color-border; cursor: pointer; transition: border-color .15s;
+  color: $color-text-muted; font-size: 13px;
+  mat-icon { font-size: 32px; width: 32px; height: 32px; opacity: 0.4; }
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.4); }
+}
+.gd__bg-preview {
+  position: relative; border-radius: 10px; overflow: hidden;
+  img { width: 100%; max-height: 120px; object-fit: cover; display: block; }
+}
+.gd__bg-clear {
+  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px;
+  border-radius: 50%; border: none; background: rgba(0,0,0,0.5); color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+// ── Schriftart-Grid ───────────────────────────────────────────────────────────
+.gd__font-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.gd__font-card {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 8px; border-radius: 8px; border: 2px solid $color-border;
+  background: transparent; cursor: pointer; transition: all .12s; text-align: center;
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.3); }
+  &--active { border-color: $color-primary; background: rgba(var(--color-primary-rgb), 0.06); }
+}
+.gd__font-card-sample { font-size: 22px; color: $color-text-on-dark; line-height: 1; }
+.gd__font-card-name   { font-size: 11px; font-weight: 700; color: $color-text-on-dark; font-family: inherit; }
+.gd__font-card-hint   { font-size: 10px; color: $color-text-muted; font-family: inherit; }
+
+// ── Schriftgröße ─────────────────────────────────────────────────────────────
+.gd__size-row { display: flex; gap: 8px; }
+.gd__size-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 8px; border-radius: 8px; border: 2px solid $color-border;
+  background: transparent; cursor: pointer; transition: all .12s;
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.3); }
+  &--active { border-color: $color-primary; background: rgba(var(--color-primary-rgb), 0.06); }
+}
+.gd__size-btn-label { font-size: 13px; font-weight: 700; color: $color-text-on-dark; }
+.gd__size-btn-hint  { font-size: 10px; color: $color-text-muted; }
+
+// ── Button-Form-Auswahl ───────────────────────────────────────────────────────
+.gd__radius-row { display: flex; gap: 10px; }
+.gd__radius-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 14px 8px; border-radius: 8px; border: 2px solid $color-border;
+  background: transparent; cursor: pointer; transition: all .12s;
+  font-size: 12px; font-weight: 600; color: $color-text-muted;
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.3); }
+  &--active { border-color: $color-primary; background: rgba(var(--color-primary-rgb), 0.06);
+    color: $color-primary; }
+}
+.gd__radius-demo {
+  width: 44px; height: 22px;
+  transition: border-radius .2s;
+}
+
+// ── Vorschau-Spalte ───────────────────────────────────────────────────────────
+.gd__preview-col {
+  position: sticky; top: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.gd__preview-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: $color-text-muted; text-transform: uppercase;
+  letter-spacing: 0.06em;
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+
+.gd__preview-shell {
+  border-radius: 12px; overflow: hidden; padding: 28px 20px;
+  min-height: 420px; display: flex; align-items: center; justify-content: center;
+  transition: background .25s;
+  border: 1px solid $color-border;
+}
+
+// ── Vorschau-Karte ────────────────────────────────────────────────────────────
+.gd__pv-card {
+  width: 100%; max-width: 320px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  overflow: hidden;
+  transition: border-radius .2s;
+}
+
+.gd__pv-head {
+  padding: 22px 20px 16px; text-align: center;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.gd__pv-tagline {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+.gd__pv-title {
+  margin: 0 0 4px; font-size: calc(var(--gc-base, 14px) * 1.4); font-weight: 700;
+  line-height: 1.2; color: var(--gc-text, #1f2937);
+}
+.gd__pv-subtitle {
+  margin: 0; font-size: calc(var(--gc-base, 14px) * 0.9); line-height: 1.5;
+}
+
+// ── Fortschritt ───────────────────────────────────────────────────────────────
+.gd__pv-steps {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; padding: 14px 20px; border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.gd__pv-step {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(0,0,0,0.08); border: 2px solid transparent;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+  &--done  { }
+  &--active { background: transparent; }
+}
+.gd__pv-step-line {
+  flex: 1; height: 2px; background: rgba(0,0,0,0.08); max-width: 40px;
+}
+
+// ── Betrags-Auswahl ───────────────────────────────────────────────────────────
+.gd__pv-body { padding: 16px 20px; }
+.gd__pv-section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 10px;
+}
+.gd__pv-amounts { display: flex; gap: 6px; margin-bottom: 8px; }
+.gd__pv-amount {
+  flex: 1; padding: 8px 4px; border: 2px solid rgba(0,0,0,0.1);
+  background: transparent; cursor: pointer; transition: all .12s;
+  font-size: calc(var(--gc-base, 14px) * 0.9); font-weight: 700;
+  color: var(--gc-text, #1f2937); font-family: var(--gc-font);
+}
+.gd__pv-custom {
+  padding: 9px 12px; border: 1px dashed rgba(0,0,0,0.15);
+  font-size: 12px;
+  width: 100%; box-sizing: border-box;
+}
+
+// ── CTA-Button ────────────────────────────────────────────────────────────────
+.gd__pv-footer { padding: 0 20px 20px; }
+.gd__pv-cta {
+  width: 100%; padding: 12px; border: none; cursor: pointer;
+  font-size: calc(var(--gc-base, 14px) * 0.95); font-weight: 700;
+  color: #fff; font-family: var(--gc-font);
+  transition: opacity .15s, border-radius .2s;
+  &:hover { opacity: 0.88; }
+}
+
+// ── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 900px) {
+  .gd { padding: 16px; }
+  .gd__layout { grid-template-columns: 1fr; }
+  .gd__preview-col { position: static; }
+  .gd__font-grid { grid-template-columns: repeat(2, 1fr); }
+}

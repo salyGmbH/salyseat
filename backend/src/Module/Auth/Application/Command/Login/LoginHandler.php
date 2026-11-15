@@ -48,6 +48,7 @@ final class LoginHandler
             email:     $user->getEmail(),
             roles:     $user->getRoles(),
             tenantId:  $tenant?->getId()->toRfc4122(),
+            plan:      $tenant?->getPlan() ?? 'trial',
         );
     }
 }

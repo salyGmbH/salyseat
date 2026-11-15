@@ -67,6 +67,7 @@ class LoginController extends AbstractController
                 'email'    => $response->email,
                 'roles'    => $response->roles,
                 'tenantId' => $response->tenantId,
+                'plan'     => $response->plan,
             ],
         ]);
     }

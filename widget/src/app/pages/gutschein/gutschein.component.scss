@@ -1,0 +1,681 @@
+// ── Widget-Gutschein-Seite ───────────────────────────────────────────────────
+// Verwendet --w-* CSS-Variablen aus styles.scss, überschreibbar per loadConfig.
+
+.gc-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px 48px;
+  background: var(--w-color-bg);
+  font-family: var(--w-font);
+}
+
+// ── Loading ──────────────────────────────────────────────────────────────────
+.gc-page__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80dvh;
+  width: 100%;
+}
+
+// ── Karte ────────────────────────────────────────────────────────────────────
+.gc-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--w-color-surface);
+  border-radius: var(--w-radius);
+  box-shadow: var(--w-shadow);
+  overflow: hidden;
+
+  &--center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 32px;
+    text-align: center;
+    margin-top: 80px;
+  }
+
+  &--success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 32px 48px;
+    text-align: center;
+  }
+}
+
+.gc-card__head {
+  padding: 28px 28px 0;
+  text-align: center;
+}
+.gc-card__restaurant {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--w-color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+.gc-card__title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--w-color-text);
+  line-height: 1.2;
+}
+.gc-card__sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--w-color-text-muted);
+  line-height: 1.5;
+}
+
+// ── Fortschritt ───────────────────────────────────────────────────────────────
+.gc-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 24px 28px 20px;
+}
+
+.gc-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.gc-step__dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.08);
+  color: var(--w-color-text-muted);
+  border: 2px solid var(--w-color-border);
+  transition: all .2s;
+
+  .gc-step--active & {
+    background: var(--w-color-primary);
+    color: #fff;
+    border-color: var(--w-color-primary);
+  }
+  .gc-step--done & {
+    background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.12);
+    color: var(--w-color-primary);
+    border-color: rgba(var(--w-color-primary-rgb, 41,121,255), 0.3);
+  }
+}
+
+.gc-step__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--w-color-text-muted);
+  white-space: nowrap;
+
+  .gc-step--active & { color: var(--w-color-primary); }
+  .gc-step--done &   { color: var(--w-color-text-muted); }
+}
+
+.gc-step__line {
+  flex: 1;
+  height: 2px;
+  background: var(--w-color-border);
+  margin: 0 6px 14px;
+  min-width: 24px;
+  transition: background .2s;
+
+  &--done { background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.3); }
+}
+
+// ── Abschnitt ─────────────────────────────────────────────────────────────────
+.gc-section {
+  padding: 4px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gc-section__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--w-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 2px;
+}
+
+// ── Preset-Beträge ────────────────────────────────────────────────────────────
+.gc-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gc-preset {
+  padding: 8px 18px;
+  border-radius: var(--w-radius-sm);
+  border: 1.5px solid var(--w-color-border);
+  background: transparent;
+  color: var(--w-color-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+
+  &:hover {
+    border-color: rgba(var(--w-color-primary-rgb, 41,121,255), 0.4);
+    background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.05);
+  }
+
+  &--active {
+    border-color: var(--w-color-primary);
+    background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.1);
+    color: var(--w-color-primary);
+  }
+}
+
+// ── Felder ────────────────────────────────────────────────────────────────────
+.gc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  &--inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+
+    .gc-field__label { flex-shrink: 0; font-size: 13px; }
+  }
+}
+
+.gc-field__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--w-color-text-muted);
+}
+
+.gc-optional {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.gc-input-group {
+  position: relative;
+  flex: 1;
+}
+
+.gc-input-suffix {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--w-color-text-muted);
+  pointer-events: none;
+}
+
+.gc-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--w-radius-sm);
+  border: 1.5px solid var(--w-color-border);
+  background: var(--w-color-surface);
+  color: var(--w-color-text);
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color .15s;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(var(--w-color-primary-rgb, 41,121,255), 0.5);
+  }
+
+  &::placeholder { color: var(--w-color-text-muted); opacity: 0.7; }
+
+  &--error { border-color: #e53935 !important; }
+  &--textarea { resize: vertical; min-height: 72px; }
+
+  .gc-input-group & { padding-right: 30px; }
+}
+
+// ── Betrag-Vorschau ───────────────────────────────────────────────────────────
+.gc-amount-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border-radius: var(--w-radius-sm);
+  background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.06);
+  border: 1.5px solid rgba(var(--w-color-primary-rgb, 41,121,255), 0.15);
+  text-align: center;
+  gap: 2px;
+}
+
+.gc-amount-preview__val {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--w-color-primary);
+  line-height: 1;
+}
+
+.gc-amount-preview__hint {
+  font-size: 12px;
+  color: var(--w-color-text-muted);
+}
+
+// ── Zusammenfassung (Step 3) ──────────────────────────────────────────────────
+.gc-summary {
+  padding: 14px 16px;
+  border-radius: var(--w-radius-sm);
+  background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.04);
+  border: 1px solid rgba(var(--w-color-primary-rgb, 41,121,255), 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.gc-summary__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.gc-summary__key {
+  font-weight: 600;
+  color: var(--w-color-text-muted);
+  flex-shrink: 0;
+}
+
+.gc-summary__val {
+  color: var(--w-color-text);
+  text-align: right;
+  font-weight: 500;
+
+  &--amount {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--w-color-primary);
+  }
+
+  &--italic { font-style: italic; }
+}
+
+// ── Consent ───────────────────────────────────────────────────────────────────
+.gc-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--w-color-text-muted);
+  cursor: pointer;
+  line-height: 1.5;
+
+  input[type="checkbox"] {
+    margin: 2px 0 0;
+    accent-color: var(--w-color-primary);
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+  }
+
+  &--error { color: #e53935; }
+}
+
+// ── Fehler ────────────────────────────────────────────────────────────────────
+.gc-error {
+  font-size: 12px;
+  color: #e53935;
+  margin: 0;
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.gc-card__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 28px 28px;
+  border-top: 1px solid var(--w-color-border);
+}
+
+.gc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  border-radius: var(--w-radius-sm);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+
+  &--primary {
+    background: var(--w-color-primary);
+    color: #fff;
+    &:hover:not(:disabled) { filter: brightness(1.1); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  &--secondary {
+    background: transparent;
+    color: var(--w-color-text-muted);
+    border: 1.5px solid var(--w-color-border);
+    &:hover:not(:disabled) { background: rgba(0,0,0,0.04); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+.gc-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--w-color-border);
+  border-top-color: var(--w-color-primary);
+  border-radius: 50%;
+  animation: gc-spin .8s linear infinite;
+
+  &--sm {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+  }
+}
+
+@keyframes gc-spin { to { transform: rotate(360deg); } }
+
+// ── Erfolg ────────────────────────────────────────────────────────────────────
+.gc-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(76, 175, 80, 0.12);
+  color: #43a047;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.gc-error-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(229, 57, 53, 0.1);
+  color: #e53935;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.gc-voucher-box {
+  width: 100%;
+  margin: 24px 0 16px;
+  padding: 20px;
+  border-radius: var(--w-radius);
+  background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.06);
+  border: 1.5px dashed rgba(var(--w-color-primary-rgb, 41,121,255), 0.3);
+  text-align: center;
+}
+
+.gc-voucher-box__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--w-color-text-muted);
+  margin-bottom: 10px;
+}
+
+.gc-voucher-box__code {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--w-color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+  letter-spacing: 0.05em;
+
+  &:hover { background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.1); }
+}
+
+.gc-voucher-box__copy-icon {
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.gc-voucher-box__meta {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.gc-voucher-box__amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--w-color-text);
+}
+
+.gc-voucher-box__expiry {
+  font-size: 13px;
+  color: var(--w-color-text-muted);
+}
+
+.gc-success-hint {
+  font-size: 13px;
+  color: var(--w-color-text-muted);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 340px;
+}
+
+// ── Design-Auswahl (Schritt 1) ────────────────────────────────────────────────
+.gc-design-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.gc-design-card {
+  position: relative;
+  border-radius: var(--w-radius-sm);
+  border: 2px solid var(--w-color-border);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color .15s, transform .1s;
+  text-align: left;
+
+  &:hover { border-color: rgba(var(--w-color-primary-rgb, 41,121,255), 0.5); transform: translateY(-1px); }
+
+  &--active {
+    border-color: var(--w-color-primary);
+    box-shadow: 0 0 0 3px rgba(var(--w-color-primary-rgb, 41,121,255), 0.15);
+  }
+}
+
+.gc-design-card__img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  display: block;
+}
+
+.gc-design-card__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--w-color-text);
+  padding: 6px 8px;
+}
+
+.gc-design-card__check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--w-color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gc-skip-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--w-color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  font-family: inherit;
+  &:hover { color: var(--w-color-text); }
+}
+
+// ── Gewähltes Design (klein, über Betrag) ─────────────────────────────────────
+.gc-selected-design {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 28px;
+  background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.04);
+  border-bottom: 1px solid var(--w-color-border);
+}
+
+.gc-selected-design__img {
+  width: 40px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.gc-selected-design__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--w-color-text-muted);
+}
+
+// ── Erfolgs-Design-Bild ───────────────────────────────────────────────────────
+.gc-success-img {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--w-radius) var(--w-radius) 0 0;
+  margin: -40px -32px 20px;
+  width: calc(100% + 64px);
+}
+
+// ── E-Mail-Auswahl ────────────────────────────────────────────────────────────
+.gc-email-choice {
+  padding: 12px 14px;
+  border-radius: var(--w-radius-sm);
+  background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.04);
+  border: 1px solid rgba(var(--w-color-primary-rgb, 41,121,255), 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gc-email-choice__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--w-color-text-muted);
+}
+.gc-email-choice__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--w-color-text);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    accent-color: var(--w-color-primary);
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    cursor: pointer;
+    &:disabled { cursor: not-allowed; opacity: 0.5; }
+  }
+}
+.gc-email-choice__hint {
+  font-size: 11px;
+  color: var(--w-color-text-muted);
+  margin-left: 4px;
+}
+
+// ── Download-Button ───────────────────────────────────────────────────────────
+.gc-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 11px 24px;
+  border-radius: var(--w-radius-sm);
+  border: 1.5px solid rgba(var(--w-color-primary-rgb, 41,121,255), 0.3);
+  background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.06);
+  color: var(--w-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+
+  &:hover {
+    background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.12);
+    border-color: var(--w-color-primary);
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 520px) {
+  .gc-page { padding: 0; align-items: flex-start; }
+
+  .gc-card {
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100dvh;
+  }
+
+  .gc-card__head { padding: 24px 20px 0; }
+  .gc-section    { padding: 4px 20px 20px; }
+  .gc-card__actions { padding: 14px 20px 24px; }
+}

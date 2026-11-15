@@ -10,8 +10,8 @@
       <button class="sp__btn sp__btn--ghost" (click)="copyLastWeek()">
         <mat-icon>content_copy</mat-icon> {{ 'shift.copy_last_week' | translate }}
       </button>
-      <button class="sp__btn sp__btn--ghost" (click)="printPlan()">
-        <mat-icon>print</mat-icon> {{ 'shift.print' | translate }}
+      <button class="sp__btn sp__btn--ghost" (click)="downloadPdf()">
+        <mat-icon>picture_as_pdf</mat-icon> {{ 'shift.print' | translate }}
       </button>
       <button class="sp__btn sp__btn--ghost" (click)="sidebarOpen.set(!sidebarOpen())">
         <mat-icon>{{ sidebarOpen() ? 'menu_open' : 'menu' }}</mat-icon>
@@ -19,8 +19,8 @@
       <div class="sp__week-nav">
         <button class="sp__nav-btn" (click)="prevWeek()"><mat-icon>chevron_left</mat-icon></button>
         <button class="sp__nav-btn sp__nav-btn--today"
-                [class.sp__nav-btn--today-active]="isCurrentWeek()"
-                (click)="goToday()">{{ 'shift.today' | translate }}</button>
+                [class.sp__nav-btn--today-active]="toIso(weekStart()) === todayWeekStartIso"
+                (click)="goToday()">{{ kwLabel() }}</button>
         <button class="sp__nav-btn" (click)="nextWeek()"><mat-icon>chevron_right</mat-icon></button>
       </div>
     </div>
@@ -203,10 +203,117 @@
 
       <!-- ════ TAB: Einstellungen ════ -->
       @if (sidebarTab() === 'settings') {
-        <div class="sp__sidebar-body sp__sidebar-body--row">
+        <div class="sp__sidebar-body sp__settings-scroll">
 
-          <!-- Überstunden-Limit -->
-          <div class="sp__sb-col sp__sb-col--narrow">
+          <!-- ── Schichten ───────────────────────────────────────── -->
+          <div class="sp__settings-section">
+            <div class="sp__section-head">Schichten</div>
+
+            <!-- Schichtzeiten: built-in -->
+            <div class="sp__section-sub">Standard-Schichtzeiten</div>
+            @for (def of shiftDefs(); track def.key) {
+              @if (def.key === 'early' || def.key === 'late' || def.key === 'night') {
+                <div class="sp__shift-time-row">
+                  <span class="sp__shift-time-name">
+                    <mat-icon [style.color]="def.color">{{ def.icon }}</mat-icon>
+                    {{ def.label | translate }}
+                  </span>
+                  <div class="sp__shift-time-inputs">
+                    <input type="time" class="sp__input sp__input--sm sp__input--time"
+                           [ngModel]="def.defaultStart"
+                           (ngModelChange)="setShiftTime($any(def.key), 'start', $event)">
+                    <span class="sp__shift-time-sep">–</span>
+                    <input type="time" class="sp__input sp__input--sm sp__input--time"
+                           [ngModel]="def.defaultEnd"
+                           (ngModelChange)="setShiftTime($any(def.key), 'end', $event)">
+                  </div>
+                </div>
+              }
+            }
+
+            <!-- Eigene Schichten -->
+            <div class="sp__section-sub sp__section-sub--mt">Eigene Schichten</div>
+
+            @for (us of settings().userShifts ?? []; track us.id) {
+              <div class="sp__ushift-item">
+                <span class="sp__ushift-dot" [style.background]="us.color"></span>
+                <mat-icon class="sp__ushift-icon" [style.color]="us.color">{{ us.icon }}</mat-icon>
+                <span class="sp__ushift-name">{{ us.name }}</span>
+                <span class="sp__ushift-time">{{ us.start }}–{{ us.end }}</span>
+                <button class="sp__icon-btn sp__icon-btn--danger" (click)="deleteUserShift(us.id)" title="Schicht löschen">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            }
+
+            @if ((settings().userShifts ?? []).length === 0 && !showNewShiftForm) {
+              <p class="sp__empty">Noch keine eigenen Schichten angelegt.</p>
+            }
+
+            <!-- Neue Schicht Form -->
+            @if (showNewShiftForm) {
+              <div class="sp__ushift-form">
+                <input class="sp__input" type="text" placeholder="Name der Schicht"
+                       [(ngModel)]="newShift.name" maxlength="30">
+
+                <div class="sp__ushift-form-row">
+                  <div class="sp__ushift-form-col">
+                    <div class="sp__section-sub">Farbe</div>
+                    <div class="sp__color-picker">
+                      @for (c of shiftColorOptions; track c) {
+                        <button class="sp__color-swatch"
+                                [style.background]="c"
+                                [class.sp__color-swatch--active]="newShift.color === c"
+                                (click)="newShift.color = c"></button>
+                      }
+                    </div>
+                  </div>
+                  <div class="sp__ushift-form-col">
+                    <div class="sp__section-sub">Icon</div>
+                    <div class="sp__icon-picker">
+                      @for (ic of shiftIconOptions; track ic) {
+                        <button class="sp__icon-swatch"
+                                [class.sp__icon-swatch--active]="newShift.icon === ic"
+                                [style.color]="newShift.icon === ic ? newShift.color : null"
+                                (click)="newShift.icon = ic">
+                          <mat-icon>{{ ic }}</mat-icon>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sp__shift-time-inputs">
+                  <span class="sp__shift-time-sep" style="font-size:11px;margin-right:2px">Von</span>
+                  <input type="time" class="sp__input sp__input--sm sp__input--time"
+                         [(ngModel)]="newShift.start">
+                  <span class="sp__shift-time-sep">–</span>
+                  <input type="time" class="sp__input sp__input--sm sp__input--time"
+                         [(ngModel)]="newShift.end">
+                </div>
+
+                <div class="sp__btn-row">
+                  <button class="sp__sm-btn sp__sm-btn--primary" (click)="saveNewShift()"
+                          [disabled]="!newShift.name?.trim()">
+                    <mat-icon>check</mat-icon> Speichern
+                  </button>
+                  <button class="sp__sm-btn" (click)="showNewShiftForm = false">
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            }
+
+            @if (!showNewShiftForm) {
+              <button class="sp__sm-btn sp__sm-btn--primary sp__sm-btn--full" style="margin-top:8px"
+                      (click)="openNewShiftForm()">
+                <mat-icon>add</mat-icon> Neue Schicht
+              </button>
+            }
+          </div>
+
+          <!-- ── Überstunden-Limit ────────────────────────────────── -->
+          <div class="sp__settings-section">
             <div class="sp__section-head">{{ 'shift.overtime_limit' | translate }}</div>
             <div class="sp__setting-row">
               <label>{{ 'shift.hours_per_week' | translate }}</label>
@@ -216,8 +323,8 @@
             </div>
           </div>
 
-          <!-- Mindestbesetzung: 3-Spalten-Grid -->
-          <div class="sp__sb-col">
+          <!-- ── Mindestbesetzung ─────────────────────────────────── -->
+          <div class="sp__settings-section">
             <div class="sp__section-head">{{ 'shift.min_staff' | translate }}</div>
             <div class="sp__minstaff-grid">
               @for (wd of weekdayFull; track $index; let wi = $index) {
@@ -239,7 +346,7 @@
 
   <!-- ══════ Legende ══════ -->
   <div class="sp__legend">
-    @for (def of shiftDefs; track def.key) {
+    @for (def of shiftDefs(); track def.key) {
       <div class="sp__legend-item">
         <span class="sp__legend-dot" [style.background]="def.color"></span>
         <span>{{ def.label | translate }}</span>
@@ -320,7 +427,7 @@
                      [class.sp__cell--unavailable]="!shift && avail === 'unavailable'"
                      (click)="openCell(emp.id, day)">
                   @if (shift) {
-                    @let def = shiftMap[shift.type];
+                    @let def = shiftMap()[shift.type];
                     <div class="sp__shift" [style.--shift-color]="def.color">
                       <mat-icon class="sp__shift-icon">{{ def.icon }}</mat-icon>
                       <div class="sp__shift-body">
@@ -373,7 +480,7 @@
     @if (!popup()?.showSwapForm) {
 
       <div class="sp-popup__types">
-        @for (def of shiftDefs; track def.key) {
+        @for (def of shiftDefs(); track def.key) {
           <button class="sp-popup__type-btn"
                   [class.sp-popup__type-btn--active]="popupType === def.key"
                   [style.--btn-color]="def.color"

@@ -67,29 +67,32 @@ final class CreateReservationHandler
             $cmd->guestNotes,
         );
         // ─── Automatische Tischzuweisung ──────────────────────────────────────
-        // Wenn kein Tisch explizit gewählt wurde (tischartenAktiv=false oder Plan-Modus
-        // ohne Auswahl), versuchen wir den passendsten freien Tisch zu finden.
+        // Nur im Widget-Flow (adminOverride=false): passendsten freien Tisch suchen.
+        // Admin-Reservierungen ohne expliziten Tisch bleiben bewusst auf Warteliste —
+        // der Admin weist den Tisch manuell zu.
         if ($cmd->tableNumber === null) {
-            $uiSettings              = $tenant->getUiSettings() ?? [];
-            $ausstehendBestaetigung  = (bool) ($uiSettings['widgetFunctional']['ausstehendBestaetigung'] ?? false);
+            if (!$cmd->adminOverride) {
+                $uiSettings              = $tenant->getUiSettings() ?? [];
+                $ausstehendBestaetigung  = (bool) ($uiSettings['widgetFunctional']['ausstehendBestaetigung'] ?? false);
 
-            $tableNumber = $this->findBestTable(
-                venueId:   $venue->getId()->toRfc4122(),
-                partySize: $cmd->partySize,
-                startsAt:  $cmd->startsAt,
-                endsAt:    $endsAt,
-                tables:    $venue->getLayout()['tables'] ?? [],
-                venue:     $venue,
-            );
+                $tableNumber = $this->findBestTable(
+                    venueId:   $venue->getId()->toRfc4122(),
+                    partySize: $cmd->partySize,
+                    startsAt:  $cmd->startsAt,
+                    endsAt:    $endsAt,
+                    tables:    $venue->getLayout()['tables'] ?? [],
+                    venue:     $venue,
+                );
 
-            if ($tableNumber !== null) {
-                $reservation->setTableNumber($tableNumber);
-                // Nur bestätigen wenn kein "ausstehende Bestätigung"-Modus aktiv ist.
-                if (!$ausstehendBestaetigung) {
-                    $reservation->confirm();
+                if ($tableNumber !== null) {
+                    $reservation->setTableNumber($tableNumber);
+                    // Nur bestätigen wenn kein "ausstehende Bestätigung"-Modus aktiv ist.
+                    if (!$ausstehendBestaetigung) {
+                        $reservation->confirm();
+                    }
                 }
             }
-            // Kein Tisch verfügbar → Reservierung bleibt pending/ohne Tisch
+            // Kein Tisch / Admin ohne Tischauswahl → Reservierung bleibt pending (Warteliste)
         } else {
             // Prüfen ob der explizit gewählte Tisch gesperrt ist
             if ($this->isTableBlocked($venue, $cmd->tableNumber, $cmd->startsAt)) {
@@ -111,6 +114,10 @@ final class CreateReservationHandler
             if (!$ausstehendBestaetigung) {
                 $reservation->confirm();
             }
+        }
+
+        if ($cmd->source !== null) {
+            $reservation->setSource($cmd->source);
         }
 
         $reservation->setGuest($guest);

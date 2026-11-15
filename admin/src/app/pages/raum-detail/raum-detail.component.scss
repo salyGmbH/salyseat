@@ -42,8 +42,7 @@
 .raum-detail {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
-  margin: -32px;
+  height: 100vh;
   background: $color-bg;
 
   // Lade-Zustand (Räume werden noch vom Backend geholt)
@@ -5012,6 +5011,40 @@
 // ═══════════════════════════════════════════════════════════════════════════
 :host-context(body:not(.dim-theme):not(.dark-theme)) {
 
+  // ── Header: weißer Hintergrund + klare Trennlinie ───────────────────────
+  .raum-detail__header {
+    background: #ffffff;
+    border-bottom-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  // ── Room-Tabs: deutlichere Farben im Hellmodus ───────────────────────────
+  .room-tab {
+    color: rgba(0, 0, 0, 0.50);
+    &:hover { background: rgba(0, 0, 0, 0.05); color: rgba(0, 0, 0, 0.80); }
+    &--active {
+      background: rgba(var(--color-accent-rgb), 0.10);
+      border-color: rgba(var(--color-accent-rgb), 0.40);
+      color: #7a5a00;
+    }
+  }
+  .room-tab__name  { }
+  .room-tab__meta  { color: rgba(0, 0, 0, 0.40); }
+
+  // Header-Buttons (Übersicht / Einstellungen / Plan bearbeiten)
+  .raum-detail__header-btn,
+  .btn-header {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.60);
+    &:hover { background: rgba(0, 0, 0, 0.08); color: #111; }
+    &--active, &.is-active {
+      background: rgba(var(--color-primary-rgb), 0.08);
+      border-color: rgba(var(--color-primary-rgb), 0.30);
+      color: var(--color-primary);
+    }
+  }
+
   // ── Panel-Hintergrund: sichtbare rechte Trennlinie ──────────────────────
   .res-panel {
     background: var(--color-dark);
@@ -5217,6 +5250,158 @@
   .filter-panel__count {
     background: rgba(0, 0, 0, 0.10);
     color: rgba(0, 0, 0, 0.65);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HELLMODUS — Neue-Reservierung-Dialog (dialog--form)
+  //  Basis-Styles sind für Dark-Mode geschrieben (#d4d4d4-Texte, dunkle
+  //  Hintergründe). Hier alles auf klare Hellmodus-Farben umschalten.
+  // ═══════════════════════════════════════════════════════════════════════════
+  .dialog--form {
+    // CSS-Variable-Overrides zurücksetzen → echte Hellmodus-Werte
+    --color-text-on-dark: #111111;
+    --color-text:         #111111;
+    --color-accent-rgb:   var(--color-accent-rgb-original, 255, 183, 0);
+    color: #111111;
+
+    // Panel-Hintergründe: dezentes Grau statt Dunkel
+    .rf-panel {
+      background: rgba(0, 0, 0, 0.03);
+      border-color: rgba(0, 0, 0, 0.10);
+    }
+
+    // Alle Labels & Texte: satt schwarz
+    .rf-section-label,
+    .rf-panel__header,
+    .field__label,
+    .dialog__title,
+    .table-inline__num,
+    .table-inline__lbl,
+    label {
+      color: #111111;
+    }
+
+    // Muted-Texts
+    .rf-panel__header { color: rgba(0, 0, 0, 0.50); }
+
+    // Buchungstyp-Toggle
+    .type-toggle__btn {
+      background: rgba(0, 0, 0, 0.04);
+      border-color: rgba(0, 0, 0, 0.14);
+      color: rgba(0, 0, 0, 0.55);
+      &:hover:not(.type-toggle__btn--active) {
+        border-color: rgba(0, 0, 0, 0.30);
+        color: #111;
+      }
+      &--active {
+        background: rgba(var(--color-accent-rgb), 0.12);
+        border-color: rgba(var(--color-accent-rgb), 0.55);
+        color: #7a5a00;
+      }
+    }
+
+    // ── Inline-Kalender ──────────────────────────────────────────────────────
+    .inline-cal {
+      background: rgba(0, 0, 0, 0.04);
+      border-color: rgba(0, 0, 0, 0.10);
+
+      &__nav {
+        color: rgba(0, 0, 0, 0.55);
+        &:hover { background: rgba(0, 0, 0, 0.07); color: #111; }
+      }
+      &__month-label { color: #111111; }
+      &__weekdays span { color: rgba(0, 0, 0, 0.40); }
+
+      &__day {
+        color: #111111;
+        &:hover:not([disabled]):not(.is-selected) { background: rgba(0, 0, 0, 0.06); }
+        &.is-other-month { color: rgba(0, 0, 0, 0.22); }
+        &.is-past:not(.is-selected) { color: rgba(0, 0, 0, 0.28); }
+        &.is-closed {
+          color: rgba(0, 0, 0, 0.22);
+          text-decoration-color: rgba(0, 0, 0, 0.22);
+          &:hover { background: none; }
+        }
+        &.is-open:not(.is-selected):not(.is-today) {
+          background: rgba(var(--color-accent-rgb), 0.10);
+          border-color: rgba(var(--color-accent-rgb), 0.30);
+          color: #7a5a00;
+          &:hover { background: rgba(var(--color-accent-rgb), 0.18); border-color: rgba(var(--color-accent-rgb), 0.50); }
+        }
+        &.is-today.is-open:not(.is-selected) {
+          background: rgba(var(--color-accent-rgb), 0.10);
+          border-color: rgba(var(--color-accent-rgb), 0.30);
+          color: #7a5a00;
+        }
+        &.is-selected {
+          background: rgba(var(--color-accent-rgb), 0.15);
+          border-color: rgba(var(--color-accent-rgb), 0.55);
+          color: #7a5a00;
+          box-shadow: 0 0 0 1px rgba(var(--color-accent-rgb), 0.20);
+        }
+      }
+    }
+
+    // ── Zeitslot-Chips ────────────────────────────────────────────────────────
+    .table-inline__card {
+      background: rgba(0, 0, 0, 0.04);
+      border-color: rgba(0, 0, 0, 0.12);
+      .table-inline__num { color: #111111; }
+      .table-inline__lbl { color: rgba(0, 0, 0, 0.45); }
+
+      &:hover:not(.table-inline__card--selected):not(.table-inline__card--selected-table) {
+        background: rgba(0, 0, 0, 0.08);
+        border-color: rgba(0, 0, 0, 0.22);
+      }
+      &--selected {
+        background: rgba(var(--color-accent-rgb), 0.10);
+        border-color: rgba(var(--color-accent-rgb), 0.50);
+        box-shadow: 0 0 0 1px rgba(var(--color-accent-rgb), 0.15);
+        .table-inline__num { color: #7a5a00; }
+        .table-inline__lbl { color: rgba(122, 90, 0, 0.65); }
+      }
+      &--selected-table {
+        background: rgba(var(--color-accent-rgb), 0.10);
+        border-color: rgba(var(--color-accent-rgb), 0.50);
+        .table-inline__num { color: #7a5a00; }
+      }
+    }
+
+    // Personen-Chips (teilen die card-Klasse)
+    .table-inline__card--seat {
+      .table-inline__num { font-size: 15px; }
+    }
+
+    // ── Eingabefelder im Formular ─────────────────────────────────────────────
+    .field__input,
+    .field__select,
+    .field__textarea {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.18);
+      color: #111111;
+      &::placeholder { color: rgba(0, 0, 0, 0.35); }
+      &:focus { border-color: rgba(var(--color-primary-rgb), 0.55); }
+    }
+
+    // ── Tisch-Kein-Button ────────────────────────────────────────────────────
+    .table-inline__card--none {
+      background: rgba(0, 0, 0, 0.04);
+      border-color: rgba(0, 0, 0, 0.12);
+      .table-inline__num { color: rgba(0, 0, 0, 0.40); }
+    }
+
+    // ── Dialog-Aktionsleiste (Abbrechen / Anlegen) ────────────────────────────
+    .dialog__btn--secondary {
+      background: rgba(0, 0, 0, 0.06);
+      color: rgba(0, 0, 0, 0.65);
+      &:hover { background: rgba(0, 0, 0, 0.10); }
+    }
+    .dialog__btn--primary {
+      background: rgba(var(--color-primary-rgb), 0.10);
+      border-color: rgba(var(--color-primary-rgb), 0.40);
+      color: var(--color-primary);
+      &:hover { background: rgba(var(--color-primary-rgb), 0.18); border-color: rgba(var(--color-primary-rgb), 0.65); }
+    }
   }
 }
 

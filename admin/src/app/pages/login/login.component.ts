@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 
 /**
  * Startseite / Login. Schickt E-Mail + Passwort ans Backend
@@ -23,6 +24,11 @@ export class LoginComponent {
   private readonly auth   = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route  = inject(ActivatedRoute);
+  private readonly theme  = inject(ThemeService);
+
+  readonly logoSrc = computed(() =>
+    this.theme.effective() === 'light' ? 'images/black-logo.png' : 'images/white-logo.png'
+  );
 
   email    = '';
   password = '';

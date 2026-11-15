@@ -121,6 +121,7 @@ export interface WidgetFunctionalConfig {
   noShowSchutzAktiv?:      boolean;
   noShowBetragCents?:      number;
   noShowWidgetText?:       string;
+  venueReihenfolge?:       { venueId: string; onlineVerfuegbar: boolean }[];
 }
 
 export interface WidgetConfig {

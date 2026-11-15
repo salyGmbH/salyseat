@@ -302,6 +302,69 @@
 
 
   <!-- ══════════════════════════════════════════════════════════
+       0. REIHENFOLGE & ONLINE-VERFÜGBARKEIT DER RÄUME
+  ══════════════════════════════════════════════════════════ -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">sort</mat-icon>
+        {{ 'widget_einstellungen.venue_order_title' | translate }}
+      </h2>
+      <button class="info-button" [class.active]="info0()" (click)="info0.set(!info0())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="info0()">
+      {{ 'widget_einstellungen.venue_order_info' | translate }}
+    </div>
+
+    @if (venues().length > 0) {
+      <div class="venue-order-list">
+        @for (item of venueReihenfolgeItems; track item.venueId; let i = $index) {
+          <div class="venue-order-row" [class.venue-order-row--offline]="!item.onlineVerfuegbar">
+            <div class="venue-order-row__rank">{{ i + 1 }}</div>
+            <div class="venue-order-row__name">
+              <mat-icon class="venue-order-row__icon">meeting_room</mat-icon>
+              {{ item.name }}
+            </div>
+            <div class="venue-order-row__badge" [class.venue-order-row__badge--offline]="!item.onlineVerfuegbar">
+              {{ (item.onlineVerfuegbar ? 'widget_einstellungen.venue_order_online' : 'widget_einstellungen.venue_order_offline') | translate }}
+            </div>
+            <div class="venue-order-row__actions">
+              <button class="venue-order-btn" (click)="moveVenue(i, -1)" [disabled]="i === 0"
+                      [title]="'widget_einstellungen.venue_order_move_up' | translate">
+                <mat-icon>arrow_upward</mat-icon>
+              </button>
+              <button class="venue-order-btn" (click)="moveVenue(i, 1)" [disabled]="i === venueReihenfolgeItems.length - 1"
+                      [title]="'widget_einstellungen.venue_order_move_down' | translate">
+                <mat-icon>arrow_downward</mat-icon>
+              </button>
+              <button class="venue-order-btn venue-order-btn--toggle"
+                      [class.venue-order-btn--online]="item.onlineVerfuegbar"
+                      [class.venue-order-btn--offline]="!item.onlineVerfuegbar"
+                      (click)="toggleOnlineVerfuegbar(item.venueId)"
+                      [title]="(item.onlineVerfuegbar ? 'widget_einstellungen.venue_order_set_offline' : 'widget_einstellungen.venue_order_set_online') | translate">
+                <mat-icon>{{ item.onlineVerfuegbar ? 'visibility' : 'visibility_off' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="info-hint" style="margin-top: 12px">
+        <mat-icon>info</mat-icon>
+        {{ 'widget_einstellungen.venue_order_no_venues' | translate }}
+      </div>
+    }
+
+    <div class="actions">
+      <button class="save-button" [class.saved]="saved0()" (click)="saveBlock(0)">
+        {{ saved0() ? ('common.saved' | translate) : ('common.save' | translate) }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
        5. RAUMAUSWAHL
   ══════════════════════════════════════════════════════════ -->
   <div class="settings-block">

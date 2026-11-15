@@ -49,13 +49,19 @@ export class ReservierungenComponent {
   getraenkeMinutes = signal<number>(this.getraenke.minutes());
 
   // ── No-Show Auto-Block ────────────────────────────────────────────────────────
-  noShowThreshold     = signal<number | null>(null);
+  noShowThreshold      = signal<number | null>(null);
   savedNoShowThreshold = signal<boolean>(false);
   readonly noShowPresets = [1, 2, 3, 5];
+
+  // ── Auto-Checkout ─────────────────────────────────────────────────────────────
+  autoCheckout      = signal<boolean>(false);
+  savedAutoCheckout = signal<boolean>(false);
+  info6             = signal(false);
 
   constructor() {
     this.tenantSettings.load().subscribe(s => {
       this.noShowThreshold.set(s.noShowAutoBlockThreshold ?? null);
+      this.autoCheckout.set(s.autoCheckoutEnabled ?? false);
     });
   }
 
@@ -164,6 +170,17 @@ export class ReservierungenComponent {
     this.getraenke.saveSettings({ enabled: this.getraenkeOn(), minutes: this.getraenkeMinutes() });
     this.savedGetraenke.set(true);
     setTimeout(() => this.savedGetraenke.set(false), 2000);
+  }
+
+  toggleAutoCheckout(): void { this.autoCheckout.update(v => !v); }
+
+  saveAutoCheckout(): void {
+    this.tenantSettings.save({
+      ...this.tenantSettings.snapshot,
+      autoCheckoutEnabled: this.autoCheckout(),
+    }).subscribe();
+    this.savedAutoCheckout.set(true);
+    setTimeout(() => this.savedAutoCheckout.set(false), 2000);
   }
 
   saveVipThreshold(): void {

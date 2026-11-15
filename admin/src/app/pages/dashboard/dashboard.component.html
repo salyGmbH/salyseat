@@ -209,21 +209,21 @@
             <div class="hero-card hero-card--primary">
               <div class="hero-card__icon"><mat-icon>event_available</mat-icon></div>
               <div class="hero-card__body">
-                <span class="hero-card__value">{{ s.today.total }}</span>
+                <span class="hero-card__value">{{ todayStats().total }}</span>
                 <span class="hero-card__label">{{ 'dashboard.reservations' | translate }}</span>
               </div>
-              <div class="hero-card__sub">{{ s.today.guests }} {{ 'dashboard.guests' | translate }}</div>
+              <div class="hero-card__sub">{{ todayStats().guests }} {{ 'dashboard.guests' | translate }}</div>
             </div>
 
             <!-- Jetzt eingecheckt / Auslastung -->
-            <div class="hero-card" [class.hero-card--active]="s.today.seated > 0">
+            <div class="hero-card" [class.hero-card--active]="todayStats().seated > 0">
               <div class="hero-card__icon"><mat-icon>airline_seat_recline_normal</mat-icon></div>
               <div class="hero-card__body">
-                <span class="hero-card__value">{{ s.today.seated }}</span>
+                <span class="hero-card__value">{{ todayStats().seated }}</span>
                 <span class="hero-card__label">Jetzt aktiv</span>
               </div>
               <div class="hero-card__sub">
-                @if (s.today.total > 0) {
+                @if (todayStats().total > 0) {
                   Auslastung {{ utilizationRate() }}%
                 } @else {
                   Noch niemand eingecheckt
@@ -264,13 +264,13 @@
             </div>
 
             <!-- Ausstehend / Probleme -->
-            <div class="hero-card" [class.hero-card--warn]="s.today.pending > 0">
+            <div class="hero-card" [class.hero-card--warn]="todayStats().pending > 0">
               <div class="hero-card__icon"><mat-icon>pending_actions</mat-icon></div>
               <div class="hero-card__body">
-                <span class="hero-card__value">{{ s.today.pending }}</span>
+                <span class="hero-card__value">{{ todayStats().pending }}</span>
                 <span class="hero-card__label">{{ 'dashboard.pending' | translate }}</span>
               </div>
-              @if (s.today.pending > 0) {
+              @if (todayStats().pending > 0) {
                 <div class="hero-card__sub hero-card__sub--warn">{{ 'dashboard.needs_confirm' | translate }}</div>
               } @else {
                 <div class="hero-card__sub">{{ 'dashboard.all_confirmed' | translate }}</div>
@@ -278,14 +278,14 @@
             </div>
 
             <!-- No-Shows / Probleme -->
-            <div class="hero-card" [class.hero-card--danger]="s.today.no_show > 0">
+            <div class="hero-card" [class.hero-card--danger]="todayStats().no_show > 0">
               <div class="hero-card__icon"><mat-icon>person_off</mat-icon></div>
               <div class="hero-card__body">
-                <span class="hero-card__value">{{ s.today.no_show }}</span>
+                <span class="hero-card__value">{{ todayStats().no_show }}</span>
                 <span class="hero-card__label">No-Shows</span>
               </div>
               <div class="hero-card__sub">
-                @if (s.today.total > 0 && s.today.no_show > 0) {
+                @if (todayStats().total > 0 && todayStats().no_show > 0) {
                   {{ noShowRate() }}% der Reservierungen
                 } @else {
                   Alles gut
@@ -297,7 +297,7 @@
         </section>
 
         <!-- SEKTION: HERKUNFT DER RESERVIERUNGEN -->
-        @if (s.today.total > 0) {
+        @if (todayStats().total > 0) {
           <section class="dash-section">
             <h2 class="section-label">
               <mat-icon>pie_chart</mat-icon>
@@ -330,36 +330,36 @@
         }
 
         <!-- SEKTION: STATUS-PILLS -->
-        @if (s.today.total > 0) {
+        @if (todayStats().total > 0) {
           <div class="status-row">
-            @if (s.today.confirmed > 0) {
+            @if (todayStats().confirmed > 0) {
               <div class="status-pill status-pill--confirmed">
                 <mat-icon>check_circle</mat-icon>
-                {{ s.today.confirmed }} {{ 'dashboard.confirmed' | translate }}
+                {{ todayStats().confirmed }} {{ 'dashboard.confirmed' | translate }}
               </div>
             }
-            @if (s.today.seated > 0) {
+            @if (todayStats().seated > 0) {
               <div class="status-pill status-pill--seated">
                 <mat-icon>airline_seat_recline_normal</mat-icon>
-                {{ s.today.seated }} {{ 'dashboard.checked_in' | translate }}
+                {{ todayStats().seated }} {{ 'dashboard.checked_in' | translate }}
               </div>
             }
-            @if (s.today.completed > 0) {
+            @if (todayStats().completed > 0) {
               <div class="status-pill status-pill--completed">
                 <mat-icon>task_alt</mat-icon>
-                {{ s.today.completed }} {{ 'dashboard.completed' | translate }}
+                {{ todayStats().completed }} {{ 'dashboard.completed' | translate }}
               </div>
             }
-            @if (s.today.cancelled > 0) {
+            @if (todayStats().cancelled > 0) {
               <div class="status-pill status-pill--cancelled">
                 <mat-icon>cancel</mat-icon>
-                {{ s.today.cancelled }} {{ 'dashboard.cancelled' | translate }}
+                {{ todayStats().cancelled }} {{ 'dashboard.cancelled' | translate }}
               </div>
             }
-            @if (s.today.no_show > 0) {
+            @if (todayStats().no_show > 0) {
               <div class="status-pill status-pill--noshow">
                 <mat-icon>person_off</mat-icon>
-                {{ s.today.no_show }} {{ 'dashboard.no_show' | translate }}
+                {{ todayStats().no_show }} {{ 'dashboard.no_show' | translate }}
               </div>
             }
           </div>

@@ -1,0 +1,478 @@
+<div class="gc">
+
+  <!-- ══ Header ══════════════════════════════════════════════════════════ -->
+  <div class="gc__header">
+    <div class="gc__header-left">
+      <h1 class="gc__title">
+        <mat-icon>card_giftcard</mat-icon> {{ 'gutscheine.title' | translate }}
+      </h1>
+      <p class="gc__subtitle">{{ 'gutscheine.subtitle' | translate }}</p>
+    </div>
+    <div class="gc__header-actions">
+      <button class="gc__btn gc__btn--secondary" (click)="openRedeem()">
+        <mat-icon>qr_code_scanner</mat-icon> {{ 'gutscheine.btn_redeem' | translate }}
+      </button>
+      <button class="gc__btn gc__btn--primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon> {{ 'gutscheine.btn_create' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ Stats ═══════════════════════════════════════════════════════════ -->
+  <div class="gc__stats">
+    <div class="gc__stat gc__stat--active">
+      <mat-icon>card_giftcard</mat-icon>
+      <div class="gc__stat-body">
+        <div class="gc__stat-value">{{ stats().active }}</div>
+        <div class="gc__stat-label">{{ 'gutscheine.stat_active' | translate }}</div>
+      </div>
+    </div>
+    <div class="gc__stat gc__stat--redeemed">
+      <mat-icon>done_all</mat-icon>
+      <div class="gc__stat-body">
+        <div class="gc__stat-value">{{ stats().redeemed }}</div>
+        <div class="gc__stat-label">{{ 'gutscheine.stat_redeemed' | translate }}</div>
+      </div>
+    </div>
+    <div class="gc__stat gc__stat--revenue">
+      <mat-icon>euro</mat-icon>
+      <div class="gc__stat-body">
+        <div class="gc__stat-value">{{ fmt(stats().total) }}</div>
+        <div class="gc__stat-label">{{ 'gutscheine.stat_total' | translate }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Widget-Link ══════════════════════════════════════════════════════ -->
+  <div class="gc__widget-box">
+    <div class="gc__widget-icon"><mat-icon>language</mat-icon></div>
+    <div class="gc__widget-info">
+      <div class="gc__widget-title">{{ 'gutscheine.widget_title' | translate }}</div>
+      <div class="gc__widget-desc">{{ 'gutscheine.widget_desc' | translate }}</div>
+      <div class="gc__widget-url">{{ widgetUrl }}</div>
+    </div>
+    <button class="gc__copy-btn" [class.gc__copy-btn--done]="copiedLink" (click)="copyLink()">
+      <mat-icon>{{ copiedLink ? 'check' : 'content_copy' }}</mat-icon>
+      {{ (copiedLink ? 'gutscheine.btn_copied' : 'gutscheine.btn_copy') | translate }}
+    </button>
+  </div>
+
+  <!-- ══ Gutschein-Designs ════════════════════════════════════════════════ -->
+  <div class="gc__images-section">
+    <div class="gc__images-head">
+      <div>
+        <div class="gc__images-title"><mat-icon>photo_library</mat-icon> {{ 'gutscheine.designs_title' | translate }}</div>
+        <div class="gc__images-sub">{{ 'gutscheine.designs_sub' | translate }}</div>
+      </div>
+      <button class="gc__btn gc__btn--secondary" (click)="openImageModal()">
+        <mat-icon>add_photo_alternate</mat-icon> {{ 'gutscheine.btn_add_image' | translate }}
+      </button>
+    </div>
+
+    @if (images().length === 0) {
+      <div class="gc__images-empty">
+        <mat-icon>image_not_supported</mat-icon>
+        <span>{{ 'gutscheine.designs_empty' | translate }}</span>
+      </div>
+    } @else {
+      <div class="gc__images-grid">
+        @for (img of images(); track img.id) {
+          <div class="gc__img-card" [class.gc__img-card--inactive]="!img.active">
+            <img class="gc__img-card-img" [src]="img.url" [alt]="img.name">
+            @if (!img.active) {
+              <div class="gc__img-card-badge">{{ 'gutscheine.img_badge_inactive' | translate }}</div>
+            }
+            <div class="gc__img-card-footer">
+              <span class="gc__img-card-name">{{ img.name }}</span>
+              <div class="gc__img-card-actions">
+                <button class="gc__img-card-toggle"
+                        [class.gc__img-card-toggle--on]="img.active"
+                        (click)="toggleImage(img)"
+                        [title]="img.active ? ('gutscheine.img_badge_inactive' | translate) : ('gutscheine.tab_active' | translate)">
+                  <mat-icon>{{ img.active ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                </button>
+                <button class="gc__img-card-del" (click)="removeImage(img)" [title]="'gutscheine.btn_delete' | translate">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- ══ Zahlungsmethoden ════════════════════════════════════════════════ -->
+  <div class="gc__pm-section">
+    <div class="gc__pm-head">
+      <div>
+        <div class="gc__pm-title"><mat-icon>payment</mat-icon> {{ 'gutscheine.pm_title' | translate }}</div>
+        <div class="gc__pm-sub">{{ 'gutscheine.pm_sub' | translate }}</div>
+      </div>
+    </div>
+    <div class="gc__pm-grid">
+      @for (pm of paymentMethods(); track pm.id) {
+        <div class="gc__pm-card" [class.gc__pm-card--inactive]="!pm.active">
+          <div class="gc__pm-card-top">
+            <div class="gc__pm-icon"><mat-icon>{{ pm.icon }}</mat-icon></div>
+            <div class="gc__pm-info">
+              <div class="gc__pm-name">{{ pm.name }}</div>
+              <div class="gc__pm-provider gc__pm-provider--{{ pm.provider }}">{{ pm.provider }}</div>
+            </div>
+            <button class="gc__pm-toggle"
+                    [class.gc__pm-toggle--on]="pm.active"
+                    (click)="togglePaymentMethod(pm)"
+                    [title]="pm.active ? ('gutscheine.img_badge_inactive' | translate) : ('gutscheine.tab_active' | translate)">
+              <mat-icon>{{ pm.active ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+            </button>
+          </div>
+          <div class="gc__pm-desc">{{ pm.description }}</div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ══ Filter-Tabs + Liste ══════════════════════════════════════════════ -->
+  <div class="gc__tabs">
+    @for (tab of TABS; track tab.key) {
+      <button class="gc__tab" [class.gc__tab--active]="filter() === tab.key"
+              (click)="filter.set(tab.key)">
+        {{ tab.label | translate }}
+        @if (tab.key === 'all') { <span class="gc__tab-count">{{ vouchers().length }}</span> }
+        @if (tab.key === 'active') { <span class="gc__tab-count gc__tab-count--active">{{ stats().active }}</span> }
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="gc__loading">
+      <mat-icon class="gc__spin">sync</mat-icon> {{ 'gutscheine.loading' | translate }}
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="gc__empty">
+      <mat-icon>card_giftcard</mat-icon>
+      <p>{{ 'gutscheine.empty' | translate }}</p>
+      @if (filter() !== 'all') {
+        <button class="gc__btn gc__btn--secondary" (click)="filter.set('all')">{{ 'gutscheine.btn_show_all' | translate }}</button>
+      }
+    </div>
+  } @else {
+    <div class="gc__list">
+      @for (v of filtered(); track v.id) {
+        <div class="gc__card" [class.gc__card--redeemed]="v.status === 'redeemed'"
+                              [class.gc__card--expired]="v.status === 'expired'">
+
+          <!-- Linke Seite: Code + Empfänger -->
+          <div class="gc__card-left">
+            <button class="gc__code" (click)="copyCode(v.code, $event)" [title]="'gutscheine.btn_copy' | translate">
+              {{ v.code }}
+              <mat-icon>{{ copiedCode === v.code ? 'check' : 'content_copy' }}</mat-icon>
+            </button>
+            <div class="gc__recipient">
+              <mat-icon>person</mat-icon>
+              <span>{{ v.recipientName }}</span>
+              @if (v.recipientEmail) { <span class="gc__muted">· {{ v.recipientEmail }}</span> }
+            </div>
+            @if (v.buyerName && v.buyerName !== 'Manuell') {
+              <div class="gc__buyer">
+                <mat-icon>shopping_cart</mat-icon>
+                <span class="gc__muted">{{ 'gutscheine.bought_by' | translate }} {{ v.buyerName }}</span>
+              </div>
+            }
+            @if (v.message) {
+              <div class="gc__message">„{{ v.message }}"</div>
+            }
+            <div class="gc__date">
+              <mat-icon>schedule</mat-icon>
+              {{ fmtDateTime(v.createdAt) }}
+              @if (v.redeemedAt) { · {{ 'gutscheine.badge_redeemed' | translate }} {{ fmtDateTime(v.redeemedAt) }} }
+            </div>
+          </div>
+
+          <!-- Rechte Seite: Betrag + Status + Aktionen -->
+          <div class="gc__card-right">
+            <div class="gc__amount">
+              {{ fmt(v.remainingAmount) }}
+              @if (v.remainingAmount !== v.amount) {
+                <span class="gc__amount-orig">/ {{ fmt(v.amount) }}</span>
+              }
+            </div>
+            <div class="gc__badge gc__badge--{{ v.status }}">
+              @if (v.status === 'active')   { <mat-icon>check_circle</mat-icon> {{ 'gutscheine.badge_active' | translate }} }
+              @if (v.status === 'redeemed') { <mat-icon>done_all</mat-icon> {{ 'gutscheine.badge_redeemed' | translate }} }
+              @if (v.status === 'expired')  { <mat-icon>event_busy</mat-icon> {{ 'gutscheine.badge_expired' | translate }} }
+            </div>
+            <div class="gc__expiry gc__muted">
+              <mat-icon>event</mat-icon> {{ 'gutscheine.valid_until' | translate }} {{ fmtDate(v.expiresAt) }}
+            </div>
+            <div class="gc__actions">
+              @if (v.status === 'active') {
+                <button class="gc__action gc__action--redeem" (click)="openRedeem()" [title]="'gutscheine.btn_redeem_action' | translate">
+                  <mat-icon>qr_code_scanner</mat-icon> {{ 'gutscheine.btn_redeem_action' | translate }}
+                </button>
+              }
+              <button class="gc__action gc__action--delete" (click)="remove(v)" [title]="'gutscheine.btn_delete' | translate">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+<!-- ══ Modal: Gutschein erstellen ════════════════════════════════════════ -->
+@if (showCreateModal) {
+  <div class="gc-modal-overlay" (click)="showCreateModal = false">
+    <div class="gc-modal" (click)="$event.stopPropagation()">
+      <div class="gc-modal__head">
+        <span>{{ 'gutscheine.modal_create_title' | translate }}</span>
+        <button class="gc-modal__close" (click)="showCreateModal = false">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="gc-modal__body">
+
+        <!-- Design wählen (nur wenn aktive Bilder vorhanden) -->
+        @if (activeImages().length > 0) {
+          <div class="gc-modal__field">
+            <label class="gc-modal__label">
+              {{ 'gutscheine.field_design' | translate }}
+              <span class="gc-modal__label-opt">{{ 'gutscheine.field_design_opt' | translate }}</span>
+            </label>
+            <div class="gc-modal__img-grid">
+              @for (img of activeImages(); track img.id) {
+                <button class="gc-modal__img-card"
+                        [class.gc-modal__img-card--active]="draft.imageId === img.id"
+                        (click)="draft.imageId = draft.imageId === img.id ? null : img.id">
+                  <img [src]="img.url" [alt]="img.name">
+                  <span>{{ img.name }}</span>
+                  @if (draft.imageId === img.id) {
+                    <div class="gc-modal__img-check"><mat-icon>check</mat-icon></div>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.field_amount' | translate }}</label>
+          <div class="gc-presets">
+            @for (a of presetAmounts; track a) {
+              <button class="gc-preset" [class.gc-preset--active]="draft.amount === a"
+                      (click)="draft.amount = a">{{ a }} €</button>
+            }
+          </div>
+          <input type="number" class="gc-modal__input" [(ngModel)]="draft.amount"
+                 min="1" [placeholder]="'gutscheine.field_amount_placeholder' | translate">
+        </div>
+
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.field_recipient_name' | translate }}</label>
+          <div class="gc-modal__suggest-wrap">
+            <input type="text" class="gc-modal__input" autocomplete="off"
+                   [value]="draft.recipientName"
+                   (input)="onRecipientInput($any($event.target).value)"
+                   (blur)="hideSuggestions()"
+                   [placeholder]="'gutscheine.field_recipient_name_placeholder' | translate">
+            @if (showSuggestions()) {
+              <div class="gc-modal__suggestions">
+                @for (g of guestSuggestions(); track g.id) {
+                  <button class="gc-modal__suggestion" (click)="selectGuest(g)">
+                    <div class="gc-modal__suggestion-avatar">
+                      {{ g.name.charAt(0).toUpperCase() }}
+                    </div>
+                    <div class="gc-modal__suggestion-info">
+                      <span class="gc-modal__suggestion-name">{{ g.name }}</span>
+                      @if (g.email) {
+                        <span class="gc-modal__suggestion-meta">{{ g.email }}</span>
+                      }
+                    </div>
+                    @if (g.total_reservations) {
+                      <span class="gc-modal__suggestion-count">{{ g.total_reservations }}×</span>
+                    }
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.field_recipient_email' | translate }}</label>
+          <input type="email" class="gc-modal__input" [(ngModel)]="draft.recipientEmail"
+                 [placeholder]="'gutscheine.field_recipient_email_placeholder' | translate">
+        </div>
+
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.field_message' | translate }}</label>
+          <textarea class="gc-modal__input gc-modal__input--textarea" [(ngModel)]="draft.message"
+                    [placeholder]="'gutscheine.field_message_placeholder' | translate" rows="3"></textarea>
+        </div>
+
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.field_expires' | translate }}</label>
+          <input type="date" class="gc-modal__input" [(ngModel)]="draft.expiresAt">
+        </div>
+
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.field_email_send' | translate }}</label>
+          <div class="gc-email-choice">
+            <label class="gc-email-choice__option">
+              <input type="checkbox" [(ngModel)]="emailToRecipient"
+                     [disabled]="!draft.recipientEmail.trim()">
+              <span>{{ 'gutscheine.email_recipient' | translate }}
+                @if (!draft.recipientEmail.trim()) {
+                  <span class="gc-email-choice__hint">{{ 'gutscheine.email_no_email' | translate }}</span>
+                }
+              </span>
+            </label>
+            <label class="gc-email-choice__option">
+              <input type="checkbox" [(ngModel)]="emailToBuyer">
+              <span>{{ 'gutscheine.email_admin' | translate }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="gc-modal__actions">
+        <button class="gc__btn gc__btn--secondary" (click)="showCreateModal = false">{{ 'gutscheine.btn_cancel' | translate }}</button>
+        <button class="gc__btn gc__btn--primary" (click)="saveVoucher()"
+                [disabled]="!draft.recipientName.trim() || !draft.amount || creating">
+          <mat-icon [class.gc__spin]="creating">{{ creating ? 'sync' : 'check' }}</mat-icon>
+          {{ (creating ? 'gutscheine.btn_creating' : 'gutscheine.btn_create_confirm') | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══ Modal: Gutschein einlösen ═════════════════════════════════════════ -->
+@if (showRedeemModal) {
+  <div class="gc-modal-overlay" (click)="showRedeemModal = false">
+    <div class="gc-modal gc-modal--redeem" (click)="$event.stopPropagation()">
+      <div class="gc-modal__head">
+        <span>{{ 'gutscheine.modal_redeem_title' | translate }}</span>
+        <button class="gc-modal__close" (click)="showRedeemModal = false">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="gc-modal__body">
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.redeem_label' | translate }}</label>
+          <div class="gc-redeem-row">
+            <input type="text" class="gc-modal__input gc-modal__input--code"
+                   [(ngModel)]="redeemCode"
+                   [placeholder]="'gutscheine.redeem_placeholder' | translate"
+                   (keydown.enter)="lookupCode()">
+            <button class="gc__btn gc__btn--primary" (click)="lookupCode()">
+              <mat-icon>search</mat-icon> {{ 'gutscheine.btn_check' | translate }}
+            </button>
+          </div>
+        </div>
+
+        @if (redeemState === 'not_found') {
+          <div class="gc-redeem-feedback gc-redeem-feedback--error">
+            <mat-icon>error</mat-icon> {{ 'gutscheine.redeem_not_found' | translate }}
+          </div>
+        }
+        @if (redeemState === 'already_done') {
+          <div class="gc-redeem-feedback gc-redeem-feedback--warn">
+            <mat-icon>info</mat-icon>
+            {{ 'gutscheine.redeem_already_done' | translate }}
+            {{ redeemTarget?.status === 'redeemed' ? ('gutscheine.redeem_already_redeemed' | translate) : ('gutscheine.redeem_already_expired' | translate) }}.
+          </div>
+        }
+        @if (redeemState === 'found' && redeemTarget) {
+          <div class="gc-redeem-preview">
+            <div class="gc-redeem-preview__amount">{{ fmt(redeemTarget.amount) }}</div>
+            <div class="gc-redeem-preview__meta">
+              <strong>{{ redeemTarget.recipientName }}</strong>
+              @if (redeemTarget.message) { <span>· „{{ redeemTarget.message }}"</span> }
+            </div>
+            <div class="gc-redeem-preview__expiry gc__muted">
+              {{ 'gutscheine.redeem_valid_until' | translate }} {{ fmtDate(redeemTarget.expiresAt) }}
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="gc-modal__actions">
+        <button class="gc__btn gc__btn--secondary" (click)="showRedeemModal = false">{{ 'gutscheine.btn_cancel' | translate }}</button>
+        @if (redeemState === 'found') {
+          <button class="gc__btn gc__btn--primary" (click)="confirmRedeem()">
+            <mat-icon>done_all</mat-icon> {{ 'gutscheine.btn_redeem_now' | translate }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══ Modal: Bild hinzufügen ════════════════════════════════════════════ -->
+@if (showImageModal) {
+  <div class="gc-modal-overlay" (click)="showImageModal = false">
+    <div class="gc-modal" (click)="$event.stopPropagation()">
+      <div class="gc-modal__head">
+        <span>{{ 'gutscheine.modal_image_title' | translate }}</span>
+        <button class="gc-modal__close" (click)="showImageModal = false"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <div class="gc-modal__body">
+        <div class="gc-img-tabs">
+          <button class="gc-img-tab" [class.gc-img-tab--active]="imgTab === 'file'" (click)="imgTab = 'file'">
+            <mat-icon>upload_file</mat-icon> {{ 'gutscheine.img_tab_file' | translate }}
+          </button>
+          <button class="gc-img-tab" [class.gc-img-tab--active]="imgTab === 'url'" (click)="imgTab = 'url'">
+            <mat-icon>link</mat-icon> {{ 'gutscheine.img_tab_url' | translate }}
+          </button>
+        </div>
+
+        @if (imgTab === 'file') {
+          <div class="gc-upload-zone" (click)="fileInput.click()">
+            @if (imgFilePreview) {
+              <img class="gc-upload-zone__preview" [src]="imgFilePreview" alt="Vorschau">
+            } @else {
+              <mat-icon>add_photo_alternate</mat-icon>
+              <span>{{ 'gutscheine.img_tab_file' | translate }}</span>
+            }
+            <input #fileInput type="file" accept="image/*" style="display:none"
+                   (change)="onImgFileChange($event)">
+          </div>
+        }
+
+        @if (imgTab === 'url') {
+          <div class="gc-modal__field">
+            <label class="gc-modal__label">{{ 'gutscheine.img_url_label' | translate }}</label>
+            <input type="url" class="gc-modal__input" [(ngModel)]="imgDraft.url"
+                   [placeholder]="'gutscheine.img_url_placeholder' | translate">
+          </div>
+          @if (imgDraft.url) {
+            <img class="gc-url-preview" [src]="imgDraft.url" alt="Vorschau"
+                 onerror="this.style.display='none'" style="display:block">
+          }
+        }
+
+        <div class="gc-modal__field">
+          <label class="gc-modal__label">{{ 'gutscheine.img_name_label' | translate }}</label>
+          <input type="text" class="gc-modal__input" [(ngModel)]="imgDraft.name"
+                 [placeholder]="'gutscheine.img_name_placeholder' | translate">
+        </div>
+      </div>
+
+      <div class="gc-modal__actions">
+        <button class="gc__btn gc__btn--secondary" (click)="showImageModal = false">{{ 'gutscheine.btn_cancel' | translate }}</button>
+        <button class="gc__btn gc__btn--primary" (click)="saveImage()"
+                [disabled]="!imgDraft.name.trim() || !(imgTab === 'file' ? imgFilePreview : imgDraft.url.trim()) || imgUploading">
+          <mat-icon [class.gc__spin]="imgUploading">{{ imgUploading ? 'sync' : 'check' }}</mat-icon>
+          {{ 'gutscheine.btn_save' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

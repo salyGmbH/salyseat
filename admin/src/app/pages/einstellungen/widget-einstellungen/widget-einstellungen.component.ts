@@ -35,6 +35,7 @@ export class WidgetEinstellungenComponent implements OnInit {
   }
 
   // ─── Info-Toggles ────────────────────────────────────────────────────────────
+  info0  = signal(false);
   info1  = signal(false); info2  = signal(false); info3  = signal(false);
   info4  = signal(false); info5  = signal(false); info6  = signal(false);
   info7  = signal(false); info8  = signal(false); info9  = signal(false);
@@ -43,6 +44,7 @@ export class WidgetEinstellungenComponent implements OnInit {
   info16 = signal(false); info17 = signal(false);
 
   // ─── Per-Block saved signals ─────────────────────────────────────────────────
+  saved0  = signal(false);
   saved1  = signal(false); saved2  = signal(false); saved3  = signal(false);
   saved4  = signal(false); saved5  = signal(false); saved6  = signal(false);
   saved7  = signal(false); saved8  = signal(false); saved9  = signal(false);
@@ -52,6 +54,7 @@ export class WidgetEinstellungenComponent implements OnInit {
 
   saveBlock(n: number): void {
     const all = [
+      this.saved0,
       this.saved1, this.saved2, this.saved3, this.saved4, this.saved5,
       this.saved6, this.saved7, this.saved8, this.saved9, this.saved10,
       this.saved11, this.saved12, this.saved13, this.saved14, this.saved15,
@@ -91,7 +94,10 @@ export class WidgetEinstellungenComponent implements OnInit {
     ausstehendUhrzeitAktiv: false,
     ausstehendUhrzeiten: [] as { von: string; bis: string }[],
 
-    // 5. Raumauswahl
+    // 5a. Venue-Reihenfolge & Online-Verfügbarkeit
+    venueReihenfolge: [] as { venueId: string; onlineVerfuegbar: boolean }[],
+
+    // 5b. Raumauswahl
     raumauswahl: false,
     raumauswahlAktiveIds: [] as string[],
 
@@ -177,6 +183,15 @@ export class WidgetEinstellungenComponent implements OnInit {
     if (this.settings.raumauswahlAktiveIds.length === 0) {
       this.settings.raumauswahlAktiveIds = this.venues().map(v => v.id);
     }
+    // venueReihenfolge initialisieren: fehlende Venues hinzufügen
+    const existing = new Set(this.settings.venueReihenfolge.map(r => r.venueId));
+    const missing  = this.venues().filter(v => !existing.has(v.id));
+    if (missing.length) {
+      this.settings.venueReihenfolge = [
+        ...this.settings.venueReihenfolge,
+        ...missing.map(v => ({ venueId: v.id, onlineVerfuegbar: true })),
+      ];
+    }
   }
 
   isRaumAktiv(id: string): boolean {
@@ -191,6 +206,30 @@ export class WidgetEinstellungenComponent implements OnInit {
 
   get aktiveRaumCount(): number {
     return this.settings.raumauswahlAktiveIds.length;
+  }
+
+  // ─── Venue-Reihenfolge ───────────────────────────────────────────────────────
+
+  /** Sortierte Liste mit Venue-Namen für die UI */
+  get venueReihenfolgeItems() {
+    return this.settings.venueReihenfolge.map(r => ({
+      ...r,
+      name: this.venues().find(v => v.id === r.venueId)?.name ?? r.venueId,
+    }));
+  }
+
+  toggleOnlineVerfuegbar(venueId: string): void {
+    this.settings.venueReihenfolge = this.settings.venueReihenfolge.map(r =>
+      r.venueId === venueId ? { ...r, onlineVerfuegbar: !r.onlineVerfuegbar } : r
+    );
+  }
+
+  moveVenue(index: number, direction: -1 | 1): void {
+    const list  = [...this.settings.venueReihenfolge];
+    const target = index + direction;
+    if (target < 0 || target >= list.length) return;
+    [list[index], list[target]] = [list[target], list[index]];
+    this.settings.venueReihenfolge = list;
   }
 
   // ─── Tischarten ──────────────────────────────────────────────────────────────

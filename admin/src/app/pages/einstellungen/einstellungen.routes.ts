@@ -30,6 +30,7 @@ import { BackupComponent } from './backup/backup.component';
 import { KundenComponent } from './kunden/kunden.component';
 import { NotizenComponent } from './notizen/notizen.component';
 import { SpeisekarteComponent } from './speisekarte/speisekarte.component';
+import { GutscheinDesignerComponent } from './gutschein-designer/gutschein-designer.component';
 
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
@@ -67,7 +68,8 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'backup',          component: BackupComponent },
       { path: 'kunden',          component: KundenComponent },
       { path: 'notizen',         component: NotizenComponent },
-      { path: 'speisekarte',     component: SpeisekarteComponent },
+      { path: 'speisekarte',        component: SpeisekarteComponent },
+      { path: 'gutschein-designer', component: GutscheinDesignerComponent },
     ]
   }
 ];

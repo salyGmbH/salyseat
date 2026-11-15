@@ -1,0 +1,510 @@
+@use '../../../styles/variables' as *;
+
+.gc {
+  padding: 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+// ── Header ──────────────────────────────────────────────────────────────────
+.gc__header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+}
+.gc__header-left {}
+.gc__header-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.gc__title {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 4px; font-size: 24px; font-weight: 700; color: $color-text-on-dark;
+  mat-icon { color: $color-accent; font-size: 28px; width: 28px; height: 28px; }
+}
+.gc__subtitle { margin: 0; font-size: 14px; color: $color-text-muted; }
+
+// ── Buttons ──────────────────────────────────────────────────────────────────
+.gc__btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: 8px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s;
+  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+
+  &--primary {
+    background: $color-accent; color: #111;
+    &:hover { background: $color-accent-dark; }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
+  }
+  &--secondary {
+    background: rgba(var(--color-text-rgb), 0.07); color: $color-text-on-dark;
+    border: 1px solid $color-border;
+    &:hover { background: rgba(var(--color-text-rgb), 0.12); }
+  }
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+.gc__stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
+}
+.gc__stat {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 20px; border-radius: 12px;
+  background: $color-surface; border: 1px solid $color-border;
+
+  mat-icon { font-size: 28px; width: 28px; height: 28px; flex-shrink: 0; }
+
+  &--active   mat-icon { color: $color-accent; }
+  &--redeemed mat-icon { color: $color-success; }
+  &--revenue  mat-icon { color: $color-primary; }
+}
+.gc__stat-value {
+  font-size: 22px; font-weight: 700; color: $color-text-on-dark; line-height: 1;
+}
+.gc__stat-label { font-size: 12px; color: $color-text-muted; margin-top: 3px; }
+
+// ── Widget-Box ───────────────────────────────────────────────────────────────
+.gc__widget-box {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; border-radius: 12px; margin-bottom: 24px;
+  background: rgba(var(--color-primary-rgb), 0.07);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  flex-wrap: wrap;
+}
+.gc__widget-icon {
+  mat-icon { font-size: 26px; width: 26px; height: 26px; color: $color-primary; }
+}
+.gc__widget-info { flex: 1; min-width: 0; }
+.gc__widget-title { font-size: 13px; font-weight: 700; color: $color-text-on-dark; }
+.gc__widget-desc  { font-size: 12px; color: $color-text-muted; margin: 2px 0 5px; }
+.gc__widget-url {
+  font-size: 12px; color: $color-primary; font-family: monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gc__copy-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 7px; border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+  background: rgba(var(--color-primary-rgb), 0.1); color: $color-primary;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; flex-shrink: 0;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  &:hover { background: rgba(var(--color-primary-rgb), 0.18); }
+  &--done { color: $color-success; border-color: rgba(var(--color-success-rgb), 0.3);
+    background: rgba(var(--color-success-rgb), 0.1); }
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+.gc__tabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+  border-bottom: 1px solid $color-border; padding-bottom: 0;
+}
+.gc__tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border: none; background: transparent;
+  font-size: 13px; font-weight: 600; color: $color-text-muted; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .12s;
+  &:hover { color: $color-text-on-dark; }
+  &--active { color: $color-primary; border-bottom-color: $color-primary; }
+}
+.gc__tab-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  font-size: 11px; font-weight: 700;
+  background: rgba(var(--color-text-rgb), 0.08); color: $color-text-muted;
+  &--active { background: rgba(var(--color-accent-rgb), 0.2); color: $color-accent; }
+}
+
+// ── Loading / Empty ───────────────────────────────────────────────────────────
+.gc__loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 48px; justify-content: center; color: $color-text-muted; font-size: 14px;
+}
+.gc__spin { animation: gc-spin 1s linear infinite; }
+@keyframes gc-spin { to { transform: rotate(360deg); } }
+
+.gc__empty {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 64px 24px; text-align: center; color: $color-text-muted;
+  mat-icon { font-size: 48px; width: 48px; height: 48px; opacity: 0.3; }
+  p { margin: 0; font-size: 14px; }
+}
+
+// ── Voucher-Karten ────────────────────────────────────────────────────────────
+.gc__list { display: flex; flex-direction: column; gap: 10px; }
+
+.gc__card {
+  display: flex; align-items: flex-start; gap: 20px;
+  padding: 18px 20px; border-radius: 12px;
+  background: $color-surface; border: 1px solid $color-border;
+  transition: border-color .15s;
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.35); }
+  &--redeemed { opacity: 0.7; }
+  &--expired  { opacity: 0.5; }
+}
+.gc__card-left  { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.gc__card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; flex-shrink: 0; }
+
+.gc__code {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: monospace; font-size: 15px; font-weight: 700; color: $color-text-on-dark;
+  background: rgba(var(--color-text-rgb), 0.05); border: 1px solid $color-border;
+  padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: background .12s;
+  mat-icon { font-size: 13px; width: 13px; height: 13px; color: $color-text-muted; }
+  &:hover { background: rgba(var(--color-primary-rgb), 0.08); border-color: rgba(var(--color-primary-rgb), 0.3); }
+}
+.gc__recipient, .gc__buyer {
+  display: flex; align-items: center; gap: 5px; font-size: 13px; color: $color-text-on-dark;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: $color-text-muted; flex-shrink: 0; }
+}
+.gc__message { font-size: 12px; font-style: italic; color: $color-text-muted; }
+.gc__date {
+  display: flex; align-items: center; gap: 4px; font-size: 11px; color: $color-text-muted;
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+}
+.gc__muted { color: $color-text-muted; }
+
+.gc__amount {
+  font-size: 22px; font-weight: 800; color: $color-text-on-dark;
+}
+.gc__amount-orig {
+  font-size: 14px; font-weight: 400; color: $color-text-muted; margin-left: 3px;
+  text-decoration: line-through;
+}
+
+.gc__badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+
+  &--active   { background: rgba(var(--color-accent-rgb), 0.15);  color: $color-accent; }
+  &--redeemed { background: rgba(var(--color-success-rgb), 0.15); color: $color-success; }
+  &--expired  { background: rgba(var(--color-text-rgb), 0.07);    color: $color-text-muted; }
+}
+.gc__expiry { display: flex; align-items: center; gap: 4px; font-size: 11px;
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+}
+.gc__actions { display: flex; gap: 6px; margin-top: 4px; }
+.gc__action {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 6px; border: 1px solid $color-border;
+  font-size: 12px; font-weight: 600; cursor: pointer; background: transparent;
+  transition: all .12s; color: $color-text-muted;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+  &--redeem {
+    color: $color-primary; border-color: rgba(var(--color-primary-rgb), 0.3);
+    background: rgba(var(--color-primary-rgb), 0.08);
+    &:hover { background: rgba(var(--color-primary-rgb), 0.16); }
+  }
+  &--delete {
+    &:hover { background: rgba(var(--color-danger-rgb), 0.1); color: $color-danger;
+      border-color: rgba(var(--color-danger-rgb), 0.3); }
+  }
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────────
+.gc-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  padding: 24px; backdrop-filter: blur(2px);
+}
+.gc-modal {
+  background: $color-surface; border: 1px solid $color-border;
+  border-radius: 14px; width: 460px; max-width: 100%; max-height: 90vh;
+  overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  &--redeem { width: 400px; }
+}
+.gc-modal__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 16px; border-bottom: 1px solid $color-border;
+  font-size: 15px; font-weight: 700; color: $color-text-on-dark;
+}
+.gc-modal__close {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border: none; background: transparent;
+  color: $color-text-muted; cursor: pointer; border-radius: 6px;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { background: rgba(var(--color-text-rgb), 0.07); }
+}
+.gc-modal__body {
+  padding: 20px; display: flex; flex-direction: column; gap: 14px;
+}
+.gc-modal__field { display: flex; flex-direction: column; gap: 6px; }
+.gc-modal__label { font-size: 12px; font-weight: 600; color: $color-text-muted; }
+.gc-modal__input {
+  background: rgba(var(--color-text-rgb), 0.05); border: 1px solid $color-border;
+  border-radius: 8px; padding: 9px 12px; color: $color-text-on-dark;
+  font-size: 13px; font-family: inherit; width: 100%; box-sizing: border-box;
+  &:focus { outline: none; border-color: rgba(var(--color-primary-rgb), 0.5); }
+  &::placeholder { color: $color-text-muted; }
+  &--textarea { resize: vertical; min-height: 72px; }
+  &--code { font-family: monospace; font-size: 14px; letter-spacing: 0.05em; }
+}
+.gc-modal__actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 14px 20px; border-top: 1px solid $color-border;
+}
+
+// ── Modal: Label-Optional ────────────────────────────────────────────────────
+.gc-modal__label-opt { font-weight: 400; opacity: 0.6; }
+
+// ── Modal: Bild-Grid ─────────────────────────────────────────────────────────
+.gc-modal__img-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px;
+}
+.gc-modal__img-card {
+  position: relative; border-radius: 8px; overflow: hidden;
+  border: 2px solid $color-border; background: transparent;
+  padding: 0; cursor: pointer; transition: border-color .12s;
+  text-align: center;
+
+  img { width: 100%; height: 60px; object-fit: cover; display: block; }
+  span { display: block; font-size: 11px; font-weight: 600; color: $color-text-on-dark;
+    padding: 4px 4px 5px; }
+
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.4); }
+  &--active { border-color: $color-primary; }
+}
+.gc-modal__img-check {
+  position: absolute; top: 4px; right: 4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: $color-primary; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+}
+
+// ── Modal: Kunden-Autocomplete ────────────────────────────────────────────────
+.gc-modal__suggest-wrap { position: relative; }
+.gc-modal__suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: $color-surface; border: 1px solid $color-border;
+  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  z-index: 200; overflow: hidden; max-height: 220px; overflow-y: auto;
+}
+.gc-modal__suggestion {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 12px; border: none; background: transparent;
+  cursor: pointer; text-align: left; transition: background .1s;
+  &:hover { background: rgba(var(--color-primary-rgb), 0.07); }
+}
+.gc-modal__suggestion-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(var(--color-primary-rgb), 0.15); color: $color-primary;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.gc-modal__suggestion-info { flex: 1; min-width: 0; }
+.gc-modal__suggestion-name {
+  display: block; font-size: 13px; font-weight: 600; color: $color-text-on-dark;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gc-modal__suggestion-meta {
+  display: block; font-size: 11px; color: $color-text-muted;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gc-modal__suggestion-count {
+  font-size: 11px; font-weight: 700; color: $color-text-muted; flex-shrink: 0;
+}
+
+// Betrag-Presets
+.gc-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.gc-preset {
+  padding: 6px 14px; border-radius: 7px; border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), 0.04); color: $color-text-on-dark;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all .12s;
+  &:hover { border-color: rgba(var(--color-accent-rgb), 0.4); background: rgba(var(--color-accent-rgb), 0.1); }
+  &--active {
+    background: rgba(var(--color-accent-rgb), 0.18); border-color: $color-accent; color: $color-accent;
+  }
+}
+
+// Einlösen
+.gc-redeem-row {
+  display: flex; gap: 8px;
+  .gc-modal__input { flex: 1; }
+}
+.gc-redeem-feedback {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+  &--error { background: rgba(var(--color-danger-rgb), 0.1); color: $color-danger; border: 1px solid rgba(var(--color-danger-rgb), 0.25); }
+  &--warn  { background: rgba(var(--color-warn-rgb), 0.1); color: $color-warn; border: 1px solid rgba(var(--color-warn-rgb), 0.25); }
+}
+.gc-redeem-preview {
+  padding: 16px; border-radius: 10px;
+  background: rgba(var(--color-success-rgb), 0.08); border: 1px solid rgba(var(--color-success-rgb), 0.25);
+  &__amount { font-size: 28px; font-weight: 800; color: $color-success; }
+  &__meta   { font-size: 13px; color: $color-text-on-dark; margin-top: 4px; }
+  &__expiry { font-size: 11px; margin-top: 6px; }
+}
+
+// ── Gutschein-Designs ────────────────────────────────────────────────────────
+.gc__images-section {
+  padding: 18px 20px; border-radius: 12px; margin-bottom: 24px;
+  background: $color-surface; border: 1px solid $color-border;
+}
+.gc__images-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.gc__images-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 700; color: $color-text-on-dark;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: $color-primary; }
+}
+.gc__images-sub { font-size: 12px; color: $color-text-muted; margin-top: 2px; }
+.gc__images-empty {
+  display: flex; align-items: center; gap: 8px; padding: 16px 0 4px;
+  font-size: 13px; color: $color-text-muted;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; opacity: 0.4; }
+}
+.gc__images-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;
+}
+.gc__img-card {
+  position: relative; border-radius: 10px; overflow: hidden;
+  border: 1px solid $color-border; background: $color-surface;
+  transition: border-color .15s;
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.35); }
+  &--inactive { opacity: 0.55; }
+}
+.gc__img-card-img {
+  width: 100%; height: 90px; object-fit: cover; display: block;
+}
+.gc__img-card-badge {
+  position: absolute; top: 6px; left: 6px;
+  padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700;
+  background: rgba(0,0,0,0.55); color: #fff; pointer-events: none;
+}
+.gc__img-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 6px 5px 8px; gap: 4px;
+}
+.gc__img-card-name {
+  font-size: 12px; font-weight: 600; color: $color-text-on-dark;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gc__img-card-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.gc__img-card-toggle {
+  display: flex; align-items: center; border: none; background: transparent;
+  color: $color-text-muted; cursor: pointer; padding: 2px; border-radius: 4px;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  &--on { color: $color-success; }
+  &:hover mat-icon { opacity: 0.7; }
+}
+.gc__img-card-del {
+  display: flex; align-items: center; border: none; background: transparent;
+  color: $color-text-muted; cursor: pointer; padding: 2px; border-radius: 4px; flex-shrink: 0;
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &:hover { color: $color-danger; }
+}
+
+// ── E-Mail-Auswahl im Modal ───────────────────────────────────────────────────
+.gc-email-choice {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 12px; border-radius: 8px;
+  background: rgba(var(--color-text-rgb), 0.03); border: 1px solid $color-border;
+}
+.gc-email-choice__option {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: $color-text-on-dark; cursor: pointer;
+  input[type="checkbox"] {
+    accent-color: $color-primary; width: 14px; height: 14px; flex-shrink: 0; cursor: pointer;
+    &:disabled { cursor: not-allowed; opacity: 0.45; }
+  }
+}
+.gc-email-choice__hint { font-size: 11px; color: $color-text-muted; margin-left: 4px; }
+
+// ── Bild-Upload-Modal ────────────────────────────────────────────────────────
+.gc-img-tabs {
+  display: flex; gap: 6px; margin-bottom: 12px;
+}
+.gc-img-tab {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border-radius: 8px; border: 1px solid $color-border;
+  background: transparent; color: $color-text-muted; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .12s;
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &:hover { background: rgba(var(--color-text-rgb), 0.05); }
+  &--active {
+    border-color: rgba(var(--color-primary-rgb), 0.4);
+    background: rgba(var(--color-primary-rgb), 0.08);
+    color: $color-primary;
+  }
+}
+.gc-upload-zone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 24px; border-radius: 10px; margin-bottom: 4px;
+  border: 2px dashed $color-border; cursor: pointer; transition: border-color .15s;
+  color: $color-text-muted; font-size: 13px;
+  mat-icon { font-size: 32px; width: 32px; height: 32px; opacity: 0.4; }
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.4); }
+}
+.gc-upload-zone__preview {
+  width: 100%; max-height: 140px; object-fit: cover; border-radius: 7px;
+}
+.gc-url-preview {
+  width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+// ── Zahlungsmethoden ─────────────────────────────────────────────────────────
+.gc__pm-section {
+  padding: 18px 20px; border-radius: 12px; margin-bottom: 24px;
+  background: $color-surface; border: 1px solid $color-border;
+}
+.gc__pm-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.gc__pm-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 700; color: $color-text-on-dark;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: $color-primary; }
+}
+.gc__pm-sub { font-size: 12px; color: $color-text-muted; margin-top: 2px; }
+
+.gc__pm-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;
+}
+.gc__pm-card {
+  border-radius: 10px; border: 1px solid $color-border;
+  background: rgba(var(--color-text-rgb), 0.02);
+  padding: 12px 14px; transition: border-color .15s, opacity .15s;
+  &:hover { border-color: rgba(var(--color-primary-rgb), 0.3); }
+  &--inactive { opacity: 0.5; }
+}
+.gc__pm-card-top {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.gc__pm-icon {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  background: rgba(var(--color-primary-rgb), 0.1);
+  display: flex; align-items: center; justify-content: center;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; color: $color-primary; }
+}
+.gc__pm-info { flex: 1; min-width: 0; }
+.gc__pm-name {
+  font-size: 13px; font-weight: 700; color: $color-text-on-dark;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gc__pm-provider {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  margin-top: 2px;
+  &--stripe  { color: #6772e5; }
+  &--paypal  { color: #009cde; }
+  &--sofort  { color: #ef809f; }
+  &--manual  { color: $color-text-muted; }
+}
+.gc__pm-toggle {
+  display: flex; align-items: center; border: none; background: transparent;
+  cursor: pointer; padding: 2px; border-radius: 4px; flex-shrink: 0;
+  mat-icon { font-size: 28px; width: 28px; height: 28px; color: $color-text-muted; }
+  &--on mat-icon { color: $color-success; }
+  &:hover mat-icon { opacity: 0.75; }
+}
+.gc__pm-desc {
+  font-size: 11px; color: $color-text-muted; line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .gc { padding: 16px; }
+  .gc__stats { grid-template-columns: 1fr; }
+  .gc__card { flex-direction: column; }
+  .gc__card-right { align-items: flex-start; }
+}

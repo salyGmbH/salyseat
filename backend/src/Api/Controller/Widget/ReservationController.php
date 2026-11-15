@@ -154,6 +154,7 @@ class ReservationController extends AbstractController
                 guestNotes:  $data['notes'] ?? null,
                 tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
+                source:          'online',
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);

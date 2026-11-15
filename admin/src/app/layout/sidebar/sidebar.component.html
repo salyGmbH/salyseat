@@ -41,6 +41,11 @@
       <mat-icon>calendar_month</mat-icon>
       @if (!collapsed()) { <span>{{ 'nav.shift_planning' | translate }}</span> }
     </a>
+    <a routerLink="/gutscheine" routerLinkActive="active" class="nav-item"
+       [title]="collapsed() ? 'Gutscheine' : ''" (click)="layout.closeMobile()">
+      <mat-icon>card_giftcard</mat-icon>
+      @if (!collapsed()) { <span>Gutscheine</span> }
+    </a>
     <a routerLink="/einstellungen/notizen" routerLinkActive="active" class="nav-item"
        [title]="collapsed() ? ('nav.notes' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>sticky_note_2</mat-icon>

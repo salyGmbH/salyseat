@@ -28,6 +28,7 @@ class MeController extends AbstractController
             'email'    => $user->getEmail(),
             'roles'    => $user->getRoles(),
             'tenantId' => $user->getTenant()?->getId()->toRfc4122(),
+            'plan'     => $user->getTenant()?->getPlan() ?? 'trial',
         ]);
     }
 }

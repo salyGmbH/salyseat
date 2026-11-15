@@ -70,33 +70,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
   });
 
+  /** Today-Stats direkt aus geladenen Reservierungen — konsistent mit der rechten Spalte */
+  readonly todayStats = computed(() => {
+    const res = this.todayRes();
+    const active = res.filter(r => !['cancelled', 'no_show'].includes(r.status));
+    const seated = res.filter(r => r.status === 'seated' || r.status === 'cleanup');
+    return {
+      total:         active.length,
+      guests:        active.reduce((sum, r) => sum + (r.party_size ?? 0), 0),
+      pending:       res.filter(r => r.status === 'pending').length,
+      confirmed:     res.filter(r => r.status === 'confirmed').length,
+      seated:        seated.length,
+      seated_guests: seated.reduce((sum, r) => sum + (r.party_size ?? 0), 0),
+      completed:     res.filter(r => r.status === 'completed').length,
+      cancelled:     res.filter(r => r.status === 'cancelled').length,
+      no_show:       res.filter(r => r.status === 'no_show').length,
+    };
+  });
+
   /** No-Show-Rate heute in % */
   readonly noShowRate = computed(() => {
-    const s = this.stats();
-    if (!s || s.today.total === 0) return 0;
-    return Math.round((s.today.no_show / s.today.total) * 100);
+    const t = this.todayStats();
+    if (t.total === 0) return 0;
+    return Math.round((t.no_show / t.total) * 100);
   });
 
   /** Auslastung in % (abgeschlossene + aktive / gesamt) */
   readonly utilizationRate = computed(() => {
-    const s = this.stats();
-    if (!s || s.today.total === 0) return 0;
-    return Math.round(((s.today.seated + s.today.completed) / s.today.total) * 100);
+    const t = this.todayStats();
+    if (t.total === 0) return 0;
+    return Math.round(((t.seated + t.completed) / t.total) * 100);
   });
 
   /** Wochentag-Insight (einziger angezeigter Chip) */
   readonly insights = computed((): { icon: string; text: string; type: 'info' | 'warn' | 'success' }[] => {
     const s = this.stats();
+    const t = this.todayStats();
     if (!s || s.week.total === 0) return [];
 
     const weekday = new Date().toLocaleDateString('de-DE', { weekday: 'long' });
     const avgPerDay = s.week.total / 7;
 
-    if (s.today.total > avgPerDay * 1.3) {
-      return [{ icon: 'trending_up', text: `${weekday} ist ein starker Tag — heute ${s.today.total} Reservierungen`, type: 'success' }];
+    if (t.total > avgPerDay * 1.3) {
+      return [{ icon: 'trending_up', text: `${weekday} ist ein starker Tag — heute ${t.total} Reservierungen`, type: 'success' }];
     }
-    if (s.today.total > 0 && s.today.total < avgPerDay * 0.6) {
-      return [{ icon: 'info', text: `Ruhiger ${weekday} — heute ${s.today.total} Reservierungen`, type: 'info' }];
+    if (t.total > 0 && t.total < avgPerDay * 0.6) {
+      return [{ icon: 'info', text: `Ruhiger ${weekday} — heute ${t.total} Reservierungen`, type: 'info' }];
     }
     return [];
   });

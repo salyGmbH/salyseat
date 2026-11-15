@@ -183,6 +183,12 @@ export interface TenantUiSettings {
    * Standard: false (klassisches statisches Scrollen).
    */
   planPanEnabled?: boolean;
+
+  /**
+   * Automatisches Auschecken aller Gäste um 23:57 Uhr.
+   * Betrifft nur Räume des jeweiligen Tenants.
+   */
+  autoCheckoutEnabled?: boolean;
 }
 
 // ─── Widget-Functional-Typen ──────────────────────────────────────────────────
@@ -203,6 +209,12 @@ export interface WidgetFunctionalSettings {
   ausstehendDaten: string[];
   ausstehendUhrzeitAktiv: boolean;
   ausstehendUhrzeiten: { von: string; bis: string }[];
+  /**
+   * Reihenfolge & Online-Verfügbarkeit der Räume im Widget.
+   * Leeres Array = alle Räume in natürlicher Reihenfolge verfügbar.
+   * Räume die hier nicht auftauchen gelten als verfügbar (Rückwärtskompatibilität).
+   */
+  venueReihenfolge: { venueId: string; onlineVerfuegbar: boolean }[];
   /** Welche Räume sollen im Widget buchbar sein? */
   raumauswahl: boolean;
   raumauswahlAktiveIds: string[];
@@ -294,6 +306,7 @@ export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
   ausstehendDaten:          [],
   ausstehendUhrzeitAktiv:   false,
   ausstehendUhrzeiten:      [],
+  venueReihenfolge:         [],
   raumauswahl:              false,
   raumauswahlAktiveIds:     [],
   hinweistext:              false,
