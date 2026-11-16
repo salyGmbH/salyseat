@@ -23,12 +23,16 @@ class MeController extends AbstractController
     #[Route('/me', name: 'auth_me', methods: ['GET'])]
     public function me(#[CurrentUser] User $user): JsonResponse
     {
+        $tenant = $user->getTenant();
+        $addons = array_values($tenant?->getUiSettings()['addons'] ?? []);
+
         return $this->json([
             'id'       => $user->getId()->toRfc4122(),
             'email'    => $user->getEmail(),
             'roles'    => $user->getRoles(),
-            'tenantId' => $user->getTenant()?->getId()->toRfc4122(),
-            'plan'     => $user->getTenant()?->getPlan() ?? 'trial',
+            'tenantId' => $tenant?->getId()->toRfc4122(),
+            'plan'     => $tenant?->getPlan() ?? 'tisch',
+            'addons'   => $addons,
         ]);
     }
 }

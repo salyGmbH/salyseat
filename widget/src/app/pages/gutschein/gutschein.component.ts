@@ -1,11 +1,12 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, NgZone, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { VoucherService, VoucherDesignImage, PurchasedVoucher } from '../../services/voucher.service';
+import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
+import { VoucherService, VoucherDesignImage, PurchasedVoucher, GutscheinDesignSettings } from '../../services/voucher.service';
 import { environment } from '../../../environments/environment';
 
-type GcStep = 1 | 2 | 3 | 4;   // 1=Design, 2=Betrag, 3=Empfänger, 4=Absenden
-type GcState = 'loading' | 'idle' | 'submitting' | 'success' | 'error';
+type GcStep = 1 | 2 | 3 | 4;
+type GcState = 'loading' | 'idle' | 'submitting' | 'payment' | 'paying' | 'success' | 'error';
 
 @Component({
   selector: 'wdg-gutschein',
@@ -17,13 +18,30 @@ type GcState = 'loading' | 'idle' | 'submitting' | 'success' | 'error';
 export class GutscheinComponent implements OnInit {
   private readonly svc   = inject(VoucherService);
   private readonly route = inject(ActivatedRoute);
+  private readonly zone  = inject(NgZone);
+
+  // ─── Stripe ───────────────────────────────────────────────────────────────
+  private _stripe:   Stripe | null = null;
+  private _elements: StripeElements | null = null;
 
   // ─── Meta ─────────────────────────────────────────────────────────────────
   restaurantName = signal('');
+  title          = signal('Gutschein kaufen');
+  subtitle       = signal('Verschenke einen Gutschein für ein unvergessliches Erlebnis.');
+  btnLabel       = signal('Gutschein kaufen');
   state          = signal<GcState>('loading');
   errorMessage   = signal('');
   step           = signal<GcStep>(1);
   publicKey      = '';
+
+  // ─── Zahlungsmethoden / Stripe ────────────────────────────────────────────
+  stripePublishableKey = signal<string | null>(null);
+  activePaymentMethods = signal<string[]>([]);
+  paymentError         = signal('');
+
+  readonly hasStripePayment = computed(() =>
+    !!this.stripePublishableKey() && this.activePaymentMethods().length > 0
+  );
 
   // ─── Design-Auswahl ───────────────────────────────────────────────────────
   images          = signal<VoucherDesignImage[]>([]);
@@ -95,13 +113,14 @@ export class GutscheinComponent implements OnInit {
 
     this.svc.loadConfig(this.publicKey).subscribe(cfg => {
       this.restaurantName.set(cfg.restaurantName);
-      if (cfg.colorPrimary) {
-        document.documentElement.style.setProperty('--w-color-primary', cfg.colorPrimary);
-        const m = cfg.colorPrimary.replace('#', '');
-        if (m.length === 6) {
-          const rgb = `${parseInt(m.slice(0,2),16)}, ${parseInt(m.slice(2,4),16)}, ${parseInt(m.slice(4,6),16)}`;
-          document.documentElement.style.setProperty('--w-color-primary-rgb', rgb);
-        }
+      this.stripePublishableKey.set(cfg.stripePublishableKey ?? null);
+      this.activePaymentMethods.set(cfg.activePaymentMethods ?? []);
+      const d = cfg.gutscheinDesign;
+      if (d) {
+        this.applyDesign(d);
+        if (d.title)    this.title.set(d.title);
+        if (d.subtitle) this.subtitle.set(d.subtitle);
+        if (d.btnLabel) this.btnLabel.set(d.btnLabel);
       }
       this.state.set('idle');
     });
@@ -163,6 +182,74 @@ export class GutscheinComponent implements OnInit {
     if (!this.canSubmit()) return;
 
     this.state.set('submitting');
+
+    if (this.hasStripePayment()) {
+      const amountCents = Math.round(this.amount() * 100);
+      this.svc.createPaymentIntent(this.publicKey, amountCents).subscribe({
+        next: ({ client_secret }) => {
+          this.zone.run(async () => {
+            await this.initStripePayment(client_secret);
+          });
+        },
+        error: err => {
+          this.zone.run(() => {
+            const msg = err?.error?.error ?? 'Zahlung konnte nicht initialisiert werden.';
+            this.errorMessage.set(msg);
+            this.state.set('error');
+          });
+        },
+      });
+    } else {
+      this.doPurchase();
+    }
+  }
+
+  private async initStripePayment(clientSecret: string): Promise<void> {
+    this._stripe = await loadStripe(this.stripePublishableKey()!);
+    if (!this._stripe) {
+      this.state.set('error');
+      this.errorMessage.set('Stripe konnte nicht geladen werden.');
+      return;
+    }
+    this._elements = this._stripe.elements({ clientSecret, locale: 'de' });
+    const el = this._elements.create('payment');
+    this.state.set('payment');
+    setTimeout(() => {
+      this.zone.run(() => el.mount('#gc-stripe-payment-element'));
+    }, 150);
+  }
+
+  backToForm(): void {
+    this.state.set('idle');
+    this._stripe   = null;
+    this._elements = null;
+    this.paymentError.set('');
+  }
+
+  async confirmPayment(): Promise<void> {
+    if (!this._stripe || !this._elements) return;
+
+    this.state.set('paying');
+    this.paymentError.set('');
+
+    const { error } = await this._stripe.confirmPayment({
+      elements:      this._elements,
+      confirmParams: { return_url: window.location.href },
+      redirect:      'if_required',
+    });
+
+    if (error) {
+      this.zone.run(() => {
+        this.state.set('payment');
+        this.paymentError.set(error.message ?? 'Zahlung fehlgeschlagen. Bitte erneut versuchen.');
+      });
+      return;
+    }
+
+    this.zone.run(() => this.doPurchase());
+  }
+
+  private doPurchase(): void {
     const emailTo: ('recipient' | 'buyer')[] = [
       ...(this.emailToRecipient ? ['recipient' as const] : []),
       ...(this.emailToBuyer     ? ['buyer'     as const] : []),
@@ -264,6 +351,74 @@ export class GutscheinComponent implements OnInit {
     const url  = URL.createObjectURL(blob);
     const win  = window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  // ─── Design anwenden ──────────────────────────────────────────────────────
+  private applyDesign(d: GutscheinDesignSettings): void {
+    const root = document.documentElement.style;
+
+    // Font
+    const fontStacks: Record<string, string> = {
+      system:  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      modern:  '"Trebuchet MS", "Lucida Sans Unicode", sans-serif',
+      classic: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+      serif:   'Georgia, "Times New Roman", Times, serif',
+      rounded: '"Avenir Next", "Avenir", "Nunito", sans-serif',
+      mono:    '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+    };
+    const fontSizes: Record<string, string> = { compact: '12px', standard: '14px', large: '16px' };
+    root.setProperty('--w-font', fontStacks[d.fontFamily] ?? fontStacks['system']);
+    root.setProperty('--w-font-size-base', fontSizes[d.fontSize] ?? '14px');
+
+    // Radius — card gecappt bei 20px, Buttons/Inputs bei 14px
+    const radiiMap: Record<string, number> = { square: 4, soft: 10, pill: 999 };
+    const r = radiiMap[d.radius] ?? 10;
+    root.setProperty('--w-radius',      `${r}px`);
+    root.setProperty('--w-radius-card', `${Math.min(r, 20)}px`);
+    root.setProperty('--w-radius-sm',   `${Math.min(r, 14)}px`);
+
+    // Primärfarbe
+    root.setProperty('--w-color-primary', d.colorPrimary);
+    const pm = d.colorPrimary.replace('#', '');
+    if (pm.length === 6) {
+      root.setProperty('--w-color-primary-rgb',
+        `${parseInt(pm.slice(0,2),16)}, ${parseInt(pm.slice(2,4),16)}, ${parseInt(pm.slice(4,6),16)}`);
+    }
+
+    // Textfarbe
+    root.setProperty('--w-color-text', d.colorText);
+
+    // Hintergrund
+    const bgColor = d.bgColor ?? '#f4f5f7';
+    if (d.bgMode === 'image' && d.bgImage) {
+      root.setProperty('--w-color-bg', 'transparent');
+      document.body.style.backgroundImage = `url(${d.bgImage})`;
+      document.body.style.backgroundSize  = 'cover';
+      document.body.style.backgroundPosition = 'center';
+    } else {
+      root.setProperty('--w-color-bg', bgColor);
+      document.body.style.backgroundImage = '';
+    }
+
+    // Dark-Mode-Erkennung → Surface, Border, Shadow anpassen
+    const hx = bgColor.replace('#', '');
+    const isDark = hx.length === 6
+      ? (parseInt(hx.slice(0,2),16)*0.299 + parseInt(hx.slice(2,4),16)*0.587 + parseInt(hx.slice(4,6),16)*0.114) / 255 < 0.5
+      : false;
+
+    if (isDark) {
+      root.setProperty('--w-color-surface',      'rgba(255,255,255,0.08)');
+      root.setProperty('--w-color-surface-soft',  'rgba(255,255,255,0.05)');
+      root.setProperty('--w-color-text-muted',    'rgba(255,255,255,0.55)');
+      root.setProperty('--w-color-border',        'rgba(255,255,255,0.12)');
+      root.setProperty('--w-shadow',              '0 4px 24px rgba(0,0,0,0.4)');
+    } else {
+      root.setProperty('--w-color-surface',      '#ffffff');
+      root.setProperty('--w-color-surface-soft',  '#f8f9fa');
+      root.setProperty('--w-color-text-muted',    'rgba(17,17,17,0.55)');
+      root.setProperty('--w-color-border',        'rgba(17,17,17,0.10)');
+      root.setProperty('--w-shadow',              '0 4px 20px rgba(0,0,0,0.06)');
+    }
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────

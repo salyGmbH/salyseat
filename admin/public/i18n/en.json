@@ -10,7 +10,8 @@
     "statistics": "Statistics",
     "notes": "Notes",
     "settings": "Settings",
-    "shift_planning": "Shift Planning"
+    "shift_planning": "Shift Planning",
+    "vouchers": "Vouchers"
   },
   "sidebar": {
     "notes_today": "Notes today",
@@ -82,8 +83,9 @@
     "status_labels": "Status, Hints & Guest Types",
     "widget_designer": "Widget Designer",
     "widget_settings": "Widget Settings",
-    "voucher_designer": "Voucher Designer",
-    "menu": "Menu"
+    "abo": "Subscription & Plans",
+    "menu": "Menu",
+    "voucher_designer": "Voucher Designer"
   },
   "languages": {
     "title": "Language",
@@ -471,7 +473,13 @@
     "social_links": "Social links",
     "attachments": "Attachments",
     "select_files": "Select files",
-    "uploading": "Uploading…"
+    "uploading": "Uploading…",
+    "mail_confirmation": "Reservation confirmation",
+    "mail_reminder": "Reminder before appointment",
+    "mail_cancel": "Cancellation confirmation",
+    "mail_no_show": "No-show info",
+    "choose_logo": "Choose logo",
+    "choose_image": "Choose image"
   },
   "mitarbeiter": {
     "title": "Staff",
@@ -490,7 +498,10 @@
     "id_hint": "— logged in audit trails",
     "id_ph": "e.g. 001",
     "role": "Role",
-    "can_do": "Permissions"
+    "can_do": "Permissions",
+    "tagline_admin": "Full access",
+    "tagline_manager": "Operational access",
+    "tagline_staff": "Limited"
   },
   "notizen": {
     "title": "Notes",
@@ -591,7 +602,20 @@
     "subtitle": "Fine-tune what each role is allowed to do in the system…",
     "admin_only": "Only admins may change permissions.",
     "permission": "Permission",
-    "reset": "Reset to default"
+    "reset": "Reset to default",
+    "cat_reservations": "Reservations",
+    "cat_documents": "Documents",
+    "cat_packages": "Packages",
+    "perm_read": "Read",
+    "perm_edit": "Edit",
+    "perm_delete": "Delete",
+    "perm_upload": "Upload",
+    "perm_res_read_desc": "View reservations",
+    "perm_res_edit_desc": "Edit times, guests, notes",
+    "perm_res_delete_desc": "Permanently delete reservations",
+    "perm_doc_upload_desc": "Create new documents",
+    "perm_doc_delete_desc": "Remove documents",
+    "perm_pkg_edit_desc": "Adjust packages & prices"
   },
   "reservierungen_settings": {
     "title": "Reservations",
@@ -710,7 +734,12 @@
   },
   "notifications": {
     "title": "Notifications",
-    "subtitle": "Who gets which message and when…"
+    "subtitle": "Who gets which message and when…",
+    "feat_email": "E-Mail notifications on new reservation",
+    "feat_sms": "SMS to guests for confirmation and reminder",
+    "feat_push": "Push notifications to team mobiles",
+    "feat_reminder": "Reminder X hours before the appointment",
+    "feat_cancel": "Cancellation notices to management"
   },
   "integrationen": {
     "title": "Integrations",
@@ -1049,7 +1078,20 @@
     "create_pdf": "Create PDF",
     "loading": "Loading reservations…",
     "empty": "No reservations for this filter.",
-    "all_statuses_opt": "All statuses"
+    "all_statuses_opt": "All statuses",
+    "sort_time": "Time",
+    "sort_alpha": "Alphabetical",
+    "sort_table": "Table",
+    "status_pending": "Pending",
+    "status_confirmed": "Confirmed",
+    "status_active": "Active",
+    "status_completed": "Completed",
+    "status_cancelled": "Cancelled",
+    "status_no_show": "No-show",
+    "all": "All",
+    "filter_room": "Room",
+    "filter_more": "More",
+    "with_note": "With note"
   },
   "speisekarte": {
     "design": "Design",
@@ -1219,5 +1261,101 @@
     "img_name_placeholder": "e.g. Romantic, Festive …",
     "btn_save": "Save",
     "confirm_delete_img": "Really delete this image?"
+  },
+  "gutschein_designer": {
+    "title": "Voucher Designer",
+    "subtitle": "Design the appearance of your voucher widget for customers.",
+    "reset": "Reset",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved!",
+    "section_texts": "Title & Subtitle",
+    "section_texts_sub": "Appears at the top of the voucher page.",
+    "label_title": "Title",
+    "label_subtitle": "Subtitle",
+    "label_btn": "Button text",
+    "section_bg": "Background",
+    "section_bg_sub": "Colour or image behind the voucher card.",
+    "tab_color": "Colour",
+    "tab_image": "Image",
+    "label_bg_color": "Background colour",
+    "section_typo": "Typography",
+    "section_typo_sub": "Font and text size in the widget.",
+    "label_font": "Font",
+    "label_size": "Font size",
+    "section_colors": "Colours",
+    "section_colors_sub": "Brand colour for buttons and accents, text colour for content.",
+    "label_primary": "Brand colour (Buttons & Accents)",
+    "label_text": "Text colour",
+    "section_radius": "Button shape",
+    "section_radius_sub": "Corner rounding for buttons, card and inputs.",
+    "preview": "Live preview",
+    "preview_tagline": "Gift voucher",
+    "preview_amount_label": "Choose amount",
+    "preview_custom": "Custom amount…",
+    "font_system_hint": "Neutral & familiar",
+    "font_modern_hint": "Clean lines",
+    "font_classic_hint": "Timeless & clean",
+    "font_serif_hint": "Elegant & traditional",
+    "font_rounded_hint": "Warm & friendly",
+    "font_mono_hint": "Technical & precise",
+    "size_compact": "Compact",
+    "size_standard": "Standard",
+    "size_large": "Large",
+    "size_compact_hint": "Space-saving",
+    "size_standard_hint": "Recommended",
+    "size_large_hint": "Easy to read",
+    "radius_square": "Square",
+    "radius_soft": "Soft",
+    "radius_pill": "Pill"
+  },
+  "abo": {
+    "title": "Your Subscription",
+    "subtitle": "Currently active:",
+    "current_plan": "Your current plan",
+    "popular": "Popular",
+    "btn_current": "Current Plan",
+    "btn_upgrade": "Upgrade to {{plan}}",
+    "btn_downgrade": "Downgrade",
+    "addons_title": "Add-ons",
+    "addons_subtitle": "Extensions that can be booked independently of the subscription.",
+    "addon_vouchers_name": "Vouchers",
+    "addon_vouchers_desc": "Voucher system with widget integration and custom design.",
+    "addon_pos_name": "POS Integrations",
+    "addon_pos_desc": "Direct integration with common POS systems.",
+    "tag_addon": "Add-on",
+    "tag_soon": "Coming soon",
+    "plans": {
+      "tisch": {
+        "name": "Tisch",
+        "tagline": "The foundation for your start"
+      },
+      "menu": {
+        "name": "Menü",
+        "tagline": "More control, more expression"
+      },
+      "maitre": {
+        "name": "Maître",
+        "tagline": "All inclusive — you run the house"
+      }
+    },
+    "features": {
+      "reservations": "Reservations & Floor Plan",
+      "dashboard": "Dashboard & Statistics",
+      "widget": "Online Widget",
+      "guests": "Guest Management",
+      "opening_hours": "Opening Hours",
+      "notes": "Notes",
+      "menu_card": "Menu creation",
+      "email_design": "Email Design & Preview",
+      "shift_plan": "Shift Planning",
+      "table_selection": "Table Selection in Widget",
+      "phone_assistant": "Phone Assistant",
+      "vouchers": "Vouchers",
+      "pos": "POS Integrations"
+    },
+    "addon_price_on_request": "On request",
+    "addon_phone_name": "Phone Assistant",
+    "addon_phone_desc": "AI-powered call handling & automatic reservation capture."
   }
 }

@@ -1,4 +1,3 @@
-<p>gutschein-designer works!</p>
 <div class="gd">
 
   <!-- ══ Kopfzeile ══════════════════════════════════════════════════════════ -->
@@ -6,19 +5,21 @@
     <div class="gd__head-left">
       <div class="gd__head-icon"><mat-icon>card_giftcard</mat-icon></div>
       <div>
-        <h2 class="gd__title">Gutschein Designer</h2>
-        <p class="gd__sub">Gestalte das Aussehen deines Gutschein-Widgets für Kunden.</p>
+        <h2 class="gd__title">{{ 'gutschein_designer.title' | translate }}</h2>
+        <p class="gd__sub">{{ 'gutschein_designer.subtitle' | translate }}</p>
       </div>
     </div>
     <div class="gd__head-actions">
       <button class="gd__btn gd__btn--ghost" (click)="reset()">
-        <mat-icon>restart_alt</mat-icon> Zurücksetzen
+        <mat-icon>restart_alt</mat-icon> {{ 'gutschein_designer.reset' | translate }}
       </button>
-      <button class="gd__btn gd__btn--primary" (click)="save()">
-        @if (savedFlash()) {
-          <mat-icon>check</mat-icon> Gespeichert!
+      <button class="gd__btn gd__btn--primary" (click)="save()" [disabled]="saving()">
+        @if (saving()) {
+          <mat-icon>hourglass_empty</mat-icon> {{ 'gutschein_designer.saving' | translate }}
+        } @else if (savedFlash()) {
+          <mat-icon>check</mat-icon> {{ 'gutschein_designer.saved' | translate }}
         } @else {
-          <mat-icon>save</mat-icon> Speichern
+          <mat-icon>save</mat-icon> {{ 'gutschein_designer.save' | translate }}
         }
       </button>
     </div>
@@ -35,20 +36,20 @@
         <div class="gd__block-head">
           <span class="gd__block-num">01</span>
           <div>
-            <div class="gd__block-title">Titel &amp; Untertitel</div>
-            <div class="gd__block-sub">Erscheint oben auf der Gutschein-Seite.</div>
+            <div class="gd__block-title">{{ 'gutschein_designer.section_texts' | translate }}</div>
+            <div class="gd__block-sub">{{ 'gutschein_designer.section_texts_sub' | translate }}</div>
           </div>
         </div>
         <div class="gd__field">
-          <label class="gd__label">Titel</label>
+          <label class="gd__label">{{ 'gutschein_designer.label_title' | translate }}</label>
           <input class="gd__input" type="text" [(ngModel)]="title" placeholder="z.B. Gutschein verschenken">
         </div>
         <div class="gd__field">
-          <label class="gd__label">Untertitel</label>
+          <label class="gd__label">{{ 'gutschein_designer.label_subtitle' | translate }}</label>
           <input class="gd__input" type="text" [(ngModel)]="subtitle" placeholder="z.B. Freude, die bleibt.">
         </div>
         <div class="gd__field">
-          <label class="gd__label">Button-Beschriftung</label>
+          <label class="gd__label">{{ 'gutschein_designer.label_btn' | translate }}</label>
           <input class="gd__input" type="text" [(ngModel)]="btnLabel" placeholder="z.B. Jetzt kaufen">
         </div>
       </div>
@@ -58,8 +59,8 @@
         <div class="gd__block-head">
           <span class="gd__block-num">02</span>
           <div>
-            <div class="gd__block-title">Hintergrund</div>
-            <div class="gd__block-sub">Farbe oder Bild hinter der Gutschein-Karte.</div>
+            <div class="gd__block-title">{{ 'gutschein_designer.section_bg' | translate }}</div>
+            <div class="gd__block-sub">{{ 'gutschein_designer.section_bg_sub' | translate }}</div>
           </div>
         </div>
 
@@ -67,17 +68,17 @@
         <div class="gd__bg-tabs">
           <button class="gd__bg-tab" [class.gd__bg-tab--active]="bgMode() === 'color'"
                   (click)="bgMode.set('color')">
-            <mat-icon>palette</mat-icon> Farbe
+            <mat-icon>palette</mat-icon> {{ 'gutschein_designer.tab_color' | translate }}
           </button>
           <button class="gd__bg-tab" [class.gd__bg-tab--active]="bgMode() === 'image'"
                   (click)="bgMode.set('image')">
-            <mat-icon>image</mat-icon> Bild
+            <mat-icon>image</mat-icon> {{ 'gutschein_designer.tab_image' | translate }}
           </button>
         </div>
 
         @if (bgMode() === 'color') {
           <div class="gd__field">
-            <label class="gd__label">Hintergrundfarbe</label>
+            <label class="gd__label">{{ 'gutschein_designer.label_bg_color' | translate }}</label>
             <div class="gd__color-row">
               <input class="gd__color-picker" type="color" [ngModel]="bgColor()"
                      (ngModelChange)="bgColor.set($event)">
@@ -104,7 +105,7 @@
             } @else {
               <label class="gd__upload-zone">
                 <mat-icon>add_photo_alternate</mat-icon>
-                <span>Bild auswählen</span>
+                <span>{{ 'gutschein_designer.tab_image' | translate }}</span>
                 <input type="file" accept="image/*" style="display:none"
                        (change)="onBgImageSelected($event)">
               </label>
@@ -118,13 +119,13 @@
         <div class="gd__block-head">
           <span class="gd__block-num">03</span>
           <div>
-            <div class="gd__block-title">Typografie</div>
-            <div class="gd__block-sub">Schriftart und Textgröße im Widget.</div>
+            <div class="gd__block-title">{{ 'gutschein_designer.section_typo' | translate }}</div>
+            <div class="gd__block-sub">{{ 'gutschein_designer.section_typo_sub' | translate }}</div>
           </div>
         </div>
 
         <div class="gd__field">
-          <label class="gd__label">Schriftart</label>
+          <label class="gd__label">{{ 'gutschein_designer.label_font' | translate }}</label>
           <div class="gd__font-grid">
             @for (opt of fontFamilyOptions; track opt.key) {
               <button class="gd__font-card"
@@ -132,22 +133,22 @@
                       [style.font-family]="opt.stack"
                       (click)="selectedFont.set(opt.key)">
                 <span class="gd__font-card-sample">Aa</span>
-                <span class="gd__font-card-name">{{ opt.label }}</span>
-                <span class="gd__font-card-hint">{{ opt.hint }}</span>
+                <span class="gd__font-card-name">{{ opt.label | translate }}</span>
+                <span class="gd__font-card-hint">{{ opt.hint | translate }}</span>
               </button>
             }
           </div>
         </div>
 
         <div class="gd__field">
-          <label class="gd__label">Schriftgröße</label>
+          <label class="gd__label">{{ 'gutschein_designer.label_size' | translate }}</label>
           <div class="gd__size-row">
             @for (opt of fontSizeOptions; track opt.key) {
               <button class="gd__size-btn"
                       [class.gd__size-btn--active]="selectedFontSize() === opt.key"
                       (click)="selectedFontSize.set(opt.key)">
-                <span class="gd__size-btn-label">{{ opt.label }}</span>
-                <span class="gd__size-btn-hint">{{ opt.hint }}</span>
+                <span class="gd__size-btn-label">{{ opt.label | translate }}</span>
+                <span class="gd__size-btn-hint">{{ opt.hint | translate }}</span>
               </button>
             }
           </div>
@@ -159,13 +160,13 @@
         <div class="gd__block-head">
           <span class="gd__block-num">04</span>
           <div>
-            <div class="gd__block-title">Farben</div>
-            <div class="gd__block-sub">Markenfarbe für Buttons und Akzente, Textfarbe für Inhalte.</div>
+            <div class="gd__block-title">{{ 'gutschein_designer.section_colors' | translate }}</div>
+            <div class="gd__block-sub">{{ 'gutschein_designer.section_colors_sub' | translate }}</div>
           </div>
         </div>
 
         <div class="gd__field">
-          <label class="gd__label">Markenfarbe (Buttons &amp; Akzente)</label>
+          <label class="gd__label">{{ 'gutschein_designer.label_primary' | translate }}</label>
           <div class="gd__color-row">
             <input class="gd__color-picker" type="color" [ngModel]="colorPrimary()"
                    (ngModelChange)="colorPrimary.set($event)">
@@ -180,7 +181,7 @@
         </div>
 
         <div class="gd__field">
-          <label class="gd__label">Textfarbe</label>
+          <label class="gd__label">{{ 'gutschein_designer.label_text' | translate }}</label>
           <div class="gd__color-row">
             <input class="gd__color-picker" type="color" [ngModel]="colorText()"
                    (ngModelChange)="colorText.set($event)">
@@ -200,8 +201,8 @@
         <div class="gd__block-head">
           <span class="gd__block-num">05</span>
           <div>
-            <div class="gd__block-title">Button-Form</div>
-            <div class="gd__block-sub">Eckenrundung für Buttons, Karte und Eingabefelder.</div>
+            <div class="gd__block-title">{{ 'gutschein_designer.section_radius' | translate }}</div>
+            <div class="gd__block-sub">{{ 'gutschein_designer.section_radius_sub' | translate }}</div>
           </div>
         </div>
         <div class="gd__radius-row">
@@ -213,7 +214,7 @@
                    [style.border-radius.px]="opt.px > 100 ? 20 : opt.px"
                    [style.background]="colorPrimary()">
               </div>
-              <span>{{ opt.label }}</span>
+              <span>{{ opt.label | translate }}</span>
             </button>
           }
         </div>
@@ -224,7 +225,7 @@
     <!-- ─── Vorschau-Spalte ────────────────────────────────────────────── -->
     <div class="gd__preview-col">
       <div class="gd__preview-label">
-        <mat-icon>visibility</mat-icon> Live-Vorschau
+        <mat-icon>visibility</mat-icon> {{ 'gutschein_designer.preview' | translate }}
       </div>
 
       <div class="gd__preview-shell" [ngStyle]="previewStyle()">
@@ -235,7 +236,7 @@
           <div class="gd__pv-head">
             <div class="gd__pv-tagline" [style.color]="colorPrimary()">
               <mat-icon style="font-size:13px;width:13px;height:13px">card_giftcard</mat-icon>
-              Geschenkgutschein
+              {{ 'gutschein_designer.preview_tagline' | translate }}
             </div>
             <h3 class="gd__pv-title" [style.color]="colorText()">{{ title() }}</h3>
             <p class="gd__pv-subtitle" [style.color]="previewMuted()">{{ subtitle() }}</p>
@@ -252,7 +253,7 @@
 
           <!-- Betrags-Auswahl -->
           <div class="gd__pv-body">
-            <div class="gd__pv-section-label" [style.color]="previewMuted()">Betrag wählen</div>
+            <div class="gd__pv-section-label" [style.color]="previewMuted()">{{ 'gutschein_designer.preview_amount_label' | translate }}</div>
             <div class="gd__pv-amounts">
               @for (a of previewAmounts; track a) {
                 <button class="gd__pv-amount"
@@ -268,7 +269,7 @@
             </div>
             <div class="gd__pv-custom" [style.border-radius]="'var(--gc-radius)'"
                  [style.color]="previewMuted()">
-              <span>Eigener Betrag…</span>
+              <span>{{ 'gutschein_designer.preview_custom' | translate }}</span>
             </div>
           </div>
 

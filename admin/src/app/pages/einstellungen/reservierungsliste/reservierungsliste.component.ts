@@ -88,18 +88,18 @@ export class ReservierungslisteComponent implements OnInit {
   actionError     = signal<string | null>(null);
 
   readonly sortOptions: { value: 'time' | 'alpha' | 'table'; label: string; icon: string }[] = [
-    { value: 'time',  label: 'Uhrzeit',       icon: 'schedule'         },
-    { value: 'alpha', label: 'Alphabetisch',  icon: 'sort_by_alpha'    },
-    { value: 'table', label: 'Tisch',         icon: 'table_restaurant' },
+    { value: 'time',  label: 'reservierungsliste.sort_time',  icon: 'schedule'         },
+    { value: 'alpha', label: 'reservierungsliste.sort_alpha', icon: 'sort_by_alpha'    },
+    { value: 'table', label: 'reservierungsliste.sort_table', icon: 'table_restaurant' },
   ];
 
   readonly statusOptions = [
-    { value: 'pending',   label: 'Ausstehend' },
-    { value: 'confirmed', label: 'Bestätigt'  },
-    { value: 'seated',    label: 'Aktiv'      },
-    { value: 'completed', label: 'Beendet'    },
-    { value: 'cancelled', label: 'Storniert'  },
-    { value: 'no_show',   label: 'No-Show'    },
+    { value: 'pending',   label: 'reservierungsliste.status_pending'   },
+    { value: 'confirmed', label: 'reservierungsliste.status_confirmed' },
+    { value: 'seated',    label: 'reservierungsliste.status_active'    },
+    { value: 'completed', label: 'reservierungsliste.status_completed' },
+    { value: 'cancelled', label: 'reservierungsliste.status_cancelled' },
+    { value: 'no_show',   label: 'reservierungsliste.status_no_show'   },
   ];
 
   toggleStatusFilter(value: string): void {

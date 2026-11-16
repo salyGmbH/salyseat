@@ -1465,10 +1465,15 @@
                       <div class="table-inline table-inline--time"
                            [class.table-inline--invalid]="formSubmitAttempted() && !form.time">
                         @for (slot of filteredTimeSlots(); track slot) {
+                          @let slotFull = occupiedTimeSlots().has(slot);
                           <button type="button" class="table-inline__card"
                                   [class.table-inline__card--selected]="form.time === slot"
+                                  [class.table-inline__card--slot-full]="slotFull && form.time !== slot"
                                   (click)="form.time = slot">
                             <span class="table-inline__num">{{ slot }}</span>
+                            @if (slotFull) {
+                              <span class="table-inline__badge table-inline__badge--slot-full">Belegt</span>
+                            }
                           </button>
                         }
                       </div>
@@ -1518,14 +1523,13 @@
                     <rect x="14.5" y="4" width="4" height="3.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/>
                   </svg>
                   {{ 'raum_detail.select_table' | translate }}
-                  @if (form.tableIds.length > 0) {
-                    <span class="rf-seats-info"
-                          [class.rf-seats-info--ok]="selectedSeatsTotal() >= form.partySize"
-                          [class.rf-seats-info--warn]="selectedSeatsTotal() < form.partySize">
-                      <mat-icon>{{ selectedSeatsTotal() >= form.partySize ? 'check_circle' : 'warning' }}</mat-icon>
-                      {{ form.tableIds.length }} Tisch{{ form.tableIds.length > 1 ? 'e' : '' }} · {{ selectedSeatsTotal() }} Plätze
-                    </span>
-                  }
+                  <span class="rf-seats-info"
+                        [class.rf-seats-info--ok]="selectedSeatsTotal() >= form.partySize"
+                        [class.rf-seats-info--warn]="selectedSeatsTotal() < form.partySize"
+                        [style.visibility]="form.tableIds.length > 0 ? 'visible' : 'hidden'">
+                    <mat-icon>{{ selectedSeatsTotal() >= form.partySize ? 'check_circle' : 'warning' }}</mat-icon>
+                    {{ form.tableIds.length }} Tisch{{ form.tableIds.length > 1 ? 'e' : '' }} · {{ selectedSeatsTotal() }} Plätze
+                  </span>
                 </div>
 
                 @if (bestMergeSuggestion() !== null && form.tableIds.length === 1) {
@@ -1582,7 +1586,7 @@
                               [class.table-inline__card--suggested]="isSuggested && !isBlocked"
                               [class.table-inline__card--merge]="isTableSelected(t.id) && form.tableIds.length > 1 && !selectedOccupied && !isBlocked"
                               [class.table-inline__card--linked]="isMerged && !isTableSelected(t.id) && !occupied && !isBlocked"
-                              [disabled]="occupied || isBlocked"
+                              [disabled]="isBlocked"
                               (click)="toggleTableSelection(t.id)">
                         <span class="table-inline__num">#{{ t.id }}</span>
                         <span class="table-inline__lbl">{{ tableLabel(t.id) }}</span>
@@ -1680,6 +1684,41 @@
         <div class="dialog__actions">
           <button class="dialog__btn dialog__btn--secondary" (click)="closeTablePicker()">{{ 'common.cancel' | translate }}</button>
           <button class="dialog__btn dialog__btn--primary"   (click)="skipTableAndCheckIn()">{{ 'raum_detail.checkin_no_table' | translate }}</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Konflikt-Dialog: Zeitslot bereits belegt ──────────────────── -->
+    @if (slotConflictOpen()) {
+      <div class="dialog-backdrop dialog-backdrop--conflict" (click)="cancelConflict()"></div>
+      <div class="dialog dialog--conflict">
+        <div class="dialog__title-row">
+          <span class="dialog__conflict-icon"><mat-icon>warning</mat-icon></span>
+          <h3 class="dialog__title">Zeitslot bereits belegt</h3>
+          <button type="button" class="dialog__close" (click)="cancelConflict()"><mat-icon>close</mat-icon></button>
+        </div>
+        <p class="dialog__conflict-text">
+          Zu diesem Zeitpunkt besteht bereits eine Reservierung. Wie möchten Sie fortfahren?
+        </p>
+        <div class="dialog__conflict-actions">
+          <button type="button" class="dialog__conflict-btn dialog__conflict-btn--place" (click)="confirmConflictPlace()">
+            <mat-icon>add_circle</mat-icon>
+            <span>
+              <strong>Trotzdem platzieren</strong>
+              <small>Mehrere Reservierungen zur selben Uhrzeit</small>
+            </span>
+          </button>
+          <button type="button" class="dialog__conflict-btn dialog__conflict-btn--replace" (click)="confirmConflictReplace()">
+            <mat-icon>swap_horiz</mat-icon>
+            <span>
+              <strong>Auschecken &amp; ersetzen</strong>
+              <small>Bestehende RV{{ slotConflictingRes().length !== 1 ? 's' : '' }} abschließen, neue einchecken</small>
+            </span>
+          </button>
+          <button type="button" class="dialog__conflict-btn dialog__conflict-btn--cancel" (click)="cancelConflict()">
+            <mat-icon>cancel</mat-icon>
+            <span><strong>Abbrechen</strong></span>
+          </button>
         </div>
       </div>
     }

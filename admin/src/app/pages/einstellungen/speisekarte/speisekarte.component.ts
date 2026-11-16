@@ -65,12 +65,12 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
 
   // Dieselben Font-Optionen wie im Widget-Designer
   readonly fontFamilyOptions = [
-    { key: 'system',  label: 'System (Standard)',  hint: 'Schlicht, neutral, gut lesbar.',           stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
-    { key: 'modern',  label: 'Modern',             hint: 'Geometrisch &amp; freundlich.',             stack: '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif' },
-    { key: 'classic', label: 'Klassisch',          hint: 'Zeitlos &amp; sachlich.',                   stack: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
-    { key: 'serif',   label: 'Serifen',            hint: 'Edel &amp; traditionell — passt zu Fine Dining.', stack: 'Georgia, "Times New Roman", Times, serif' },
-    { key: 'rounded', label: 'Rund',               hint: 'Weich &amp; einladend — passt zu Cafés.',  stack: '"Avenir Next", "Avenir", "Nunito", sans-serif' },
-    { key: 'mono',    label: 'Mono',               hint: 'Schreibmaschine — markant &amp; retro.',   stack: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace' },
+    { key: 'system',  label: 'widget.font_system',  hint: 'widget.font_system_hint',  stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
+    { key: 'modern',  label: 'widget.font_modern',  hint: 'widget.font_modern_hint',  stack: '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif' },
+    { key: 'classic', label: 'widget.font_classic', hint: 'widget.font_classic_hint', stack: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
+    { key: 'serif',   label: 'widget.font_serif',   hint: 'widget.font_serif_hint',   stack: 'Georgia, "Times New Roman", Times, serif' },
+    { key: 'rounded', label: 'widget.font_rounded', hint: 'widget.font_rounded_hint', stack: '"Avenir Next", "Avenir", "Nunito", sans-serif' },
+    { key: 'mono',    label: 'widget.font_mono',    hint: 'widget.font_mono_hint',    stack: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace' },
   ];
 
   get currentFontStack(): string {

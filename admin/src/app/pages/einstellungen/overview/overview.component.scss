@@ -9,8 +9,6 @@
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
-    grid-auto-flow: row;
-    grid-template-rows: none !important; // Inline-Binding überschreiben
   }
 
   @media (max-width: 480px) {
@@ -89,4 +87,34 @@
 .item.active {
   border-color: $color-accent;
   background-color: rgba(var(--color-accent-rgb), 0.08);
+}
+
+.item--locked {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+
+  &:hover {
+    transform: none;
+    background-color: $color-surface;
+    border-color: $color-border;
+  }
+}
+
+.item__plan-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(var(--color-accent-rgb), 0.12);
+  color: var(--color-accent);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &--addon {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+  }
 }

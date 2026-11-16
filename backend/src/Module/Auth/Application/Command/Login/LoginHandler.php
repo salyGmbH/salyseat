@@ -42,13 +42,16 @@ final class LoginHandler
             'exp' => time() + $ttl,
         ]);
 
+        $addons = array_values($tenant?->getUiSettings()['addons'] ?? []);
+
         return new LoginResponse(
             token:     $token,
             expiresIn: $ttl,
             email:     $user->getEmail(),
             roles:     $user->getRoles(),
             tenantId:  $tenant?->getId()->toRfc4122(),
-            plan:      $tenant?->getPlan() ?? 'trial',
+            plan:      $tenant?->getPlan() ?? 'tisch',
+            addons:    $addons,
         );
     }
 }

@@ -20,6 +20,7 @@ final readonly class LoginResponse
         public string  $email,
         public array   $roles,
         public ?string $tenantId,
-        public string  $plan = 'trial',
+        public string  $plan   = 'tisch',
+        public array   $addons = [],
     ) {}
 }

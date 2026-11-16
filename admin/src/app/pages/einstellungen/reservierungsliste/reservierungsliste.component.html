@@ -37,7 +37,7 @@
                   [class.sort-chip--active]="sortBy === opt.value"
                   (click)="sortBy = opt.value">
             <mat-icon>{{ opt.icon }}</mat-icon>
-            {{ opt.label }}
+            {{ opt.label | translate }}
           </button>
         }
       </div>
@@ -60,13 +60,13 @@
       <span class="filter-bar__label">Status</span>
       <div class="filter-bar__chips">
         <button class="filter-chip" [class.filter-chip--all]="!activeStatuses.length"
-                (click)="activeStatuses = []">Alle</button>
+                (click)="activeStatuses = []">{{ 'reservierungsliste.all' | translate }}</button>
         @for (opt of statusOptions; track opt.value) {
           <button class="filter-chip"
                   [class.filter-chip--active]="activeStatuses.includes(opt.value)"
                   [style.--chip-color]="colorForBooking($any(opt.value))"
                   (click)="toggleStatusFilter(opt.value)">
-            {{ opt.label }}
+            {{ opt.label | translate }}
           </button>
         }
       </div>
@@ -75,10 +75,10 @@
     <!-- Zeile 3: Raum-Chips (nur wenn >1 Raum vorhanden) -->
     @if (availableRooms().length > 1) {
       <div class="filter-bar__row">
-        <span class="filter-bar__label">Raum</span>
+        <span class="filter-bar__label">{{ 'reservierungsliste.filter_room' | translate }}</span>
         <div class="filter-bar__chips">
           <button class="filter-chip" [class.filter-chip--all]="!activeVenues.length"
-                  (click)="activeVenues = []">Alle</button>
+                  (click)="activeVenues = []">{{ 'reservierungsliste.all' | translate }}</button>
           @for (rm of availableRooms(); track rm.id) {
             <button class="filter-chip"
                     [class.filter-chip--active]="activeVenues.includes(rm.id)"
@@ -92,12 +92,12 @@
 
     <!-- Zeile 4: Weitere Filter (immer sichtbar) + dynamische Tag-Chips -->
     <div class="filter-bar__row">
-      <span class="filter-bar__label">Weitere</span>
+      <span class="filter-bar__label">{{ 'reservierungsliste.filter_more' | translate }}</span>
       <div class="filter-bar__chips">
         <button class="filter-chip filter-chip--note"
                 [class.filter-chip--active]="filterWithNote"
                 (click)="filterWithNote = !filterWithNote">
-          <mat-icon>notes</mat-icon>Mit Notiz
+          <mat-icon>notes</mat-icon>{{ 'reservierungsliste.with_note' | translate }}
         </button>
         @for (tag of availableTags(); track tag) {
           <button class="filter-chip filter-chip--tag"

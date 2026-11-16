@@ -1,0 +1,197 @@
+<p>a11y-widget works!</p>
+<!-- ── Barrierefreiheit-Widget ─────────────────────────────────────────────── -->
+
+<!-- Backdrop -->
+@if (panelOpen()) {
+  <div class="a11y-backdrop" (click)="closePanel()" aria-hidden="true"></div>
+}
+
+<!-- Trigger-Button -->
+<button
+  class="a11y-trigger"
+  [class.a11y-trigger--active]="anyActive"
+  (click)="togglePanel()"
+  [attr.aria-expanded]="panelOpen()"
+  aria-label="Barrierefreiheit-Optionen öffnen"
+  title="Barrierefreiheit">
+  <!-- Barrierefreiheit-Männchen (ISA-Symbol) -->
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <!-- Kopf -->
+    <circle cx="12" cy="4.5" r="2.2" fill="currentColor"/>
+    <!-- Körper -->
+    <line x1="12" y1="7" x2="12" y2="14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Arme waagerecht -->
+    <line x1="6.5" y1="10" x2="17.5" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Linkes Bein -->
+    <line x1="12" y1="14.5" x2="8.5" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Rechtes Bein -->
+    <line x1="12" y1="14.5" x2="15.5" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  @if (anyActive) {
+    <span class="a11y-trigger__dot" aria-hidden="true"></span>
+  }
+</button>
+
+<!-- Panel -->
+@if (panelOpen()) {
+  <div
+    class="a11y-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Barrierefreiheit-Einstellungen">
+
+    <!-- Header -->
+    <div class="a11y-panel__header">
+      <span class="a11y-panel__title">Barrierefreiheit</span>
+      <button class="a11y-panel__close" (click)="closePanel()" aria-label="Schließen">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Options Grid -->
+    <div class="a11y-panel__grid">
+
+      <!-- Text vergrößern -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('textLarge')" (click)="toggle('textLarge')" [attr.aria-pressed]="isActive('textLarge')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="10" height="14" rx="1.5"/>
+          <path d="M8 8v8M5.5 16h5M13 9h8M17 5v8"/>
+        </svg>
+        <span>Text vergrößern</span>
+      </button>
+
+      <!-- Hochkontrastmodus -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('highContrast')" (click)="toggle('highContrast')" [attr.aria-pressed]="isActive('highContrast')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3v18" stroke-width="1.5"/>
+          <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>Hochkontrast</span>
+      </button>
+
+      <!-- Farben invertieren -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('invertColors')" (click)="toggle('invertColors')" [attr.aria-pressed]="isActive('invertColors')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+          <path d="M12 6v12M9 9l-3 3 3 3M15 9l3 3-3 3" stroke-width="1.5"/>
+        </svg>
+        <span>Farben invertieren</span>
+      </button>
+
+      <!-- Monochrom -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('monochrome')" (click)="toggle('monochrome')" [attr.aria-pressed]="isActive('monochrome')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M3 12h18" stroke-width="1.5"/>
+          <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>Monochrom</span>
+      </button>
+
+      <!-- Niedrige Sättigung -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('lowSaturation')" (click)="toggle('lowSaturation')" [attr.aria-pressed]="isActive('lowSaturation')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M12 3 C8 8 4 10 4 14a8 8 0 0 0 16 0c0-4-4-6-8-11z"/>
+          <path d="M12 7v10" stroke-width="1.2" stroke-dasharray="2 2"/>
+        </svg>
+        <span>Niedrige Sättigung</span>
+      </button>
+
+      <!-- Hohe Sättigung -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('highSaturation')" (click)="toggle('highSaturation')" [attr.aria-pressed]="isActive('highSaturation')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M12 3 C8 8 4 10 4 14a8 8 0 0 0 16 0c0-4-4-6-8-11z"/>
+          <path d="M8 12c0 2.2 1.8 4 4 4s4-1.8 4-4" fill="currentColor" stroke="none" opacity=".35"/>
+        </svg>
+        <span>Hohe Sättigung</span>
+      </button>
+
+      <!-- Links unterstreichen -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('underlineLinks')" (click)="toggle('underlineLinks')" [attr.aria-pressed]="isActive('underlineLinks')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M9 5v8a3 3 0 0 0 6 0V5"/>
+          <line x1="5" y1="20" x2="19" y2="20" stroke-width="2"/>
+        </svg>
+        <span>Links unterstreichen</span>
+      </button>
+
+      <!-- Lesbare Schrift -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('readableFont')" (click)="toggle('readableFont')" [attr.aria-pressed]="isActive('readableFont')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <path d="M7 9h5M7 12h8M7 15h6"/>
+        </svg>
+        <span>Lesbare Schrift</span>
+      </button>
+
+      <!-- Animationen stoppen -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('noAnimations')" (click)="toggle('noAnimations')" [attr.aria-pressed]="isActive('noAnimations')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <rect x="9" y="9" width="2" height="6" fill="currentColor" stroke="none"/>
+          <rect x="13" y="9" width="2" height="6" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>Animationen stoppen</span>
+      </button>
+
+      <!-- Überschriften hervorheben -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('highlightHeadings')" (click)="toggle('highlightHeadings')" [attr.aria-pressed]="isActive('highlightHeadings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4 7h6M4 12h6M4 17h16"/>
+          <text x="12" y="12" font-size="9" font-weight="900" fill="currentColor" stroke="none" font-family="serif">H1</text>
+        </svg>
+        <span>Überschriften hervorh.</span>
+      </button>
+
+      <!-- Großer Cursor -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('largeCursor')" (click)="toggle('largeCursor')" [attr.aria-pressed]="isActive('largeCursor')">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M5 3l14 9-7.5 1.5L8 21z" opacity=".9"/>
+          <path d="M5 3l14 9-7.5 1.5L8 21z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <span>Großer Cursor</span>
+      </button>
+
+      <!-- Leseführung -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('readingGuide')" (click)="toggle('readingGuide')" [attr.aria-pressed]="isActive('readingGuide')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="2" y="10" width="20" height="4" rx="1" fill="currentColor" opacity=".2" stroke="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke-width="2"/>
+          <line x1="2" y1="14" x2="22" y2="14" stroke-width="2"/>
+        </svg>
+        <span>Leseführung</span>
+      </button>
+
+      <!-- Bilder ausblenden -->
+      <button class="a11y-tile" [class.a11y-tile--active]="isActive('hideImages')" (click)="toggle('hideImages')" [attr.aria-pressed]="isActive('hideImages')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 15l5-5 4 4 3-3 6 6"/>
+          <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>Bilder ausblenden</span>
+      </button>
+
+    </div>
+
+    <!-- Footer Reset -->
+    <div class="a11y-panel__footer">
+      <button class="a11y-panel__reset" (click)="reset()" [disabled]="!anyActive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        Zurücksetzen
+      </button>
+    </div>
+
+  </div>
+}
+
+<!-- Leseführungs-Linie (folgt der Maus) -->
+@if (isActive('readingGuide')) {
+  <div class="a11y-reading-line" id="a11y-reading-line" aria-hidden="true"></div>
+}

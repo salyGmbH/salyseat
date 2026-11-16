@@ -1,3 +1,9 @@
-<main class="widget-shell">
+<!-- Skip-Link: Tastaturnutzer springen direkt zum Hauptinhalt -->
+<a class="skip-link" href="#main-content">Zum Inhalt springen</a>
+
+<main class="widget-shell" id="main-content" tabindex="-1">
   <router-outlet></router-outlet>
 </main>
+
+<!-- Barrierefreiheit-Widget — auf allen Seiten sichtbar -->
+<wdg-a11y-widget></wdg-a11y-widget>

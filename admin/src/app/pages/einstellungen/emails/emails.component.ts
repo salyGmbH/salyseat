@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
+import { HttpClient } from '@angular/common/http';
 import { TenantSettingsService } from '../../../services/tenant-settings.service';
 
 type MailSetting = {
@@ -26,6 +27,7 @@ type MailContent = {
 })
 export class EmailsComponent implements OnInit {
   private readonly tenantSettings = inject(TenantSettingsService);
+  private readonly http           = inject(HttpClient);
 
   // ── UI State ──────────────────────────────────────────────────────────────
   mailInfo     = false;
@@ -58,14 +60,15 @@ export class EmailsComponent implements OnInit {
   headerPreview: string | null = null;
 
   // ── Anhänge ───────────────────────────────────────────────────────────────
-  attachments: { name: string; file: File; assignedMails: Record<string, boolean> }[] = [];
+  attachments: { url: string; name: string; assignedMails: Record<string, boolean> }[] = [];
+  uploadingAttachment = false;
 
   // ── Mail-Einstellungen ────────────────────────────────────────────────────
   mailSettings: MailSetting[] = [
-    { key: 'confirmation', label: 'Reservierungsbestätigung', enabled: true  },
-    { key: 'reminder',     label: 'Erinnerung vor Termin',   enabled: true  },
-    { key: 'cancel',       label: 'Stornierungsbestätigung', enabled: true  },
-    { key: 'no_show',      label: 'No-Show Info',            enabled: false },
+    { key: 'confirmation', label: 'emails.mail_confirmation', enabled: true  },
+    { key: 'reminder',     label: 'emails.mail_reminder',     enabled: true  },
+    { key: 'cancel',       label: 'emails.mail_cancel',       enabled: true  },
+    { key: 'no_show',      label: 'emails.mail_no_show',      enabled: false },
   ];
 
   // ── Inhalt — pro E-Mail-Typ ───────────────────────────────────────────────
@@ -142,6 +145,10 @@ export class EmailsComponent implements OnInit {
         this.instagram = es.social.instagram ?? '';
         this.facebook  = es.social.facebook  ?? '';
         this.tiktok    = es.social.tiktok    ?? '';
+      }
+      console.log('[emails] loaded attachments:', es.attachments);
+      if (Array.isArray(es.attachments)) {
+        this.attachments = es.attachments;
       }
     });
   }
@@ -222,15 +229,43 @@ export class EmailsComponent implements OnInit {
     reader.readAsDataURL(file);
   }
 
+  uploadError: string | null = null;
+
   onAttachmentsSelected(event: Event) {
-    const files = (event.target as HTMLInputElement).files;
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
     if (!files) return;
-    for (const file of Array.from(files)) {
-      this.attachments.push({ name: file.name, file, assignedMails: {} });
-    }
+
+    const toUpload = Array.from(files);
+    input.value = '';
+    this.uploadError = null;
+
+    toUpload.forEach(file => {
+      const formData = new FormData();
+      formData.append('file', file);
+      this.uploadingAttachment = true;
+      this.http.post<{ url: string; name: string }>('/api/v1/admin/upload/attachment', formData)
+        .subscribe({
+          next: res => {
+            console.log('[emails] upload ok:', res);
+            this.attachments.push({ url: res.url, name: res.name, assignedMails: {} });
+            this.uploadingAttachment = false;
+          },
+          error: (err) => {
+            console.error('[emails] upload error:', err);
+            this.uploadError = `Upload fehlgeschlagen (${err.status ?? 'Netzwerkfehler'})`;
+            this.uploadingAttachment = false;
+          },
+        });
+    });
+  }
+
+  removeAttachment(index: number) {
+    this.attachments.splice(index, 1);
   }
 
   save() {
+    if (this.uploadingAttachment) return;
     this.saving = true;
     const snapshot = this.tenantSettings.snapshot;
     const emailSettings = {
@@ -248,7 +283,10 @@ export class EmailsComponent implements OnInit {
       },
       content: this.perMailContent,
       social: { instagram: this.instagram, facebook: this.facebook, tiktok: this.tiktok },
+      attachments: this.attachments.map(({ url, name, assignedMails }) => ({ url, name, assignedMails })),
     };
+
+    console.log('[emails] saving attachments:', emailSettings.attachments);
 
     this.tenantSettings.save({ ...snapshot, emailSettings }).subscribe({
       next: () => {

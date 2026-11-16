@@ -78,6 +78,22 @@ export const DEFAULT_WIDGET_DESIGN: WidgetDesignSettings = {
   cornerRadius:     'soft',
 };
 
+// ─── Gutschein-Design-Typen ───────────────────────────────────────────────────
+
+export interface GutscheinDesignSettings {
+  title:        string;
+  subtitle:     string;
+  btnLabel:     string;
+  fontFamily:   FontFamilyKey;
+  fontSize:     FontSizeKey;
+  bgMode:       'color' | 'image';
+  bgColor:      string;
+  bgImage:      string | null;
+  colorPrimary: string;
+  colorText:    string;
+  radius:       CornerRadiusKey;
+}
+
 // ─── Tenant-UI-Settings ───────────────────────────────────────────────────────
 
 export interface TenantUiSettings {
@@ -122,6 +138,9 @@ export interface TenantUiSettings {
     };
     sections: any[];
   };
+
+  /** Gutschein-Widget Design */
+  gutscheinDesign?: GutscheinDesignSettings;
 
   /** Getränke-Reminder Einstellungen (tenant-weit) */
   getraenkeReminder?: { enabled: boolean; minutes: number };

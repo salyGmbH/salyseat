@@ -1,4 +1,3 @@
-/* You can add global styles to this file, and also import other style files */
 // ─── Globale Styles für das Widget ──────────────────────────────────────────
 // Tokens spiegeln bewusst das Admin-Design (gleiche Brand-Farben, gleiche
 // Border-/Surface-Werte), damit Widget und Admin visuell zusammengehören.
@@ -37,10 +36,44 @@
   box-sizing: border-box;
 }
 
+// ── Skip-Link (Tastaturnutzer springen direkt zum Inhalt) ─────────────────
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 16px;
+  z-index: 99999;
+  padding: 10px 20px;
+  background: #000;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.15s;
+
+  &:focus {
+    top: 0;
+    outline: 3px solid #ffb700;
+    outline-offset: 2px;
+  }
+}
+
+// ── Globaler focus-visible Ring ───────────────────────────────────────────
+// Sichtbarer Fokus-Indikator für Tastaturnavigation (WCAG 2.4.7)
+:focus-visible {
+  outline: 3px solid var(--w-color-primary, #2979ff) !important;
+  outline-offset: 2px !important;
+}
+
+// Maus-Klick: kein Outline (nur Tastatur)
+:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   font-family: var(--w-font);
   color: var(--w-color-text);
   background: var(--w-color-bg);
@@ -51,3 +84,114 @@ a {
   color: var(--w-color-primary);
   text-decoration: none;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BARRIEREFREIHEIT — CSS-Klassen auf <body>
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Text vergrößern ──────────────────────────────────────────────────────
+body.a11y-text-large {
+  font-size: 120% !important;
+
+  p, span, li, label, input, textarea, select, button, td, th, div {
+    font-size: 1.15em;
+  }
+}
+
+// ── Hochkontrastmodus ────────────────────────────────────────────────────
+body.a11y-high-contrast {
+  // Kontrast per Filter erhöhen — Layout bleibt 100% intakt
+  filter: contrast(1.9) saturate(1.2);
+
+  // CSS-Variablen auf maximalen Kontrast (für variable-basierte Styles)
+  --w-color-text:        #000000;
+  --w-color-text-muted:  #222222;
+  --w-color-border:      rgba(0, 0, 0, 0.6);
+  --w-color-primary:     #0044bb;
+  --w-color-primary-rgb: 0, 68, 187;
+
+  // Links unterstreichen für bessere Erkennbarkeit
+  a { text-decoration: underline !important; }
+}
+
+// ── Farben invertieren ───────────────────────────────────────────────────
+body.a11y-invert {
+  filter: invert(1) hue-rotate(180deg);
+
+  img, video, canvas, svg {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+// ── Monochrom ────────────────────────────────────────────────────────────
+body.a11y-monochrome {
+  filter: grayscale(1);
+}
+
+// ── Niedrige Sättigung ────────────────────────────────────────────────────
+body.a11y-low-saturation {
+  filter: saturate(0.35);
+}
+
+// ── Hohe Sättigung ───────────────────────────────────────────────────────
+body.a11y-high-saturation {
+  filter: saturate(2.5);
+}
+
+// ── Kombinierte Filter (nur ein filter-Property erlaubt) ─────────────────
+body.a11y-monochrome.a11y-text-large      { filter: grayscale(1); }
+body.a11y-low-saturation.a11y-text-large  { filter: saturate(0.35); }
+body.a11y-high-saturation.a11y-text-large { filter: saturate(2.5); }
+body.a11y-invert.a11y-monochrome          { filter: invert(1) hue-rotate(180deg) grayscale(1); }
+
+// ── Links unterstreichen ──────────────────────────────────────────────────
+body.a11y-underline-links {
+  a { text-decoration: underline !important; }
+}
+
+// ── Gut lesbare Schrift ───────────────────────────────────────────────────
+body.a11y-readable-font {
+  --w-font: "Arial", "Helvetica Neue", sans-serif !important;
+  font-family: Arial, "Helvetica Neue", sans-serif !important;
+
+  *, *::before, *::after {
+    font-family: Arial, "Helvetica Neue", sans-serif !important;
+    letter-spacing: 0.02em;
+    word-spacing: 0.08em;
+    line-height: 1.6;
+  }
+}
+
+// ── Animationen stoppen ───────────────────────────────────────────────────
+body.a11y-no-animations {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ── Überschriften hervorheben ─────────────────────────────────────────────
+body.a11y-highlight-headings {
+  h1, h2, h3, h4, h5, h6 {
+    outline: 2px solid var(--w-color-primary) !important;
+    outline-offset: 2px;
+    padding: 2px 4px !important;
+    border-radius: 3px;
+  }
+}
+
+// ── Großer Cursor ─────────────────────────────────────────────────────────
+body.a11y-large-cursor,
+body.a11y-large-cursor * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Cpath d='M5 3l14 9-7.5 1.5L8 21z' fill='%23000' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E") 0 0, auto !important;
+}
+
+// ── Bilder ausblenden ─────────────────────────────────────────────────────
+body.a11y-hide-images {
+  img, picture, figure, canvas, svg:not(.a11y-icon) {
+    visibility: hidden !important;
+  }
+}
+

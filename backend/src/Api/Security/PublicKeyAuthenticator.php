@@ -53,8 +53,8 @@ class PublicKeyAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
-        return new JsonResponse([
-            'error' => 'Ungültiger Public Key.',
-        ], Response::HTTP_UNAUTHORIZED);
+        // Widget-Routen sind PUBLIC_ACCESS; der Controller prüft den Key selbst.
+        // null = kein Interrupt, Request läuft als anonym weiter.
+        return null;
     }
 }

@@ -49,7 +49,7 @@
     <div class="gc__widget-info">
       <div class="gc__widget-title">{{ 'gutscheine.widget_title' | translate }}</div>
       <div class="gc__widget-desc">{{ 'gutscheine.widget_desc' | translate }}</div>
-      <div class="gc__widget-url">{{ widgetUrl }}</div>
+      <div class="gc__widget-url">{{ widgetUrl() }}</div>
     </div>
     <button class="gc__copy-btn" [class.gc__copy-btn--done]="copiedLink" (click)="copyLink()">
       <mat-icon>{{ copiedLink ? 'check' : 'content_copy' }}</mat-icon>

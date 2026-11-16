@@ -3,13 +3,14 @@ export interface LoginRequest {
   password: string;
 }
 
-export type TenantPlan = 'trial' | 'starter' | 'professional' | 'enterprise';
+export type Plan = 'tisch' | 'menu' | 'maitre';
 
 export interface AuthUser {
   email: string;
   roles: string[];
   tenantId: string | null;
-  plan: TenantPlan;
+  plan: Plan;
+  addons: string[];
 }
 
 export interface LoginResponse {

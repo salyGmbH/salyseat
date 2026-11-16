@@ -12,10 +12,10 @@ import { TranslateModule } from '@ngx-translate/core';
 })
 export class NotificationsComponent {
   features = [
-    { icon: 'mail',           label: 'E-Mail-Benachrichtigungen bei neuer Reservierung' },
-    { icon: 'sms',            label: 'SMS an Gäste zur Bestätigung und Erinnerung' },
-    { icon: 'notifications',  label: 'Push-Benachrichtigungen aufs Handy des Teams' },
-    { icon: 'schedule',       label: 'Erinnerung X Stunden vor dem Termin' },
-    { icon: 'cancel',         label: 'Stornierungs-Hinweise an Management' },
+    { icon: 'mail',           label: 'notifications.feat_email' },
+    { icon: 'sms',            label: 'notifications.feat_sms' },
+    { icon: 'notifications',  label: 'notifications.feat_push' },
+    { icon: 'schedule',       label: 'notifications.feat_reminder' },
+    { icon: 'cancel',         label: 'notifications.feat_cancel' },
   ];
 }

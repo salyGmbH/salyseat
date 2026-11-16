@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { planGuard } from '../../services/auth.guard';
 import { EinstellungenComponent } from './einstellungen.component';
 import { OverviewComponent } from './overview/overview.component';
 
@@ -31,6 +32,7 @@ import { KundenComponent } from './kunden/kunden.component';
 import { NotizenComponent } from './notizen/notizen.component';
 import { SpeisekarteComponent } from './speisekarte/speisekarte.component';
 import { GutscheinDesignerComponent } from './gutschein-designer/gutschein-designer.component';
+import { AboComponent } from './abo/abo.component';
 
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
@@ -56,7 +58,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'statistiken',       component: StatistikenComponent },
       { path: 'reservierungsliste', component: ReservierungslisteComponent },
       { path: 'sprachen',          component: SprachenComponent },
-      { path: 'emails',            component: EmailsComponent },
+      { path: 'emails',            component: EmailsComponent,    canActivate: [planGuard('email-design')] },
       { path: 'sicherheit',        component: SicherheitComponent },
       { path: 'kreditkarte',       component: KreditkarteComponent },
       { path: 'hotel-automatisch', component: HotelAutomatischComponent },
@@ -67,9 +69,10 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'integrationen',   component: IntegrationenComponent },
       { path: 'backup',          component: BackupComponent },
       { path: 'kunden',          component: KundenComponent },
-      { path: 'notizen',         component: NotizenComponent },
-      { path: 'speisekarte',        component: SpeisekarteComponent },
+      { path: 'notizen',         component: NotizenComponent,    canActivate: [planGuard('notizen')] },
+      { path: 'speisekarte',     component: SpeisekarteComponent, canActivate: [planGuard('speisekarte')] },
       { path: 'gutschein-designer', component: GutscheinDesignerComponent },
+      { path: 'abo',                component: AboComponent },
     ]
   }
 ];

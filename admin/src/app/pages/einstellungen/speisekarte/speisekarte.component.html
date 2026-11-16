@@ -64,10 +64,10 @@
             <div class="font-card__sample">Aa</div>
             <div class="font-card__body">
               <div class="font-card__head">
-                <span class="font-card__label">{{ f.label }}</span>
+                <span class="font-card__label">{{ f.label | translate }}</span>
                 <mat-icon class="font-card__check" *ngIf="fontFamilyKey === f.key">check_circle</mat-icon>
               </div>
-              <div class="font-card__hint" [innerHTML]="f.hint"></div>
+              <div class="font-card__hint" [innerHTML]="f.hint | translate"></div>
               <div class="font-card__preview">Speisekarte</div>
             </div>
           </button>

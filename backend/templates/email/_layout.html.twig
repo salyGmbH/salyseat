@@ -77,20 +77,43 @@
         <p><a href="{{ action_url }}" class="action-btn">{{ action_label ?? 'Mehr erfahren' }}</a></p>
         {% endif %}
 
+        {# ── Gutschein-Details ── #}
+        {% if voucher_code is defined and voucher_code %}
+        <div class="details-card">
+            <div class="detail-row">
+                <span class="detail-label">🎟️ Gutschein-Code</span>
+                <span class="detail-value" style="font-size:16px;letter-spacing:2px;">{{ voucher_code }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">💶 Wert</span>
+                <span class="detail-value">{{ voucher_amount }} €</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">📅 Gültig bis</span>
+                <span class="detail-value">{{ voucher_expires }}</span>
+            </div>
+        </div>
+        {% if personal_message is defined and personal_message %}
+        <div class="info-text" style="border-left:3px solid {{ design.primaryColor }};padding-left:12px;font-style:italic;">
+            „{{ personal_message }}"
+        </div>
+        {% endif %}
+        {% endif %}
+
         {# ── Info-Text ── #}
-        {% if mail_content.infoText is defined and mail_content.infoText %}
+        {% if mail_content is not null and mail_content.infoText is defined and mail_content.infoText %}
         <div class="info-text">{{ mail_content.infoText }}</div>
         {% endif %}
 
         <hr class="divider">
 
         {# ── Footer-Text ── #}
-        {% if mail_content.footerText is defined and mail_content.footerText %}
+        {% if mail_content is not null and mail_content.footerText is defined and mail_content.footerText %}
         <div class="footer-text">{{ mail_content.footerText }}</div>
         {% endif %}
 
         {# ── Signatur ── #}
-        {% if mail_content.signature is defined and mail_content.signature %}
+        {% if mail_content is not null and mail_content.signature is defined and mail_content.signature %}
         <div class="signature">{{ mail_content.signature }}</div>
         {% endif %}
 

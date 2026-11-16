@@ -16,7 +16,7 @@
 
     <div class="toggle-list">
       <div class="toggle-item" *ngFor="let mail of mailSettings">
-        <span class="toggle-item__label">{{ mail.label }}</span>
+        <span class="toggle-item__label">{{ mail.label | translate }}</span>
         <label class="toggle">
           <input type="checkbox" [(ngModel)]="mail.enabled">
           <span class="toggle__track"><span class="toggle__thumb"></span></span>
@@ -132,7 +132,7 @@
         <span class="form-row__label">{{ 'emails.logo_upload' | translate }}</span>
         <label class="upload-btn">
           <mat-icon>upload</mat-icon>
-          <span>Logo wählen</span>
+          <span>{{ 'emails.choose_logo' | translate }}</span>
           <input type="file" accept="image/*" (change)="onLogoUpload($event)" hidden>
         </label>
         <div class="upload-preview" *ngIf="logoPreview">
@@ -145,7 +145,7 @@
         <span class="form-row__label">{{ 'emails.header_image' | translate }}</span>
         <label class="upload-btn">
           <mat-icon>image</mat-icon>
-          <span>Bild wählen</span>
+          <span>{{ 'emails.choose_image' | translate }}</span>
           <input type="file" accept="image/*" (change)="onHeaderUpload($event)" hidden>
         </label>
         <div class="upload-preview upload-preview--wide" *ngIf="headerPreview">
@@ -172,7 +172,7 @@
         class="content-tab"
         [class.active]="selectedContentKey === mail.key"
         (click)="selectedContentKey = mail.key">
-        {{ mail.label }}
+        {{ mail.label | translate }}
       </button>
     </div>
 
@@ -373,22 +373,29 @@
       </h2>
     </div>
 
-    <label class="upload-btn upload-btn--block">
-      <mat-icon>upload_file</mat-icon>
-      <span>Dateien auswählen</span>
-      <input type="file" multiple (change)="onAttachmentsSelected($event)" hidden>
+    <label class="upload-btn upload-btn--block" [class.upload-btn--loading]="uploadingAttachment">
+      <mat-icon>{{ uploadingAttachment ? 'sync' : 'upload_file' }}</mat-icon>
+      <span>{{ uploadingAttachment ? ('emails.uploading' | translate) : ('emails.select_files' | translate) }}</span>
+      <input type="file" multiple (change)="onAttachmentsSelected($event)" [disabled]="uploadingAttachment" hidden>
     </label>
 
+    <div class="upload-error" *ngIf="uploadError">
+      <mat-icon>error_outline</mat-icon> {{ uploadError }}
+    </div>
+
     <div class="attachment-list">
-      <div class="attachment-item" *ngFor="let attachment of attachments">
+      <div class="attachment-item" *ngFor="let attachment of attachments; let i = index">
         <div class="attachment-item__head">
           <mat-icon>description</mat-icon>
           <strong>{{ attachment.name }}</strong>
+          <button class="attachment-item__remove" type="button" (click)="removeAttachment(i)" [title]="'common.delete' | translate">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
         <div class="attachment-mails">
           <label class="mail-chip" *ngFor="let mail of mailSettings">
             <input type="checkbox" [(ngModel)]="attachment.assignedMails[mail.key]">
-            <span class="mail-chip__label">{{ mail.label }}</span>
+            <span class="mail-chip__label">{{ mail.label | translate }}</span>
           </label>
         </div>
       </div>
@@ -397,7 +404,7 @@
 
   <!-- ── Speichern ──────────────────────────────────────────────────── -->
   <div class="settings-block">
-    <button class="save-btn" [class.save-btn--saved]="saved" (click)="save()">
+    <button class="save-btn" [class.save-btn--saved]="saved" [disabled]="saving || uploadingAttachment" (click)="save()">
       <mat-icon>{{ saved ? 'check' : 'save' }}</mat-icon>
       {{ saved ? ('common.saved' | translate) : ('common.save' | translate) }}
     </button>

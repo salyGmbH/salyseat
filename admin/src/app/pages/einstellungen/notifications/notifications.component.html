@@ -12,7 +12,7 @@
     @for (f of features; track f.label) {
       <div class="feature">
         <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>
-        <span>{{ f.label }}</span>
+        <span>{{ f.label | translate }}</span>
       </div>
     }
   </div>

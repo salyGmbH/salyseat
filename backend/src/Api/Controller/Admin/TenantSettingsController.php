@@ -52,4 +52,55 @@ class TenantSettingsController extends AbstractController
 
         return $this->json($tenant->getUiSettings());
     }
+
+    private const VALID_ADDONS = ['vouchers', 'pos'];
+
+    #[Route('/addon/{key}', name: 'admin_tenant_addon_patch', methods: ['PATCH'])]
+    public function updateAddon(#[CurrentUser] User $user, string $key, Request $request): JsonResponse
+    {
+        if (!in_array($key, self::VALID_ADDONS, true)) {
+            return $this->json(['error' => 'Unknown addon'], 400);
+        }
+
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'No tenant'], 400);
+        }
+
+        $data   = json_decode($request->getContent(), true);
+        $active = (bool) ($data['active'] ?? false);
+
+        $settings          = $tenant->getUiSettings() ?? [];
+        $addons            = $settings['addons'] ?? [];
+        $addons            = $active
+            ? array_unique(array_merge($addons, [$key]))
+            : array_values(array_filter($addons, fn($a) => $a !== $key));
+        $settings['addons'] = $addons;
+
+        $tenant->setUiSettings($settings);
+        $this->tenants->save($tenant);
+
+        return $this->json(['addons' => $addons]);
+    }
+
+    #[Route('/plan', name: 'admin_tenant_plan_patch', methods: ['PATCH'])]
+    public function updatePlan(#[CurrentUser] User $user, Request $request): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'No tenant'], 400);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $plan = $data['plan'] ?? null;
+
+        if (!in_array($plan, ['tisch', 'menu', 'maitre'], true)) {
+            return $this->json(['error' => 'Invalid plan'], 400);
+        }
+
+        $tenant->upgradePlan($plan);
+        $this->tenants->save($tenant);
+
+        return $this->json(['plan' => $tenant->getPlan()]);
+    }
 }

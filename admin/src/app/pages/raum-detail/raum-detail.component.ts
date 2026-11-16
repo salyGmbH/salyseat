@@ -768,44 +768,47 @@ export class RaumDetailComponent implements OnInit {
       });
     }
 
-    // Vollständig belegte Slots ausblenden
-    const room        = this.room();
-    const totalTables = room?.tables?.length ?? 0;
-    if (totalTables > 0) {
-      // Alle lokalen Reservierungen — inkl. bereits bestätigter (backendId gesetzt).
-      // Verhindert das "Transition-Window"-Problem, wenn backendId gesetzt wird bevor
-      // _backendResForFormDate neu geladen hat.
-      const allLocal = room ? this.reservationsService
-        .forRoomAndDate(room.id, formDateVal)
-        .filter(r => !['cancelled', 'completed'].includes(r.status)) : [];
-
-      // Backend-Reservierungen aus anderen Sessions — nur die, die lokal nicht schon erfasst sind.
-      const localBackendIds = new Set(allLocal.map(r => r.backendId).filter((id): id is string => !!id));
-      const backendExtra = (this._backendResForFormDate() ?? [])
-        .filter(r => !['cancelled', 'completed'].includes(r.status) && !localBackendIds.has(r.id));
-
-      slots = slots.filter(slotTime => {
-        const slotStartMs = new Date(`${formDateVal}T${slotTime}:00`).getTime();
-        const slotEndMs   = slotStartMs + duration * 60_000;
-        let concurrent = 0;
-
-        for (const res of allLocal) {
-          const dur        = res.durationMinutes > 0 ? res.durationMinutes : duration;
-          const resStartMs = new Date(`${formDateVal}T${res.time}:00`).getTime();
-          const resEndMs   = resStartMs + dur * 60_000;
-          if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
-        }
-        for (const res of backendExtra) {
-          const resStartMs = new Date(res.starts_at).getTime();
-          const resEndMs   = new Date(res.ends_at).getTime();
-          if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
-        }
-
-        return concurrent < totalTables;
-      });
-    }
-
+    // Admin-Modus: belegte Slots NICHT herausfiltern — werden nur markiert.
     return slots;
+  });
+
+  /** Zeitslots die vollständig belegt sind — zur farblichen Markierung im Picker. */
+  readonly occupiedTimeSlots = computed<Set<string>>(() => {
+    const room        = this.room();
+    const formDateVal = this.formDate();
+    const duration    = this.formDurationMinutes();
+    const totalTables = room?.tables?.length ?? 0;
+    const result      = new Set<string>();
+    if (!room || totalTables === 0) return result;
+
+    const allLocal = this.reservationsService
+      .forRoomAndDate(room.id, formDateVal)
+      .filter(r => !['cancelled', 'completed'].includes(r.status) && !!r.backendId);
+
+    const localBackendIds = new Set(allLocal.map(r => r.backendId).filter((id): id is string => !!id));
+    const backendExtra = (this._backendResForFormDate() ?? [])
+      .filter(r => !['cancelled', 'completed'].includes(r.status) && !localBackendIds.has(r.id));
+
+    for (const slotTime of this.filteredTimeSlots()) {
+      const slotStartMs = new Date(`${formDateVal}T${slotTime}:00`).getTime();
+      const slotEndMs   = slotStartMs + duration * 60_000;
+      let concurrent = 0;
+
+      for (const res of allLocal) {
+        const dur        = res.durationMinutes > 0 ? res.durationMinutes : duration;
+        const resStartMs = new Date(`${formDateVal}T${res.time}:00`).getTime();
+        const resEndMs   = resStartMs + dur * 60_000;
+        if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
+      }
+      for (const res of backendExtra) {
+        const resStartMs = new Date(res.starts_at).getTime();
+        const resEndMs   = new Date(res.ends_at).getTime();
+        if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
+      }
+
+      if (concurrent >= totalTables) result.add(slotTime);
+    }
+    return result;
   });
 
   // Dialoge
@@ -824,6 +827,13 @@ export class RaumDetailComponent implements OnInit {
   editingReservation  = signal<FloorReservation | null>(null);
   formError           = signal<string | null>(null);
   formSubmitAttempted = signal(false);
+
+  // ── Konflikt-Dialog (belegter Zeitslot) ──────────────────────────────────
+  slotConflictOpen        = signal(false);
+  /** Alle aktiven Reservierungen die mit dem gewünschten Slot überlappen */
+  slotConflictingRes      = signal<FloorReservation[]>([]);
+  /** Gespeicherte Parameter für den pending Create-Aufruf nach Nutzerentscheidung */
+  private _pendingCreate: (() => void) | null = null;
 
   // Kundenkarte-Modal (Klick auf res-row__body)
   showKundenConfirm = signal(false);
@@ -1052,6 +1062,9 @@ export class RaumDetailComponent implements OnInit {
     for (const r of this.allReservationsForFormDay()) {
       if (r.status !== 'upcoming' && r.status !== 'confirmed' && r.status !== 'late' &&
           r.status !== 'seated'   && r.status !== 'expired'  && r.status !== 'cleanup') continue;
+      // Optimistisch angelegte Reservierungen (noch kein backendId) ausschließen —
+      // verhindert den kurzen "Tisch besetzt"-Flash direkt nach dem Anlegen.
+      if (!r.backendId) continue;
       const ids = r.tableIds?.length ? r.tableIds : (r.tableId ? [r.tableId] : []);
       for (const id of ids) {
         const existing = map.get(id) ?? [];
@@ -1949,6 +1962,7 @@ export class RaumDetailComponent implements OnInit {
     const room = this.room();
     if (!room) return;
 
+    this.formError.set(null);
     this.formSubmitAttempted.set(true);
 
     // Namensfeld direkt übernehmen
@@ -2010,68 +2024,66 @@ export class RaumDetailComponent implements OnInit {
 
       const doCreate = () => this.doCreateReservation(room, name, primaryTableId, formDateVal);
 
-      // Synchrone Lokalprüfungen — greifen immer, unabhängig vom Netzwerk.
-
-      // 1) Raum-weiter Concurrent-Check über alle lokalen Reservierungen des Datums
+      // Konflikt-Check: überlappende lokale Reservierungen für diesen Raum ermitteln.
+      const selectedTableIds = this.form.tableIds;
       const localActive = this.reservationsService
         .forRoomAndDate(room.id, formDateVal)
-        .filter(r => !['cancelled', 'completed'].includes(r.status));
-      const localConcurrent = localActive.filter(r => {
+        .filter(r => !['cancelled', 'completed'].includes(r.status) && !!r.backendId);
+      const conflicting = localActive.filter(r => {
+        // Nur Reservierungen des ausgewählten Tisches berücksichtigen
+        if (selectedTableIds.length > 0) {
+          const rIds = r.tableIds?.length ? r.tableIds : (r.tableId ? [r.tableId] : []);
+          if (rIds.length > 0 && !rIds.some(id => selectedTableIds.includes(id))) return false;
+        }
         const dur = r.durationMinutes > 0 ? r.durationMinutes : this.form.durationMinutes;
         const s   = new Date(`${formDateVal}T${r.time}:00`).getTime();
         const e   = s + dur * 60_000;
         return s < slotEndMs && e > slotStartMs;
-      }).length;
-      if (totalTables > 0 && localConcurrent >= totalTables) {
-        this.formError.set('Diese Uhrzeit ist nicht verfügbar — alle Tische sind zu dieser Zeit belegt.');
-        return;
-      }
-
-      // 2) Konkret gewählter Tisch bereits belegt?
-      if (primaryTableId && this.isTableOccupied(primaryTableId, this.form.time, this.form.durationMinutes)) {
-        this.formError.set('Dieser Tisch ist zu dieser Uhrzeit bereits belegt.');
-        return;
-      }
-
-      if (totalTables === 0) {
-        doCreate();
-        return;
-      }
-
-      this.apiReservations.loadForVenue(room.id, formDateVal).pipe(take(1)).subscribe({
-        next: (freshRes) => {
-          const active = freshRes.filter(r => !['cancelled', 'completed'].includes(r.status));
-
-          // Raum komplett voll?
-          const concurrent = active.filter(r => {
-            const s = new Date(r.starts_at).getTime();
-            const e = new Date(r.ends_at).getTime();
-            return s < slotEndMs && e > slotStartMs;
-          }).length;
-          if (concurrent >= totalTables) {
-            this.formError.set('Diese Uhrzeit ist nicht verfügbar — alle Tische sind zu dieser Zeit belegt.');
-            return;
-          }
-
-          // Konkret gewählter Tisch bereits belegt?
-          if (primaryTableId) {
-            const tableOccupied = active.some(r => {
-              if (r.table_number !== primaryTableId) return false;
-              const s = new Date(r.starts_at).getTime();
-              const e = new Date(r.ends_at).getTime();
-              return s < slotEndMs && e > slotStartMs;
-            });
-            if (tableOccupied) {
-              this.formError.set('Dieser Tisch ist zu dieser Uhrzeit bereits belegt.');
-              return;
-            }
-          }
-
-          doCreate();
-        },
-        error: () => doCreate(), // bei Netzwerkfehler trotzdem anlegen
       });
+
+      if (conflicting.length > 0) {
+        // Slot ist belegt → Konfliktdialog öffnen statt direkt zu blocken
+        this._pendingCreate = doCreate;
+        this.slotConflictingRes.set(conflicting);
+        this.slotConflictOpen.set(true);
+        return;
+      }
+
+      doCreate();
     }
+  }
+
+  /** Konflikt-Aktion 1: Trotzdem platzieren (Überbuchung) */
+  confirmConflictPlace(): void {
+    const fn = this._pendingCreate;
+    this.closeConflictDialog();
+    fn?.();
+  }
+
+  /** Konflikt-Aktion 2: Abbrechen */
+  cancelConflict(): void {
+    this.closeConflictDialog();
+  }
+
+  /** Konflikt-Aktion 3: Bestehende RVs auschecken, neue einchecken */
+  confirmConflictReplace(): void {
+    const fn = this._pendingCreate;
+    const toCheckout = this.slotConflictingRes();
+    this.closeConflictDialog();
+
+    // Alle überlappenden Reservierungen auf "completed" setzen
+    for (const res of toCheckout) {
+      this.getraenke.cancelTimer(res.id);
+      this.reservationsService.setStatus(res.id, 'completed');
+    }
+
+    fn?.();
+  }
+
+  private closeConflictDialog(): void {
+    this.slotConflictOpen.set(false);
+    this.slotConflictingRes.set([]);
+    this._pendingCreate = null;
   }
 
   private doCreateReservation(room: SavedRoom, name: string, primaryTableId: number, formDateVal: string) {
@@ -2339,7 +2351,15 @@ export class RaumDetailComponent implements OnInit {
       this.form.tableIds = this.form.tableIds.filter(x => !mergedIds.includes(x));
     } else {
       // Alle Merge-Partner rein
-      const combined = new Set([...this.form.tableIds, ...mergedIds]);
+      // Wenn der neu gewählte Tisch FREI ist → bestehende belegte Tische raus,
+      // damit kein Mischzustand entsteht und die Besetzt-Warnung verschwindet.
+      const isNewOccupied = this.isTableOccupied(id, this.form.time, this.form.durationMinutes, this.editingId());
+      const base = isNewOccupied
+        ? this.form.tableIds
+        : this.form.tableIds.filter(x =>
+            !this.isTableOccupied(x, this.form.time, this.form.durationMinutes, this.editingId())
+          );
+      const combined = new Set([...base, ...mergedIds]);
       this.form.tableIds = Array.from(combined);
     }
     this.form.tableId = this.form.tableIds[0] ?? 0;

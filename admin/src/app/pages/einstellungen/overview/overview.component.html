@@ -1,11 +1,17 @@
 <div class="grid" [style.grid-template-rows]="'repeat(' + rows() + ', auto)'">
   <a class="item"
-     *ngFor="let item of items()"
-     [routerLink]="item.route"
-     routerLinkActive="active">
+     *ngFor="let item of items"
+     [routerLink]="isLocked(item) ? null : item.route"
+     routerLinkActive="active"
+     [class.item--locked]="isLocked(item)">
     <div class="icon">
       <mat-icon>{{ item.icon || 'settings' }}</mat-icon>
     </div>
     <span>{{ item.label | translate }}</span>
+    @if (isAddonItem(item) && isLocked(item)) {
+      <span class="item__plan-badge item__plan-badge--addon">{{ 'abo.tag_addon' | translate }}</span>
+    } @else if (isLocked(item)) {
+      <span class="item__plan-badge">{{ minPlanLabel(item) }}</span>
+    }
   </a>
 </div>

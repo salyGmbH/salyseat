@@ -2,17 +2,51 @@
 
   <!-- ── Loading ─────────────────────────────────────────────────────────── -->
   @if (state() === 'loading') {
-    <div class="gc-page__loading">
+    <div class="gc-page__loading" role="status" aria-label="Seite wird geladen">
       <div class="gc-spinner"></div>
     </div>
   }
 
   <!-- ── Error ────────────────────────────────────────────────────────────── -->
   @if (state() === 'error') {
-    <div class="gc-card gc-card--center">
-      <div class="gc-error-icon">✕</div>
+    <div class="gc-card gc-card--center" role="alert">
+      <div class="gc-error-icon" aria-hidden="true">✕</div>
       <h2 class="gc-card__title">Etwas ist schiefgelaufen</h2>
       <p class="gc-card__sub">{{ errorMessage() }}</p>
+    </div>
+  }
+
+  <!-- ── Stripe Zahlungsformular ─────────────────────────────────────────── -->
+  @if (state() === 'payment' || state() === 'paying') {
+    <div class="gc-card">
+      <div class="gc-card__head">
+        <div class="gc-card__restaurant">{{ restaurantName() }}</div>
+        <h1 class="gc-card__title">Sichere Zahlung</h1>
+        <p class="gc-card__sub">{{ fmt(amount()) }} · Für {{ recipientName }}</p>
+      </div>
+
+      <div class="gc-section">
+        <div id="gc-stripe-payment-element"></div>
+        @if (paymentError()) {
+          <p class="gc-error">{{ paymentError() }}</p>
+        }
+      </div>
+
+      <div class="gc-card__actions">
+        <button class="gc-btn gc-btn--secondary" (click)="backToForm()"
+                [disabled]="state() === 'paying'">
+          ← Zurück
+        </button>
+        <button class="gc-btn gc-btn--primary" (click)="confirmPayment()"
+                [disabled]="state() === 'paying'">
+          @if (state() === 'paying') {
+            <span class="gc-spinner gc-spinner--sm"></span>
+            Verarbeite…
+          } @else {
+            {{ fmt(amount()) }} zahlen
+          }
+        </button>
+      </div>
     </div>
   }
 
@@ -23,15 +57,18 @@
       <!-- Restaurant + Titel -->
       <div class="gc-card__head">
         <div class="gc-card__restaurant">{{ restaurantName() }}</div>
-        <h1 class="gc-card__title">Gutschein kaufen</h1>
-        <p class="gc-card__sub">Verschenke einen Gutschein für ein unvergessliches Erlebnis.</p>
+        <h1 class="gc-card__title">{{ title() }}</h1>
+        <p class="gc-card__sub">{{ subtitle() }}</p>
       </div>
 
       <!-- Fortschrittsanzeige -->
-      <div class="gc-steps">
+      <nav class="gc-steps" aria-label="Fortschritt">
         @for (n of (hasImages() ? [1,2,3,4] : [1,2,3]); track n) {
-          <div class="gc-step" [class.gc-step--active]="step() === n" [class.gc-step--done]="step() > n">
-            <div class="gc-step__dot">{{ step() > n ? '✓' : n }}</div>
+          <div class="gc-step"
+               [class.gc-step--active]="step() === n"
+               [class.gc-step--done]="step() > n"
+               [attr.aria-current]="step() === n ? 'step' : null">
+            <div class="gc-step__dot" aria-hidden="true">{{ step() > n ? '✓' : n }}</div>
             <div class="gc-step__label">
               @if (hasImages()) {
                 @if (n === 1) { Design }
@@ -46,29 +83,34 @@
             </div>
           </div>
           @if (n < totalSteps()) {
-            <div class="gc-step__line" [class.gc-step__line--done]="step() > n"></div>
+            <div class="gc-step__line" [class.gc-step__line--done]="step() > n" aria-hidden="true"></div>
           }
         }
-      </div>
+      </nav>
+
+      <!-- Live-Region für Screenreader-Ansagen -->
+      <div aria-live="polite" aria-atomic="true" class="sr-only" id="gc-live-region"></div>
 
       <!-- ── Schritt 1 (mit Bildern): Design wählen ───────────────────────── -->
       @if (hasImages() && step() === 1) {
         <div class="gc-section">
-          <p class="gc-section__label">Wähle ein Design für deinen Gutschein</p>
-          <div class="gc-design-grid">
+          <p class="gc-section__label" id="gc-design-label">Wähle ein Design für deinen Gutschein</p>
+          <div class="gc-design-grid" role="group" aria-labelledby="gc-design-label">
             @for (img of images(); track img.id) {
               <button class="gc-design-card"
                       [class.gc-design-card--active]="selectedImageId() === img.id"
+                      [attr.aria-pressed]="selectedImageId() === img.id"
+                      [attr.aria-label]="'Design auswählen: ' + img.name"
                       (click)="selectImage(img.id)">
                 <img class="gc-design-card__img" [src]="img.url" [alt]="img.name">
                 <div class="gc-design-card__name">{{ img.name }}</div>
                 @if (selectedImageId() === img.id) {
-                  <div class="gc-design-card__check">✓</div>
+                  <div class="gc-design-card__check" aria-hidden="true">✓</div>
                 }
               </button>
             }
           </div>
-          <button class="gc-skip-btn" (click)="skipImage()">Ohne Design weiter →</button>
+          <button class="gc-skip-btn" (click)="skipImage()" aria-label="Ohne Design fortfahren">Ohne Design weiter →</button>
         </div>
       }
 
@@ -83,28 +125,34 @@
         }
 
         <div class="gc-section">
-          <p class="gc-section__label">Wähle den Betrag</p>
-          <div class="gc-presets">
+          <p class="gc-section__label" id="gc-preset-label">Wähle den Betrag</p>
+          <div class="gc-presets" role="group" aria-labelledby="gc-preset-label">
             @for (a of presetAmounts; track a) {
-              <button class="gc-preset" [class.gc-preset--active]="isPresetActive(a)"
+              <button class="gc-preset"
+                      [class.gc-preset--active]="isPresetActive(a)"
+                      [attr.aria-pressed]="isPresetActive(a)"
+                      [attr.aria-label]="a + ' Euro auswählen'"
                       (click)="selectPreset(a)">{{ a }} €</button>
             }
           </div>
           <div class="gc-field gc-field--inline">
-            <label class="gc-field__label">Eigener Betrag</label>
+            <label class="gc-field__label" for="gc-custom-amount">Eigener Betrag</label>
             <div class="gc-input-group">
-              <input type="number" class="gc-input"
+              <input id="gc-custom-amount"
+                     type="number" class="gc-input"
                      [class.gc-input--error]="showErrors && amount() < 1"
+                     [attr.aria-invalid]="showErrors && amount() < 1 ? 'true' : null"
+                     aria-describedby="gc-custom-amount-error"
                      [value]="customAmount"
                      (input)="onCustomAmountChange($any($event.target).value)"
                      min="1" placeholder="z.B. 80">
-              <span class="gc-input-suffix">€</span>
+              <span class="gc-input-suffix" aria-hidden="true">€</span>
             </div>
           </div>
           @if (showErrors && amount() < 1) {
-            <p class="gc-error">Bitte gib einen Betrag ein.</p>
+            <p class="gc-error" id="gc-custom-amount-error" role="alert">Bitte gib einen Betrag ein.</p>
           }
-          <div class="gc-amount-preview">
+          <div class="gc-amount-preview" aria-live="polite" aria-atomic="true">
             <span class="gc-amount-preview__val">{{ fmt(amount()) }}</span>
             <span class="gc-amount-preview__hint">Gutscheinwert</span>
           </div>
@@ -115,26 +163,35 @@
       @if ((!hasImages() && step() === 2) || (hasImages() && step() === 3)) {
         <div class="gc-section">
           <div class="gc-field">
-            <label class="gc-field__label">Name des Empfängers *</label>
-            <input type="text" class="gc-input"
+            <label class="gc-field__label" for="gc-recipient-name">Name des Empfängers *</label>
+            <input id="gc-recipient-name"
+                   type="text" class="gc-input"
                    [class.gc-input--error]="showErrors && recipientName.trim().length < 2"
+                   [attr.aria-invalid]="showErrors && recipientName.trim().length < 2 ? 'true' : null"
+                   aria-describedby="gc-recipient-name-error"
+                   aria-required="true"
                    [(ngModel)]="recipientName" placeholder="z.B. Maria Müller">
             @if (showErrors && recipientName.trim().length < 2) {
-              <span class="gc-error">Pflichtfeld (mind. 2 Zeichen)</span>
+              <span class="gc-error" id="gc-recipient-name-error" role="alert">Pflichtfeld (mind. 2 Zeichen)</span>
             }
           </div>
           <div class="gc-field">
-            <label class="gc-field__label">E-Mail des Empfängers <span class="gc-optional">(optional)</span></label>
-            <input type="email" class="gc-input"
+            <label class="gc-field__label" for="gc-recipient-email">E-Mail des Empfängers <span class="gc-optional">(optional)</span></label>
+            <input id="gc-recipient-email"
+                   type="email" class="gc-input"
                    [class.gc-input--error]="showErrors && !recipientEmailOk()"
+                   [attr.aria-invalid]="showErrors && !recipientEmailOk() ? 'true' : null"
+                   aria-describedby="gc-recipient-email-error"
                    [(ngModel)]="recipientEmail" placeholder="maria@example.com">
             @if (showErrors && !recipientEmailOk()) {
-              <span class="gc-error">Ungültige E-Mail-Adresse</span>
+              <span class="gc-error" id="gc-recipient-email-error" role="alert">Ungültige E-Mail-Adresse</span>
             }
           </div>
           <div class="gc-field">
-            <label class="gc-field__label">Persönliche Nachricht <span class="gc-optional">(optional)</span></label>
-            <textarea class="gc-input gc-input--textarea" [(ngModel)]="message"
+            <label class="gc-field__label" for="gc-message">Persönliche Nachricht <span class="gc-optional">(optional)</span></label>
+            <textarea id="gc-message"
+                      class="gc-input gc-input--textarea"
+                      [(ngModel)]="message"
                       placeholder="z.B. Alles Gute zum Geburtstag! 🎂" rows="3"></textarea>
           </div>
         </div>
@@ -144,7 +201,7 @@
       @if ((!hasImages() && step() === 3) || (hasImages() && step() === 4)) {
         <div class="gc-section">
           <!-- Zusammenfassung -->
-          <div class="gc-summary">
+          <div class="gc-summary" role="region" aria-label="Bestellzusammenfassung">
             @if (selectedImage()) {
               <div class="gc-summary__row">
                 <span class="gc-summary__key">Design</span>
@@ -169,29 +226,39 @@
 
           <p class="gc-section__label">Deine Kontaktdaten</p>
           <div class="gc-field">
-            <label class="gc-field__label">Dein Name *</label>
-            <input type="text" class="gc-input"
+            <label class="gc-field__label" for="gc-buyer-name">Dein Name *</label>
+            <input id="gc-buyer-name"
+                   type="text" class="gc-input"
                    [class.gc-input--error]="showErrors && buyerName.trim().length < 2"
+                   [attr.aria-invalid]="showErrors && buyerName.trim().length < 2 ? 'true' : null"
+                   aria-describedby="gc-buyer-name-error"
+                   aria-required="true"
                    [(ngModel)]="buyerName" placeholder="Vor- und Nachname">
             @if (showErrors && buyerName.trim().length < 2) {
-              <span class="gc-error">Pflichtfeld (mind. 2 Zeichen)</span>
+              <span class="gc-error" id="gc-buyer-name-error" role="alert">Pflichtfeld (mind. 2 Zeichen)</span>
             }
           </div>
           <div class="gc-field">
-            <label class="gc-field__label">Deine E-Mail *</label>
-            <input type="email" class="gc-input"
+            <label class="gc-field__label" for="gc-buyer-email">Deine E-Mail *</label>
+            <input id="gc-buyer-email"
+                   type="email" class="gc-input"
                    [class.gc-input--error]="showErrors && !emailOk()"
+                   [attr.aria-invalid]="showErrors && !emailOk() ? 'true' : null"
+                   aria-describedby="gc-buyer-email-error"
+                   aria-required="true"
                    [(ngModel)]="buyerEmail" placeholder="deine@email.de">
             @if (showErrors && !emailOk()) {
-              <span class="gc-error">Bitte gib eine gültige E-Mail-Adresse ein.</span>
+              <span class="gc-error" id="gc-buyer-email-error" role="alert">Bitte gib eine gültige E-Mail-Adresse ein.</span>
             }
           </div>
+
           <!-- E-Mail-Auswahl -->
-          <div class="gc-email-choice">
-            <div class="gc-email-choice__label">Gutschein per E-Mail senden an:</div>
+          <fieldset class="gc-email-choice">
+            <legend class="gc-email-choice__label">Gutschein per E-Mail senden an:</legend>
             <label class="gc-email-choice__option">
               <input type="checkbox" [(ngModel)]="emailToRecipient"
-                     [disabled]="!recipientEmail">
+                     [disabled]="!recipientEmail"
+                     [attr.aria-disabled]="!recipientEmail ? 'true' : null">
               <span>Empfänger
                 @if (!recipientEmail) { <span class="gc-email-choice__hint">(keine E-Mail angegeben)</span> }
               </span>
@@ -200,10 +267,28 @@
               <input type="checkbox" [(ngModel)]="emailToBuyer">
               <span>Käufer ({{ buyerEmail || '–' }})</span>
             </label>
-          </div>
+          </fieldset>
+
+          <!-- Zahlungsmethoden -->
+          @if (hasStripePayment()) {
+            <div class="gc-payment-methods">
+              <span class="gc-payment-methods__label">Zahlung per</span>
+              <div class="gc-payment-methods__badges">
+                @for (m of activePaymentMethods(); track m) {
+                  <span class="gc-payment-badge">
+                    @if (m === 'card') { <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><rect x=".5" y=".5" width="13" height="9" rx="1.5" stroke="currentColor"/><rect x=".5" y="2.5" width="13" height="2" fill="currentColor"/></svg> Karte }
+                    @if (m === 'apple_pay') {  Apple Pay }
+                    @if (m === 'google_pay') { G Pay }
+                  </span>
+                }
+              </div>
+            </div>
+          }
 
           <label class="gc-consent" [class.gc-consent--error]="showErrors && !consent">
-            <input type="checkbox" [(ngModel)]="consent">
+            <input type="checkbox" [(ngModel)]="consent"
+                   [attr.aria-invalid]="showErrors && !consent ? 'true' : null"
+                   aria-required="true">
             <span>Ich akzeptiere die Datenschutzbestimmungen und stimme dem Kauf zu.</span>
           </label>
         </div>
@@ -212,27 +297,33 @@
       <!-- Buttons -->
       <div class="gc-card__actions">
         @if (step() > 1) {
-          <button class="gc-btn gc-btn--secondary" (click)="prevStep()"
-                  [disabled]="state() === 'submitting'">
+          <button class="gc-btn gc-btn--secondary"
+                  (click)="prevStep()"
+                  [disabled]="state() === 'submitting'"
+                  aria-label="Zurück zum vorherigen Schritt">
             ← Zurück
           </button>
         }
         @if (step() < totalSteps()) {
-          <!-- Schritt 1 mit Bildern: Weiter-Button nur anzeigen wenn Bild gewählt -->
           @if (!(hasImages() && step() === 1)) {
-            <button class="gc-btn gc-btn--primary" (click)="nextStep()">
+            <button class="gc-btn gc-btn--primary"
+                    (click)="nextStep()"
+                    aria-label="Weiter zum nächsten Schritt">
               Weiter →
             </button>
           }
         }
         @if (step() === totalSteps()) {
-          <button class="gc-btn gc-btn--primary" (click)="submit()"
-                  [disabled]="state() === 'submitting'">
+          <button class="gc-btn gc-btn--primary"
+                  (click)="submit()"
+                  [disabled]="state() === 'submitting'"
+                  [attr.aria-busy]="state() === 'submitting'"
+                  aria-label="Gutschein jetzt kaufen">
             @if (state() === 'submitting') {
-              <span class="gc-spinner gc-spinner--sm"></span>
-              Wird verarbeitet…
+              <span class="gc-spinner gc-spinner--sm" aria-hidden="true"></span>
+              <span>Wird verarbeitet…</span>
             } @else {
-              Gutschein kaufen
+              {{ btnLabel() }}
             }
           </button>
         }
@@ -243,20 +334,23 @@
 
   <!-- ── Erfolg ────────────────────────────────────────────────────────────── -->
   @if (state() === 'success' && result) {
-    <div class="gc-card gc-card--success">
+    <div class="gc-card gc-card--success" role="status" aria-live="polite" aria-atomic="true">
       @if (selectedImage()) {
         <img class="gc-success-img" [src]="selectedImage()!.url" [alt]="selectedImage()!.name">
       }
-      <div class="gc-success-icon">✓</div>
+      <div class="gc-success-icon" aria-hidden="true">✓</div>
       <h2 class="gc-card__title">Gutschein erstellt!</h2>
       <p class="gc-card__sub">
         Der Gutschein für <strong>{{ result.recipientName }}</strong> wurde erfolgreich erstellt.
       </p>
       <div class="gc-voucher-box">
-        <div class="gc-voucher-box__label">Gutschein-Code</div>
-        <button class="gc-voucher-box__code" (click)="copyCode()">
+        <div class="gc-voucher-box__label" id="gc-code-label">Gutschein-Code</div>
+        <button class="gc-voucher-box__code"
+                (click)="copyCode()"
+                aria-labelledby="gc-code-label"
+                [attr.aria-label]="(copiedCode ? 'Code kopiert: ' : 'Code kopieren: ') + result.code">
           {{ result.code }}
-          <span class="gc-voucher-box__copy-icon">{{ copiedCode ? '✓' : '⎘' }}</span>
+          <span class="gc-voucher-box__copy-icon" aria-hidden="true">{{ copiedCode ? '✓' : '⎘' }}</span>
         </button>
         <div class="gc-voucher-box__meta">
           <span class="gc-voucher-box__amount">{{ fmt(result.amount) }}</span>
@@ -266,8 +360,9 @@
       <p class="gc-success-hint">
         Der Gutschein-Code kann beim Restaurant eingelöst werden.
       </p>
-
-      <button class="gc-download-btn" (click)="downloadVoucher()">
+      <button class="gc-download-btn"
+              (click)="downloadVoucher()"
+              aria-label="Gutschein als PDF herunterladen oder drucken">
         ↓ Gutschein herunterladen / drucken
       </button>
     </div>

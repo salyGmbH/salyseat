@@ -6,6 +6,7 @@ import { switchMap } from 'rxjs';
 import { of } from 'rxjs';
 import { GutscheineService, Voucher, VoucherStatus, CreateVoucherDto, VoucherImage, PaymentMethod } from '../../services/gutscheine.service';
 import { GuestsService, Guest } from '../../services/guests.service';
+import { TenantSettingsService } from '../../services/tenant-settings.service';
 
 type FilterTab = 'all' | 'active' | 'redeemed' | 'expired';
 
@@ -17,9 +18,10 @@ type FilterTab = 'all' | 'active' | 'redeemed' | 'expired';
   styleUrl: './gutscheine.component.scss',
 })
 export class GutscheineComponent implements OnInit {
-  private readonly svc       = inject(GutscheineService);
-  private readonly guests    = inject(GuestsService);
-  private readonly translate = inject(TranslateService);
+  private readonly svc            = inject(GutscheineService);
+  private readonly guests         = inject(GuestsService);
+  private readonly translate      = inject(TranslateService);
+  private readonly tenantSettings = inject(TenantSettingsService);
 
   readonly vouchers = signal<Voucher[]>([]);
   readonly loading  = signal(true);
@@ -47,8 +49,10 @@ export class GutscheineComponent implements OnInit {
   copiedLink = false;
   copiedCode: string | null = null;
 
-  /** Widget-URL — TODO: echten Public Key aus TenantService lesen */
-  readonly widgetUrl = `${location.origin.replace(':4200', ':4201')}/gutschein?key=c833eeef58a2352a2876b9ed0c5a3e53b2cc6e817319f624`;
+  readonly widgetUrl = computed(() => {
+    const key = this.tenantSettings.publicKey();
+    return `${location.origin.replace(':4200', ':4201')}/gutschein?key=${key}`;
+  });
 
   readonly presetAmounts = [25, 50, 75, 100, 150, 200];
 
@@ -87,6 +91,9 @@ export class GutscheineComponent implements OnInit {
   imgUploading = false;
 
   ngOnInit(): void {
+    if (!this.tenantSettings.publicKey()) {
+      this.tenantSettings.load().subscribe();
+    }
     this.svc.list().subscribe(list => {
       this.vouchers.set(list);
       this.loading.set(false);
@@ -175,7 +182,7 @@ export class GutscheineComponent implements OnInit {
 
   // ── Kopieren ──────────────────────────────────────────────────────────────
   copyLink(): void {
-    navigator.clipboard.writeText(this.widgetUrl).then(() => {
+    navigator.clipboard.writeText(this.widgetUrl()).then(() => {
       this.copiedLink = true;
       setTimeout(() => this.copiedLink = false, 2500);
     });

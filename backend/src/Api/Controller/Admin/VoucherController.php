@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\Admin;
 
+use App\Messenger\Message\SendVoucherEmail;
 use App\Module\User\Domain\Entity\User;
 use App\Module\Voucher\Domain\Entity\Voucher;
 use App\Module\Voucher\Domain\Entity\VoucherImage;
@@ -14,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Uid\Uuid;
@@ -35,6 +37,7 @@ class VoucherController extends AbstractController
         private readonly DoctrineVoucherRepository       $repo,
         private readonly DoctrineVoucherImageRepository  $imageRepo,
         private readonly DoctrineVoucherConfigRepository $configRepo,
+        private readonly MessageBusInterface             $bus,
     ) {}
 
     // ── Gutscheine ─────────────────────────────────────────────────────────────
@@ -85,6 +88,22 @@ class VoucherController extends AbstractController
         $voucher->setMessage(($data['message'] ?? '') !== '' ? trim((string) $data['message']) : null);
 
         $this->repo->save($voucher);
+
+        $recipientEmail = $voucher->getRecipientEmail();
+        if ($recipientEmail !== null) {
+            $this->bus->dispatch(new SendVoucherEmail(
+                voucherId:      $voucher->getId()->toRfc4122(),
+                code:           $voucher->getCode(),
+                amount:         $voucher->getAmount(),
+                recipientName:  $voucher->getRecipientName(),
+                recipientEmail: $recipientEmail,
+                buyerName:      $voucher->getBuyerName(),
+                expiresAt:      $voucher->getExpiresAt()->format('d.m.Y'),
+                venueName:      $tenant->getName(),
+                tenantId:       $tenant->getId()->toRfc4122(),
+                message:        $voucher->getMessage(),
+            ));
+        }
 
         return $this->json($this->serializeVoucher($voucher), Response::HTTP_CREATED);
     }
@@ -301,7 +320,7 @@ class VoucherController extends AbstractController
         $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         do {
             $rand = fn() => $chars[random_int(0, strlen($chars) - 1)];
-            $code = sprintf('LYDR-%s%s%s%s-%s%s%s%s',
+            $code = sprintf('SALY-%s%s%s%s-%s%s%s%s',
                 $rand(), $rand(), $rand(), $rand(),
                 $rand(), $rand(), $rand(), $rand(),
             );

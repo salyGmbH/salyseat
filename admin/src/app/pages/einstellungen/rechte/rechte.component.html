@@ -64,7 +64,7 @@
           </div>
           <div class="role-head__text">
             <div class="role-head__label">{{ r.label }}</div>
-            <div class="role-head__tagline">{{ r.tagline }}</div>
+            <div class="role-head__tagline">{{ r.tagline | translate }}</div>
           </div>
         </div>
       }
@@ -77,15 +77,15 @@
           <div class="group-header__icon">
             <mat-icon>{{ group.icon }}</mat-icon>
           </div>
-          <span>{{ group.category }}</span>
+          <span>{{ group.category | translate }}</span>
         </div>
 
         @for (p of group.perms; track p.key) {
           <div class="matrix__row">
             <div class="perm-label">
-              <div class="perm-label__name">{{ p.label }}</div>
+              <div class="perm-label__name">{{ p.label | translate }}</div>
               @if (p.description) {
-                <div class="perm-label__desc">{{ p.description }}</div>
+                <div class="perm-label__desc">{{ p.description | translate }}</div>
               }
             </div>
 

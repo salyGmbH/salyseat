@@ -28,8 +28,8 @@ class Tenant
     #[ORM\Column(length: 64, unique: true)]
     private string $publicKey;
 
-    #[ORM\Column(length: 50, options: ['default' => 'trial'])]
-    private string $plan = 'trial'; // trial | starter | professional | enterprise
+    #[ORM\Column(length: 50, options: ['default' => 'tisch'])]
+    private string $plan = 'tisch'; // tisch | menu | maitre
 
     #[ORM\Column(options: ['default' => true])]
     private bool $active = true;

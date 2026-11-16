@@ -16,22 +16,22 @@ export interface PermissionDef {
 
 export const PERMISSION_CATALOG: PermissionDef[] = [
   // Reservierungen
-  { key: 'reservierungen.lesen',      category: 'Reservierungen', categoryIcon: 'event_available',
-    label: 'Lesen',      description: 'Reservierungen einsehen' },
-  { key: 'reservierungen.bearbeiten', category: 'Reservierungen', categoryIcon: 'event_available',
-    label: 'Bearbeiten', description: 'Zeiten, Gäste, Notizen ändern' },
-  { key: 'reservierungen.loeschen',   category: 'Reservierungen', categoryIcon: 'event_available',
-    label: 'Löschen',    description: 'Reservierungen endgültig entfernen' },
+  { key: 'reservierungen.lesen',      category: 'rechte.cat_reservations', categoryIcon: 'event_available',
+    label: 'rechte.perm_read',   description: 'rechte.perm_res_read_desc' },
+  { key: 'reservierungen.bearbeiten', category: 'rechte.cat_reservations', categoryIcon: 'event_available',
+    label: 'rechte.perm_edit',   description: 'rechte.perm_res_edit_desc' },
+  { key: 'reservierungen.loeschen',   category: 'rechte.cat_reservations', categoryIcon: 'event_available',
+    label: 'rechte.perm_delete', description: 'rechte.perm_res_delete_desc' },
 
   // Dokumente
-  { key: 'dokumente.hochladen',       category: 'Dokumente',      categoryIcon: 'description',
-    label: 'Hochladen',  description: 'Neue Dokumente anlegen' },
-  { key: 'dokumente.loeschen',        category: 'Dokumente',      categoryIcon: 'description',
-    label: 'Löschen',    description: 'Dokumente entfernen' },
+  { key: 'dokumente.hochladen',       category: 'rechte.cat_documents', categoryIcon: 'description',
+    label: 'rechte.perm_upload', description: 'rechte.perm_doc_upload_desc' },
+  { key: 'dokumente.loeschen',        category: 'rechte.cat_documents', categoryIcon: 'description',
+    label: 'rechte.perm_delete', description: 'rechte.perm_doc_delete_desc' },
 
   // Packages
-  { key: 'packages.bearbeiten',       category: 'Packages',       categoryIcon: 'inventory_2',
-    label: 'Bearbeiten', description: 'Pakete & Preise anpassen' },
+  { key: 'packages.bearbeiten',       category: 'rechte.cat_packages', categoryIcon: 'inventory_2',
+    label: 'rechte.perm_edit',   description: 'rechte.perm_pkg_edit_desc' },
 ];
 
 export type RolePermissionMap = Record<EmployeeRole, Record<string, boolean>>;

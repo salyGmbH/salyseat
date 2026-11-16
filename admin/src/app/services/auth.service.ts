@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
-import { AuthUser, LoginRequest, LoginResponse, TenantPlan } from './auth.types';
+import { AuthUser, LoginRequest, LoginResponse, Plan } from './auth.types';
 
 const TOKEN_KEY       = 'salyseat.auth.token.v1';
 const USER_KEY        = 'salyseat.auth.user.v1';
@@ -26,27 +26,35 @@ export class AuthService {
   readonly token           = computed(() => this._token());
   readonly user            = computed(() => this._user());
   readonly isAuthenticated = computed(() => this._token() !== null);
-  readonly plan            = computed<TenantPlan>(() => this._user()?.plan ?? 'trial');
+  readonly plan            = computed<Plan>(() => this._user()?.plan ?? 'tisch');
 
   private _checkTimer: ReturnType<typeof setInterval> | null = null;
   private _throttled = false;
 
   constructor() {
     this.initInactivityTracking();
-    // Plan fehlt im gecachten User (altes localStorage-Format) → nachholen
-    if (this._token() && !this._user()?.plan) {
-      this.http.get<{ plan: TenantPlan }>(`${this.apiBase}/auth/me`).subscribe({
-        next: me => {
-          const user = this._user();
-          if (user) {
-            const updated = { ...user, plan: me.plan ?? 'trial' };
-            this._user.set(updated);
-            try { localStorage.setItem(USER_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
-          }
-        },
-        error: () => { /* ignorieren — kein Plan bedeutet trial */ },
+    // Beim Start immer /me aufrufen um frische Daten aus der DB zu holen
+    // (Plan, Rollen etc. könnten sich seit dem letzten Login geändert haben)
+    if (this._token()) {
+      this.http.get<AuthUser>(`${this.apiBase}/auth/me`).subscribe({
+        next: freshUser => this.applyFreshUser(freshUser),
+        error: () => { /* Token ungültig → Inaktivitätsprüfung übernimmt */ },
       });
     }
+  }
+
+  refreshUser(): void {
+    this.http.get<AuthUser>(`${this.apiBase}/auth/me`).subscribe({
+      next: freshUser => this.applyFreshUser(freshUser),
+      error: () => {},
+    });
+  }
+
+  private applyFreshUser(user: AuthUser): void {
+    this._user.set(user);
+    try {
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    } catch { /* ignore */ }
   }
 
   // ── Login / Logout ────────────────────────────────────────────────────────

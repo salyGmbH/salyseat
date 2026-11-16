@@ -7,6 +7,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { TranslateModule } from '@ngx-translate/core';
 import { LayoutService } from '../layout.service';
 import { AuthService } from '../../services/auth.service';
+import { PlanService } from '../../services/plan.service';
 import { NotizenStateService } from '../../services/notizen-state.service';
 import { Router } from '@angular/router';
 
@@ -20,6 +21,7 @@ import { Router } from '@angular/router';
 export class SidebarComponent implements OnDestroy {
   layout = inject(LayoutService);
   private auth = inject(AuthService);
+  readonly plan = inject(PlanService);
   readonly notizenState = inject(NotizenStateService);
   private readonly router = inject(Router);
 

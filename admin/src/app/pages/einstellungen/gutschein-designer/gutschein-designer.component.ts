@@ -1,7 +1,9 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
+import { TenantSettingsService } from '../../../services/tenant-settings.service';
 
 type FontFamilyKey = 'system' | 'modern' | 'classic' | 'serif' | 'rounded' | 'mono';
 type FontSizeKey   = 'compact' | 'standard' | 'large';
@@ -14,11 +16,13 @@ interface RadiusOption     { key: RadiusKey;      label: string; px: number; }
 @Component({
   selector: 'app-gutschein-designer',
   standalone: true,
-  imports: [NgStyle, FormsModule, MatIconModule],
+  imports: [NgStyle, FormsModule, MatIconModule, TranslateModule],
   templateUrl: './gutschein-designer.component.html',
   styleUrl: './gutschein-designer.component.scss',
 })
-export class GutscheinDesignerComponent {
+export class GutscheinDesignerComponent implements OnInit {
+
+  private readonly tenantSettings = inject(TenantSettingsService);
 
   // ── Texte ─────────────────────────────────────────────────────────────────
   readonly title    = signal<string>('Gutschein verschenken');
@@ -27,18 +31,18 @@ export class GutscheinDesignerComponent {
 
   // ── Typografie ────────────────────────────────────────────────────────────
   readonly fontFamilyOptions: FontFamilyOption[] = [
-    { key: 'system',  label: 'System',    stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', hint: 'Neutral & vertraut' },
-    { key: 'modern',  label: 'Modern',    stack: '"Trebuchet MS", "Lucida Sans Unicode", sans-serif', hint: 'Klare Linien' },
-    { key: 'classic', label: 'Classic',   stack: '"Helvetica Neue", Helvetica, Arial, sans-serif', hint: 'Zeitlos & sauber' },
-    { key: 'serif',   label: 'Serif',     stack: 'Georgia, "Times New Roman", Times, serif', hint: 'Elegant & traditionell' },
-    { key: 'rounded', label: 'Rounded',   stack: '"Avenir Next", "Avenir", "Nunito", sans-serif', hint: 'Warm & freundlich' },
-    { key: 'mono',    label: 'Mono',      stack: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace', hint: 'Technisch & präzise' },
+    { key: 'system',  label: 'widget.font_system',  stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', hint: 'gutschein_designer.font_system_hint' },
+    { key: 'modern',  label: 'widget.font_modern',  stack: '"Trebuchet MS", "Lucida Sans Unicode", sans-serif', hint: 'gutschein_designer.font_modern_hint' },
+    { key: 'classic', label: 'widget.font_classic', stack: '"Helvetica Neue", Helvetica, Arial, sans-serif', hint: 'gutschein_designer.font_classic_hint' },
+    { key: 'serif',   label: 'widget.font_serif',   stack: 'Georgia, "Times New Roman", Times, serif', hint: 'gutschein_designer.font_serif_hint' },
+    { key: 'rounded', label: 'widget.font_rounded', stack: '"Avenir Next", "Avenir", "Nunito", sans-serif', hint: 'gutschein_designer.font_rounded_hint' },
+    { key: 'mono',    label: 'widget.font_mono',    stack: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace', hint: 'gutschein_designer.font_mono_hint' },
   ];
 
   readonly fontSizeOptions: FontSizeOption[] = [
-    { key: 'compact',  label: 'Kompakt',   basePx: 12, hint: 'Platzsparend' },
-    { key: 'standard', label: 'Standard',  basePx: 14, hint: 'Empfohlen' },
-    { key: 'large',    label: 'Groß',      basePx: 16, hint: 'Gut lesbar' },
+    { key: 'compact',  label: 'gutschein_designer.size_compact',  basePx: 12, hint: 'gutschein_designer.size_compact_hint' },
+    { key: 'standard', label: 'gutschein_designer.size_standard', basePx: 14, hint: 'gutschein_designer.size_standard_hint' },
+    { key: 'large',    label: 'gutschein_designer.size_large',    basePx: 16, hint: 'gutschein_designer.size_large_hint' },
   ];
 
   readonly selectedFont     = signal<FontFamilyKey>('system');
@@ -52,7 +56,6 @@ export class GutscheinDesignerComponent {
     this.fontSizeOptions.find(o => o.key === this.selectedFontSize())?.basePx ?? 14);
 
   // ── Hintergrund ───────────────────────────────────────────────────────────
-  /** 'color' = Farbwahl, 'image' = hochgeladenes Bild */
   readonly bgMode  = signal<'color' | 'image'>('color');
   readonly bgColor = signal<string>('#f4f5f7');
   readonly bgImage = signal<string | null>(null);
@@ -93,9 +96,9 @@ export class GutscheinDesignerComponent {
 
   // ── Button-Form ───────────────────────────────────────────────────────────
   readonly radiusOptions: RadiusOption[] = [
-    { key: 'square', label: 'Eckig',  px: 4   },
-    { key: 'soft',   label: 'Sanft',  px: 10  },
-    { key: 'pill',   label: 'Pill',   px: 999 },
+    { key: 'square', label: 'gutschein_designer.radius_square', px: 4   },
+    { key: 'soft',   label: 'gutschein_designer.radius_soft',   px: 10  },
+    { key: 'pill',   label: 'gutschein_designer.radius_pill',   px: 999 },
   ];
   readonly selectedRadius = signal<RadiusKey>('soft');
 
@@ -130,7 +133,6 @@ export class GutscheinDesignerComponent {
     };
   });
 
-  // ── Ist Hintergrund dunkel? (für Muted-Farbe in Vorschau) ────────────────
   readonly previewMuted = computed<string>(() => {
     const hex = this.bgColor().replace('#', '');
     if (hex.length !== 6) return '#6b7280';
@@ -151,12 +153,53 @@ export class GutscheinDesignerComponent {
     return luma < 0.5 ? 'rgba(255,255,255,0.07)' : '#ffffff';
   });
 
-  // ── Speichern (nur Flash — kein Backend) ─────────────────────────────────
+  // ── Speichern ─────────────────────────────────────────────────────────────
   readonly savedFlash = signal(false);
+  readonly saving     = signal(false);
+
+  ngOnInit(): void {
+    this.tenantSettings.load().subscribe(s => {
+      const d = s.gutscheinDesign;
+      if (!d) return;
+      this.title.set(d.title);
+      this.subtitle.set(d.subtitle);
+      this.btnLabel.set(d.btnLabel);
+      this.selectedFont.set(d.fontFamily);
+      this.selectedFontSize.set(d.fontSize);
+      this.bgMode.set(d.bgMode);
+      this.bgColor.set(d.bgColor);
+      this.bgImage.set(d.bgImage ?? null);
+      this.colorPrimary.set(d.colorPrimary);
+      this.colorText.set(d.colorText);
+      this.selectedRadius.set(d.radius);
+    });
+  }
 
   save(): void {
-    this.savedFlash.set(true);
-    setTimeout(() => this.savedFlash.set(false), 1800);
+    this.saving.set(true);
+    this.tenantSettings.save({
+      ...this.tenantSettings.snapshot,
+      gutscheinDesign: {
+        title:        this.title(),
+        subtitle:     this.subtitle(),
+        btnLabel:     this.btnLabel(),
+        fontFamily:   this.selectedFont(),
+        fontSize:     this.selectedFontSize(),
+        bgMode:       this.bgMode(),
+        bgColor:      this.bgColor(),
+        bgImage:      this.bgImage(),
+        colorPrimary: this.colorPrimary(),
+        colorText:    this.colorText(),
+        radius:       this.selectedRadius(),
+      },
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.savedFlash.set(true);
+        setTimeout(() => this.savedFlash.set(false), 1800);
+      },
+      error: () => this.saving.set(false),
+    });
   }
 
   reset(): void {

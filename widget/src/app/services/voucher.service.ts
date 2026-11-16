@@ -4,10 +4,27 @@ import { Observable, catchError, of } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 
+export interface GutscheinDesignSettings {
+  title:        string;
+  subtitle:     string;
+  btnLabel:     string;
+  fontFamily:   string;
+  fontSize:     string;
+  bgMode:       'color' | 'image';
+  bgColor:      string;
+  bgImage:      string | null;
+  colorPrimary: string;
+  colorText:    string;
+  radius:       string;
+}
+
 export interface VoucherWidgetConfig {
-  restaurantName: string;
-  colorPrimary?:  string;
-  logoUrl?:       string;
+  restaurantName:       string;
+  gutscheinDesign?:     GutscheinDesignSettings;
+  colorPrimary?:        string;
+  logoUrl?:             string;
+  stripePublishableKey?: string;
+  activePaymentMethods?: string[];
 }
 
 export interface VoucherDesignImage {
@@ -55,7 +72,13 @@ export class VoucherService {
   }
 
   purchase(publicKey: string, dto: PurchaseVoucherDto): Observable<PurchasedVoucher> {
-    // TODO: POST /widget/vouchers/purchase?key=...  →  { code, amount, recipientName, expiresAt }
     return this.http.post<PurchasedVoucher>(`${this.base}/purchase?key=${publicKey}`, dto);
+  }
+
+  createPaymentIntent(publicKey: string, amountCents: number): Observable<{ client_secret: string; amount_cents: number; currency: string }> {
+    return this.http.post<{ client_secret: string; amount_cents: number; currency: string }>(
+      `${this.base}/payment-intent?key=${publicKey}`,
+      { amount_cents: amountCents },
+    );
   }
 }

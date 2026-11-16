@@ -2,16 +2,16 @@
 
 <!-- ─── Loading ─────────────────────────────────────────────────────────── -->
   @if (state() === 'loading') {
-    <div class="loading-card">
-      <span class="spinner"></span>
+    <div class="loading-card" role="status" aria-label="Seite wird geladen">
+      <span class="spinner" aria-hidden="true"></span>
       <span>Wird geladen …</span>
     </div>
   }
 
   <!-- ─── Payment ─────────────────────────────────────────────────────────── -->
   @else if (state() === 'payment' || state() === 'paying') {
-    <div class="payment-card">
-      <div class="payment-card__icon">💳</div>
+    <div class="payment-card" role="region" aria-label="Zahlung">
+      <div class="payment-card__icon" aria-hidden="true">💳</div>
       <h2 class="payment-card__title">
         {{ noShowSchutzAktiv() ? 'Kreditkarte hinterlegen' : 'Zahlung abschließen' }}
       </h2>
@@ -20,23 +20,25 @@
       </p>
       <div id="stripe-payment-element" class="payment-card__element"></div>
       @if (paymentError()) {
-        <div class="payment-card__error">{{ paymentError() }}</div>
+        <div class="payment-card__error" role="alert">{{ paymentError() }}</div>
       }
       <button
         type="button"
         class="payment-card__btn"
         [disabled]="state() === 'paying'"
+        [attr.aria-busy]="state() === 'paying'"
+        aria-label="Zahlung bestätigen"
         (click)="confirmPayment()">
         @if (state() === 'paying') { Wird verarbeitet … } @else { Jetzt bezahlen }
       </button>
-      <button type="button" class="btn-secondary" (click)="reset()">Abbrechen</button>
+      <button type="button" class="btn-secondary" aria-label="Zahlung abbrechen" (click)="reset()">Abbrechen</button>
     </div>
   }
 
   <!-- ─── Success ──────────────────────────────────────────────────────────── -->
   @else if (state() === 'success') {
-    <div class="success-card">
-      <div class="success-icon">✓</div>
+    <div class="success-card" role="status" aria-live="polite" aria-atomic="true">
+      <div class="success-icon" aria-hidden="true">✓</div>
       <h2>Reservierung bestätigt</h2>
       <p class="success-lead">
         Danke <strong>{{ successInfo()!.name }}</strong>! Deine Reservierung am
@@ -57,7 +59,7 @@
           }
         </div>
       }
-      <button type="button" class="btn-secondary" (click)="reset()">Neue Reservierung</button>
+      <button type="button" class="btn-secondary" aria-label="Neue Reservierung starten" (click)="reset()">Neue Reservierung</button>
     </div>
   }
 
@@ -65,30 +67,33 @@
   @else {
 
     @if (noShowSchutzAktiv() && stripePublishableKey()) {
-      <div class="noshow-notice">
-        <span class="noshow-notice__icon">💳</span>
+      <div class="noshow-notice" role="note">
+        <span class="noshow-notice__icon" aria-hidden="true">💳</span>
         <span>{{ noShowWidgetText() }}</span>
       </div>
     }
 
     @if (hinweisOpen()) {
-      <div class="widget-menu-overlay" (click)="dismissHinweis()">
-        <div class="widget-menu-overlay__box widget-menu-overlay__box--hinweis" (click)="$event.stopPropagation()">
-          <div class="widget-menu-overlay__header">
-            <span>{{ hinweistextUeberschrift() || 'Hinweis' }}</span>
-            <button type="button" class="widget-menu-overlay__close" (click)="dismissHinweis()">✕</button>
-          </div>
-          @if (hinweistextInhalt()) {
-            <div class="widget-hinweis-content">{{ hinweistextInhalt() }}</div>
-          }
-          @if (hinweistextFooter()) {
-            <div class="widget-hinweis-footer">{{ hinweistextFooter() }}</div>
-          }
-          <div class="widget-hinweis-actions">
-            <button type="button" class="widget-hinweis-actions__btn" (click)="dismissHinweis()">
-              Verstanden
-            </button>
-          </div>
+      <div class="widget-menu-overlay" (click)="dismissHinweis()" aria-hidden="true"></div>
+      <div class="widget-menu-overlay__box widget-menu-overlay__box--hinweis"
+           role="dialog"
+           aria-modal="true"
+           [attr.aria-label]="hinweistextUeberschrift() || 'Hinweis'"
+           (click)="$event.stopPropagation()">
+        <div class="widget-menu-overlay__header">
+          <span id="hinweis-title">{{ hinweistextUeberschrift() || 'Hinweis' }}</span>
+          <button type="button" class="widget-menu-overlay__close" aria-label="Hinweis schließen" (click)="dismissHinweis()">✕</button>
+        </div>
+        @if (hinweistextInhalt()) {
+          <div class="widget-hinweis-content">{{ hinweistextInhalt() }}</div>
+        }
+        @if (hinweistextFooter()) {
+          <div class="widget-hinweis-footer">{{ hinweistextFooter() }}</div>
+        }
+        <div class="widget-hinweis-actions">
+          <button type="button" class="widget-hinweis-actions__btn" (click)="dismissHinweis()">
+            Verstanden
+          </button>
         </div>
       </div>
     }
@@ -103,16 +108,16 @@
           <!-- Back header (Step 2+) -->
           @if (cardStep() > 1) {
             <div class="preview-card__topbar">
-              <button class="preview-card__topbar-back" type="button" (click)="cardPrevStep()">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+              <button class="preview-card__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="cardPrevStep()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                   <polyline points="13,4 7,10 13,16"/>
                 </svg>
                 Zurück
               </button>
               @if (cardStep() === 2 && cardWasOnSummary()) {
-                <button class="preview-card__topbar-fwd" type="button" (click)="cardGoToSummary()">
+                <button class="preview-card__topbar-fwd" type="button" aria-label="Weiter zur Zusammenfassung" (click)="cardGoToSummary()">
                   Zusammenfassung
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="7,4 13,10 7,16"/>
                   </svg>
                 </button>
@@ -141,13 +146,15 @@
               @if (cardOpenPicker() === 'seats') {
                 <div class="preview-card__picker preview-card__picker--seats">
                   <div class="preview-planner">
-                    <div class="preview-planner__chips preview-planner__chips--seats">
+                    <div class="preview-planner__chips preview-planner__chips--seats" role="group" aria-label="Personenanzahl wählen">
                       @for (seat of seatOptions(); track seat.count) {
                         <button type="button"
                                 class="preview-planner__chip preview-planner__chip--seat"
                                 [class.is-selected]="seat.count === people()"
+                                [attr.aria-pressed]="seat.count === people()"
+                                [attr.aria-label]="seat.label"
                                 (click)="cardSelectSeats(seat.count)">
-                          <span class="preview-planner__chip-icon">
+                          <span class="preview-planner__chip-icon" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
                               <circle cx="10" cy="6" r="3"/>
                               <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/>
@@ -160,13 +167,18 @@
                   </div>
                 </div>
               }
-              <div class="preview-card__stepper">
-                <button type="button" class="preview-card__stepper-btn" (click)="cardDecSeats()">−</button>
+              <div class="preview-card__stepper" role="group" aria-label="Personenanzahl">
+                <button type="button" class="preview-card__stepper-btn" aria-label="Personenanzahl verringern" (click)="cardDecSeats()">−</button>
                 <button type="button"
                         class="preview-card__stepper-num"
                         [class.is-active]="cardOpenPicker() === 'seats'"
+                        role="spinbutton"
+                        [attr.aria-valuenow]="people()"
+                        [attr.aria-valuetext]="people() + (people() === 1 ? ' Gast' : ' Gäste')"
+                        aria-label="Personenanzahl"
+                        [attr.aria-expanded]="cardOpenPicker() === 'seats'"
                         (click)="cardTogglePicker('seats')">{{ people() }}</button>
-                <button type="button" class="preview-card__stepper-btn" (click)="cardIncSeats()">+</button>
+                <button type="button" class="preview-card__stepper-btn" aria-label="Personenanzahl erhöhen" (click)="cardIncSeats()">+</button>
               </div>
             </div>
 
@@ -176,16 +188,16 @@
                 <div class="preview-card__picker preview-card__picker--date">
                   <div class="preview-planner">
                     <div class="preview-planner__cal-bar">
-                      <button class="preview-planner__cal-nav" type="button" (click)="prevMonth()">‹</button>
-                      <span class="preview-planner__cal-month">{{ calendarMonthLabel() }}</span>
-                      <button class="preview-planner__cal-nav" type="button" (click)="nextMonth()">›</button>
+                      <button class="preview-planner__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">‹</button>
+                      <span class="preview-planner__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
+                      <button class="preview-planner__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">›</button>
                     </div>
-                    <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays">
+                    <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays" aria-hidden="true">
                       @for (wd of weekdays; track $index) {
                         <span class="preview-planner__cal-weekday">{{ wd }}</span>
                       }
                     </div>
-                    <div class="preview-planner__cal-grid">
+                    <div class="preview-planner__cal-grid" role="grid" [attr.aria-label]="'Kalender ' + calendarMonthLabel()">
                       @for (cell of calendarCells(); track $index) {
                         @if (cell.day !== null) {
                           <button type="button"
@@ -194,11 +206,14 @@
                                   [class.is-selected]="cell.isSelected"
                                   [class.is-disabled]="cell.isDisabled"
                                   [disabled]="cell.isDisabled"
+                                  [attr.aria-pressed]="cell.isSelected"
+                                  [attr.aria-label]="cell.day + '. ' + calendarMonthLabel()"
+                                  [attr.aria-current]="cell.isToday ? 'date' : null"
                                   (click)="cardSelectDay(cell.day!)">
                             {{ cell.day }}
                           </button>
                         } @else {
-                          <span class="preview-planner__cal-day preview-planner__cal-day--empty"></span>
+                          <span class="preview-planner__cal-day preview-planner__cal-day--empty" aria-hidden="true"></span>
                         }
                       }
                     </div>
@@ -208,11 +223,13 @@
               @if (cardOpenPicker() === 'time') {
                 <div class="preview-card__picker preview-card__picker--time">
                   <div class="preview-planner">
-                    <div class="preview-planner__chips preview-planner__chips--times">
+                    <div class="preview-planner__chips preview-planner__chips--times" role="group" aria-label="Uhrzeit wählen">
                       @for (slot of timeSlots(); track slot) {
                         <button type="button"
                                 class="preview-planner__chip"
                                 [class.is-selected]="slot === validTime()"
+                                [attr.aria-pressed]="slot === validTime()"
+                                [attr.aria-label]="slot + ' Uhr'"
                                 (click)="cardSelectTime(slot)">
                           {{ slot }}
                         </button>
@@ -225,8 +242,10 @@
                 <button class="preview-card__datetime-field"
                         type="button"
                         [class.is-active]="cardOpenPicker() === 'date'"
+                        [attr.aria-expanded]="cardOpenPicker() === 'date'"
+                        [attr.aria-label]="'Datum: ' + selectedDateLabel() + ', Auswahl öffnen'"
                         (click)="cardTogglePicker('date')">
-                  <span class="preview-card__datetime-icon">
+                  <span class="preview-card__datetime-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                       <rect x="2" y="3.5" width="16" height="14" rx="2.5"/>
                       <line x1="2" y1="8.5" x2="18" y2="8.5"/>
@@ -237,26 +256,28 @@
                     </svg>
                   </span>
                   <span class="preview-card__datetime-meta">
-                    <span class="preview-card__datetime-hint">Datum</span>
-                    <span class="preview-card__datetime-text">{{ selectedDateLabel() }}</span>
+                    <span class="preview-card__datetime-hint" aria-hidden="true">Datum</span>
+                    <span class="preview-card__datetime-text" aria-hidden="true">{{ selectedDateLabel() }}</span>
                   </span>
-                  <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'date'">⌄</span>
+                  <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'date'" aria-hidden="true">⌄</span>
                 </button>
                 <button class="preview-card__datetime-field"
                         type="button"
                         [class.is-active]="cardOpenPicker() === 'time'"
+                        [attr.aria-expanded]="cardOpenPicker() === 'time'"
+                        [attr.aria-label]="'Uhrzeit: ' + validTime() + ' Uhr, Auswahl öffnen'"
                         (click)="cardTogglePicker('time')">
-                  <span class="preview-card__datetime-icon">
+                  <span class="preview-card__datetime-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="16" height="16">
                       <circle cx="10" cy="10" r="8"/>
                       <polyline points="10,4.5 10,10 13.5,13"/>
                     </svg>
                   </span>
                   <span class="preview-card__datetime-meta">
-                    <span class="preview-card__datetime-hint">Uhrzeit</span>
-                    <span class="preview-card__datetime-text">{{ validTime() }} Uhr</span>
+                    <span class="preview-card__datetime-hint" aria-hidden="true">Uhrzeit</span>
+                    <span class="preview-card__datetime-text" aria-hidden="true">{{ validTime() }} Uhr</span>
                   </span>
-                  <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'time'">⌄</span>
+                  <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'time'" aria-hidden="true">⌄</span>
                 </button>
               </div>
             </div>
@@ -269,8 +290,9 @@
                     <button type="button"
                             class="tischart-chip"
                             [class.is-selected]="selectedTischart() === t.key"
+                            [attr.aria-pressed]="selectedTischart() === t.key"
                             (click)="selectedTischart.set(t.key)">
-                      <span>{{ t.icon }}</span> {{ t.label }}
+                      <span aria-hidden="true">{{ t.icon }}</span> {{ t.label }}
                     </button>
                   }
                 </div>
@@ -342,6 +364,7 @@
                       <button type="button"
                               class="venue-chip"
                               [class.is-active]="selectedVenue()?.id === v.id"
+                              [attr.aria-pressed]="selectedVenue()?.id === v.id"
                               (click)="selectVenue(v)">{{ v.name }}</button>
                     }
                   </div>
@@ -354,14 +377,18 @@
                   <label class="preview-card__field-label" for="card-name">Name <span class="field-required">*</span></label>
                   <input id="card-name" type="text" class="preview-card__field-input preview-card__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         placeholder="Vor- und Nachname" autocomplete="name" name="cardName">
+                         placeholder="Vor- und Nachname" autocomplete="name" name="cardName"
+                         aria-required="true"
+                         [attr.aria-invalid]="cardShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
                 <div class="preview-card__field preview-card__field--required"
                      [class.preview-card__field--error]="cardShowErrors() && !emailLooksOk()">
                   <label class="preview-card__field-label" for="card-email">E-Mail <span class="field-required">*</span></label>
                   <input id="card-email" type="email" class="preview-card__field-input preview-card__field-input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         placeholder="name@beispiel.de" autocomplete="email" name="cardEmail">
+                         placeholder="name@beispiel.de" autocomplete="email" name="cardEmail"
+                         aria-required="true"
+                         [attr.aria-invalid]="cardShowErrors() && !emailLooksOk() ? 'true' : null">
                 </div>
               </div>
 
@@ -381,11 +408,11 @@
               @if (kinderStuehleAktiv()) {
                 <div class="preview-card__field">
                   <label class="preview-card__field-label">Kinderstühle</label>
-                  <div class="kinder-stepper">
-                    <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
-                    <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
-                    <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
-                    <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                  <div class="kinder-stepper" role="group" aria-label="Kinderstühle">
+                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle verringern" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' Kinderstühle'">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle erhöhen" (click)="incKinderStuehle()">+</button>
+                    <span class="kinder-stepper__hint" [attr.aria-label]="'maximal ' + kinderStuehleOnline()">max. {{ kinderStuehleOnline() }}</span>
                   </div>
                 </div>
               }
@@ -433,6 +460,7 @@
                     @for (a of verfuegbareAllergene(); track a.key) {
                       <button type="button" class="allergen-chip"
                               [class.is-selected]="isAllergenSelected(a.key)"
+                              [attr.aria-pressed]="isAllergenSelected(a.key)"
                               (click)="toggleAllergen(a.key)">{{ a.label }}</button>
                     }
                   </div>
@@ -458,7 +486,9 @@
                    [class.is-checked]="cardConsent()"
                    [class.is-error]="cardShowErrors() && !cardConsent()">
               <input type="checkbox" class="preview-card__consent-input"
-                     [checked]="cardConsent()" (change)="cardToggleConsent()">
+                     [checked]="cardConsent()" (change)="cardToggleConsent()"
+                     aria-required="true"
+                     [attr.aria-invalid]="cardShowErrors() && !cardConsent() ? 'true' : null">
               <span class="preview-card__consent-box" aria-hidden="true">
                 @if (cardConsent()) { <span class="check-icon">✓</span> }
               </span>
@@ -535,7 +565,7 @@
             </div>
 
             @if (state() === 'error') {
-              <div class="widget-alert">{{ errorMessage() }}</div>
+              <div class="widget-alert" role="alert" aria-live="assertive">{{ errorMessage() }}</div>
             }
 
             <div class="preview-card__nav">
@@ -543,6 +573,8 @@
                       type="button"
                       [class.is-disabled]="!canSubmit()"
                       [disabled]="!canSubmit()"
+                      [attr.aria-busy]="state() === 'submitting'"
+                      aria-label="Reservierung absenden"
                       (click)="weiter()">
                 @if (state() === 'submitting') { Wird gesendet … }
                 @else { Reservierung absenden }
@@ -675,12 +707,12 @@
             } @else if (sidebarStep() === 2) {
               <!-- Step 2: guest data -->
               <div class="preview-sidebar__topbar">
-                <button class="preview-sidebar__topbar-back" type="button" (click)="sidebarPrevStep()">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13,4 7,10 13,16"/></svg>
+                <button class="preview-sidebar__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="sidebarPrevStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                 </button>
                 @if (sidebarWasOnSummary()) {
-                  <button class="preview-sidebar__topbar-fwd" type="button" (click)="sidebarGoToSummary()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="7,4 13,10 7,16"/></svg>
+                  <button class="preview-sidebar__topbar-fwd" type="button" aria-label="Weiter zur Zusammenfassung" (click)="sidebarGoToSummary()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="7,4 13,10 7,16"/></svg>
                   </button>
                 }
               </div>
@@ -701,6 +733,7 @@
                       <button type="button"
                               class="venue-chip"
                               [class.is-active]="selectedVenue()?.id === v.id"
+                              [attr.aria-pressed]="selectedVenue()?.id === v.id"
                               (click)="selectVenue(v)">{{ v.name }}</button>
                     }
                   </div>
@@ -713,14 +746,18 @@
                   <label class="preview-sidebar__label" for="sb-name">Name <span class="field-required">*</span></label>
                   <input id="sb-name" type="text" class="preview-sidebar__input preview-sidebar__input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         placeholder="Vor- und Nachname" autocomplete="name" name="sbName">
+                         placeholder="Vor- und Nachname" autocomplete="name" name="sbName"
+                         aria-required="true"
+                         [attr.aria-invalid]="sidebarShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
                 <div class="preview-sidebar__group"
                      [class.preview-sidebar__group--error]="sidebarShowErrors() && !emailLooksOk()">
                   <label class="preview-sidebar__label" for="sb-email">E-Mail <span class="field-required">*</span></label>
                   <input id="sb-email" type="email" class="preview-sidebar__input preview-sidebar__input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         placeholder="name@beispiel.de" autocomplete="email" name="sbEmail">
+                         placeholder="name@beispiel.de" autocomplete="email" name="sbEmail"
+                         aria-required="true"
+                         [attr.aria-invalid]="sidebarShowErrors() && !emailLooksOk() ? 'true' : null">
                 </div>
               </div>
 
@@ -738,11 +775,11 @@
               @if (kinderStuehleAktiv()) {
                 <div class="preview-sidebar__group">
                   <label class="preview-sidebar__label">Kinderstühle</label>
-                  <div class="kinder-stepper">
-                    <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
-                    <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
-                    <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
-                    <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                  <div class="kinder-stepper" role="group" aria-label="Kinderstühle">
+                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle verringern" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' Kinderstühle'">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle erhöhen" (click)="incKinderStuehle()">+</button>
+                    <span class="kinder-stepper__hint" [attr.aria-label]="'maximal ' + kinderStuehleOnline()">max. {{ kinderStuehleOnline() }}</span>
                   </div>
                 </div>
               }
@@ -790,6 +827,7 @@
                     @for (a of verfuegbareAllergene(); track a.key) {
                       <button type="button" class="allergen-chip"
                               [class.is-selected]="isAllergenSelected(a.key)"
+                              [attr.aria-pressed]="isAllergenSelected(a.key)"
                               (click)="toggleAllergen(a.key)">{{ a.label }}</button>
                     }
                   </div>
@@ -812,7 +850,9 @@
                      [class.is-checked]="sidebarConsent()"
                      [class.is-error]="sidebarShowErrors() && !sidebarConsent()">
                 <input type="checkbox" class="preview-sidebar__consent-input"
-                       [checked]="sidebarConsent()" (change)="sidebarToggleConsent()">
+                       [checked]="sidebarConsent()" (change)="sidebarToggleConsent()"
+                       aria-required="true"
+                       [attr.aria-invalid]="sidebarShowErrors() && !sidebarConsent() ? 'true' : null">
                 <span class="preview-sidebar__consent-box" aria-hidden="true">
                   @if (sidebarConsent()) { <span class="check-icon">✓</span> }
                 </span>
@@ -832,8 +872,8 @@
             } @else if (sidebarStep() === 3) {
               <!-- Step 3: Zusammenfassung -->
               <div class="preview-sidebar__topbar">
-                <button class="preview-sidebar__topbar-back" type="button" (click)="sidebarPrevStep()">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13,4 7,10 13,16"/></svg>
+                <button class="preview-sidebar__topbar-back" type="button" aria-label="Zurück zur Dateneingabe" (click)="sidebarPrevStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                 </button>
               </div>
               <h4 class="preview-sidebar__title"><span>Zusammen-</span><span>fassung</span></h4>
@@ -895,7 +935,7 @@
               </div>
 
               @if (state() === 'error') {
-                <div class="widget-alert">{{ errorMessage() }}</div>
+                <div class="widget-alert" role="alert" aria-live="assertive">{{ errorMessage() }}</div>
               }
 
               <div class="preview-sidebar__nav">
@@ -903,6 +943,8 @@
                         type="button"
                         [class.is-disabled]="!canSubmit()"
                         [disabled]="!canSubmit()"
+                        [attr.aria-busy]="state() === 'submitting'"
+                        aria-label="Reservierung absenden"
                         (click)="weiter()">
                   @if (state() === 'submitting') { Wird gesendet … }
                   @else { Reservierung absenden }
@@ -913,8 +955,8 @@
               <!-- Picker overlay -->
               <div class="preview-sidebar__picker">
                 <div class="preview-sidebar__picker-head">
-                  <button class="preview-sidebar__picker-back" type="button" (click)="sidebarClosePicker()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13,4 7,10 13,16"/></svg>
+                  <button class="preview-sidebar__picker-back" type="button" aria-label="Auswahl schließen" (click)="sidebarClosePicker()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                   </button>
                   <span class="preview-sidebar__picker-title">
                     @switch (sidebarOpenPicker()) {
@@ -930,20 +972,20 @@
                   @case ('date') {
                     <div class="preview-sidebar__cal">
                       <div class="preview-sidebar__cal-bar">
-                        <button class="preview-sidebar__cal-nav" type="button" (click)="prevMonth()">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="13,4 7,10 13,16"/></svg>
+                        <button class="preview-sidebar__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                         </button>
-                        <span class="preview-sidebar__cal-month">{{ calendarMonthLabel() }}</span>
-                        <button class="preview-sidebar__cal-nav" type="button" (click)="nextMonth()">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="7,4 13,10 7,16"/></svg>
+                        <span class="preview-sidebar__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
+                        <button class="preview-sidebar__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><polyline points="7,4 13,10 7,16"/></svg>
                         </button>
                       </div>
-                      <div class="preview-sidebar__cal-weekdays">
+                      <div class="preview-sidebar__cal-weekdays" aria-hidden="true">
                         @for (wd of weekdays; track $index) {
                           <span>{{ wd }}</span>
                         }
                       </div>
-                      <div class="preview-sidebar__cal-grid">
+                      <div class="preview-sidebar__cal-grid" role="grid" [attr.aria-label]="'Kalender ' + calendarMonthLabel()">
                         @for (cell of calendarCells(); track $index) {
                           @if (cell.day !== null) {
                             <button type="button"
@@ -952,22 +994,27 @@
                                     [class.is-selected]="cell.isSelected"
                                     [class.is-disabled]="cell.isDisabled"
                                     [disabled]="cell.isDisabled"
+                                    [attr.aria-pressed]="cell.isSelected"
+                                    [attr.aria-label]="cell.day + '. ' + calendarMonthLabel()"
+                                    [attr.aria-current]="cell.isToday ? 'date' : null"
                                     (click)="sidebarSelectDay(cell.day!)">
                               {{ cell.day }}
                             </button>
                           } @else {
-                            <span class="preview-sidebar__cal-day preview-sidebar__cal-day--empty"></span>
+                            <span class="preview-sidebar__cal-day preview-sidebar__cal-day--empty" aria-hidden="true"></span>
                           }
                         }
                       </div>
                     </div>
                   }
                   @case ('time') {
-                    <div class="preview-sidebar__times">
+                    <div class="preview-sidebar__times" role="group" aria-label="Uhrzeit wählen">
                       @for (slot of timeSlots(); track slot) {
                         <button type="button"
                                 class="preview-sidebar__time"
                                 [class.is-selected]="slot === validTime()"
+                                [attr.aria-pressed]="slot === validTime()"
+                                [attr.aria-label]="slot + ' Uhr'"
                                 (click)="sidebarSelectTime(slot)">
                           {{ slot }}
                         </button>
@@ -975,13 +1022,15 @@
                     </div>
                   }
                   @case ('seats') {
-                    <div class="preview-sidebar__seats">
+                    <div class="preview-sidebar__seats" role="group" aria-label="Personenanzahl wählen">
                       @for (seat of seatOptions(); track seat.count) {
                         <button type="button"
                                 class="preview-sidebar__seat"
                                 [class.is-selected]="seat.count === people()"
+                                [attr.aria-pressed]="seat.count === people()"
+                                [attr.aria-label]="seat.count + (seat.count === 1 ? ' Gast' : ' Gäste')"
                                 (click)="sidebarSelectSeats(seat.count)">
-                          <span class="preview-sidebar__seat-icon">
+                          <span class="preview-sidebar__seat-icon" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                               <circle cx="10" cy="6" r="3"/>
                               <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/>
@@ -1010,8 +1059,8 @@
           <div class="preview-stacked__head">
             <div class="preview-stacked__head-top">
               @if (stackedStep() > 1) {
-                <button class="preview-stacked__topbar-back" type="button" (click)="stackedPrevStep()">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <button class="preview-stacked__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="stackedPrevStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="13,4 7,10 13,16"/>
                   </svg>
                 </button>
@@ -1021,20 +1070,26 @@
                   <span class="preview-stacked__live-label">Live · Tisch buchen</span>
                 </div>
               }
-              <div class="preview-stacked__steps">
+              <nav class="preview-stacked__steps" aria-label="Buchungsfortschritt">
                 <span class="preview-stacked__step"
                       [class.is-active]="stackedStep() === 1"
-                      [class.is-done]="stackedStep() > 1">1</span>
-                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 1"></span>
+                      [class.is-done]="stackedStep() > 1"
+                      [attr.aria-current]="stackedStep() === 1 ? 'step' : null"
+                      aria-label="Schritt 1: Buchungsdetails">1</span>
+                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 1" aria-hidden="true"></span>
                 <span class="preview-stacked__step"
                       [class.is-active]="stackedStep() === 2"
-                      [class.is-done]="stackedStep() > 2">2</span>
-                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 2"></span>
-                <span class="preview-stacked__step" [class.is-active]="stackedStep() === 3">3</span>
-              </div>
+                      [class.is-done]="stackedStep() > 2"
+                      [attr.aria-current]="stackedStep() === 2 ? 'step' : null"
+                      aria-label="Schritt 2: Kontaktdaten">2</span>
+                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 2" aria-hidden="true"></span>
+                <span class="preview-stacked__step" [class.is-active]="stackedStep() === 3"
+                      [attr.aria-current]="stackedStep() === 3 ? 'step' : null"
+                      aria-label="Schritt 3: Zusammenfassung">3</span>
+              </nav>
               @if (stackedStep() === 2 && stackedWasOnSummary()) {
-                <button class="preview-stacked__topbar-fwd" type="button" (click)="stackedGoToSummary()">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <button class="preview-stacked__topbar-fwd" type="button" aria-label="Weiter zur Zusammenfassung" (click)="stackedGoToSummary()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="7,4 13,10 7,16"/>
                   </svg>
                 </button>
@@ -1058,6 +1113,8 @@
               <button class="preview-stacked__tile"
                       type="button"
                       [class.is-active]="stackedOpenPicker() === 'date'"
+                      [attr.aria-expanded]="stackedOpenPicker() === 'date'"
+                      [attr.aria-label]="'Datum: ' + selectedDateLabel() + ', Auswahl öffnen'"
                       (click)="stackedTogglePicker('date')">
                 <span class="preview-stacked__tile-eyebrow">
                   <span class="tile-icon">
@@ -1078,6 +1135,8 @@
               <button class="preview-stacked__tile"
                       type="button"
                       [class.is-active]="stackedOpenPicker() === 'time'"
+                      [attr.aria-expanded]="stackedOpenPicker() === 'time'"
+                      [attr.aria-label]="'Uhrzeit: ' + validTime() + ' Uhr, Auswahl öffnen'"
                       (click)="stackedTogglePicker('time')">
                 <span class="preview-stacked__tile-eyebrow">
                   <span class="tile-icon">
@@ -1094,6 +1153,8 @@
               <button class="preview-stacked__tile"
                       type="button"
                       [class.is-active]="stackedOpenPicker() === 'seats'"
+                      [attr.aria-expanded]="stackedOpenPicker() === 'seats'"
+                      [attr.aria-label]="people() + (people() === 1 ? ' Gast, Auswahl öffnen' : ' Gäste, Auswahl öffnen')"
                       (click)="stackedTogglePicker('seats')">
                 <span class="preview-stacked__tile-eyebrow">
                     <span class="tile-icon">
@@ -1116,27 +1177,27 @@
                   @case ('date') {
                     <div class="preview-stacked__cal">
                       <div class="preview-stacked__cal-bar">
-                        <button class="preview-stacked__cal-nav" type="button" (click)="prevMonth()">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                        <button class="preview-stacked__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
                             <polyline points="13,4 7,10 13,16"/>
                           </svg>
                         </button>
-                        <span class="preview-stacked__cal-month">{{ calendarMonthLabel() }}</span>
-                        <button class="preview-stacked__cal-nav" type="button" (click)="nextMonth()">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                        <span class="preview-stacked__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
+                        <button class="preview-stacked__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
                             <polyline points="7,4 13,10 7,16"/>
                           </svg>
                         </button>
                       </div>
-                      <div class="preview-stacked__cal-weekdays">
+                      <div class="preview-stacked__cal-weekdays" aria-hidden="true">
                         @for (wd of weekdays; track wd) {
                           <span>{{ wd }}</span>
                         }
                       </div>
-                      <div class="preview-stacked__cal-grid">
+                      <div class="preview-stacked__cal-grid" role="grid" [attr.aria-label]="'Kalender ' + calendarMonthLabel()">
                         @for (cell of calendarCells(); track $index) {
                           @if (cell.day === null) {
-                            <span class="preview-stacked__cal-day preview-stacked__cal-day--empty"></span>
+                            <span class="preview-stacked__cal-day preview-stacked__cal-day--empty" aria-hidden="true"></span>
                           } @else {
                             <button class="preview-stacked__cal-day"
                                     type="button"
@@ -1144,6 +1205,9 @@
                                     [class.is-selected]="cell.isSelected"
                                     [class.is-disabled]="cell.isDisabled"
                                     [disabled]="cell.isDisabled"
+                                    [attr.aria-pressed]="cell.isSelected"
+                                    [attr.aria-label]="cell.day + '. ' + calendarMonthLabel()"
+                                    [attr.aria-current]="cell.isToday ? 'date' : null"
                                     (click)="stackedSelectDay(cell.day!)">
                               {{ cell.day }}
                             </button>
@@ -1153,11 +1217,13 @@
                     </div>
                   }
                   @case ('time') {
-                    <div class="preview-stacked__times">
+                    <div class="preview-stacked__times" role="group" aria-label="Uhrzeit wählen">
                       @for (t of timeSlots(); track t) {
                         <button class="preview-stacked__time"
                                 type="button"
                                 [class.is-selected]="validTime() === t"
+                                [attr.aria-pressed]="validTime() === t"
+                                [attr.aria-label]="t + ' Uhr'"
                                 (click)="stackedSelectTime(t)">
                           {{ t }}
                         </button>
@@ -1165,14 +1231,16 @@
                     </div>
                   }
                   @case ('seats') {
-                    <div class="preview-stacked__seats">
+                    <div class="preview-stacked__seats" role="group" aria-label="Personenanzahl wählen">
                       @for (s of seatOptions(); track s.count) {
                         <button class="preview-stacked__seat"
                                 type="button"
                                 [class.is-selected]="people() === s.count"
+                                [attr.aria-pressed]="people() === s.count"
+                                [attr.aria-label]="s.count + (s.count === 1 ? ' Gast' : ' Gäste')"
                                 (click)="stackedSelectSeats(s.count)">
-                          <span class="preview-stacked__seat-num">{{ s.count }}</span>
-                          <span class="preview-stacked__seat-label">{{ s.count === 1 ? 'Gast' : 'Gäste' }}</span>
+                          <span class="preview-stacked__seat-num" aria-hidden="true">{{ s.count }}</span>
+                          <span class="preview-stacked__seat-label" aria-hidden="true">{{ s.count === 1 ? 'Gast' : 'Gäste' }}</span>
                         </button>
                       }
                     </div>
@@ -1190,8 +1258,9 @@
                     <button type="button"
                             class="tischart-chip"
                             [class.is-selected]="selectedTischart() === t.key"
+                            [attr.aria-pressed]="selectedTischart() === t.key"
                             (click)="selectedTischart.set(t.key)">
-                      <span>{{ t.icon }}</span> {{ t.label }}
+                      <span aria-hidden="true">{{ t.icon }}</span> {{ t.label }}
                     </button>
                   }
                 </div>
@@ -1266,6 +1335,7 @@
                       <button type="button"
                               class="venue-chip"
                               [class.is-active]="selectedVenue()?.id === v.id"
+                              [attr.aria-pressed]="selectedVenue()?.id === v.id"
                               (click)="selectVenue(v)">{{ v.name }}</button>
                     }
                   </div>
@@ -1280,14 +1350,18 @@
                   <label class="preview-stacked__field-label" for="st-name">Name <span class="field-required">*</span></label>
                   <input id="st-name" type="text" class="preview-stacked__field-input preview-stacked__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         placeholder="Vor- und Nachname" autocomplete="name" name="stName">
+                         placeholder="Vor- und Nachname" autocomplete="name" name="stName"
+                         aria-required="true"
+                         [attr.aria-invalid]="stackedShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
                 <div class="preview-stacked__field"
                      [class.preview-stacked__field--error]="stackedShowErrors() && !emailLooksOk()">
                   <label class="preview-stacked__field-label" for="st-email">E-Mail <span class="field-required">*</span></label>
                   <input id="st-email" type="email" class="preview-stacked__field-input preview-stacked__field-input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         placeholder="name@beispiel.de" autocomplete="email" name="stEmail">
+                         placeholder="name@beispiel.de" autocomplete="email" name="stEmail"
+                         aria-required="true"
+                         [attr.aria-invalid]="stackedShowErrors() && !emailLooksOk() ? 'true' : null">
                 </div>
               </div>
 
@@ -1306,11 +1380,11 @@
               @if (kinderStuehleAktiv()) {
                 <div class="preview-stacked__field">
                   <label class="preview-stacked__field-label">Kinderstühle</label>
-                  <div class="kinder-stepper">
-                    <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
-                    <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
-                    <button type="button" class="kinder-stepper__btn" (click)="incKinderStuehle()">+</button>
-                    <span class="kinder-stepper__hint">max. {{ kinderStuehleOnline() }}</span>
+                  <div class="kinder-stepper" role="group" aria-label="Kinderstühle">
+                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle verringern" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' Kinderstühle'">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle erhöhen" (click)="incKinderStuehle()">+</button>
+                    <span class="kinder-stepper__hint" [attr.aria-label]="'maximal ' + kinderStuehleOnline()">max. {{ kinderStuehleOnline() }}</span>
                   </div>
                 </div>
               }
@@ -1358,6 +1432,7 @@
                     @for (a of verfuegbareAllergene(); track a.key) {
                       <button type="button" class="allergen-chip"
                               [class.is-selected]="isAllergenSelected(a.key)"
+                              [attr.aria-pressed]="isAllergenSelected(a.key)"
                               (click)="toggleAllergen(a.key)">{{ a.label }}</button>
                     }
                   </div>
@@ -1382,7 +1457,9 @@
                    [class.is-checked]="stackedConsent()"
                    [class.is-error]="stackedShowErrors() && !stackedConsent()">
               <input type="checkbox" class="preview-stacked__consent-input"
-                     [checked]="stackedConsent()" (change)="stackedToggleConsent()">
+                     [checked]="stackedConsent()" (change)="stackedToggleConsent()"
+                     aria-required="true"
+                     [attr.aria-invalid]="stackedShowErrors() && !stackedConsent() ? 'true' : null">
               <span class="preview-stacked__consent-box" aria-hidden="true">
                 @if (stackedConsent()) { <span class="check-icon">✓</span> }
               </span>
@@ -1392,7 +1469,7 @@
             </label>
 
             @if (state() === 'error') {
-              <div class="widget-alert" style="margin: 0 20px;">{{ errorMessage() }}</div>
+              <div class="widget-alert" role="alert" aria-live="assertive" style="margin: 0 20px;">{{ errorMessage() }}</div>
             }
 
             <div class="preview-stacked__nav">
@@ -1467,7 +1544,7 @@
             </div>
 
             @if (state() === 'error') {
-              <div class="widget-alert">{{ errorMessage() }}</div>
+              <div class="widget-alert" role="alert" aria-live="assertive">{{ errorMessage() }}</div>
             }
 
             <div class="preview-stacked__nav">
@@ -1475,9 +1552,11 @@
                       type="button"
                       [class.is-disabled]="!canSubmit()"
                       [disabled]="!canSubmit()"
+                      [attr.aria-busy]="state() === 'submitting'"
+                      aria-label="Reservierung absenden"
                       (click)="weiter()">
                 <span>@if (state() === 'submitting') { Wird gesendet … } @else { Reservierung absenden }</span>
-                <span>✓</span>
+                <span aria-hidden="true">✓</span>
               </button>
             </div>
           }
@@ -1504,14 +1583,14 @@
             <!-- Topbar navigation (step 2+) -->
             @if (plannerStep() > 1) {
               <div class="preview-planner__topbar">
-                <button class="preview-planner__topbar-back" type="button" (click)="plannerPrev()">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <button class="preview-planner__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="plannerPrev()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="13,4 7,10 13,16"/>
                   </svg>
                 </button>
                 @if (plannerStep() < plannerMaxStep()) {
-                  <button class="preview-planner__topbar-fwd" type="button" (click)="plannerNext()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <button class="preview-planner__topbar-fwd" type="button" aria-label="Weiter zum nächsten Schritt" (click)="plannerNext()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                       <polyline points="7,4 13,10 7,16"/>
                     </svg>
                   </button>
@@ -1520,67 +1599,77 @@
             }
 
             <!-- Step indicator -->
-            <div class="preview-planner__steps">
+            <nav class="preview-planner__steps" aria-label="Buchungsfortschritt">
               <button type="button"
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 1"
                       [class.is-done]="plannerStep() > 1"
+                      [attr.aria-current]="plannerStep() === 1 ? 'step' : null"
+                      aria-label="Schritt 1: Datum"
                       (click)="setPlannerStep(1)">
-                <span class="preview-planner__step-num">
+                <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 1) { ✓ } @else { 1 }
                 </span>
                 <span class="preview-planner__step-label">Datum</span>
               </button>
 
-              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 1"></span>
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 1" aria-hidden="true"></span>
 
               <button type="button"
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 2"
                       [class.is-done]="plannerStep() > 2"
+                      [attr.aria-current]="plannerStep() === 2 ? 'step' : null"
+                      aria-label="Schritt 2: Uhrzeit"
                       (click)="setPlannerStep(2)">
-                <span class="preview-planner__step-num">
+                <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 2) { ✓ } @else { 2 }
                 </span>
                 <span class="preview-planner__step-label">Uhrzeit</span>
               </button>
 
-              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 2"></span>
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 2" aria-hidden="true"></span>
 
               <button type="button"
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 3"
                       [class.is-done]="plannerStep() > 3"
+                      [attr.aria-current]="plannerStep() === 3 ? 'step' : null"
+                      aria-label="Schritt 3: Personenanzahl"
                       (click)="setPlannerStep(3)">
-                <span class="preview-planner__step-num">
+                <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 3) { ✓ } @else { 3 }
                 </span>
                 <span class="preview-planner__step-label">Personen</span>
               </button>
 
-              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 3"></span>
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 3" aria-hidden="true"></span>
 
               <button type="button"
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 4"
                       [class.is-done]="plannerStep() > 4"
+                      [attr.aria-current]="plannerStep() === 4 ? 'step' : null"
+                      aria-label="Schritt 4: Kontaktdaten"
                       (click)="setPlannerStep(4)">
-                <span class="preview-planner__step-num">
+                <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 4) { ✓ } @else { 4 }
                 </span>
                 <span class="preview-planner__step-label">Daten</span>
               </button>
 
-              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 4"></span>
+              <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 4" aria-hidden="true"></span>
 
               <button type="button"
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 5"
+                      [attr.aria-current]="plannerStep() === 5 ? 'step' : null"
+                      aria-label="Schritt 5: Übersicht"
                       (click)="canGoToSummary() && setPlannerStep(5)">
-                <span class="preview-planner__step-num">5</span>
+                <span class="preview-planner__step-num" aria-hidden="true">5</span>
                 <span class="preview-planner__step-label">Übersicht</span>
               </button>
-            </div>
+            </nav>
 
             <!-- Panels -->
             <div class="preview-planner__panels">
@@ -1603,21 +1692,21 @@
 
                 <div class="preview-planner__cal">
                   <div class="preview-planner__cal-bar">
-                    <button class="preview-planner__cal-nav" type="button" (click)="prevMonth()">‹</button>
-                    <span class="preview-planner__cal-month">{{ calendarMonthLabel() }}</span>
-                    <button class="preview-planner__cal-nav" type="button" (click)="nextMonth()">›</button>
+                    <button class="preview-planner__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">‹</button>
+                    <span class="preview-planner__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
+                    <button class="preview-planner__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">›</button>
                   </div>
 
-                  <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays">
+                  <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays" aria-hidden="true">
                     @for (wd of weekdays; track wd) {
                       <span class="preview-planner__cal-weekday">{{ wd }}</span>
                     }
                   </div>
 
-                  <div class="preview-planner__cal-grid">
+                  <div class="preview-planner__cal-grid" role="grid" [attr.aria-label]="'Kalender ' + calendarMonthLabel()">
                     @for (cell of calendarCells(); track $index) {
                       @if (cell.day === null) {
-                        <span class="preview-planner__cal-day preview-planner__cal-day--empty"></span>
+                        <span class="preview-planner__cal-day preview-planner__cal-day--empty" aria-hidden="true"></span>
                       } @else {
                         <button class="preview-planner__cal-day"
                                 type="button"
@@ -1625,6 +1714,9 @@
                                 [class.is-selected]="cell.isSelected"
                                 [class.is-disabled]="cell.isDisabled"
                                 [disabled]="cell.isDisabled"
+                                [attr.aria-pressed]="cell.isSelected"
+                                [attr.aria-label]="cell.day + '. ' + calendarMonthLabel()"
+                                [attr.aria-current]="cell.isToday ? 'date' : null"
                                 (click)="selectPlannerDay(cell.day!)">
                           {{ cell.day }}
                         </button>
@@ -1734,13 +1826,15 @@
                   <span class="preview-planner__panel-title">Personen</span>
                 </div>
 
-                <div class="preview-planner__chips preview-planner__chips--seats">
+                <div class="preview-planner__chips preview-planner__chips--seats" role="group" aria-label="Personenanzahl wählen">
                   @for (s of seatOptions(); track s.count) {
                     <button class="preview-planner__chip preview-planner__chip--seat"
                             type="button"
                             [class.is-selected]="people() === s.count"
+                            [attr.aria-pressed]="people() === s.count"
+                            [attr.aria-label]="s.label"
                             (click)="selectPlannerSeats(s.count)">
-                      <span class="preview-planner__chip-icon">
+                      <span class="preview-planner__chip-icon" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
                           <circle cx="10" cy="6" r="3"/>
                           <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/>
@@ -1865,14 +1959,18 @@
                       <label class="preview-planner__form-label" for="pl-name">Name <span class="field-required">*</span></label>
                       <input id="pl-name" type="text" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                             placeholder="Vor- und Nachname" autocomplete="name" name="plName">
+                             placeholder="Vor- und Nachname" autocomplete="name" name="plName"
+                             aria-required="true"
+                             [attr.aria-invalid]="plannerShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                     </div>
                     <div class="preview-planner__form-group"
                          [class.preview-planner__form-group--error]="plannerShowErrors() && !emailLooksOk()">
                       <label class="preview-planner__form-label" for="pl-email">E-Mail <span class="field-required">*</span></label>
                       <input id="pl-email" type="email" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                             placeholder="name@beispiel.de" autocomplete="email" name="plEmail">
+                             placeholder="name@beispiel.de" autocomplete="email" name="plEmail"
+                             aria-required="true"
+                             [attr.aria-invalid]="plannerShowErrors() && !emailLooksOk() ? 'true' : null">
                     </div>
                     <div class="preview-planner__form-group"
                          [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('phone') && !guestPhone().trim()">
@@ -1996,9 +2094,12 @@
 
                   <label class="preview-planner__consent"
                          [class.is-checked]="plannerConsent()"
-                         [class.is-error]="plannerShowErrors() && !plannerConsent()">
+                         [class.is-error]="plannerShowErrors() && !plannerConsent()"
+                         >
                     <input type="checkbox" class="preview-planner__consent-input"
-                           [checked]="plannerConsent()" (change)="plannerToggleConsent()">
+                           [checked]="plannerConsent()" (change)="plannerToggleConsent()"
+                           aria-required="true"
+                           [attr.aria-invalid]="plannerShowErrors() && !plannerConsent() ? 'true' : null">
                     <span class="preview-planner__consent-box" aria-hidden="true">
                       @if (plannerConsent()) { <span class="check-icon">✓</span> }
                     </span>
@@ -2078,7 +2179,7 @@
                   </div>
 
                   @if (state() === 'error') {
-                    <div class="widget-alert">{{ errorMessage() }}</div>
+                    <div class="widget-alert" role="alert" aria-live="assertive">{{ errorMessage() }}</div>
                   }
 
                 </div>
@@ -2090,22 +2191,26 @@
               @if (plannerStep() < 4) {
                 <button class="preview__cta preview-planner__cta"
                         type="button"
+                        aria-label="Weiter zum nächsten Schritt"
                         (click)="plannerNext()">
                   Weiter
-                  <span class="preview-planner__cta-icon">›</span>
+                  <span class="preview-planner__cta-icon" aria-hidden="true">›</span>
                 </button>
               } @else if (plannerStep() === 4) {
                 <button class="preview__cta preview-planner__cta"
                         type="button"
+                        aria-label="Weiter zur Zusammenfassung"
                         (click)="plannerNext()">
                   Weiter zur Zusammenfassung
-                  <span class="preview-planner__cta-icon">›</span>
+                  <span class="preview-planner__cta-icon" aria-hidden="true">›</span>
                 </button>
               } @else {
                 <button class="preview__cta preview-planner__cta preview-planner__cta--submit"
                         type="button"
                         [class.is-disabled]="!canSubmit()"
                         [disabled]="!canSubmit()"
+                        [attr.aria-busy]="state() === 'submitting'"
+                        aria-label="Reservierung absenden"
                         (click)="weiter()">
                   @if (state() === 'submitting') { Wird gesendet … }
                   @else { {{ buttonLabel() || 'Reservierung absenden' }} }

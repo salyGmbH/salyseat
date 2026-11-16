@@ -34,15 +34,15 @@ export interface RoleMeta {
 
 export const ROLE_META: Record<EmployeeRole, RoleMeta> = {
   admin: {
-    key: 'admin', label: 'Admin', tagline: 'Voller Zugriff', icon: 'shield',
+    key: 'admin', label: 'Admin', tagline: 'mitarbeiter.tagline_admin', icon: 'shield',
     permissions: ['Alle Einstellungen bearbeiten', 'Mitarbeiter & Rollen verwalten', 'Finanzen, Exporte & Statistiken', 'Alles, was Manager darf'],
   },
   manager: {
-    key: 'manager', label: 'Manager', tagline: 'Operativer Zugriff', icon: 'badge',
+    key: 'manager', label: 'Manager', tagline: 'mitarbeiter.tagline_manager', icon: 'badge',
     permissions: ['Reservierungen verwalten', 'Tischplan & Räume ändern', 'Tagesberichte einsehen', 'Kein Zugriff auf Finanzen'],
   },
   staff: {
-    key: 'staff', label: 'Staff', tagline: 'Eingeschränkt', icon: 'person',
+    key: 'staff', label: 'Staff', tagline: 'mitarbeiter.tagline_staff', icon: 'person',
     permissions: ['Reservierungen einsehen', 'Gäste einchecken', 'Keine Änderungen an Einstellungen'],
   },
 };

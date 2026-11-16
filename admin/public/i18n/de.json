@@ -10,7 +10,8 @@
     "statistics": "Statistiken",
     "notes": "Notizen",
     "settings": "Einstellungen",
-    "shift_planning": "Schichtplanung"
+    "shift_planning": "Schichtplanung",
+    "vouchers": "Gutscheine"
   },
   "sidebar": {
     "notes_today": "Notizen heute",
@@ -82,8 +83,9 @@
     "status_labels": "Status, Hinweise & Gäste-Typen",
     "widget_designer": "Widget-Designer",
     "widget_settings": "Widget Einstellungen",
-    "voucher_designer": "Gutschein Designer",
-    "menu": "Speisekarte"
+    "abo": "Abo & Pakete",
+    "menu": "Speisekarte",
+    "voucher_designer": "Gutschein Designer"
   },
   "languages": {
     "title": "Sprache",
@@ -471,7 +473,13 @@
     "social_links": "Social Links",
     "attachments": "Anhänge",
     "select_files": "Dateien auswählen",
-    "uploading": "Wird hochgeladen…"
+    "uploading": "Wird hochgeladen…",
+    "mail_confirmation": "Reservierungsbestätigung",
+    "mail_reminder": "Erinnerung vor Termin",
+    "mail_cancel": "Stornierungsbestätigung",
+    "mail_no_show": "No-Show Info",
+    "choose_logo": "Logo wählen",
+    "choose_image": "Bild wählen"
   },
   "mitarbeiter": {
     "title": "Mitarbeiter",
@@ -490,7 +498,10 @@
     "id_hint": "— wird in Audit-Logs hinterlegt",
     "id_ph": "z. B. 001",
     "role": "Rolle",
-    "can_do": "Was darf"
+    "can_do": "Was darf",
+    "tagline_admin": "Voller Zugriff",
+    "tagline_manager": "Operativer Zugriff",
+    "tagline_staff": "Eingeschränkt"
   },
   "notizen": {
     "title": "Notizen",
@@ -591,7 +602,20 @@
     "subtitle": "Steuere fein, was jede Rolle im System darf…",
     "admin_only": "Nur Admins dürfen Berechtigungen ändern.",
     "permission": "Berechtigung",
-    "reset": "Auf Standard zurücksetzen"
+    "reset": "Auf Standard zurücksetzen",
+    "cat_reservations": "Reservierungen",
+    "cat_documents": "Dokumente",
+    "cat_packages": "Packages",
+    "perm_read": "Lesen",
+    "perm_edit": "Bearbeiten",
+    "perm_delete": "Löschen",
+    "perm_upload": "Hochladen",
+    "perm_res_read_desc": "Reservierungen einsehen",
+    "perm_res_edit_desc": "Zeiten, Gäste, Notizen ändern",
+    "perm_res_delete_desc": "Reservierungen endgültig entfernen",
+    "perm_doc_upload_desc": "Neue Dokumente anlegen",
+    "perm_doc_delete_desc": "Dokumente entfernen",
+    "perm_pkg_edit_desc": "Pakete & Preise anpassen"
   },
   "reservierungen_settings": {
     "title": "Reservierungen",
@@ -710,7 +734,12 @@
   },
   "notifications": {
     "title": "Benachrichtigungen",
-    "subtitle": "Wer bekommt wann welche Nachricht…"
+    "subtitle": "Wer bekommt wann welche Nachricht…",
+    "feat_email": "E-Mail-Benachrichtigungen bei neuer Reservierung",
+    "feat_sms": "SMS an Gäste zur Bestätigung und Erinnerung",
+    "feat_push": "Push-Benachrichtigungen aufs Handy des Teams",
+    "feat_reminder": "Erinnerung X Stunden vor dem Termin",
+    "feat_cancel": "Stornierungs-Hinweise an Management"
   },
   "integrationen": {
     "title": "Integrationen",
@@ -1049,7 +1078,20 @@
     "create_pdf": "PDF erstellen",
     "loading": "Lade Reservierungen…",
     "empty": "Keine Reservierungen für diesen Filter.",
-    "all_statuses_opt": "Alle Status"
+    "all_statuses_opt": "Alle Status",
+    "sort_time": "Uhrzeit",
+    "sort_alpha": "Alphabetisch",
+    "sort_table": "Tisch",
+    "status_pending": "Ausstehend",
+    "status_confirmed": "Bestätigt",
+    "status_active": "Aktiv",
+    "status_completed": "Beendet",
+    "status_cancelled": "Storniert",
+    "status_no_show": "No-Show",
+    "all": "Alle",
+    "filter_room": "Raum",
+    "filter_more": "Weitere",
+    "with_note": "Mit Notiz"
   },
   "speisekarte": {
     "design": "Design",
@@ -1219,5 +1261,101 @@
     "img_name_placeholder": "z.B. Romantisch, Festlich …",
     "btn_save": "Speichern",
     "confirm_delete_img": "Bild wirklich löschen?"
+  },
+  "gutschein_designer": {
+    "title": "Gutschein Designer",
+    "subtitle": "Gestalte das Aussehen deines Gutschein-Widgets für Kunden.",
+    "reset": "Zurücksetzen",
+    "save": "Speichern",
+    "saving": "Speichern…",
+    "saved": "Gespeichert!",
+    "section_texts": "Titel & Untertitel",
+    "section_texts_sub": "Erscheint oben auf der Gutschein-Seite.",
+    "label_title": "Titel",
+    "label_subtitle": "Untertitel",
+    "label_btn": "Button-Beschriftung",
+    "section_bg": "Hintergrund",
+    "section_bg_sub": "Farbe oder Bild hinter der Gutschein-Karte.",
+    "tab_color": "Farbe",
+    "tab_image": "Bild",
+    "label_bg_color": "Hintergrundfarbe",
+    "section_typo": "Typografie",
+    "section_typo_sub": "Schriftart und Textgröße im Widget.",
+    "label_font": "Schriftart",
+    "label_size": "Schriftgröße",
+    "section_colors": "Farben",
+    "section_colors_sub": "Markenfarbe für Buttons und Akzente, Textfarbe für Inhalte.",
+    "label_primary": "Markenfarbe (Buttons & Akzente)",
+    "label_text": "Textfarbe",
+    "section_radius": "Button-Form",
+    "section_radius_sub": "Eckenrundung für Buttons, Karte und Eingabefelder.",
+    "preview": "Live-Vorschau",
+    "preview_tagline": "Geschenkgutschein",
+    "preview_amount_label": "Betrag wählen",
+    "preview_custom": "Eigener Betrag…",
+    "font_system_hint": "Neutral & vertraut",
+    "font_modern_hint": "Klare Linien",
+    "font_classic_hint": "Zeitlos & sauber",
+    "font_serif_hint": "Elegant & traditionell",
+    "font_rounded_hint": "Warm & freundlich",
+    "font_mono_hint": "Technisch & präzise",
+    "size_compact": "Kompakt",
+    "size_standard": "Standard",
+    "size_large": "Groß",
+    "size_compact_hint": "Platzsparend",
+    "size_standard_hint": "Empfohlen",
+    "size_large_hint": "Gut lesbar",
+    "radius_square": "Eckig",
+    "radius_soft": "Sanft",
+    "radius_pill": "Pill"
+  },
+  "abo": {
+    "title": "Dein Abo-Paket",
+    "subtitle": "Aktuell aktiv:",
+    "current_plan": "Dein aktuelles Paket",
+    "popular": "Beliebt",
+    "btn_current": "Aktuelles Paket",
+    "btn_upgrade": "Auf {{plan}} upgraden",
+    "btn_downgrade": "Downgrade",
+    "addons_title": "Add-ons",
+    "addons_subtitle": "Erweiterungen die unabhängig vom Abo gebucht werden können.",
+    "addon_vouchers_name": "Gutscheine",
+    "addon_vouchers_desc": "Gutschein-System mit Widget-Integration und eigenem Design.",
+    "addon_pos_name": "Kassenschnittstellen",
+    "addon_pos_desc": "Direkte Integration mit gängigen POS-Systemen.",
+    "tag_addon": "Add-on",
+    "tag_soon": "Demnächst",
+    "plans": {
+      "tisch": {
+        "name": "Tisch",
+        "tagline": "Das Fundament für deinen Start"
+      },
+      "menu": {
+        "name": "Menü",
+        "tagline": "Mehr Kontrolle, mehr Ausdruck"
+      },
+      "maitre": {
+        "name": "Maître",
+        "tagline": "Alles inklusive — du leitest das Haus"
+      }
+    },
+    "features": {
+      "reservations": "Reservierungen & Tischplan",
+      "dashboard": "Dashboard & Statistiken",
+      "widget": "Online-Widget",
+      "guests": "Gäste-Verwaltung",
+      "opening_hours": "Öffnungszeiten",
+      "notes": "Notizen",
+      "menu_card": "Speisekarte erstellen",
+      "email_design": "E-Mail Design & Vorschau",
+      "shift_plan": "Schichtplanung",
+      "table_selection": "Tisch-Auswahl im Widget",
+      "phone_assistant": "Telefonassistent",
+      "vouchers": "Gutscheine",
+      "pos": "Kassenschnittstellen"
+    },
+    "addon_price_on_request": "Auf Anfrage",
+    "addon_phone_name": "Telefonassistent",
+    "addon_phone_desc": "KI-gestützte Anrufannahme & automatische Reservierungserfassung."
   }
 }

@@ -1,0 +1,145 @@
+<div class="abo">
+
+  <div class="abo__header">
+    <h1 class="abo__title">{{ 'abo.title' | translate }}</h1>
+    <p class="abo__subtitle">
+      {{ 'abo.subtitle' | translate }} <strong>{{ planService.planLabel() }}</strong>
+      @if (saved()) {
+        <span class="abo__saved"><mat-icon>check_circle</mat-icon></span>
+      }
+    </p>
+  </div>
+
+  <div class="abo__grid">
+    @for (plan of plans; track plan.key) {
+      <div class="abo__card"
+           [class.abo__card--current]="isCurrentPlan(plan.key)"
+           [class.abo__card--upgrade]="isUpgrade(plan.key)"
+           [style.--plan-color]="plan.color">
+
+        @if (isCurrentPlan(plan.key)) {
+          <div class="abo__current-banner">
+            <mat-icon>check_circle</mat-icon> {{ 'abo.current_plan' | translate }}
+          </div>
+        } @else if (plan.key === 'menu') {
+          <div class="abo__badge abo__badge--popular">{{ 'abo.popular' | translate }}</div>
+        }
+
+        <div class="abo__card-header">
+          <span class="abo__plan-name">{{ plan.name }}</span>
+          <p class="abo__plan-tagline">{{ plan.taglineKey | translate }}</p>
+        </div>
+
+        <ul class="abo__features">
+          @for (row of features; track row.labelKey) {
+            @let val = valueFor(row, plan.key);
+            <li class="abo__feature" [class.abo__feature--off]="val === false">
+              @if (val === true) {
+                <mat-icon class="abo__feature-icon abo__feature-icon--yes">check_circle</mat-icon>
+              } @else if (val === false) {
+                <mat-icon class="abo__feature-icon abo__feature-icon--no">remove</mat-icon>
+              } @else if (val === 'addon') {
+                <mat-icon class="abo__feature-icon abo__feature-icon--addon">add_circle_outline</mat-icon>
+              } @else if (val === 'soon') {
+                <mat-icon class="abo__feature-icon abo__feature-icon--soon">schedule</mat-icon>
+              }
+              <span class="abo__feature-label">
+                {{ row.labelKey | translate }}
+                @if (val === 'addon') { <em class="abo__tag">{{ 'abo.tag_addon' | translate }}</em> }
+                @if (val === 'soon')  { <em class="abo__tag abo__tag--soon">{{ 'abo.tag_soon' | translate }}</em> }
+              </span>
+            </li>
+          }
+        </ul>
+
+        <div class="abo__card-footer">
+          @if (isCurrentPlan(plan.key)) {
+            <button class="abo__btn abo__btn--current" disabled>
+              <mat-icon>check</mat-icon> {{ 'abo.btn_current' | translate }}
+            </button>
+          } @else if (isUpgrade(plan.key)) {
+            <button class="abo__btn abo__btn--upgrade"
+                    [disabled]="saving()"
+                    (click)="selectPlan(plan.key)">
+              @if (saving()) {
+                <mat-icon class="abo__spin">sync</mat-icon>
+              } @else {
+                <mat-icon>rocket_launch</mat-icon>
+              }
+              {{ 'abo.btn_upgrade' | translate:{ plan: plan.name } }}
+            </button>
+          } @else {
+            <button class="abo__btn abo__btn--downgrade"
+                    [disabled]="saving()"
+                    (click)="selectPlan(plan.key)">
+              {{ 'abo.btn_downgrade' | translate }}
+            </button>
+          }
+        </div>
+
+      </div>
+    }
+  </div>
+
+  <div class="abo__addons">
+    <h2 class="abo__addons-title">{{ 'abo.addons_title' | translate }}</h2>
+    <p class="abo__addons-sub">{{ 'abo.addons_subtitle' | translate }}</p>
+
+    <div class="addon-grid">
+
+      <!-- Gutscheine -->
+      <div class="addon-card" [class.addon-card--active]="planService.hasAddon('vouchers')"
+           (click)="toggleAddon('vouchers')">
+        <div class="addon-card__icon">
+          @if (addonSaving() === 'vouchers') {
+            <mat-icon class="abo__spin">sync</mat-icon>
+          } @else {
+            <mat-icon>card_giftcard</mat-icon>
+          }
+        </div>
+        <div class="addon-card__content">
+          <div class="addon-card__title">{{ 'abo.addon_vouchers_name' | translate }}</div>
+          <div class="addon-card__sub">{{ 'abo.addon_vouchers_desc' | translate }}</div>
+          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
+        </div>
+        <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon('vouchers')">
+          {{ (planService.hasAddon('vouchers') ? 'common.active' : 'common.inactive') | translate }}
+        </div>
+      </div>
+
+      <!-- Kassenschnittstellen (demnächst) -->
+      <div class="addon-card addon-card--soon">
+        <div class="addon-card__icon">
+          <mat-icon>point_of_sale</mat-icon>
+        </div>
+        <div class="addon-card__content">
+          <div class="addon-card__title">
+            {{ 'abo.addon_pos_name' | translate }}
+            <em class="abo__tag abo__tag--soon">{{ 'abo.tag_soon' | translate }}</em>
+          </div>
+          <div class="addon-card__sub">{{ 'abo.addon_pos_desc' | translate }}</div>
+          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
+        </div>
+        <div class="addon-card__status">{{ 'common.inactive' | translate }}</div>
+      </div>
+
+      <!-- Telefonassistent (demnächst) -->
+      <div class="addon-card addon-card--soon">
+        <div class="addon-card__icon">
+          <mat-icon>support_agent</mat-icon>
+        </div>
+        <div class="addon-card__content">
+          <div class="addon-card__title">
+            {{ 'abo.addon_phone_name' | translate }}
+            <em class="abo__tag abo__tag--soon">{{ 'abo.tag_soon' | translate }}</em>
+          </div>
+          <div class="addon-card__sub">{{ 'abo.addon_phone_desc' | translate }}</div>
+          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
+        </div>
+        <div class="addon-card__status">{{ 'common.inactive' | translate }}</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

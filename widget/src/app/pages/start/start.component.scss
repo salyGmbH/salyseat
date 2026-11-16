@@ -4401,3 +4401,218 @@
 
   &__icon { flex-shrink: 0; font-size: 1rem; }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  WCAG 2.1 AA – :focus-visible Styles (KEYBOARD NAVIGATION)
+//  Alle interaktiven Elemente erhalten einen sichtbaren Tastaturfokus-Ring.
+//  Die globalen Styles (styles.scss) greifen ebenfalls, hier werden
+//  komponentenspezifische Radius-Anpassungen gesetzt.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Mixin: standard focus ring ──────────────────────────────────────────────
+// outline mit korrektem border-radius damit der Ring die Form der Komponente
+// wiederspiegelt. box-shadow als Fallback für Browser ohne outline-radius.
+@mixin focus-ring($radius: 8px) {
+  outline: 3px solid var(--preview-primary, #2563eb) !important;
+  outline-offset: 2px !important;
+  border-radius: $radius;
+}
+
+// ── CTA / Primary buttons ────────────────────────────────────────────────────
+.preview-card__cta,
+.preview-sidebar__cta,
+.preview-stacked__cta,
+.preview__cta,
+.preview-planner__cta,
+.payment-card__btn,
+.widget-hinweis-actions__btn,
+.btn-secondary {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius-cta, 10px));
+  }
+}
+
+// ── Stepper buttons (+/−) ────────────────────────────────────────────────────
+.preview-card__stepper-btn,
+.kinder-stepper__btn {
+  &:focus-visible {
+    @include focus-ring(50%);
+  }
+}
+
+// ── Stepper value (shows picker) ─────────────────────────────────────────────
+.preview-card__stepper-num {
+  &:focus-visible {
+    @include focus-ring(8px);
+  }
+}
+
+// ── Date / Time field buttons (card layout) ──────────────────────────────────
+.preview-card__datetime-field {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius, 10px));
+  }
+}
+
+// ── Back / Forward nav icon buttons ─────────────────────────────────────────
+.preview-card__topbar-back,
+.preview-card__topbar-fwd,
+.preview-sidebar__topbar-back,
+.preview-sidebar__topbar-fwd,
+.preview-sidebar__picker-back,
+.preview-stacked__topbar-back,
+.preview-stacked__topbar-fwd,
+.preview-planner__topbar-back,
+.preview-planner__topbar-fwd,
+.tischwahl-overlay__close,
+.widget-menu-overlay__close {
+  &:focus-visible {
+    @include focus-ring(50%);
+  }
+}
+
+// ── Calendar nav (‹ ›) ───────────────────────────────────────────────────────
+.preview-planner__cal-nav,
+.preview-sidebar__cal-nav,
+.preview-stacked__cal-nav {
+  &:focus-visible {
+    @include focus-ring(50%);
+  }
+}
+
+// ── Calendar day buttons ─────────────────────────────────────────────────────
+.preview-planner__cal-day,
+.preview-sidebar__cal-day,
+.preview-stacked__cal-day,
+.preview-planner__cal-day { // card layout uses preview-planner class
+  &:not(:disabled):focus-visible {
+    @include focus-ring(50%);
+  }
+}
+
+// ── Time slot chips ──────────────────────────────────────────────────────────
+.preview-planner__chip,
+.preview-sidebar__time,
+.preview-stacked__time {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius, 10px));
+  }
+}
+
+// ── Seat chips ───────────────────────────────────────────────────────────────
+.preview-sidebar__seat,
+.preview-stacked__seat {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius, 10px));
+  }
+}
+
+// ── Stacked picker tiles (date/time/seats) ───────────────────────────────────
+.preview-stacked__tile {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius, 10px));
+  }
+}
+
+// ── Sidebar group buttons (date/time/seats) ──────────────────────────────────
+.preview-sidebar__group--button {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius, 10px));
+  }
+}
+
+// ── Planner step indicator buttons ───────────────────────────────────────────
+.preview-planner__step {
+  &:focus-visible {
+    @include focus-ring(50%);
+  }
+}
+
+// ── Planner dial slots ───────────────────────────────────────────────────────
+.preview-planner__dial-slot {
+  &:not(:disabled):focus-visible {
+    @include focus-ring(50%);
+    background: color-mix(in srgb, var(--preview-primary, #2563eb) 20%, transparent) !important;
+  }
+}
+
+// ── Tischart chips ───────────────────────────────────────────────────────────
+.tischart-chip {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius, 10px));
+  }
+}
+
+// ── Allergen chips ───────────────────────────────────────────────────────────
+.allergen-chip {
+  &:focus-visible {
+    @include focus-ring(999px);
+  }
+}
+
+// ── Venue chips ──────────────────────────────────────────────────────────────
+.venue-chip {
+  &:focus-visible {
+    @include focus-ring(999px);
+  }
+}
+
+// ── Extra checkboxes (Rollstuhl / Hund) ─────────────────────────────────────
+.extra-checkbox {
+  input[type='checkbox']:focus-visible ~ &__box {
+    outline: 3px solid var(--preview-primary, #2563eb) !important;
+    outline-offset: 2px !important;
+    border-radius: 4px;
+  }
+}
+
+// ── Consent checkboxes ───────────────────────────────────────────────────────
+.preview-card__consent-input,
+.preview-sidebar__consent-input,
+.preview-stacked__consent-input,
+.preview-planner__consent-input {
+  &:focus-visible {
+    @include focus-ring(4px);
+  }
+}
+
+// ── Widget menu / speisekarte button ─────────────────────────────────────────
+.widget-menu-btn {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius, 10px));
+  }
+}
+
+// ── Hinweis "Verstanden" button ──────────────────────────────────────────────
+.widget-hinweis-actions__btn {
+  &:focus-visible {
+    @include focus-ring(var(--preview-radius-cta, 10px));
+  }
+}
+
+// ── Input fields — override outline:none with focus-visible ring ─────────────
+// Input fields already have a box-shadow focus indicator; we keep both for
+// keyboard users to ensure maximum visibility (WCAG 2.4.7).
+.preview-card__field-input--real,
+.preview-sidebar__input--real,
+.preview-stacked__field-input--real,
+.preview-planner__form-input--real {
+  &:focus-visible {
+    outline: 3px solid var(--preview-primary, #2563eb) !important;
+    outline-offset: 0 !important;
+  }
+}
+
+// ── Plan-selected badge "Ändern" button ──────────────────────────────────────
+.plan-selected-badge__change {
+  &:focus-visible {
+    @include focus-ring(6px);
+  }
+}
+
+// ── Saly credit link ─────────────────────────────────────────────────────────
+.saly-credit__name {
+  &:focus-visible {
+    @include focus-ring(4px);
+  }
+}

@@ -37,19 +37,37 @@
       @if (!collapsed()) { <span>{{ 'nav.statistics' | translate }}</span> }
     </a>
     <a routerLink="/schichtplanung" routerLinkActive="active" class="nav-item"
+       [class.nav-item--locked]="!plan.can('schichtplan')"
        [title]="collapsed() ? ('nav.shift_planning' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>calendar_month</mat-icon>
-      @if (!collapsed()) { <span>{{ 'nav.shift_planning' | translate }}</span> }
+      @if (!collapsed()) {
+        <span>{{ 'nav.shift_planning' | translate }}</span>
+        @if (!plan.can('schichtplan')) {
+          <span class="nav-item__plan-badge">{{ 'abo.plans.maitre.name' | translate }}</span>
+        }
+      }
     </a>
     <a routerLink="/gutscheine" routerLinkActive="active" class="nav-item"
-       [title]="collapsed() ? 'Gutscheine' : ''" (click)="layout.closeMobile()">
+       [class.nav-item--locked]="!plan.hasAddon('vouchers')"
+       [title]="collapsed() ? ('nav.vouchers' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>card_giftcard</mat-icon>
-      @if (!collapsed()) { <span>Gutscheine</span> }
+      @if (!collapsed()) {
+        <span>{{ 'nav.vouchers' | translate }}</span>
+        @if (!plan.hasAddon('vouchers')) {
+          <span class="nav-item__plan-badge nav-item__plan-badge--addon">{{ 'abo.tag_addon' | translate }}</span>
+        }
+      }
     </a>
     <a routerLink="/einstellungen/notizen" routerLinkActive="active" class="nav-item"
+       [class.nav-item--locked]="!plan.can('notizen')"
        [title]="collapsed() ? ('nav.notes' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>sticky_note_2</mat-icon>
-      @if (!collapsed()) { <span>{{ 'nav.notes' | translate }}</span> }
+      @if (!collapsed()) {
+        <span>{{ 'nav.notes' | translate }}</span>
+        @if (!plan.can('notizen')) {
+          <span class="nav-item__plan-badge">{{ 'abo.plans.menu.name' | translate }}</span>
+        }
+      }
     </a>
     <a routerLink="/einstellungen" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item"
        [title]="collapsed() ? ('nav.settings' | translate) : ''" (click)="layout.closeMobile()">

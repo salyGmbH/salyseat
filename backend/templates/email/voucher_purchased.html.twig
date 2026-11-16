@@ -1,0 +1,16 @@
+{% include 'email/_layout.html.twig' with {
+    heading_title: 'Ihr Gutschein',
+    fixed_lines: [
+        buyer_name ~ ' hat Ihnen einen Gutschein bei ' ~ venue_name ~ ' geschenkt.',
+    ],
+    show_details: false,
+    voucher_code:   code,
+    voucher_amount: amount,
+    voucher_expires: expires_at,
+    personal_message: personal_message ?? null,
+    mail_content: null,
+    design:    design,
+    social:    social,
+    logoLight: logoLight,
+    logoDark:  logoDark,
+} %}
