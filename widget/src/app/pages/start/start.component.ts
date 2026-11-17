@@ -21,6 +21,7 @@ import {
   Break,
   toAtomDateTime,
 } from '../../services/reservations.service';
+import { WidgetI18nService } from '../../services/widget-i18n.service';
 
 type SubmitState = 'loading' | 'idle' | 'submitting' | 'success' | 'error' | 'payment' | 'paying';
 
@@ -56,6 +57,10 @@ export class StartComponent implements OnInit {
   private readonly route        = inject(ActivatedRoute);
   private readonly sanitizer    = inject(DomSanitizer);
   private readonly zone         = inject(NgZone);
+  readonly i18n                 = inject(WidgetI18nService);
+
+  /** Shortcut: aktuelles Übersetzungs-Dictionary als computed Signal */
+  readonly t = this.i18n.labels;
 
   // ─── Stripe ──────────────────────────────────────────────────────────────
   private _stripe:   Stripe | null = null;
@@ -203,13 +208,18 @@ export class StartComponent implements OnInit {
   onlineStornierung        = signal<boolean>(false);
   onlineStornierungMinuten = signal<number>(120);
 
-  readonly weekdays: readonly string[] = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  readonly weekdays = computed<readonly string[]>(() =>
+    this.i18n.lang() === 'en'
+      ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+      : ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+  );
   readonly seatOptions = computed<{ count: number; label: string }[]>(() => {
-    const max = this.maxPeople();
+    const max  = this.maxPeople();
+    const lbl  = this.i18n.t();
     return Array.from({ length: max }, (_, i) => {
       const n = i + 1;
-      if (n === 1) return { count: 1, label: '1 Gast' };
-      return { count: n, label: `${n} Gäste` };
+      if (n === 1) return { count: 1, label: `1 ${lbl.guest}` };
+      return { count: n, label: `${n} ${lbl.guests}` };
     });
   });
 
@@ -487,8 +497,11 @@ export class StartComponent implements OnInit {
 
   // ─── Calendar month label ─────────────────────────────────────────────────
   readonly calendarMonthLabel = computed(() => {
-    const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const months = this.i18n.lang() === 'en'
+      ? ['January', 'February', 'March', 'April', 'May', 'June',
+         'July', 'August', 'September', 'October', 'November', 'December']
+      : ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+         'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
     return `${months[this.calendarMonth()]} ${this.calendarYear()}`;
   });
 
@@ -1085,6 +1098,19 @@ export class StartComponent implements OnInit {
       return;
     }
 
+    // Rückkehr von PayPal-Redirect erkennen (Stripe fügt redirect_status zur URL hinzu)
+    const redirectStatus = this.route.snapshot.queryParamMap.get('redirect_status');
+    if (redirectStatus === 'succeeded') {
+      this.state.set('success');
+      return;
+    }
+    if (redirectStatus === 'requires_payment_method') {
+      this.loadConfig(publicKey);
+      this.state.set('payment');
+      this.paymentError.set('Zahlung fehlgeschlagen. Bitte eine andere Zahlungsmethode wählen.');
+      return;
+    }
+
     this.loadConfig(publicKey);
 
     // Config neu laden wenn der Tab sichtbar wird (Tab-Wechsel) ODER
@@ -1106,6 +1132,8 @@ export class StartComponent implements OnInit {
     this.reservations.loadConfig(publicKey).subscribe(config => {
       this.restaurantName.set(config.name);
       this.venues.set(config.venues);
+      // Sprache setzen bevor applyDesign (headingTitle-Default kann davon abhängen)
+      if (config.widgetLanguage) this.i18n.setLang(config.widgetLanguage);
       this.applyDesign(config.widgetDesign);
       this.applyFunctional(config.widgetFunctional);
       if (Array.isArray(config.allergene)) this.verfuegbareAllergene.set(config.allergene);
@@ -1278,9 +1306,10 @@ export class StartComponent implements OnInit {
     if (design.stackedBackgroundImage !== undefined) this.stackedBackgroundImage.set(design.stackedBackgroundImage ?? null);
     if (design.plannerBackgroundImage !== undefined) this.plannerBackgroundImage.set(design.plannerBackgroundImage ?? null);
     if (design.headingAlignment) this.headingAlignment.set(design.headingAlignment);
-    if (design.headingTitle)     this.headingTitle.set(design.headingTitle);
+    // Wenn kein Custom-Wert, den i18n-Default verwenden
+    this.headingTitle.set(design.headingTitle || this.i18n.t().bookingTitle);
     if (design.headingSubtitle !== undefined) this.headingSubtitle.set(design.headingSubtitle ?? '');
-    if (design.buttonLabel)      this.buttonLabel.set(design.buttonLabel);
+    this.buttonLabel.set(design.buttonLabel || this.i18n.t().submitLabel);
     if (typeof design.showSubtitle === 'boolean') this.showSubtitle.set(design.showSubtitle);
   }
 
@@ -1328,7 +1357,7 @@ export class StartComponent implements OnInit {
     if (typeof func.zahlungAktiv === 'boolean')        this.zahlungAktiv.set(func.zahlungAktiv);
     if (typeof func.zahlungPflicht === 'boolean')      this.zahlungPflicht.set(func.zahlungPflicht);
     if (typeof func.noShowSchutzAktiv === 'boolean')   this.noShowSchutzAktiv.set(func.noShowSchutzAktiv);
-    if (func.noShowWidgetText)                         this.noShowWidgetText.set(func.noShowWidgetText);
+    this.noShowWidgetText.set(func.noShowWidgetText || this.i18n.t().noShowNotice);
     if (Array.isArray(func.venueReihenfolge))          this.venueReihenfolge.set(func.venueReihenfolge);
   }
 
@@ -1380,7 +1409,6 @@ export class StartComponent implements OnInit {
     const { error } = await this._stripe.confirmPayment({
       elements:      this._elements,
       confirmParams: { return_url: window.location.href },
-      redirect:      'if_required',
     });
 
     this.zone.run(() => {

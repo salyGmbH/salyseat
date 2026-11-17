@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { planGuard } from '../../services/auth.guard';
+import { planGuard, addonGuard } from '../../services/auth.guard';
 import { EinstellungenComponent } from './einstellungen.component';
 import { OverviewComponent } from './overview/overview.component';
 
@@ -33,6 +33,7 @@ import { NotizenComponent } from './notizen/notizen.component';
 import { SpeisekarteComponent } from './speisekarte/speisekarte.component';
 import { GutscheinDesignerComponent } from './gutschein-designer/gutschein-designer.component';
 import { AboComponent } from './abo/abo.component';
+import { PmsAnbindungComponent } from './pms-anbindung/pms-anbindung.component';
 
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
@@ -70,9 +71,10 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'backup',          component: BackupComponent },
       { path: 'kunden',          component: KundenComponent },
       { path: 'notizen',         component: NotizenComponent,    canActivate: [planGuard('notizen')] },
-      { path: 'speisekarte',     component: SpeisekarteComponent, canActivate: [planGuard('speisekarte')] },
+      { path: 'speisekarte',     component: SpeisekarteComponent, canActivate: [addonGuard('speisekarte')] },
       { path: 'gutschein-designer', component: GutscheinDesignerComponent },
       { path: 'abo',                component: AboComponent },
+      { path: 'pms-anbindung',      component: PmsAnbindungComponent },
     ]
   }
 ];

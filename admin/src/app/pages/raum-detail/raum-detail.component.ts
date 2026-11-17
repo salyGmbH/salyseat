@@ -487,6 +487,13 @@ export class RaumDetailComponent implements OnInit {
     const guestName = this.route.snapshot.queryParamMap.get('guestName') ?? '';
     let xmoveHandled = false;
 
+    // Hotelgast-Prefill: Neue Reservierung sofort vorausgefüllt öffnen
+    const prefillName  = this.route.snapshot.queryParamMap.get('prefillName') ?? '';
+    const prefillEmail = this.route.snapshot.queryParamMap.get('prefillEmail') ?? '';
+    const prefillPhone = this.route.snapshot.queryParamMap.get('prefillPhone') ?? '';
+    const prefillSize  = parseInt(this.route.snapshot.queryParamMap.get('prefillSize') ?? '2', 10);
+    let prefillHandled = false;
+
     // paramMap als Observable abonnieren – damit wird loadRoomLayout AUCH beim
     // Raum-Wechsel (Tab-Klick) erneut ausgeführt, weil Angular die Komponente
     // wiederverwendet und ngOnInit nicht nochmal aufruft.
@@ -538,6 +545,18 @@ export class RaumDetailComponent implements OnInit {
             guestName,
           });
           this.router.navigate([], { queryParams: {}, replaceUrl: true });
+        }
+
+        // Hotelgast-Prefill: Dialog einmalig vorausgefüllt öffnen
+        if (!prefillHandled && prefillName) {
+          prefillHandled = true;
+          this.router.navigate([], { queryParams: {}, replaceUrl: true });
+          setTimeout(() => this.openNewDialog({
+            guestName:  prefillName,
+            guestEmail: prefillEmail,
+            phone:      prefillPhone,
+            partySize:  prefillSize || 2,
+          }), 50);
         }
       },
       error: () => this.layoutLoading.set(false),
@@ -2028,7 +2047,7 @@ export class RaumDetailComponent implements OnInit {
       const selectedTableIds = this.form.tableIds;
       const localActive = this.reservationsService
         .forRoomAndDate(room.id, formDateVal)
-        .filter(r => !['cancelled', 'completed'].includes(r.status) && !!r.backendId);
+        .filter(r => !['cancelled', 'completed', 'no-show'].includes(r.status) && !!r.backendId);
       const conflicting = localActive.filter(r => {
         // Nur Reservierungen des ausgewählten Tisches berücksichtigen
         if (selectedTableIds.length > 0) {

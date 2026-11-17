@@ -50,6 +50,15 @@
 }
 
 // ── Empty State ────────────────────────────────────────────────────────────
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 80px 24px;
+  color: $color-text-muted;
+
+  mat-icon { font-size: 32px; width: 32px; height: 32px; }
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

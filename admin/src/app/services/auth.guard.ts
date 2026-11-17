@@ -33,6 +33,17 @@ export const planGuard = (feature: PlanFeature): CanActivateFn =>
   };
 
 /**
+ * Blockiert Routen die ein bestimmtes Add-on benötigen.
+ * Leitet auf /einstellungen/abo um wenn das Add-on nicht aktiv ist.
+ */
+export const addonGuard = (key: string): CanActivateFn =>
+  (): boolean | UrlTree => {
+    const plan   = inject(PlanService);
+    const router = inject(Router);
+    return plan.hasAddon(key) ? true : router.createUrlTree(['/einstellungen/abo']);
+  };
+
+/**
  * Gegenstück: wer bereits eingeloggt ist, soll die Login-Seite nicht sehen,
  * sondern direkt ins Dashboard springen.
  */

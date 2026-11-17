@@ -177,8 +177,7 @@ export class WidgetComponent {
   readonly plannerSelectedSeats = signal<number>(2);
   /** DSGVO-Einwilligung für Layout-4-Daten-Step. Pflichtfeld vor Submit. */
   readonly plannerConsent       = signal<boolean>(false);
-
-  readonly plannerCalendarMonth = signal<number>(4);   
+  readonly plannerCalendarMonth = signal<number>(4); 
   readonly plannerCalendarYear  = signal<number>(2026);
   readonly plannerCalendarMonthLabel = computed(() => {
     const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',

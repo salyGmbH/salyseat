@@ -1,8 +1,9 @@
 import { Component, OnInit, NgZone, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
-import { VoucherService, VoucherDesignImage, PurchasedVoucher, GutscheinDesignSettings } from '../../services/voucher.service';
+import { VoucherService, VoucherDesignImage, PurchasedVoucher, GutscheinDesignSettings, PostalAddress } from '../../services/voucher.service';
 import { environment } from '../../../environments/environment';
 
 type GcStep = 1 | 2 | 3 | 4;
@@ -11,7 +12,7 @@ type GcState = 'loading' | 'idle' | 'submitting' | 'payment' | 'paying' | 'succe
 @Component({
   selector: 'wdg-gutschein',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, DecimalPipe],
   templateUrl: './gutschein.component.html',
   styleUrl: './gutschein.component.scss',
 })
@@ -72,23 +73,52 @@ export class GutscheinComponent implements OnInit {
   emailToRecipient = true;
   emailToBuyer     = true;
 
+  // ─── Versandart ───────────────────────────────────────────────────────────
+  deliveryMethod      = signal<'email' | 'post'>('email');
+  postalEnabled       = signal(false);
+  postalShippingCost  = signal<number | null>(null);
+  postalName    = '';
+  postalStreet  = '';
+  postalZip     = '';
+  postalCity    = '';
+  postalCountry = 'Deutschland';
+
+  readonly totalAmount = computed(() => {
+    const base     = this.amount();
+    const shipping = this.deliveryMethod() === 'post' ? (this.postalShippingCost() ?? 0) : 0;
+    return base + shipping;
+  });
+
   // ─── Validierung ──────────────────────────────────────────────────────────
   showErrors = false;
 
-  readonly emailOk = computed(() =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.buyerEmail.trim())
-  );
-  readonly recipientEmailOk = computed(() =>
-    !this.recipientEmail.trim() ||
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.recipientEmail.trim())
-  );
-  readonly canProceedStep2 = computed(() => this.amount() >= 1);
-  readonly canProceedStep3 = computed(() =>
-    this.recipientName.trim().length >= 2 && this.recipientEmailOk()
-  );
-  readonly canSubmit = computed(() =>
-    this.buyerName.trim().length >= 2 && this.emailOk() && this.consent
-  );
+  // Reguläre Methoden statt computed() — computed() cached auf Basis von Signal-
+  // Abhängigkeiten. Plain-String-Properties (recipientName etc.) sind keine Signals
+  // und invalidieren den Cache nicht → Methoden werden bei jedem CD-Zyklus neu ausgewertet.
+  emailOk(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.buyerEmail.trim());
+  }
+  recipientEmailOk(): boolean {
+    return !this.recipientEmail.trim() ||
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.recipientEmail.trim());
+  }
+  postalAddressOk(): boolean {
+    return this.deliveryMethod() !== 'post' || (
+      this.postalName.trim().length >= 2 &&
+      this.postalStreet.trim().length >= 3 &&
+      this.postalZip.trim().length >= 4 &&
+      this.postalCity.trim().length >= 2
+    );
+  }
+  canProceedStep2(): boolean { return this.amount() >= 1; }
+  canProceedStep3(): boolean {
+    return this.recipientName.trim().length >= 2 &&
+      this.recipientEmailOk() &&
+      this.postalAddressOk();
+  }
+  canSubmit(): boolean {
+    return this.buyerName.trim().length >= 2 && this.emailOk() && this.consent;
+  }
 
   // ─── Schritte (berücksichtigt ob Bilder vorhanden) ───────────────────────
   readonly totalSteps = computed(() => this.hasImages() ? 4 : 3);
@@ -111,10 +141,53 @@ export class GutscheinComponent implements OnInit {
       return;
     }
 
+    // Rückkehr von Stripe-Redirect erkennen
+    const redirectStatus = this.route.snapshot.queryParamMap.get('redirect_status');
+    if (redirectStatus === 'succeeded') {
+      const saved = sessionStorage.getItem('gc_prefill');
+      if (saved) {
+        try {
+          const d = JSON.parse(saved);
+          sessionStorage.removeItem('gc_prefill');
+          this.amount.set(d.amount);
+          this.recipientName    = d.recipientName;
+          this.recipientEmail   = d.recipientEmail;
+          this.message          = d.message;
+          this.buyerName        = d.buyerName;
+          this.buyerEmail       = d.buyerEmail;
+          this.emailToRecipient = d.emailToRecipient;
+          this.emailToBuyer     = d.emailToBuyer;
+          this.selectedImageId.set(d.selectedImageId ?? null);
+          this.deliveryMethod.set(d.deliveryMethod ?? 'email');
+          this.postalName    = d.postalName    ?? '';
+          this.postalStreet  = d.postalStreet  ?? '';
+          this.postalZip     = d.postalZip     ?? '';
+          this.postalCity    = d.postalCity    ?? '';
+          this.postalCountry = d.postalCountry ?? 'Deutschland';
+          this.state.set('loading');
+          this.doPurchase();
+        } catch {
+          this.state.set('error');
+          this.errorMessage.set('Gutschein konnte nach Zahlung nicht erstellt werden.');
+        }
+      } else {
+        this.state.set('error');
+        this.errorMessage.set('Sitzung abgelaufen. Bitte erneut versuchen.');
+      }
+      return;
+    }
+    if (redirectStatus === 'requires_payment_method') {
+      this.state.set('payment');
+      this.paymentError.set('Zahlung fehlgeschlagen. Bitte eine andere Zahlungsmethode wählen.');
+      return;
+    }
+
     this.svc.loadConfig(this.publicKey).subscribe(cfg => {
       this.restaurantName.set(cfg.restaurantName);
       this.stripePublishableKey.set(cfg.stripePublishableKey ?? null);
       this.activePaymentMethods.set(cfg.activePaymentMethods ?? []);
+      this.postalEnabled.set(cfg.postalEnabled ?? false);
+      this.postalShippingCost.set(cfg.postalShippingCost ?? null);
       const d = cfg.gutscheinDesign;
       if (d) {
         this.applyDesign(d);
@@ -184,7 +257,7 @@ export class GutscheinComponent implements OnInit {
     this.state.set('submitting');
 
     if (this.hasStripePayment()) {
-      const amountCents = Math.round(this.amount() * 100);
+      const amountCents = Math.round(this.totalAmount() * 100);
       this.svc.createPaymentIntent(this.publicKey, amountCents).subscribe({
         next: ({ client_secret }) => {
           this.zone.run(async () => {
@@ -232,10 +305,29 @@ export class GutscheinComponent implements OnInit {
     this.state.set('paying');
     this.paymentError.set('');
 
+    // Formulardaten vor dem Redirect speichern, damit sie nach der Rückkehr
+    // wiederhergestellt und der Gutschein erstellt werden kann.
+    sessionStorage.setItem('gc_prefill', JSON.stringify({
+      amount:           this.amount(),
+      recipientName:    this.recipientName,
+      recipientEmail:   this.recipientEmail,
+      message:          this.message,
+      buyerName:        this.buyerName,
+      buyerEmail:       this.buyerEmail,
+      emailToRecipient: this.emailToRecipient,
+      emailToBuyer:     this.emailToBuyer,
+      selectedImageId:  this.selectedImageId(),
+      deliveryMethod:   this.deliveryMethod(),
+      postalName:       this.postalName,
+      postalStreet:     this.postalStreet,
+      postalZip:        this.postalZip,
+      postalCity:       this.postalCity,
+      postalCountry:    this.postalCountry,
+    }));
+
     const { error } = await this._stripe.confirmPayment({
       elements:      this._elements,
       confirmParams: { return_url: window.location.href },
-      redirect:      'if_required',
     });
 
     if (error) {
@@ -246,6 +338,7 @@ export class GutscheinComponent implements OnInit {
       return;
     }
 
+    sessionStorage.removeItem('gc_prefill');
     this.zone.run(() => this.doPurchase());
   }
 
@@ -254,6 +347,15 @@ export class GutscheinComponent implements OnInit {
       ...(this.emailToRecipient ? ['recipient' as const] : []),
       ...(this.emailToBuyer     ? ['buyer'     as const] : []),
     ];
+
+    const isPost = this.deliveryMethod() === 'post';
+    const postalAddress: PostalAddress | undefined = isPost ? {
+      name:    this.postalName.trim()    || this.recipientName.trim(),
+      street:  this.postalStreet.trim(),
+      zip:     this.postalZip.trim(),
+      city:    this.postalCity.trim(),
+      country: this.postalCountry.trim() || 'Deutschland',
+    } : undefined;
 
     this.svc.purchase(this.publicKey, {
       amount:         this.amount(),
@@ -264,6 +366,8 @@ export class GutscheinComponent implements OnInit {
       buyerEmail:     this.buyerEmail.trim(),
       imageId:        this.selectedImageId() ?? undefined,
       emailTo,
+      deliveryMethod: this.deliveryMethod(),
+      postalAddress,
     }).subscribe({
       next: voucher => {
         this.result = voucher;

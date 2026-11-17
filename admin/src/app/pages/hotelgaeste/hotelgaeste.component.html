@@ -1,0 +1,183 @@
+<div class="hg">
+
+  <!-- Header -->
+  <div class="hg__header">
+    <div class="hg__header-left">
+      <h1 class="hg__title">
+        <mat-icon>hotel</mat-icon>
+        Hotelgäste
+      </h1>
+      <p class="hg__subtitle">Aktuelle Gäste aus Mews PMS</p>
+    </div>
+  </div>
+
+  <!-- PMS nicht aktiviert -->
+  @if (!enabled()) {
+    <div class="hg__empty">
+      <mat-icon>link_off</mat-icon>
+      <p>Mews PMS ist nicht verbunden.</p>
+      <span>Konfiguriere die Mews-Zugangsdaten in den Einstellungen.</span>
+    </div>
+  }
+
+  @if (enabled()) {
+
+    <!-- Suchleiste -->
+    <div class="hg__search-wrap">
+      <mat-icon class="hg__search-icon">search</mat-icon>
+      <input
+        class="hg__search-input"
+        type="text"
+        placeholder="Name oder E-Mail suchen…"
+        [(ngModel)]="searchQuery"
+        (input)="onSearchInput()"
+      />
+      @if (searchQuery) {
+        <button class="hg__search-clear" (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <!-- Tabs -->
+    <div class="hg__tabs">
+      <button class="hg__tab" [class.hg__tab--active]="activeTab === 'inhouse'" (click)="activeTab = 'inhouse'; clearSearch()">
+        <mat-icon>meeting_room</mat-icon>
+        Aktuell im Haus
+        @if (!loadingInHouse()) {
+          <span class="hg__tab-count">{{ inHouse().length }}</span>
+        }
+      </button>
+      @if (searchQuery.trim().length >= 2) {
+        <button class="hg__tab" [class.hg__tab--active]="activeTab === 'search'">
+          <mat-icon>person_search</mat-icon>
+          Suchergebnisse
+          @if (!loadingSearch()) {
+            <span class="hg__tab-count">{{ searchResults().length }}</span>
+          }
+        </button>
+      }
+    </div>
+
+    <!-- Fehler -->
+    @if (error()) {
+      <div class="hg__error">
+        <mat-icon>error_outline</mat-icon>
+        {{ error() }}
+      </div>
+    }
+
+    <!-- In-House Gäste -->
+    @if (activeTab === 'inhouse') {
+      @if (loadingInHouse()) {
+        <div class="hg__loading">
+          <div class="hg__spinner"></div>
+          <span>Lade Hotelgäste…</span>
+        </div>
+      } @else if (inHouse().length === 0) {
+        <div class="hg__empty">
+          <mat-icon>hotel</mat-icon>
+          <p>Aktuell keine eingecheckten Gäste.</p>
+        </div>
+      } @else {
+        <div class="hg__grid">
+          @for (g of inHouse(); track g.id) {
+            <div class="hg__card">
+              <div class="hg__card-avatar">{{ fullName(g).charAt(0).toUpperCase() }}</div>
+              <div class="hg__card-body">
+                <div class="hg__card-name">
+                  {{ fullName(g) }}
+                  @if (countryFlag(g.nationalityCode)) {
+                    <span class="hg__flag" [title]="g.nationalityCode ?? ''">{{ countryFlag(g.nationalityCode) }}</span>
+                  }
+                </div>
+                <div class="hg__card-badges">
+                  <span class="hg__badge hg__badge--persons">
+                    <mat-icon>group</mat-icon> {{ personLabel(g) }}
+                  </span>
+                  @if (g.hasBreakfast) {
+                    <span class="hg__badge hg__badge--breakfast">
+                      <mat-icon>free_breakfast</mat-icon> Frühstück
+                    </span>
+                  }
+                </div>
+                @if (g.roomNumber) {
+                  <div class="hg__card-room">
+                    <mat-icon>door_front</mat-icon> Zimmer {{ g.roomNumber }}
+                  </div>
+                }
+                @if (g.email) {
+                  <div class="hg__card-meta">
+                    <mat-icon>mail_outline</mat-icon> {{ g.email }}
+                  </div>
+                }
+                @if (g.phone) {
+                  <div class="hg__card-meta">
+                    <mat-icon>phone</mat-icon> {{ g.phone }}
+                  </div>
+                }
+                <div class="hg__card-dates">
+                  <span><mat-icon>login</mat-icon> {{ fmtDate(g.checkIn ?? '') }}</span>
+                  <span><mat-icon>logout</mat-icon> {{ fmtDate(g.checkOut ?? '') }}</span>
+                </div>
+              </div>
+              <div class="hg__card-actions">
+                <button class="hg__btn hg__btn--primary" (click)="reserveTable(g)">
+                  <mat-icon>restaurant</mat-icon>
+                  Tisch reservieren
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- Suchergebnisse -->
+    @if (activeTab === 'search') {
+      @if (loadingSearch()) {
+        <div class="hg__loading">
+          <div class="hg__spinner"></div>
+          <span>Suche…</span>
+        </div>
+      } @else if (searchResults().length === 0) {
+        <div class="hg__empty">
+          <mat-icon>search_off</mat-icon>
+          <p>Keine Gäste gefunden.</p>
+        </div>
+      } @else {
+        <div class="hg__grid">
+          @for (g of searchResults(); track g.id) {
+            <div class="hg__card">
+              <div class="hg__card-avatar">{{ fullName(g).charAt(0).toUpperCase() }}</div>
+              <div class="hg__card-body">
+                <div class="hg__card-name">{{ fullName(g) }}</div>
+                @if (g.email) {
+                  <div class="hg__card-meta">
+                    <mat-icon>mail_outline</mat-icon> {{ g.email }}
+                  </div>
+                }
+                @if (g.phone) {
+                  <div class="hg__card-meta">
+                    <mat-icon>phone</mat-icon> {{ g.phone }}
+                  </div>
+                }
+                <div class="hg__card-meta hg__card-meta--muted">
+                  <mat-icon>tag</mat-icon> Gast #{{ g.number }}
+                </div>
+              </div>
+              <div class="hg__card-actions">
+                <button class="hg__btn hg__btn--primary" (click)="reserveTable(g)">
+                  <mat-icon>restaurant</mat-icon>
+                  Tisch reservieren
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+
+  }
+
+</div>

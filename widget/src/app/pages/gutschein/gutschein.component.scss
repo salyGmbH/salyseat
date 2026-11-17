@@ -299,6 +299,12 @@
   align-items: baseline;
   gap: 12px;
   font-size: 13px;
+
+  &--total {
+    border-top: 1px solid var(--w-color-border);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
 }
 
 .gc-summary__key {
@@ -707,6 +713,88 @@
   white-space: nowrap;
 
   svg { flex-shrink: 0; opacity: 0.7; }
+}
+
+// ── Versandart-Toggle ─────────────────────────────────────────────────────────
+.gc-delivery-toggle {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.gc-delivery-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--w-radius-sm, 10px);
+  border: 2px solid var(--w-color-border, rgba(17,17,17,0.1));
+  background: var(--w-color-surface-soft, #f8f9fa);
+  color: var(--w-color-text, #111);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+
+  svg { opacity: 0.6; transition: opacity .15s; flex-shrink: 0; }
+
+  &--active {
+    border-color: var(--w-color-primary, #2979ff);
+    background: rgba(var(--w-color-primary-rgb, 41,121,255), 0.07);
+    color: var(--w-color-primary, #2979ff);
+    font-weight: 600;
+    svg { opacity: 1; }
+  }
+
+  &__cost {
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--w-color-primary, #2979ff);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 20px;
+    margin-left: 2px;
+  }
+}
+
+// ── Postadresse ───────────────────────────────────────────────────────────────
+.gc-postal-address {
+  background: var(--w-color-surface-soft, #f8f9fa);
+  border-radius: var(--w-radius-sm, 10px);
+  border: 1px solid var(--w-color-border, rgba(17,17,17,0.1));
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--w-color-text-muted, rgba(17,17,17,0.55));
+    line-height: 1.4;
+    svg { flex-shrink: 0; margin-top: 1px; }
+  }
+
+  .gc-field { margin-bottom: 0; }
+}
+
+.gc-postal-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+}
+
+.gc-input--select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
 }
 
 // ── Stripe Payment Element ────────────────────────────────────────────────────

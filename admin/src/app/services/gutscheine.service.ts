@@ -20,6 +20,14 @@ export interface VoucherImage {
   active: boolean;
 }
 
+export interface PostalAddress {
+  name:    string;
+  street:  string;
+  zip:     string;
+  city:    string;
+  country: string;
+}
+
 export interface Voucher {
   id:              string;
   code:            string;
@@ -31,6 +39,8 @@ export interface Voucher {
   recipientEmail:  string;
   message:         string;
   status:          VoucherStatus;
+  deliveryMethod:  'email' | 'post' | 'post_shipped';
+  postalAddress?:  PostalAddress | null;
   expiresAt:       string;   // YYYY-MM-DD
   createdAt:       string;   // ISO datetime
   redeemedAt?:     string;   // ISO datetime
@@ -63,6 +73,10 @@ export class GutscheineService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  markShipped(id: string): Observable<Voucher> {
+    return this.http.patch<Voucher>(`${this.base}/${id}/mark-shipped`, {});
   }
 
   lookupCode(code: string): Observable<Voucher | null> {
@@ -105,5 +119,15 @@ export class GutscheineService {
 
   togglePaymentMethod(id: string): Observable<PaymentMethod> {
     return this.http.patch<PaymentMethod>(`${this.base}/payment-methods/${id}/toggle`, {});
+  }
+
+  // ── Postversand ───────────────────────────────────────────────────────────
+
+  getPostalConfig(): Observable<{ postalEnabled: boolean; postalShippingCost: number | null }> {
+    return this.http.get<{ postalEnabled: boolean; postalShippingCost: number | null }>(`${this.base}/postal-config`);
+  }
+
+  savePostalConfig(cfg: { postalEnabled: boolean; postalShippingCost: number | null }): Observable<{ postalEnabled: boolean; postalShippingCost: number | null }> {
+    return this.http.patch<{ postalEnabled: boolean; postalShippingCost: number | null }>(`${this.base}/postal-config`, cfg);
   }
 }

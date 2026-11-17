@@ -34,6 +34,12 @@ class VoucherConfig
     #[ORM\Column(type: 'json')]
     private array $activePaymentMethods = ['card', 'apple_pay', 'google_pay'];
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $postalEnabled = false;
+
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    private ?string $postalShippingCost = null;
+
     public function __construct(Tenant $tenant)
     {
         $this->id     = Uuid::v7();
@@ -54,4 +60,9 @@ class VoucherConfig
     public function getId(): Uuid                         { return $this->id; }
     public function getTenant(): Tenant                   { return $this->tenant; }
     public function getActivePaymentMethods(): array      { return $this->activePaymentMethods; }
+    public function isPostalEnabled(): bool               { return $this->postalEnabled; }
+    public function getPostalShippingCost(): ?float       { return $this->postalShippingCost !== null ? (float) $this->postalShippingCost : null; }
+
+    public function setPostalEnabled(bool $v): void       { $this->postalEnabled = $v; }
+    public function setPostalShippingCost(?float $v): void { $this->postalShippingCost = $v !== null ? (string) $v : null; }
 }

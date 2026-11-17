@@ -1,0 +1,36 @@
+<div class="login">
+  <div class="login__card">
+    <div class="login__brand">
+      <span class="login__logo">L</span>
+      <span class="login__name">Saly Platform</span>
+    </div>
+
+    <h1 class="login__title">Anmelden</h1>
+    <p class="login__sub">Nur für Plattform-Administratoren</p>
+
+    <form class="login__form" (ngSubmit)="submit()">
+      <label class="login__field">
+        <span>E-Mail</span>
+        <input type="email" [(ngModel)]="email" name="email"
+               placeholder="admin@salyseat.de" autocomplete="email">
+      </label>
+
+      <label class="login__field">
+        <span>Passwort</span>
+        <input type="password" [(ngModel)]="password" name="password"
+               placeholder="••••••••" autocomplete="current-password">
+      </label>
+
+      @if (error()) {
+        <div class="login__error">
+          <mat-icon>error_outline</mat-icon> {{ error() }}
+        </div>
+      }
+
+      <button class="login__btn" type="submit" [disabled]="loading()">
+        @if (loading()) { <span class="login__spinner"></span> }
+        Anmelden
+      </button>
+    </form>
+  </div>
+</div>

@@ -46,8 +46,9 @@ export class VenueService {
     );
   }
 
-  remove(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.base}/${id}`).pipe(
+  remove(id: string, force = false): Observable<void> {
+    const url = force ? `${this.base}/${id}?force=true` : `${this.base}/${id}`;
+    return this.http.delete<void>(url).pipe(
       tap(() => this._venues.update(vs => vs.filter(v => v.id !== id))),
     );
   }

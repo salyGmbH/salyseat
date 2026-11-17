@@ -46,6 +46,33 @@ class Tenant
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $uiSettings = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $pmsConfig = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $contactEmail = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $contactPhone = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $address = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $billingAddress = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $internalNotes = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $contractDuration = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $cancellationPeriod = null;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $contractStart = null;
+
     public function __construct(string $name, string $slug)
     {
         $this->id = Uuid::v7();
@@ -105,6 +132,16 @@ class Tenant
         return $this->createdAt;
     }
 
+    public function getPmsConfig(): ?array
+    {
+        return $this->pmsConfig;
+    }
+
+    public function setPmsConfig(?array $config): void
+    {
+        $this->pmsConfig = $config;
+    }
+
     public function setName(string $name): void
     {
         $this->name = $name;
@@ -121,4 +158,28 @@ class Tenant
     {
         $this->plan = $plan;
     }
+
+    public function getContactEmail(): ?string { return $this->contactEmail; }
+    public function setContactEmail(?string $v): void { $this->contactEmail = $v; }
+
+    public function getContactPhone(): ?string { return $this->contactPhone; }
+    public function setContactPhone(?string $v): void { $this->contactPhone = $v; }
+
+    public function getAddress(): ?array { return $this->address; }
+    public function setAddress(?array $v): void { $this->address = $v; }
+
+    public function getBillingAddress(): ?array { return $this->billingAddress; }
+    public function setBillingAddress(?array $v): void { $this->billingAddress = $v; }
+
+    public function getInternalNotes(): ?string { return $this->internalNotes; }
+    public function setInternalNotes(?string $v): void { $this->internalNotes = $v; }
+
+    public function getContractDuration(): ?string { return $this->contractDuration; }
+    public function setContractDuration(?string $v): void { $this->contractDuration = $v; }
+
+    public function getCancellationPeriod(): ?string { return $this->cancellationPeriod; }
+    public function setCancellationPeriod(?string $v): void { $this->cancellationPeriod = $v; }
+
+    public function getContractStart(): ?\DateTimeImmutable { return $this->contractStart; }
+    public function setContractStart(?\DateTimeImmutable $v): void { $this->contractStart = $v; }
 }

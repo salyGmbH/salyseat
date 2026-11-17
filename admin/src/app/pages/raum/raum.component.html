@@ -24,7 +24,7 @@
   } @else {
     <div class="rooms-grid">
       @for (room of rooms(); track room.id) {
-        <a class="room-card" [routerLink]="['/raum', room.id]">
+        <a class="room-card" [routerLink]="['/raum', room.id]" [queryParams]="prefillParams">
           <div class="room-card__icon"><mat-icon>meeting_room</mat-icon></div>
           <div class="room-card__body">
             <h3 class="room-card__name">{{ room.name }}</h3>
@@ -35,7 +35,18 @@
             <div class="room-card__date">{{ 'raum.created' | translate }} {{ room.createdAt | date:'dd.MM.yyyy, HH:mm' }}</div>
           </div>
 
-          @if (confirmDeleteId === room.id) {
+          @if (forceDeleteId === room.id) {
+            <div class="room-card__confirm room-card__confirm--force" (click)="$event.stopPropagation(); $event.preventDefault()">
+              <mat-icon class="confirm-warn-icon">warning</mat-icon>
+              <span class="confirm-warn-text">
+                Dieser Raum hat noch <strong>{{ forceDeleteCount }}</strong>
+                {{ forceDeleteCount === 1 ? 'Reservierung' : 'Reservierungen' }}.
+                Alle werden mitgelöscht.
+              </span>
+              <button class="confirm-btn confirm-btn--no" (click)="cancelDelete($event)">Abbrechen</button>
+              <button class="confirm-btn confirm-btn--yes" (click)="confirmForceDelete($event, room.id)">Trotzdem löschen</button>
+            </div>
+          } @else if (confirmDeleteId === room.id) {
             <div class="room-card__confirm" (click)="$event.stopPropagation(); $event.preventDefault()">
               <span>{{ 'raum.confirm_delete' | translate }}</span>
               <button class="confirm-btn confirm-btn--no" (click)="cancelDelete($event)">{{ 'common.no' | translate }}</button>

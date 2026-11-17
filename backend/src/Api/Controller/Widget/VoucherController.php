@@ -60,6 +60,8 @@ class VoucherController extends AbstractController
             'gutscheinDesign'      => $uiSettings['gutscheinDesign'] ?? null,
             'stripePublishableKey' => $uiSettings['stripeSettings']['publishableKey'] ?? null,
             'activePaymentMethods' => $activeMethods,
+            'postalEnabled'        => $voucherConfig->isPostalEnabled(),
+            'postalShippingCost'   => $voucherConfig->getPostalShippingCost(),
         ]);
     }
 
@@ -117,10 +119,26 @@ class VoucherController extends AbstractController
         $expiresAt = new \DateTimeImmutable('+1 year');
         $code      = $this->generateUniqueCode();
 
+        $deliveryMethod = in_array($data['deliveryMethod'] ?? '', ['email', 'post'], true)
+            ? $data['deliveryMethod']
+            : 'email';
+
         $voucher = new Voucher($tenant, $code, $amount, $buyerName, $recipientName, $expiresAt);
         $voucher->setBuyerEmail($buyerEmail ?: null);
         $voucher->setRecipientEmail(trim((string) ($data['recipientEmail'] ?? '')) ?: null);
         $voucher->setMessage(trim((string) ($data['message'] ?? '')) ?: null);
+        $voucher->setDeliveryMethod($deliveryMethod);
+
+        if ($deliveryMethod === 'post' && isset($data['postalAddress']) && is_array($data['postalAddress'])) {
+            $addr = $data['postalAddress'];
+            $voucher->setPostalAddress([
+                'name'    => trim((string) ($addr['name']    ?? '')),
+                'street'  => trim((string) ($addr['street']  ?? '')),
+                'zip'     => trim((string) ($addr['zip']     ?? '')),
+                'city'    => trim((string) ($addr['city']    ?? '')),
+                'country' => trim((string) ($addr['country'] ?? 'Deutschland')),
+            ]);
+        }
 
         $this->em->persist($voucher);
         $this->em->flush();

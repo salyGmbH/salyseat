@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Reservation\Application\Command\CreateReservation;
 
+use App\Messenger\Message\PushReservationToPms;
 use App\Messenger\Message\SendConfirmationEmail;
 use App\Module\Availability\Infrastructure\Persistence\DoctrineTableBlockRepository;
 use App\Module\Reservation\Domain\Entity\Guest;
@@ -148,6 +149,11 @@ final class CreateReservationHandler
             partySize:        $cmd->partySize,
             venueName:        $venue->getName(),
             tenantId:         $tenant->getId()->toRfc4122(),
+        ));
+
+        $this->bus->dispatch(new PushReservationToPms(
+            $reservation->getId()->toRfc4122(),
+            $tenant->getId()->toRfc4122(),
         ));
 
         return $reservation;

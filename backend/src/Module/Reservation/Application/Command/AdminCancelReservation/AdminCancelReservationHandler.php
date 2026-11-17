@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Reservation\Application\Command\AdminCancelReservation;
 
+use App\Messenger\Message\CancelReservationInPms;
 use App\Messenger\Message\SendCancellationEmail;
 use App\Module\Reservation\Domain\Entity\Reservation;
 use App\Module\Reservation\Domain\Repository\ReservationRepositoryInterface;
@@ -56,6 +57,13 @@ final class AdminCancelReservationHandler
             venueName:     $reservation->getVenue()->getName(),
             tenantId:      $reservation->getVenue()->getTenant()->getId()->toRfc4122(),
         ));
+
+        if ($reservation->getMewsReservationId() !== null) {
+            $this->bus->dispatch(new CancelReservationInPms(
+                $reservation->getMewsReservationId(),
+                $reservation->getVenue()->getTenant()->getId()->toRfc4122(),
+            ));
+        }
 
         return $reservation;
     }

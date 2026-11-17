@@ -9,6 +9,7 @@ import { RaumDetailComponent } from './pages/raum-detail/raum-detail.component';
 import { LoginComponent } from './pages/login/login.component';
 import { SchichtplanungComponent } from './pages/schichtplanung/schichtplanung.component';
 import { GutscheineComponent } from './pages/gutscheine/gutscheine.component';
+import { HotelgaesteComponent } from './pages/hotelgaeste/hotelgaeste.component';
 import { authGuard, guestGuard, planGuard } from './services/auth.guard';
 
 export const routes: Routes = [
@@ -33,6 +34,7 @@ export const routes: Routes = [
       { path: 'statistiken', component: StatistikenComponent },
       { path: 'schichtplanung', component: SchichtplanungComponent, canActivate: [planGuard('schichtplan')] },
       { path: 'gutscheine', component: GutscheineComponent },
+      { path: 'hotelgaeste', component: HotelgaesteComponent },
      {
   path: 'einstellungen',
   loadChildren: () =>

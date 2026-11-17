@@ -9,6 +9,15 @@
   </div>
 
   <div class="feature-list">
+    <a class="feature feature--link" routerLink="/einstellungen/pms-anbindung">
+      <div class="feature__icon feature__icon--active"><mat-icon>hotel</mat-icon></div>
+      <div class="feature__body">
+        <span class="feature__label">Hotel-PMS (Mews, SIHOT, Apaleo)</span>
+        <span class="feature__desc">Hotelgäste anzeigen &amp; Tischreservierungen für sie anlegen</span>
+      </div>
+      <span class="feature__badge feature__badge--live">Verfügbar</span>
+      <mat-icon class="feature__arrow">chevron_right</mat-icon>
+    </a>
     @for (f of features; track f.label) {
       <div class="feature">
         <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>

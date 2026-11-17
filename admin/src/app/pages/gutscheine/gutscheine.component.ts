@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { switchMap } from 'rxjs';
@@ -13,7 +14,7 @@ type FilterTab = 'all' | 'active' | 'redeemed' | 'expired';
 @Component({
   selector: 'app-gutscheine',
   standalone: true,
-  imports: [FormsModule, MatIconModule, TranslateModule],
+  imports: [FormsModule, DecimalPipe, MatIconModule, TranslateModule],
   templateUrl: './gutscheine.component.html',
   styleUrl: './gutscheine.component.scss',
 })
@@ -83,6 +84,12 @@ export class GutscheineComponent implements OnInit {
 
   // ── Zahlungsmethoden ─────────────────────────────────────────────────────
   readonly paymentMethods = signal<PaymentMethod[]>([]);
+
+  // ── Postversand ───────────────────────────────────────────────────────────
+  readonly postalEnabled      = signal(false);
+  readonly postalShippingCost = signal<number | null>(null);
+  postalSaving = false;
+  postalSaved  = false;
   showImageModal = false;
   imgDraft = { name: '', url: '' };
   imgTab: 'url' | 'file' = 'url';
@@ -100,6 +107,10 @@ export class GutscheineComponent implements OnInit {
     });
     this.svc.listImages().subscribe(imgs => this.images.set(imgs));
     this.svc.listPaymentMethods().subscribe(pm => this.paymentMethods.set(pm));
+    this.svc.getPostalConfig().subscribe(cfg => {
+      this.postalEnabled.set(cfg.postalEnabled);
+      this.postalShippingCost.set(cfg.postalShippingCost);
+    });
   }
 
   // ── Erstellen ─────────────────────────────────────────────────────────────
@@ -169,6 +180,39 @@ export class GutscheineComponent implements OnInit {
     this.svc.redeem(this.redeemTarget.id).subscribe(updated => {
       this.vouchers.update(list => list.map(x => x.id === updated.id ? updated : x));
       this.showRedeemModal = false;
+    });
+  }
+
+  // ── Postversand-Konfiguration ─────────────────────────────────────────────
+  togglePostal(): void {
+    const newVal = !this.postalEnabled();
+    this.postalEnabled.set(newVal);
+    this.savePostalConfig();
+  }
+
+  onShippingCostChange(val: string): void {
+    const n = parseFloat(val.replace(',', '.'));
+    this.postalShippingCost.set(!isNaN(n) && n >= 0 ? Math.round(n * 100) / 100 : null);
+  }
+
+  savePostalConfig(): void {
+    this.postalSaving = true;
+    this.svc.savePostalConfig({
+      postalEnabled:      this.postalEnabled(),
+      postalShippingCost: this.postalShippingCost(),
+    }).subscribe(cfg => {
+      this.postalEnabled.set(cfg.postalEnabled);
+      this.postalShippingCost.set(cfg.postalShippingCost);
+      this.postalSaving = false;
+      this.postalSaved  = true;
+      setTimeout(() => this.postalSaved = false, 2000);
+    });
+  }
+
+  // ── Versand bestätigen ────────────────────────────────────────────────────
+  markShipped(v: Voucher): void {
+    this.svc.markShipped(v.id).subscribe(updated => {
+      this.vouchers.update(list => list.map(x => x.id === updated.id ? updated : x));
     });
   }
 

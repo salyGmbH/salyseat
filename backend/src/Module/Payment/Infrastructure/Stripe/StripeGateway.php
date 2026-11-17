@@ -27,14 +27,23 @@ final class StripeGateway implements PaymentGatewayInterface
         bool   $captureImmediately = true,
     ): array {
         $params = [
-            'amount'               => $amountCents,
-            'currency'             => $currency,
-            'description'          => $description,
-            'metadata'             => $metadata,
-            'payment_method_types' => ['card'],
+            'amount'      => $amountCents,
+            'currency'    => $currency,
+            'description' => $description,
+            'metadata'    => $metadata,
         ];
-        if (!$captureImmediately) {
-            $params['capture_method'] = 'manual';
+
+        if ($captureImmediately) {
+            // Alle im Stripe-Dashboard aktivierten Methoden (Karte, PayPal, …)
+            // allow_redirects: 'always' ist nötig damit Redirect-Methoden (PayPal etc.) erscheinen
+            $params['automatic_payment_methods'] = [
+                'enabled'         => true,
+                'allow_redirects' => 'always',
+            ];
+        } else {
+            // No-Show-Schutz: nur Karte, PayPal unterstützt kein manuelles Capture
+            $params['payment_method_types'] = ['card'];
+            $params['capture_method']       = 'manual';
         }
         $intent = $this->client->paymentIntents->create($params);
 

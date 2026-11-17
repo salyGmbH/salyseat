@@ -42,25 +42,26 @@ export class OverviewComponent {
   }
 
   items: SettingsItem[] = [
-    { label: 'settings.abo',               route: 'abo',                    icon: 'workspace_premium' },
-    { label: 'settings.general',           route: 'allgemein',              icon: 'tune' },
-    { label: 'settings.notifications',     route: 'notifications',          icon: 'notifications_active' },
-    { label: 'settings.permissions',       route: 'rechte',                 icon: 'admin_panel_settings' },
-    { label: 'settings.emails',            route: 'emails',                 icon: 'mail',          requiresFeature: 'email-design' },
-    { label: 'settings.customers',         route: 'kunden',                 icon: 'groups' },
-    { label: 'settings.login',             route: 'login',                  icon: 'login' },
-    { label: 'settings.staff',             route: 'mitarbeiter',            icon: 'group' },
-    { label: 'settings.notes',             route: 'notizen',                icon: 'sticky_note_2',  requiresFeature: 'notizen' },
-    { label: 'settings.opening_hours',     route: 'oeffnungszeiten',        icon: 'schedule' },
-    { label: 'settings.packages',          route: 'packages',               icon: 'inventory_2' },
-    { label: 'settings.reservations',      route: 'reservierungen',         icon: 'event_available' },
-    { label: 'settings.reservation_list',  route: 'reservierungsliste',     icon: 'list_alt' },
-    { label: 'settings.languages',         route: 'sprachen',               icon: 'translate' },
-    { label: 'settings.status_labels',     route: 'status-kennzeichnungen', icon: 'flag' },
-    { label: 'settings.menu',              route: 'speisekarte',            icon: 'menu_book',      requiresFeature: 'speisekarte' },
-    { label: 'settings.widget_designer',   route: 'widget',                 icon: 'palette' },
-    { label: 'settings.widget_settings',   route: 'widget-einstellungen',   icon: 'widgets' },
-    { label: 'settings.voucher_designer',  route: 'gutschein-designer',     icon: 'card_giftcard',  addonKey: 'vouchers' },
-    { label: 'settings.payments',          route: 'kreditkarte',            icon: 'credit_card' },
+    { label: 'settings.abo',               route: 'abo',                    icon: 'workspace_premium' },  // Abo & Pakete
+    { label: 'settings.general',           route: 'allgemein',              icon: 'tune' },               // Allgemeine Einstellungen
+    { label: 'settings.notifications',     route: 'notifications',          icon: 'notifications_active' },// Benachrichtigungen
+    { label: 'settings.permissions',       route: 'rechte',                 icon: 'admin_panel_settings' },// Berechtigungen
+    { label: 'settings.emails',            route: 'emails',                 icon: 'mail',          requiresFeature: 'email-design' }, // E-Mails
+    { label: 'settings.voucher_designer',  route: 'gutschein-designer',     icon: 'card_giftcard',  addonKey: 'vouchers' }, // Gutschein Designer
+    { label: 'settings.customers',         route: 'kunden',                 icon: 'groups' },             // Kunden / Gäste
+    { label: 'settings.login',             route: 'login',                  icon: 'login' },              // Login / Registrierung
+    { label: 'settings.staff',             route: 'mitarbeiter',            icon: 'group' },              // Mitarbeiterverwaltung
+    { label: 'settings.notes',             route: 'notizen',                icon: 'sticky_note_2',  requiresFeature: 'notizen' }, // Notizen
+    { label: 'settings.opening_hours',     route: 'oeffnungszeiten',        icon: 'schedule' },           // Öffnungszeiten
+    { label: 'settings.packages',          route: 'packages',               icon: 'inventory_2' },        // Packages
+    { label: 'PMS Integration',            route: 'pms-anbindung',          icon: 'hotel',  addonKey: 'pms' }, // PMS Integration
+    { label: 'settings.reservations',      route: 'reservierungen',         icon: 'event_available' },    // Reservierungen
+    { label: 'settings.reservation_list',  route: 'reservierungsliste',     icon: 'list_alt' },           // Reservierungsliste
+    { label: 'settings.menu',              route: 'speisekarte',            icon: 'menu_book',      addonKey: 'speisekarte' }, // Speisekarte
+    { label: 'settings.languages',         route: 'sprachen',               icon: 'translate' },          // Sprachen
+    { label: 'settings.status_labels',     route: 'status-kennzeichnungen', icon: 'flag' },               // Status, Hinweise & Gäste-Typen
+    { label: 'settings.widget_settings',   route: 'widget-einstellungen',   icon: 'widgets' },            // Widget Einstellungen
+    { label: 'settings.widget_designer',   route: 'widget',                 icon: 'palette' },            // Widget-Designer
+    { label: 'settings.payments',          route: 'kreditkarte',            icon: 'credit_card' },        // Zahlungen & Stripe
   ];
 }

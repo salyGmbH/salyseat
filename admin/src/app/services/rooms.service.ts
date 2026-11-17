@@ -79,8 +79,8 @@ export class RoomsService {
     );
   }
 
-  removeRoom(id: string): Observable<void> {
-    return this.venueService.remove(id).pipe(
+  removeRoom(id: string, force = false): Observable<void> {
+    return this.venueService.remove(id, force).pipe(
       tap(() => this._layoutCache.update(c => { const n = { ...c }; delete n[id]; return n; })),
     );
   }

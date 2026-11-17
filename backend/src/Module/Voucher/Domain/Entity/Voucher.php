@@ -52,6 +52,13 @@ class Voucher
     #[ORM\Column(length: 20, options: ['default' => 'active'])]
     private string $status = 'active';
 
+    /** email | post | post_shipped */
+    #[ORM\Column(length: 20, options: ['default' => 'email'])]
+    private string $deliveryMethod = 'email';
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $postalAddress = null;
+
     #[ORM\Column(type: 'date_immutable')]
     private \DateTimeImmutable $expiresAt;
 
@@ -102,7 +109,12 @@ class Voucher
     public function getCreatedAt(): \DateTimeImmutable  { return $this->createdAt; }
     public function getRedeemedAt(): ?\DateTimeImmutable { return $this->redeemedAt; }
 
-    public function setBuyerEmail(?string $v): void    { $this->buyerEmail = $v; }
-    public function setRecipientEmail(?string $v): void { $this->recipientEmail = $v; }
-    public function setMessage(?string $v): void        { $this->message = $v; }
+    public function getDeliveryMethod(): string          { return $this->deliveryMethod; }
+    public function getPostalAddress(): ?array           { return $this->postalAddress; }
+
+    public function setBuyerEmail(?string $v): void            { $this->buyerEmail = $v; }
+    public function setRecipientEmail(?string $v): void        { $this->recipientEmail = $v; }
+    public function setMessage(?string $v): void               { $this->message = $v; }
+    public function setDeliveryMethod(string $v): void         { $this->deliveryMethod = $v; }
+    public function setPostalAddress(?array $v): void          { $this->postalAddress = $v; }
 }

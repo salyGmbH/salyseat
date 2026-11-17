@@ -158,9 +158,9 @@ export class WidgetEinstellungenComponent implements OnInit {
     zahlungPflicht: false,
     zahlungsmethoden: {
       kreditkarte: false,
-      sepa: false,
-      vorkasse: false,
-      bar: false,
+      sepa:        false,
+      vorkasse:    false,
+      bar:         false,
     },
   };
 

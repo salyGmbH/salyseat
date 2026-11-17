@@ -1,0 +1,232 @@
+<div class="overlay" (click)="close()"></div>
+
+<div class="modal">
+
+  <!-- Header -->
+  <div class="modal__header">
+    <div class="modal__avatar">{{ tenant.name[0] }}</div>
+    <div class="modal__meta">
+      <div class="modal__tenant-name">{{ tenant.name }}</div>
+      <div class="modal__tenant-sub">
+        <span class="badge" [class]="'badge--' + tenant.plan">{{ planLabel() }}</span>
+        <span class="modal__slug">{{ tenant.slug }}</span>
+      </div>
+    </div>
+    <button class="modal__close" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="modal__tabs">
+    <button [class.active]="activeTab() === 'allgemein'" (click)="activeTab.set('allgemein')">Allgemein</button>
+    <button [class.active]="activeTab() === 'vertrag'"   (click)="activeTab.set('vertrag')">Vertrag</button>
+    <button [class.active]="activeTab() === 'adresse'"   (click)="activeTab.set('adresse')">Adresse</button>
+    <button [class.active]="activeTab() === 'rechnung'"  (click)="activeTab.set('rechnung')">Rechnungsadresse</button>
+    <button [class.active]="activeTab() === 'notizen'"   (click)="activeTab.set('notizen')">Notizen</button>
+  </div>
+
+  <!-- Body -->
+  <div class="modal__body">
+
+    @if (activeTab() === 'allgemein') {
+      <div class="form-grid">
+        <label class="field field--full">
+          <span>Restaurantname</span>
+          <input type="text" [(ngModel)]="name" placeholder="z.B. Restaurant Muster">
+        </label>
+        <label class="field">
+          <span>Kontakt E-Mail</span>
+          <input type="email" [(ngModel)]="contactEmail" placeholder="kontakt@restaurant.de">
+        </label>
+        <label class="field">
+          <span>Telefon</span>
+          <input type="tel" [(ngModel)]="contactPhone" placeholder="+49 89 12345678">
+        </label>
+        <div class="field field--full field--readonly">
+          <span>System-Login (E-Mail)</span>
+          <div class="field__value">{{ tenant.adminEmail ?? '—' }}</div>
+        </div>
+        <div class="field field--readonly">
+          <span>Erstellt am</span>
+          <div class="field__value">{{ tenant.createdAt }}</div>
+        </div>
+        <!-- Passwort zurücksetzen -->
+        <div class="field field--full">
+          <span>Kundenzugang</span>
+          <div class="pw-reset">
+            <div class="pw-reset__info">
+              <mat-icon>lock_reset</mat-icon>
+              <span>Generiert ein neues Passwort und zeigt es dir einmalig an.</span>
+            </div>
+            <button class="pw-reset__btn" (click)="resetPassword()" [disabled]="resetting()">
+              @if (resetting()) { <span class="spinner-sm"></span> } @else { <mat-icon>autorenew</mat-icon> }
+              {{ resetting() ? 'Wird generiert…' : 'Neues Passwort generieren' }}
+            </button>
+            @if (newPassword()) {
+              <div class="pw-reset__result">
+                <mat-icon>check_circle</mat-icon>
+                <div class="pw-reset__result-text">
+                  <div class="pw-reset__label">Neues Passwort für <strong>{{ newPassword()!.email }}</strong></div>
+                  <div class="pw-reset__pw">{{ newPassword()!.password }}</div>
+                </div>
+                <button class="pw-reset__copy" (click)="copyPassword()" title="Kopieren">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="field field--readonly">
+          <span>Add-ons</span>
+          <div class="field__value field__value--chips">
+            @if (tenant.addons.length === 0) { <span class="no-val">Keine</span> }
+            @for (a of tenant.addons; track a) {
+              <span class="chip">{{ a }}</span>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (activeTab() === 'vertrag') {
+      <div class="form-grid">
+
+        <!-- Vertragsdauer -->
+        <div class="field field--full">
+          <span>Vertragsdauer</span>
+          <div class="option-selector">
+            @for (d of contractDurations; track d.key) {
+              <button class="option-btn" [class.option-btn--active]="contractDuration === d.key"
+                      (click)="contractDuration = d.key">
+                <div class="option-btn__label">{{ d.label }}</div>
+                <div class="option-btn__desc">{{ d.desc }}</div>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Kündigungsfrist -->
+        <div class="field field--full">
+          <span>Kündigungsfrist</span>
+          <div class="option-selector option-selector--sm">
+            @for (p of cancellationPeriods; track p.key) {
+              <button class="option-btn" [class.option-btn--active]="cancellationPeriod === p.key"
+                      (click)="cancellationPeriod = p.key">
+                <div class="option-btn__label">{{ p.label }}</div>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Vertragsbeginn -->
+        <label class="field">
+          <span>Vertragsbeginn</span>
+          <input type="date" [(ngModel)]="contractStart">
+        </label>
+
+        <!-- Vertragsende (berechnet) -->
+        <div class="field">
+          <span>Vertragsende (berechnet)</span>
+          <div class="field__value">
+            @if (contractEndDate()) { {{ contractEndDate() }} }
+            @else { <span class="no-val">—</span> }
+          </div>
+        </div>
+
+        <!-- Zusammenfassung -->
+        @if (contractDuration && cancellationPeriod) {
+          <div class="field field--full">
+            <div class="contract-summary">
+              <mat-icon>description</mat-icon>
+              <span>
+                <strong>{{ durationLabel() }}</strong> mit
+                <strong>{{ periodLabel() }}</strong> Kündigungsfrist
+                @if (contractStart) { , beginnend am <strong>{{ contractStart }}</strong> }
+              </span>
+            </div>
+          </div>
+        }
+
+      </div>
+    }
+
+    @if (activeTab() === 'adresse') {
+      <div class="form-grid">
+        <label class="field field--full">
+          <span>Straße & Hausnummer</span>
+          <input type="text" [(ngModel)]="street" placeholder="Musterstraße 1">
+        </label>
+        <label class="field field--short">
+          <span>PLZ</span>
+          <input type="text" [(ngModel)]="zip" placeholder="80331">
+        </label>
+        <label class="field">
+          <span>Stadt</span>
+          <input type="text" [(ngModel)]="city" placeholder="München">
+        </label>
+        <label class="field field--full">
+          <span>Land</span>
+          <input type="text" [(ngModel)]="country" placeholder="Deutschland">
+        </label>
+      </div>
+    }
+
+    @if (activeTab() === 'rechnung') {
+      <div class="form-grid">
+        <label class="field">
+          <span>Firmenname</span>
+          <input type="text" [(ngModel)]="billCompany" placeholder="Muster GmbH">
+        </label>
+        <label class="field">
+          <span>USt-IdNr.</span>
+          <input type="text" [(ngModel)]="billVatId" placeholder="DE123456789">
+        </label>
+        <label class="field field--full">
+          <span>Straße & Hausnummer</span>
+          <input type="text" [(ngModel)]="billStreet" placeholder="Rechnungsstraße 1">
+        </label>
+        <label class="field field--short">
+          <span>PLZ</span>
+          <input type="text" [(ngModel)]="billZip" placeholder="80331">
+        </label>
+        <label class="field">
+          <span>Stadt</span>
+          <input type="text" [(ngModel)]="billCity" placeholder="München">
+        </label>
+        <label class="field field--full">
+          <span>Land</span>
+          <input type="text" [(ngModel)]="billCountry" placeholder="Deutschland">
+        </label>
+      </div>
+    }
+
+    @if (activeTab() === 'notizen') {
+      <div class="form-grid">
+        <label class="field field--full">
+          <span>Interne Notizen</span>
+          <textarea [(ngModel)]="internalNotes" rows="8"
+                    placeholder="Notizen nur für dich sichtbar…"></textarea>
+        </label>
+      </div>
+    }
+
+  </div>
+
+  <!-- Footer -->
+  <div class="modal__footer">
+    <button class="btn btn--ghost" (click)="close()">Abbrechen</button>
+    <button class="btn btn--primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) {
+        <span class="spinner"></span>
+      } @else if (saved()) {
+        <mat-icon>check</mat-icon>
+      } @else {
+        <mat-icon>save</mat-icon>
+      }
+      {{ saving() ? 'Speichert…' : saved() ? 'Gespeichert' : 'Speichern' }}
+    </button>
+  </div>
+
+</div>

@@ -1,6 +1,9 @@
 <div class="abo">
 
   <div class="abo__header">
+    <button class="abo__info-btn" [class.active]="infoOpen()" (click)="infoOpen.set(!infoOpen())">
+      <mat-icon>info</mat-icon>
+    </button>
     <h1 class="abo__title">{{ 'abo.title' | translate }}</h1>
     <p class="abo__subtitle">
       {{ 'abo.subtitle' | translate }} <strong>{{ planService.planLabel() }}</strong>
@@ -8,6 +11,9 @@
         <span class="abo__saved"><mat-icon>check_circle</mat-icon></span>
       }
     </p>
+    <div class="abo__info-box" [class.open]="infoOpen()">
+      {{ 'abo.info' | translate }}
+    </div>
   </div>
 
   <div class="abo__grid">
@@ -82,8 +88,18 @@
   </div>
 
   <div class="abo__addons">
-    <h2 class="abo__addons-title">{{ 'abo.addons_title' | translate }}</h2>
-    <p class="abo__addons-sub">{{ 'abo.addons_subtitle' | translate }}</p>
+    <div class="abo__addons-header">
+      <div>
+        <h2 class="abo__addons-title">{{ 'abo.addons_title' | translate }}</h2>
+        <p class="abo__addons-sub">{{ 'abo.addons_subtitle' | translate }}</p>
+      </div>
+      <button class="abo__info-btn" [class.active]="infoAddons()" (click)="infoAddons.set(!infoAddons())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="abo__info-box" [class.open]="infoAddons()">
+      {{ 'abo.info_addons' | translate }}
+    </div>
 
     <div class="addon-grid">
 
@@ -104,6 +120,46 @@
         </div>
         <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon('vouchers')">
           {{ (planService.hasAddon('vouchers') ? 'common.active' : 'common.inactive') | translate }}
+        </div>
+      </div>
+
+      <!-- Speisekarte -->
+      <div class="addon-card" [class.addon-card--active]="planService.hasAddon('speisekarte')"
+           (click)="toggleAddon('speisekarte')">
+        <div class="addon-card__icon">
+          @if (addonSaving() === 'speisekarte') {
+            <mat-icon class="abo__spin">sync</mat-icon>
+          } @else {
+            <mat-icon>menu_book</mat-icon>
+          }
+        </div>
+        <div class="addon-card__content">
+          <div class="addon-card__title">{{ 'abo.addon_speisekarte_name' | translate }}</div>
+          <div class="addon-card__sub">{{ 'abo.addon_speisekarte_desc' | translate }}</div>
+          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
+        </div>
+        <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon('speisekarte')">
+          {{ (planService.hasAddon('speisekarte') ? 'common.active' : 'common.inactive') | translate }}
+        </div>
+      </div>
+
+      <!-- Hotel-PMS -->
+      <div class="addon-card" [class.addon-card--active]="planService.hasAddon('pms')"
+           (click)="toggleAddon('pms')">
+        <div class="addon-card__icon">
+          @if (addonSaving() === 'pms') {
+            <mat-icon class="abo__spin">sync</mat-icon>
+          } @else {
+            <mat-icon>hotel</mat-icon>
+          }
+        </div>
+        <div class="addon-card__content">
+          <div class="addon-card__title">{{ 'abo.addon_pms_name' | translate }}</div>
+          <div class="addon-card__sub">{{ 'abo.addon_pms_desc' | translate }}</div>
+          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
+        </div>
+        <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon('pms')">
+          {{ (planService.hasAddon('pms') ? 'common.active' : 'common.inactive') | translate }}
         </div>
       </div>
 

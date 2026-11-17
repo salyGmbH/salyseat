@@ -53,7 +53,7 @@ class TenantSettingsController extends AbstractController
         return $this->json($tenant->getUiSettings());
     }
 
-    private const VALID_ADDONS = ['vouchers', 'pos'];
+    private const VALID_ADDONS = ['vouchers', 'pos', 'pms', 'speisekarte'];
 
     #[Route('/addon/{key}', name: 'admin_tenant_addon_patch', methods: ['PATCH'])]
     public function updateAddon(#[CurrentUser] User $user, string $key, Request $request): JsonResponse

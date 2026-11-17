@@ -9,6 +9,7 @@ import { LayoutService } from '../layout.service';
 import { AuthService } from '../../services/auth.service';
 import { PlanService } from '../../services/plan.service';
 import { NotizenStateService } from '../../services/notizen-state.service';
+import { RoomsService } from '../../services/rooms.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -24,6 +25,13 @@ export class SidebarComponent implements OnDestroy {
   readonly plan = inject(PlanService);
   readonly notizenState = inject(NotizenStateService);
   private readonly router = inject(Router);
+  private readonly roomsService = inject(RoomsService);
+
+  /** Bei genau einem Raum direkt in den Raum springen, sonst zur Raumübersicht */
+  readonly raumLink = computed(() => {
+    const rooms = this.roomsService.rooms();
+    return rooms.length === 1 ? ['/raum', rooms[0].id] : ['/raum'];
+  });
 
   collapsed = signal(false);
 

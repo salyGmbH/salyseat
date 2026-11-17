@@ -2,7 +2,6 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { VenueService } from '../../../services/venue.service';
 import { TranslateModule } from '@ngx-translate/core';
 import {
   OpeningHoursService,
@@ -10,6 +9,7 @@ import {
   SpecialClosing,
   CreateSpecialClosingDto,
 } from '../../../services/opening-hours.service';
+import { VenueService } from '../../../services/venue.service';
 
 interface BreakRow { from: string; to: string; }
 
@@ -41,10 +41,8 @@ const WEEKDAY_KEYS = ['common.days_long.mon','common.days_long.tue','common.days
   styleUrl: './oeffnungszeiten.component.scss',
 })
 export class OeffnungszeitenComponent implements OnInit {
-  private readonly ohService    = inject(OpeningHoursService);
+  private readonly ohService = inject(OpeningHoursService);
   private readonly venueService = inject(VenueService);
-
-  /** Öffnungszeiten hängen im Backend an einem Raum – wir nehmen den ersten. */
   private venueId = '';
 
   // ── Opening hours ─────────────────────────────────────────────────────────

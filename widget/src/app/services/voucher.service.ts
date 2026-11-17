@@ -25,6 +25,8 @@ export interface VoucherWidgetConfig {
   logoUrl?:             string;
   stripePublishableKey?: string;
   activePaymentMethods?: string[];
+  postalEnabled?:        boolean;
+  postalShippingCost?:   number | null;
 }
 
 export interface VoucherDesignImage {
@@ -32,6 +34,14 @@ export interface VoucherDesignImage {
   name:   string;
   url:    string;
   active: boolean;
+}
+
+export interface PostalAddress {
+  name:    string;
+  street:  string;
+  zip:     string;
+  city:    string;
+  country: string;
 }
 
 export interface PurchaseVoucherDto {
@@ -42,7 +52,9 @@ export interface PurchaseVoucherDto {
   buyerName:       string;
   buyerEmail:      string;
   imageId?:        string;
-  emailTo:         ('recipient' | 'buyer')[];   // wer bekommt die Mail
+  emailTo:         ('recipient' | 'buyer')[];
+  deliveryMethod:  'email' | 'post';
+  postalAddress?:  PostalAddress;
 }
 
 export interface PurchasedVoucher {

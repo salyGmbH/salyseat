@@ -1,0 +1,143 @@
+<div class="kunden">
+
+  <!-- Header -->
+  <div class="kunden__header">
+    <div>
+      <h1 class="kunden__title">Kundenübersicht</h1>
+      <p class="kunden__sub">{{ stats()?.totalTenants ?? '–' }} Kunden gesamt</p>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--blue"><mat-icon>groups</mat-icon></div>
+      <div>
+        <div class="kpi-card__val">{{ stats()?.totalTenants ?? '–' }}</div>
+        <div class="kpi-card__label">Kunden gesamt</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--green"><mat-icon>check_circle</mat-icon></div>
+      <div>
+        <div class="kpi-card__val">{{ stats()?.activeTenants ?? '–' }}</div>
+        <div class="kpi-card__label">Aktive Verträge</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--purple"><mat-icon>star</mat-icon></div>
+      <div>
+        <div class="kpi-card__val">{{ stats()?.byPlan?.['maitre'] ?? 0 }}</div>
+        <div class="kpi-card__label">Maître-Kunden</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--orange"><mat-icon>person_add</mat-icon></div>
+      <div>
+        <div class="kpi-card__val">{{ stats()?.newLast30Days ?? '–' }}</div>
+        <div class="kpi-card__label">Neu (30 Tage)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="kunden__toolbar">
+    <div class="kunden__search">
+      <mat-icon>search</mat-icon>
+      <input placeholder="Suche nach Name, E-Mail, Slug…"
+             [value]="search()"
+             (input)="search.set($any($event.target).value)">
+    </div>
+    <div class="kunden__count">{{ filtered().length }} Kunden</div>
+    <button class="kunden__add-btn" (click)="showNeu.set(true)">
+      <mat-icon>person_add</mat-icon>
+      Kunde anlegen
+    </button>
+  </div>
+
+  <!-- Tabelle -->
+  <div class="table-wrap">
+    @if (loading()) {
+      <div class="table-loading"><span class="spinner"></span></div>
+    } @else {
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Kunde</th>
+            <th>Kontakt</th>
+            <th>Vertrag</th>
+            <th>Add-ons</th>
+            <th>Erstellt</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of filtered(); track t.id) {
+            <tr class="tr-clickable" (click)="openDetail(t)">
+              <td class="td-customer">
+                <div class="avatar">{{ t.name[0] | uppercase }}</div>
+                <div class="td-customer__info">
+                  <div class="td-customer__name">{{ t.name }}</div>
+                  <div class="td-customer__slug">{{ t.slug }}</div>
+                </div>
+              </td>
+              <td class="td-contact">
+                @let email = t.contactEmail ?? t.adminEmail;
+                @if (email) {
+                  <a [href]="'mailto:' + email" class="td-contact__email">
+                    <mat-icon>mail_outline</mat-icon>
+                    {{ email }}
+                  </a>
+                } @else {
+                  <span class="td-contact__none">—</span>
+                }
+              </td>
+              <td class="td-vertrag">
+                <span class="badge" [class]="planClass(t.plan)">{{ planLabel(t.plan) }}</span>
+                <span class="td-vertrag__since">seit {{ t.createdAt }}</span>
+              </td>
+              <td class="td-addons">
+                @if (t.addons.length === 0) {
+                  <span class="td-addons__none">—</span>
+                } @else {
+                  @for (a of t.addons; track a) {
+                    <span class="addon-chip">{{ addonLabel(a) }}</span>
+                  }
+                }
+              </td>
+              <td class="td-date">{{ t.createdAt }}</td>
+              <td>
+                <span class="status-dot" [class.status-dot--active]="t.active">
+                  {{ t.active ? 'Aktiv' : 'Inaktiv' }}
+                </span>
+              </td>
+              <td class="td-actions">
+                <button class="action-btn" (click)="toggleStatus(t, $event)"
+                        [title]="t.active ? 'Deaktivieren' : 'Aktivieren'">
+                  <mat-icon>{{ t.active ? 'pause_circle' : 'play_circle' }}</mat-icon>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="table-empty">Keine Kunden gefunden.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+</div>
+
+@if (selectedTenant()) {
+  <app-kunde-detail
+    [tenant]="selectedTenant()!"
+    (closed)="onDetailClosed($event)">
+  </app-kunde-detail>
+}
+
+@if (showNeu()) {
+  <app-kunde-neu (closed)="onNeuClosed($event)"></app-kunde-neu>
+}

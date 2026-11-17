@@ -193,7 +193,7 @@
                       <button class="preview-planner__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">›</button>
                     </div>
                     <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays" aria-hidden="true">
-                      @for (wd of weekdays; track $index) {
+                      @for (wd of weekdays(); track $index) {
                         <span class="preview-planner__cal-weekday">{{ wd }}</span>
                       }
                     </div>
@@ -981,7 +981,7 @@
                         </button>
                       </div>
                       <div class="preview-sidebar__cal-weekdays" aria-hidden="true">
-                        @for (wd of weekdays; track $index) {
+                        @for (wd of weekdays(); track $index) {
                           <span>{{ wd }}</span>
                         }
                       </div>
@@ -1190,7 +1190,7 @@
                         </button>
                       </div>
                       <div class="preview-stacked__cal-weekdays" aria-hidden="true">
-                        @for (wd of weekdays; track wd) {
+                        @for (wd of weekdays(); track wd) {
                           <span>{{ wd }}</span>
                         }
                       </div>
@@ -1698,7 +1698,7 @@
                   </div>
 
                   <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays" aria-hidden="true">
-                    @for (wd of weekdays; track wd) {
+                    @for (wd of weekdays(); track wd) {
                       <span class="preview-planner__cal-weekday">{{ wd }}</span>
                     }
                   </div>

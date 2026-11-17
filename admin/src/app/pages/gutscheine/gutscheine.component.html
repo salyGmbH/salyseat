@@ -132,6 +132,53 @@
     </div>
   </div>
 
+  <!-- ══ Postversand ════════════════════════════════════════════════════ -->
+  <div class="gc__postal-config">
+    <div class="gc__postal-config-head">
+      <div class="gc__postal-config-info">
+        <div class="gc__pm-title"><mat-icon>local_shipping</mat-icon> Postversand</div>
+        <div class="gc__pm-sub">Kunden können den Gutschein per Post als gedruckte Karte erhalten.</div>
+      </div>
+      <button class="gc__pm-toggle" [class.gc__pm-toggle--on]="postalEnabled()"
+              (click)="togglePostal()" [title]="postalEnabled() ? 'Deaktivieren' : 'Aktivieren'">
+        <mat-icon>{{ postalEnabled() ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+      </button>
+    </div>
+
+    @if (postalEnabled()) {
+      <div class="gc__postal-config-body">
+        <div class="gc__postal-cost-row">
+          <label class="gc__postal-cost-label" for="gc-postal-cost">
+            Versandkosten <span class="gc__muted">(werden zum Gutscheinwert addiert)</span>
+          </label>
+          <div class="gc__postal-cost-input-wrap">
+            <input id="gc-postal-cost"
+                   type="number" min="0" step="0.10"
+                   class="gc__postal-cost-input"
+                   [value]="postalShippingCost() ?? ''"
+                   (change)="onShippingCostChange($any($event.target).value)"
+                   placeholder="z.B. 4.90">
+            <span class="gc__postal-cost-currency">€</span>
+          </div>
+          <button class="gc__postal-cost-save"
+                  [disabled]="postalSaving"
+                  (click)="savePostalConfig()">
+            @if (postalSaving) { <mat-icon class="spin">sync</mat-icon> }
+            @else if (postalSaved) { <mat-icon>check</mat-icon> Gespeichert }
+            @else { <mat-icon>save</mat-icon> Speichern }
+          </button>
+        </div>
+        @if (postalShippingCost() !== null) {
+          <div class="gc__postal-cost-hint">
+            <mat-icon>info</mat-icon>
+            Kunden zahlen beim Kauf eines 50 €-Gutscheins per Post: <strong>{{ (50 + (postalShippingCost() ?? 0)) | number:'1.2-2' }} €</strong>
+            (50 € + {{ postalShippingCost() | number:'1.2-2' }} € Versand)
+          </div>
+        }
+      </div>
+    }
+  </div>
+
   <!-- ══ Filter-Tabs + Liste ══════════════════════════════════════════════ -->
   <div class="gc__tabs">
     @for (tab of TABS; track tab.key) {
@@ -182,6 +229,12 @@
             @if (v.message) {
               <div class="gc__message">„{{ v.message }}"</div>
             }
+            @if (v.postalAddress) {
+              <div class="gc__postal">
+                <mat-icon>local_shipping</mat-icon>
+                <span>{{ v.postalAddress.name }}, {{ v.postalAddress.street }}, {{ v.postalAddress.zip }} {{ v.postalAddress.city }}, {{ v.postalAddress.country }}</span>
+              </div>
+            }
             <div class="gc__date">
               <mat-icon>schedule</mat-icon>
               {{ fmtDateTime(v.createdAt) }}
@@ -202,10 +255,25 @@
               @if (v.status === 'redeemed') { <mat-icon>done_all</mat-icon> {{ 'gutscheine.badge_redeemed' | translate }} }
               @if (v.status === 'expired')  { <mat-icon>event_busy</mat-icon> {{ 'gutscheine.badge_expired' | translate }} }
             </div>
+            @if (v.deliveryMethod === 'post') {
+              <div class="gc__badge gc__badge--post">
+                <mat-icon>local_shipping</mat-icon> Versand ausstehend
+              </div>
+            }
+            @if (v.deliveryMethod === 'post_shipped') {
+              <div class="gc__badge gc__badge--shipped">
+                <mat-icon>done</mat-icon> Versendet
+              </div>
+            }
             <div class="gc__expiry gc__muted">
               <mat-icon>event</mat-icon> {{ 'gutscheine.valid_until' | translate }} {{ fmtDate(v.expiresAt) }}
             </div>
             <div class="gc__actions">
+              @if (v.deliveryMethod === 'post') {
+                <button class="gc__action gc__action--ship" (click)="markShipped(v)" title="Als versendet markieren">
+                  <mat-icon>local_shipping</mat-icon> Versendet
+                </button>
+              }
               @if (v.status === 'active') {
                 <button class="gc__action gc__action--redeem" (click)="openRedeem()" [title]="'gutscheine.btn_redeem_action' | translate">
                   <mat-icon>qr_code_scanner</mat-icon> {{ 'gutscheine.btn_redeem_action' | translate }}

@@ -25,6 +25,11 @@ const FEATURE_MIN_PLAN: Record<PlanFeature, Plan> = {
   'telefonassistent':   'maitre',
 };
 
+// Add-ons die ab einem bestimmten Plan automatisch enthalten sind
+const ADDON_INCLUDED_FROM: Partial<Record<string, PlanFeature>> = {
+  'speisekarte': 'speisekarte',
+};
+
 @Injectable({ providedIn: 'root' })
 export class PlanService {
   private readonly auth = inject(AuthService);
@@ -48,6 +53,10 @@ export class PlanService {
   }
 
   hasAddon(key: string): boolean {
-    return this.auth.user()?.addons?.includes(key) ?? false;
+    if (this.auth.user()?.addons?.includes(key)) return true;
+    // Manche Add-ons sind ab einem bestimmten Plan automatisch enthalten
+    const planFeature = ADDON_INCLUDED_FROM[key];
+    if (planFeature) return this.can(planFeature);
+    return false;
   }
 }

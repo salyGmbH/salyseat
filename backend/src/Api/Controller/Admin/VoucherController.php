@@ -240,6 +240,51 @@ class VoucherController extends AbstractController
         return $this->json(['ok' => true]);
     }
 
+    // ── Postversand-Konfiguration ──────────────────────────────────────────────
+
+    #[Route('/postal-config', name: 'admin_vouchers_postal_config_get', methods: ['GET'])]
+    public function getPostalConfig(#[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant'], Response::HTTP_FORBIDDEN);
+        }
+
+        $config = $this->configRepo->findOrCreateByTenant($tenant);
+
+        return $this->json([
+            'postalEnabled'      => $config->isPostalEnabled(),
+            'postalShippingCost' => $config->getPostalShippingCost(),
+        ]);
+    }
+
+    #[Route('/postal-config', name: 'admin_vouchers_postal_config_patch', methods: ['PATCH'])]
+    public function patchPostalConfig(Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant'], Response::HTTP_FORBIDDEN);
+        }
+
+        $data   = json_decode($request->getContent(), true) ?? [];
+        $config = $this->configRepo->findOrCreateByTenant($tenant);
+
+        if (array_key_exists('postalEnabled', $data)) {
+            $config->setPostalEnabled((bool) $data['postalEnabled']);
+        }
+        if (array_key_exists('postalShippingCost', $data)) {
+            $cost = $data['postalShippingCost'] !== null ? (float) $data['postalShippingCost'] : null;
+            $config->setPostalShippingCost($cost !== null && $cost >= 0 ? $cost : null);
+        }
+
+        $this->configRepo->save($config);
+
+        return $this->json([
+            'postalEnabled'      => $config->isPostalEnabled(),
+            'postalShippingCost' => $config->getPostalShippingCost(),
+        ]);
+    }
+
     // ── Zahlungsmethoden ───────────────────────────────────────────────────────
 
     #[Route('/payment-methods', name: 'admin_vouchers_payment_methods_list', methods: ['GET'])]
@@ -286,6 +331,25 @@ class VoucherController extends AbstractController
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
+    #[Route('/{id}/mark-shipped', name: 'admin_vouchers_mark_shipped', methods: ['PATCH'])]
+    public function markShipped(string $id, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant'], Response::HTTP_FORBIDDEN);
+        }
+
+        $voucher = $this->repo->findByIdAndTenant(Uuid::fromString($id), $tenant);
+        if ($voucher === null) {
+            return $this->json(['error' => 'Gutschein nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $voucher->setDeliveryMethod('post_shipped');
+        $this->repo->save($voucher);
+
+        return $this->json($this->serializeVoucher($voucher));
+    }
+
     private function serializeVoucher(Voucher $v): array
     {
         return [
@@ -299,6 +363,8 @@ class VoucherController extends AbstractController
             'recipientEmail'  => $v->getRecipientEmail() ?? '',
             'message'         => $v->getMessage() ?? '',
             'status'          => $v->getStatus(),
+            'deliveryMethod'  => $v->getDeliveryMethod(),
+            'postalAddress'   => $v->getPostalAddress(),
             'expiresAt'       => $v->getExpiresAt()->format('Y-m-d'),
             'createdAt'       => $v->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'redeemedAt'      => $v->getRedeemedAt()?->format(\DateTimeInterface::ATOM),

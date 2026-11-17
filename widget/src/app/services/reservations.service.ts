@@ -124,6 +124,9 @@ export interface WidgetFunctionalConfig {
   venueReihenfolge?:       { venueId: string; onlineVerfuegbar: boolean }[];
 }
 
+/** Sprachen, die das Widget unterstützt */
+export type WidgetLang = 'de' | 'en';
+
 export interface WidgetConfig {
   name:              string;
   venues:            WidgetVenue[];
@@ -134,6 +137,7 @@ export interface WidgetConfig {
   specialClosedRanges?: { date_from: string; date_to: string }[];
   allergene?:           WidgetAllergen[];
   stripePublishableKey?: string | null;
+  widgetLanguage?:      WidgetLang | null;
 }
 
 export interface CreateReservationPayload {

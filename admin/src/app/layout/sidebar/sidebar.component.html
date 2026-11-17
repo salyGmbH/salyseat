@@ -16,7 +16,7 @@
   </div>
 
   <nav class="sidebar__nav">
-    <a routerLink="/raum" routerLinkActive="active" class="nav-item nav-item--featured"
+    <a [routerLink]="raumLink()" routerLinkActive="active" class="nav-item nav-item--featured"
        [title]="collapsed() ? ('nav.rooms' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>meeting_room</mat-icon>
       @if (!collapsed()) { <span>{{ 'nav.rooms' | translate }}</span> }
@@ -44,6 +44,17 @@
         <span>{{ 'nav.shift_planning' | translate }}</span>
         @if (!plan.can('schichtplan')) {
           <span class="nav-item__plan-badge">{{ 'abo.plans.maitre.name' | translate }}</span>
+        }
+      }
+    </a>
+    <a routerLink="/hotelgaeste" routerLinkActive="active" class="nav-item"
+       [class.nav-item--locked]="!plan.hasAddon('pms')"
+       [title]="collapsed() ? 'Hotelgäste' : ''" (click)="layout.closeMobile()">
+      <mat-icon>hotel</mat-icon>
+      @if (!collapsed()) {
+        <span>Hotelgäste</span>
+        @if (!plan.hasAddon('pms')) {
+          <span class="nav-item__plan-badge nav-item__plan-badge--addon">{{ 'abo.tag_addon' | translate }}</span>
         }
       }
     </a>

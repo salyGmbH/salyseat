@@ -1,0 +1,154 @@
+<div class="pms">
+
+  <div class="pms__header">
+    <div class="pms__header-icon"><mat-icon>hotel</mat-icon></div>
+    <div>
+      <h2 class="pms__title">{{ 'pms.title' | translate }}</h2>
+      <p class="pms__subtitle">{{ 'pms.subtitle' | translate }}</p>
+    </div>
+  </div>
+
+  <!-- Provider-Auswahl -->
+  <div class="pms__section">
+    <div class="pms__section-title">{{ 'pms.section_provider' | translate }}</div>
+    <div class="pms__providers">
+      <button class="pms__provider" [class.pms__provider--active]="provider() === 'mews'" (click)="provider.set('mews')">
+        <mat-icon>hotel</mat-icon>
+        <span>Mews</span>
+      </button>
+      <button class="pms__provider pms__provider--soon" disabled [title]="'pms.provider_soon' | translate">
+        <mat-icon>hotel</mat-icon>
+        <span>SIHOT</span>
+        <span class="pms__soon-badge">{{ 'pms.soon_badge' | translate }}</span>
+      </button>
+      <button class="pms__provider pms__provider--soon" disabled [title]="'pms.provider_soon' | translate">
+        <mat-icon>hotel</mat-icon>
+        <span>Apaleo</span>
+        <span class="pms__soon-badge">{{ 'pms.soon_badge' | translate }}</span>
+      </button>
+    </div>
+  </div>
+
+  @if (provider() === 'mews') {
+
+    <!-- Umgebung -->
+    <div class="pms__section">
+      <div class="pms__section-title">{{ 'pms.section_env' | translate }}</div>
+      <div class="pms__env-toggle">
+        <span [class.pms__env-label--active]="!isDemoEnv()">{{ 'pms.env_production' | translate }}</span>
+        <button class="pms__toggle-btn" (click)="toggleEnv()" [class.pms__toggle-btn--demo]="isDemoEnv()">
+          <span class="pms__toggle-knob"></span>
+        </button>
+        <span [class.pms__env-label--active]="isDemoEnv()">{{ 'pms.env_demo' | translate }}</span>
+        @if (isDemoEnv()) {
+          <span class="pms__env-hint">{{ 'pms.env_demo_hint' | translate }}</span>
+        }
+      </div>
+    </div>
+
+    <!-- Zugangsdaten -->
+    <div class="pms__section">
+      <div class="pms__section-title">{{ 'pms.section_credentials' | translate }}</div>
+      <div class="pms__fields">
+
+        <label class="pms__field">
+          <span class="pms__label">{{ 'pms.client_token_label' | translate }}</span>
+          <span class="pms__hint">{{ 'pms.client_token_hint' | translate }}</span>
+          <input class="pms__input" type="password" autocomplete="off"
+                 [ngModel]="clientToken()" (ngModelChange)="clientToken.set($event)"
+                 placeholder="E0D439EE522F44368DC78E1BFB03710C-...">
+        </label>
+
+        <label class="pms__field">
+          <span class="pms__label">{{ 'pms.access_token_label' | translate }}</span>
+          <span class="pms__hint">{{ 'pms.access_token_hint' | translate }}</span>
+          <input class="pms__input" type="password" autocomplete="off"
+                 [ngModel]="accessToken()" (ngModelChange)="accessToken.set($event)"
+                 placeholder="C66EF7B239D24632943D115EDE9CB810-...">
+        </label>
+
+      </div>
+    </div>
+
+    <!-- Erweiterte IDs (aufklappbar) -->
+    <details class="pms__advanced">
+      <summary class="pms__advanced-title">
+        <mat-icon>tune</mat-icon> {{ 'pms.advanced_title' | translate }}
+      </summary>
+      <div class="pms__fields pms__fields--advanced">
+
+        <label class="pms__field">
+          <span class="pms__label">{{ 'pms.service_id_label' | translate }}</span>
+          <span class="pms__hint">{{ 'pms.service_id_hint' | translate }}</span>
+          <input class="pms__input" type="text"
+                 [ngModel]="serviceId()" (ngModelChange)="serviceId.set($event)"
+                 placeholder="d9b3720a-faba-4292-95fe-...">
+        </label>
+
+        <label class="pms__field">
+          <span class="pms__label">{{ 'pms.resource_category_id_label' | translate }}</span>
+          <span class="pms__hint">{{ 'pms.resource_category_id_hint' | translate }}</span>
+          <input class="pms__input" type="text"
+                 [ngModel]="resourceCategoryId()" (ngModelChange)="resourceCategoryId.set($event)"
+                 placeholder="7ce15887-2dcc-4446-a758-...">
+        </label>
+
+        <label class="pms__field">
+          <span class="pms__label">{{ 'pms.rate_id_label' | translate }}</span>
+          <span class="pms__hint">{{ 'pms.rate_id_hint' | translate }}</span>
+          <input class="pms__input" type="text"
+                 [ngModel]="rateId()" (ngModelChange)="rateId.set($event)"
+                 placeholder="db7948f8-8838-4baf-9f11-...">
+        </label>
+
+        <label class="pms__field">
+          <span class="pms__label">{{ 'pms.age_category_id_label' | translate }}</span>
+          <span class="pms__hint">{{ 'pms.age_category_id_hint' | translate }}</span>
+          <input class="pms__input" type="text"
+                 [ngModel]="ageCategoryId()" (ngModelChange)="ageCategoryId.set($event)"
+                 placeholder="e842692a-31b0-47a4-8ad5-...">
+        </label>
+
+      </div>
+    </details>
+
+    <!-- Verbindung testen -->
+    <div class="pms__test-row">
+      <button class="pms__btn pms__btn--secondary" (click)="testConnection()" [disabled]="testing()">
+        @if (testing()) {
+          <span class="pms__spinner"></span> {{ 'pms.btn_testing' | translate }}
+        } @else {
+          <mat-icon>wifi_tethering</mat-icon> {{ 'pms.btn_test' | translate }}
+        }
+      </button>
+      @if (testOk() === true) {
+        <span class="pms__test-result pms__test-result--ok">
+          <mat-icon>check_circle</mat-icon> {{ 'pms.test_success' | translate }}
+        </span>
+      }
+      @if (testOk() === false) {
+        <span class="pms__test-result pms__test-result--err">
+          <mat-icon>error_outline</mat-icon> {{ 'pms.test_failed' | translate }}
+        </span>
+      }
+    </div>
+
+    <!-- Fehler -->
+    @if (error()) {
+      <div class="pms__error"><mat-icon>error_outline</mat-icon> {{ error() }}</div>
+    }
+
+    <!-- Actions -->
+    <div class="pms__actions">
+      <button class="pms__btn pms__btn--primary" (click)="save()" [disabled]="saving()">
+        @if (saving()) { <span class="pms__spinner"></span> } @else { <mat-icon>save</mat-icon> }
+        {{ saving() ? ('pms.btn_saving' | translate) : (saved() ? ('pms.btn_saved' | translate) : ('pms.btn_save' | translate)) }}
+      </button>
+      <button class="pms__btn pms__btn--danger" (click)="disconnect()">
+        <mat-icon>link_off</mat-icon> {{ 'pms.btn_disconnect' | translate }}
+      </button>
+    </div>
+
+  }
+
+</div>

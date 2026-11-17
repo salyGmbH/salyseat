@@ -86,6 +86,14 @@ class Reservation
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $reminderSentAt = null;
 
+    /** Externe Reservierungs-ID im Mews PMS (null = noch nicht synchronisiert) */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $mewsReservationId = null;
+
+    /** PMS-Sync-Status: null | 'synced' | 'failed' */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $pmsSyncStatus = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -302,6 +310,17 @@ class Reservation
 
     public function getSource(): ?string { return $this->source; }
     public function setSource(?string $source): void { $this->source = $source; }
+
+    public function getMewsReservationId(): ?string { return $this->mewsReservationId; }
+    public function getPmsSyncStatus(): ?string     { return $this->pmsSyncStatus;     }
+
+    public function setPmsSyncStatus(string $status, ?string $mewsReservationId = null): void
+    {
+        $this->pmsSyncStatus = $status;
+        if ($mewsReservationId !== null) {
+            $this->mewsReservationId = $mewsReservationId;
+        }
+    }
 
     public function isPending(): bool
     {

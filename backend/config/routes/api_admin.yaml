@@ -3,6 +3,11 @@ api_admin:
     type: attribute
     prefix: /api/v1/admin
 
+api_superadmin:
+    resource: '../../src/Api/Controller/SuperAdmin/'
+    type: attribute
+    prefix: /api/v1
+
 api_auth:
     resource: '../../src/Api/Controller/Auth/'
     type: attribute

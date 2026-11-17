@@ -32,8 +32,10 @@ export class AboComponent {
   private readonly auth = inject(AuthService);
   private readonly http = inject(HttpClient);
 
-  readonly saving = signal(false);
-  readonly saved  = signal(false);
+  readonly saving      = signal(false);
+  readonly saved       = signal(false);
+  readonly infoOpen    = signal(false);
+  readonly infoAddons  = signal(false);
 
   readonly plans: PlanCard[] = [
     { key: 'tisch',  name: 'Tisch',  taglineKey: 'abo.plans.tisch.tagline',  color: '#64748b' },
@@ -48,12 +50,12 @@ export class AboComponent {
     { labelKey: 'abo.features.guests',           tisch: true,    menu: true,    maitre: true    },
     { labelKey: 'abo.features.opening_hours',    tisch: true,    menu: true,    maitre: true    },
     { labelKey: 'abo.features.notes',            tisch: false,   menu: true,    maitre: true    },
-    { labelKey: 'abo.features.menu_card',        tisch: false,   menu: true,    maitre: true    },
     { labelKey: 'abo.features.email_design',     tisch: false,   menu: true,    maitre: true    },
     { labelKey: 'abo.features.shift_plan',       tisch: false,   menu: false,   maitre: true    },
     { labelKey: 'abo.features.table_selection',  tisch: false,   menu: false,   maitre: true    },
     { labelKey: 'abo.features.phone_assistant',  tisch: 'addon', menu: 'addon', maitre: 'addon' },
     { labelKey: 'abo.features.vouchers',         tisch: 'addon', menu: 'addon', maitre: 'addon' },
+    { labelKey: 'abo.features.menu_card',        tisch: 'addon', menu: true,    maitre: true    },
     { labelKey: 'abo.features.pos',              tisch: 'addon', menu: 'addon', maitre: 'addon' },
   ];
 
