@@ -43,7 +43,10 @@ export class AuthService {
   private loadMe(): void {
     this.http.get<PlatformUser>('/api/v1/auth/me').subscribe({
       next: u => this.user.set(u),
-      error: () => this.logout(),
+      error: err => {
+        if (err.status === 401) this.logout();
+        // Bei anderen Fehlern (Netzwerk, Timeout etc.) Token behalten
+      },
     });
   }
 }

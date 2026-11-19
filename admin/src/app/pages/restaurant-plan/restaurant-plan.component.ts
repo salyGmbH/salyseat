@@ -107,6 +107,7 @@ export class RestaurantPlanComponent implements OnInit {
   discardDialogOpen  = signal(false);
   deleteConfirmOpen  = signal(false);
   deleteError        = signal<string | null>(null);
+  deleteBlockedCount = signal<number | null>(null); // > null = 409, zeigt Force-Option
   mergeSeatsInput    = 8;
   roomNameInput      = '';
 
@@ -146,7 +147,10 @@ export class RestaurantPlanComponent implements OnInit {
     coatrack: 'restaurant_plan.coatrack',
     sofa:     'restaurant_plan.sofa',
     cashier:  'restaurant_plan.cashier',
+    label:    'restaurant_plan.label',
   };
+
+  editingLabelId = signal<number | null>(null);
 
   private readonly roomsService  = inject(RoomsService);
   private readonly roomBlocksSvc = inject(RoomBlocksService);
@@ -232,6 +236,7 @@ export class RestaurantPlanComponent implements OnInit {
     this.selectedWallId.set(null);
     this.selectedDecorId.set(null);
     this.editingSeatsId.set(null);
+    this.editingLabelId.set(null);
     this.editingRoomId.set(null);
     this.currentRoomName.set('');
     this.saveFeedback.set(null);
@@ -356,20 +361,26 @@ export class RestaurantPlanComponent implements OnInit {
   cancelDelete() {
     this.deleteConfirmOpen.set(false);
     this.deleteError.set(null);
+    this.deleteBlockedCount.set(null);
   }
 
-  confirmDeleteRoom() {
+  confirmDeleteRoom(force = false) {
     const id = this.editingRoomId();
     if (!id) return;
     this.deleteError.set(null);
-    this.roomsService.removeRoom(id).subscribe({
+    this.deleteBlockedCount.set(null);
+    this.roomsService.removeRoom(id, force).subscribe({
       next: () => {
         this.deleteConfirmOpen.set(false);
         this.closeEditor();
       },
       error: (err) => {
-        const msg = err?.error?.error ?? this.translate.instant('restaurant_plan.delete_room_error');
-        this.deleteError.set(msg);
+        if (err?.status === 409 && err?.error?.reservationCount != null) {
+          this.deleteBlockedCount.set(err.error.reservationCount);
+        } else {
+          const msg = err?.error?.error ?? this.translate.instant('restaurant_plan.delete_room_error');
+          this.deleteError.set(msg);
+        }
       },
     });
   }
@@ -610,6 +621,7 @@ export class RestaurantPlanComponent implements OnInit {
   getDecorSize(type: DecorType): { w: number; h: number } {
     if (type === 'bar' || type === 'stage' || type === 'sofa') return { w: 140, h: 70 };
     if (type === 'window') return { w: 140, h: 32 };
+    if (type === 'label') return { w: 120, h: 40 };
     return { w: 70, h: 70 };
   }
 
@@ -621,7 +633,7 @@ export class RestaurantPlanComponent implements OnInit {
   /** True, wenn der Typ aus der Palette ein Dekor-Typ ist. */
   private isDecorType(t: unknown): t is DecorType {
     return typeof t === 'string'
-      && ['plant','pillar','door','window','stairs','wc','entrance','bar','stage','coatrack','sofa','cashier'].includes(t);
+      && ['plant','pillar','door','window','stairs','wc','entrance','bar','stage','coatrack','sofa','cashier','label'].includes(t);
   }
 
   // ── Palette → Canvas ──────────────────────────────────────────────────────
@@ -1016,6 +1028,36 @@ export class RestaurantPlanComponent implements OnInit {
     event.stopPropagation();
     this.placedDecors.update(ds => ds.filter(d => d.id !== id));
     this.selectedDecorId.set(null);
+  }
+
+  // ── Label-Text bearbeiten ─────────────────────────────────────────────────
+
+  onLabelDblClick(event: MouseEvent, id: number) {
+    event.stopPropagation();
+    this.editingLabelId.set(id);
+    setTimeout(() => {
+      const input = this.canvasRef.nativeElement.querySelector('.label-edit-input') as HTMLInputElement;
+      input?.focus();
+      input?.select();
+    }, 0);
+  }
+
+  onLabelInputKeydown(event: KeyboardEvent, id: number) {
+    if (event.key === 'Enter') {
+      this.applyLabelText(id, (event.target as HTMLInputElement).value);
+    } else if (event.key === 'Escape') {
+      this.editingLabelId.set(null);
+    }
+  }
+
+  onLabelInputBlur(event: FocusEvent, id: number) {
+    this.applyLabelText(id, (event.target as HTMLInputElement).value);
+  }
+
+  private applyLabelText(id: number, text: string) {
+    this.placedDecors.update(ds => ds.map(d => d.id === id ? { ...d, text: text.trim() } : d));
+    this.editingLabelId.set(null);
+    this.autoSaveLayout();
   }
 
   // ── Globale Maus-Events ───────────────────────────────────────────────────

@@ -94,7 +94,12 @@
     "de_label": "Deutsch",
     "de_sublabel": "Deutsche Oberfläche",
     "en_label": "English",
-    "en_sublabel": "English interface"
+    "en_sublabel": "English interface",
+    "admin_section": "Admin",
+    "widget_section": "Widget",
+    "widget_subtitle": "Anzeigesprache des Buchungs-Widgets für deine Gäste.",
+    "widget_saved": "Widget-Sprache gespeichert",
+    "info": "Hier stellst du die Sprache des Admin-Panels und die Sprache des Buchungswidgets separat ein. Die Widget-Sprache bestimmt, in welcher Sprache deine Gäste das Formular sehen."
   },
   "login_page": {
     "title": "Admin-Bereich",
@@ -442,7 +447,8 @@
     "dim": "Gedimmt",
     "dark": "Dunkel",
     "system": "System",
-    "system_follows": "Aktuell folgt dein System:"
+    "system_follows": "Aktuell folgt dein System:",
+    "logo_info": "Lade dein Logo in zwei Varianten hoch — hell für helle Hintergründe, dunkel für dunkle. Das Logo erscheint im Buchungs-Widget, in automatischen E-Mails sowie in gedruckten Dokumenten. Empfohlenes Format: PNG mit transparentem Hintergrund, mindestens 400 × 120 px."
   },
   "emails": {
     "title": "Automatische Mails",
@@ -545,7 +551,9 @@
     "reason_ph": "z. B. Weihnachten, Betriebsurlaub…",
     "type": "Art",
     "special_times": "Sonderzeiten",
-    "no_special": "Noch keine Sonderöffnungen oder Schließungen definiert."
+    "no_special": "Noch keine Sonderöffnungen oder Schließungen definiert.",
+    "info_oh": "Die regulären Öffnungszeiten legen fest, an welchen Wochentagen und zu welchen Uhrzeiten Gäste über das Buchungs-Widget Reservierungen vornehmen können. Außerhalb dieser Zeiten ist keine Online-Buchung möglich. Pausen (z. B. Mittagspause) können pro Tag separat eingetragen werden.",
+    "info_sc": "Hier kannst du einzelne Tage oder Zeiträume als Ausnahme definieren — z. B. Feiertage, Betriebsurlaub oder besondere Öffnungszeiten. Diese Einträge haben Vorrang vor den regulären Öffnungszeiten. Bei \"Geschlossen\" ist keine Buchung möglich, bei \"Sonderzeiten\" gelten die eingetragenen Uhrzeiten."
   },
   "packages": {
     "title": "Packages",
@@ -652,7 +660,8 @@
     "subtitle_cleanup": "Pufferzeit zwischen zwei Buchungen am gleichen Tisch (z. B. zum Eindecken). Wird im Widget bei der Slot-Berechnung berücksichtigt.",
     "subtitle_drinks": "Automatische Erinnerung nach dem Einchecken — „Bedienung, geh mal hin!\"",
     "subtitle_vip": "Ab wie vielen Reservierungen gilt ein Gast als VIP? Dieser Wert wird in der Kundenkartei und beim Einchecken verwendet.",
-    "subtitle_block": "Gast wird nach N No-Shows automatisch für weitere Reservierungen gesperrt.",
+    "subtitle_block": "Gast wird nach einer konfigurierbaren Anzahl von No-Shows automatisch für weitere Reservierungen gesperrt.",
+    "info_auto_block": "Die Sperrung gilt ausschließlich für Online-Buchungen über das Widget. Ein gesperrter Gast kann über das Widget keine neue Reservierung mehr vornehmen. Die Sperre ist immer an die E-Mail-Adresse des Gastes geknüpft.",
     "reservation_label": "Reservierung",
     "cleanup_label": "Clean-up"
   },
@@ -722,7 +731,8 @@
     "mail_select_res": "Reservierung auswählen",
     "mail_step_opt": "(optional — Standard: letzte)",
     "mail_use_last": "Letzte Reservierung verwenden",
-    "res_count": "{{n}} von {{total}}"
+    "res_count": "{{n}} von {{total}}",
+    "info": "Hier siehst du alle Gäste deines Restaurants. Du kannst Profile bearbeiten, Notizen hinterlegen, Reservierungshistorien einsehen und direkt E-Mails versenden."
   },
   "backup": {
     "title": "Backup & Export",
@@ -739,7 +749,8 @@
     "feat_sms": "SMS an Gäste zur Bestätigung und Erinnerung",
     "feat_push": "Push-Benachrichtigungen aufs Handy des Teams",
     "feat_reminder": "Erinnerung X Stunden vor dem Termin",
-    "feat_cancel": "Stornierungs-Hinweise an Management"
+    "feat_cancel": "Stornierungs-Hinweise an Management",
+    "info": "Hier kannst du einstellen, wann und wie du über neue Reservierungen, Stornierungen oder Gästenachrichten benachrichtigt wirst – per E-Mail, SMS oder Push."
   },
   "integrationen": {
     "title": "Integrationen",
@@ -749,7 +760,7 @@
     "waiting": "Warteliste",
     "waiting_short": "Warte",
     "confirmed": "Bevorstehend",
-    "confirmed_short": "Geplant",
+    "confirmed_short": "Bevorstehend",
     "active": "Aktiv",
     "active_short": "Aktiv",
     "late": "Verspätet",
@@ -898,7 +909,8 @@
     "upload_error": "Bild konnte nicht hochgeladen werden.",
     "heading_title_ph": "z.B. Tisch reservieren",
     "heading_subtitle_ph": "z.B. bei Restaurant Bella Vista",
-    "button_text_ph": "z.B. Reservieren"
+    "button_text_ph": "z.B. Reservieren",
+    "info": "Hier gestaltest du das Aussehen deines Buchungswidgets: Layout, Farben, Schrift und Hintergrund. Änderungen werden live in der Vorschau angezeigt."
   },
   "widget_einstellungen": {
     "interval": "Reservierungsintervall",
@@ -1035,21 +1047,11 @@
     "notice_footer_ph": "z. B. Bei Fragen erreichst du uns unter info@restaurant.de",
     "group_notice_ph": "z. B. Für Gruppen ab dieser Personenzahl bitten wir um Kontaktaufnahme.",
     "payment": "Zahlungsmethoden im Widget",
-    "payment_info": "Lege fest, welche Zahlungsmethoden Gäste beim Buchen im Widget nutzen können. Kreditkarte und SEPA erfordern einen konfigurierten Stripe-API-Key.",
-    "payment_activate": "Online-Zahlung aktivieren",
-    "payment_activate_hint": "Gäste können beim Buchen eine Zahlungsmethode wählen",
-    "payment_card": "Kreditkarte",
-    "payment_sepa": "SEPA-Lastschrift",
-    "payment_prepay": "Vorkasse",
-    "payment_cash": "Barzahlung",
-    "payment_stripe_required": "Stripe API-Key erforderlich",
-    "payment_stripe_hint": "Für Kreditkarte und SEPA muss ein Stripe-Key hinterlegt sein. Jetzt konfigurieren unter",
+    "payment_moved_hint": "Diese Einstellungen werden zentral verwaltet unter",
     "payment_stripe_link": "Einstellungen → Kreditkarte",
-    "payment_required": "Zahlung beim Buchen obligatorisch",
-    "payment_required_hint": "Wenn aktiv, müssen Gäste eine Zahlungsmethode auswählen und bestätigen, bevor die Buchung abgeschlossen wird",
-    "wheelchair_label": "♿ Rollstuhlgerecht anfragen",
+    "wheelchair_label": "Rollstuhlgerecht anfragen",
     "wheelchair_hint": "Gäste können angeben, ob sie einen barrierefreien Platz benötigen",
-    "dog_label": "🐕 Hund mitbringen anfragen",
+    "dog_label": "Hund mitbringen anfragen",
     "dog_hint": "Gäste können angeben, ob sie einen Hund dabei haben",
     "speisekarte_gen_title": "Speisekarte-Generator verfügbar",
     "speisekarte_gen_text": "Erstellen Sie Ihre Speisekarte mit dem integrierten Editor unter Einstellungen → Speisekarte. Dort können Sie Design, Gerichte, Allergene und Zusatzstoffe konfigurieren und eine fertige PDF herunterladen — die Sie direkt hier hochladen können.",
@@ -1091,7 +1093,8 @@
     "all": "Alle",
     "filter_room": "Raum",
     "filter_more": "Weitere",
-    "with_note": "Mit Notiz"
+    "with_note": "Mit Notiz",
+    "info": "Hier siehst du alle Reservierungen deines Restaurants in einer Übersicht. Du kannst nach Datum, Status und Bereich filtern sowie Reservierungen als PDF exportieren."
   },
   "speisekarte": {
     "design": "Design",
@@ -1133,16 +1136,13 @@
   },
   "login_settings": {
     "title": "Login & Sicherheit",
-    "subtitle": "Steuere wie lange Administratoren eingeloggt bleiben.",
+    "subtitle": "Steuere, nach wie viel Zeit ohne Bedienung Administratoren automatisch abgemeldet werden.",
     "session_title": "Abmeldung bei Inaktivität",
-    "session_desc": "Wird diese Zeit lang nicht geklickt, getippt oder gescrollt, werden Administratoren automatisch abgemeldet. Bei aktiver Nutzung bleibt die Sitzung bestehen. Die Änderung gilt ab dem <strong>nächsten Login</strong>.",
+    "session_desc": "Wird in dieser Zeit <strong>weder geklickt, getippt, gescrollt noch die Maus bewegt</strong>, erfolgt die automatische Abmeldung. Jede Interaktion setzt den Timer zurück — wer aktiv arbeitet, wird nicht unterbrochen. Die Änderung greift <strong>sofort</strong>.",
     "current_label": "Aktuell eingestellt:",
-    "session_hint": "Kurze Zeit = mehr Sicherheit (z. B. öffentliche Geräte). Lange Zeit = bequemeres Arbeiten auf privaten Computern.",
-    "relogin_title": "Jetzt neu einloggen",
-    "relogin_text": "Das neue Token wird erst beim nächsten Login ausgestellt.",
-    "relogin_btn": "Jetzt neu einloggen",
+    "session_hint": "Kurze Zeit = mehr Sicherheit (z. B. geteilte Geräte). Lange Zeit = bequemeres Arbeiten ohne häufige Abmeldungen.",
     "save_error": "Fehler beim Speichern. Bitte erneut versuchen.",
-    "session_1min": "1 Minute (Test)",
+    "session_1min": "1 Minute",
     "session_30min": "30 Minuten",
     "session_1h": "1 Stunde",
     "session_2h": "2 Stunden",
@@ -1150,7 +1150,10 @@
     "session_8h": "8 Stunden",
     "session_1d": "1 Tag",
     "session_7d": "7 Tage",
-    "session_30d": "30 Tage"
+    "session_30d": "30 Tage",
+    "info": "Hier legst du fest, nach welcher Inaktivitätszeit du automatisch ausgeloggt wirst. Die Sitzung bleibt aktiv, solange du das System bedienst.",
+    "session_5min": "5 Minuten",
+    "session_10min": "10 Minuten"
   },
   "stripe_settings": {
     "title": "Zahlungen & Stripe",
@@ -1188,7 +1191,11 @@
     "noshow_betrag_hint": "Dieser Betrag wird nur eingezogen wenn der Gast nicht erscheint.",
     "noshow_text_label": "Hinweistext im Widget",
     "noshow_text_placeholder": "Kreditkarte wird nur bei Nicht-Erscheinen belastet.",
-    "noshow_text_hint": "Wird im Widget unter dem Kreditkartenformular angezeigt."
+    "noshow_text_hint": "Wird im Widget unter dem Kreditkartenformular angezeigt.",
+    "info_header": "Hier richtest du die Zahlungsabwicklung für dein Restaurant ein. Du kannst Online-Zahlung sowie No-Show-Schutz aktivieren und Zahlungsmethoden festlegen.",
+    "info_stripe": "Verbinde deinen Stripe-Account mit deinem Publishable Key (beginnt mit pk_live_ oder pk_test_). Den Key findest du in deinem Stripe-Dashboard unter Entwickler → API-Schlüssel.",
+    "info_zahlung": "Aktiviere Online-Zahlung, damit Gäste beim Buchen direkt bezahlen können. Du kannst festlegen ob die Zahlung verpflichtend oder optional ist.",
+    "info_noshow": "Schütze dich vor Ausfällen: Gäste hinterlegen ihre Kreditkarte beim Buchen. Der eingestellte Betrag wird nur bei Nicht-Erscheinen eingezogen."
   },
   "gutscheine": {
     "title": "Gutscheine",
@@ -1312,6 +1319,7 @@
   "abo": {
     "title": "Dein Abo-Paket",
     "subtitle": "Aktuell aktiv:",
+    "info": "Hier siehst du alle verfügbaren Pakete und kannst dein Abo jederzeit wechseln. Das aktive Paket bestimmt, welche Funktionen im Admin und im Buchungs-Widget zur Verfügung stehen. Ein Upgrade greift sofort, ein Downgrade wird zum nächsten Abrechnungszeitraum wirksam. Bei Fragen zum Abo wende dich bitte an den Support.",
     "current_plan": "Dein aktuelles Paket",
     "popular": "Beliebt",
     "btn_current": "Aktuelles Paket",
@@ -1321,6 +1329,10 @@
     "addons_subtitle": "Erweiterungen die unabhängig vom Abo gebucht werden können.",
     "addon_vouchers_name": "Gutscheine",
     "addon_vouchers_desc": "Gutschein-System mit Widget-Integration und eigenem Design.",
+    "addon_speisekarte_name": "Digitale Speisekarte",
+    "addon_speisekarte_desc": "Erstelle deine Speisekarte direkt im Admin — mit Sektionen, Gerichten, Allergenen & mehr.",
+    "addon_pms_name": "Hotel-PMS Integration",
+    "addon_pms_desc": "Hotelgäste aus Mews, SIHOT & Co. direkt im Admin anzeigen und Tische für sie reservieren.",
     "addon_pos_name": "Kassenschnittstellen",
     "addon_pos_desc": "Direkte Integration mit gängigen POS-Systemen.",
     "tag_addon": "Add-on",
@@ -1356,6 +1368,42 @@
     },
     "addon_price_on_request": "Auf Anfrage",
     "addon_phone_name": "Telefonassistent",
-    "addon_phone_desc": "KI-gestützte Anrufannahme & automatische Reservierungserfassung."
+    "addon_phone_desc": "KI-gestützte Anrufannahme & automatische Reservierungserfassung.",
+    "info_addons": "Add-ons erweitern deinen Tarif um zusätzliche Funktionen. Du kannst sie jederzeit aktivieren oder deaktivieren – die Abrechnung erfolgt auf Anfrage."
+  },
+  "pms": {
+    "title": "Hotel-PMS Anbindung",
+    "subtitle": "Verbinde dein Property Management System um Hotelgäste direkt im Admin zu sehen.",
+    "section_provider": "PMS-Anbieter",
+    "provider_soon": "In Kürze verfügbar",
+    "soon_badge": "Bald",
+    "section_env": "Umgebung",
+    "env_production": "Produktion",
+    "env_demo": "Demo / Sandbox",
+    "env_demo_hint": "Nutzt api.mews-demo.com — nur für Tests",
+    "section_credentials": "Zugangsdaten",
+    "client_token_label": "Client Token",
+    "client_token_hint": "Findest du im Mews Dashboard unter Integrations → API",
+    "access_token_label": "Access Token",
+    "access_token_hint": "Property-spezifisch — aus dem Mews Connector-Setup",
+    "advanced_title": "Erweiterte Einstellungen (Service- & Rate-IDs)",
+    "service_id_label": "Service ID",
+    "service_id_hint": "Mews Service (Restaurantservice) — via services/getAll abrufbar",
+    "resource_category_id_label": "Resource Category ID",
+    "resource_category_id_hint": "Tischkategorie — via resourcecategories/getAll abrufbar",
+    "rate_id_label": "Rate ID",
+    "rate_id_hint": "Preisplan — via rates/getAll abrufbar",
+    "age_category_id_label": "Age Category ID (Erwachsene)",
+    "age_category_id_hint": "Alterskategorie Erwachsene — via agecategories/getAll abrufbar",
+    "btn_test": "Verbindung testen",
+    "btn_testing": "Teste…",
+    "test_success": "Verbindung erfolgreich",
+    "test_failed": "Verbindung fehlgeschlagen — Tokens prüfen",
+    "btn_save": "Speichern",
+    "btn_saving": "Speichert…",
+    "btn_saved": "Gespeichert ✓",
+    "btn_disconnect": "Trennen",
+    "disconnect_confirm": "Mews-Verbindung wirklich trennen?",
+    "error_save": "Speichern fehlgeschlagen. Bitte erneut versuchen."
   }
 }

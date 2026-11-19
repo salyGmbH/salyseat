@@ -110,7 +110,8 @@ class ReservationController extends AbstractController
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
                 tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
                 adminOverride:   true,
-                source:          in_array($data['source'] ?? '', ['admin', 'walk_in'], true) ? $data['source'] : 'admin',
+                source:          in_array($data['source'] ?? '', ['admin', 'walk_in', 'pms'], true) ? $data['source'] : 'admin',
+                hotelRoomNumber: ($data['room_number'] ?? '') !== '' ? (string) $data['room_number'] : null,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);

@@ -190,12 +190,12 @@
               <div class="filter-panel__chips">
                 <button class="sub-filter__chip"
                         [class.sub-filter__chip--active]="sortDir() === 'asc'"
-                        (click)="sortDir.set('asc')">
+                        (click)="sortDir.set(sortDir() === 'asc' ? 'default' : 'asc')">
                   {{ 'raum_detail.time_asc' | translate }}
                 </button>
                 <button class="sub-filter__chip"
                         [class.sub-filter__chip--active]="sortDir() === 'desc'"
-                        (click)="sortDir.set('desc')">
+                        (click)="sortDir.set(sortDir() === 'desc' ? 'default' : 'desc')">
                   {{ 'raum_detail.time_desc' | translate }}
                 </button>
               </div>
@@ -317,6 +317,12 @@
                               </svg>
                             </button>
                           }
+                          @if (res.source === 'pms') {
+                            <span class="res-row__hotel-badge"
+                                  [title]="'Hotel Gast' + (res.hotelRoomNumber ? ' · Zimmer ' + res.hotelRoomNumber : '')">
+                              <mat-icon>hotel</mat-icon>
+                            </span>
+                          }
                           <span class="res-row__name">{{ res.guestName }}</span>
                           <span class="res-row__party">· {{ res.partySize }} Pers.</span>
                         </div>
@@ -355,6 +361,28 @@
                         }
                       </div>
                       <div class="res-row__actions">
+                        @if (res.source === 'waitlist') {
+                          <button class="action action--primary"
+                                  (click)="convertWaitlistToReservation(waitlistEntryFor(res)!)"
+                                  title="Reservierung anlegen">
+                            <mat-icon>add</mat-icon>
+                          </button>
+                          <div class="kebab-wrap">
+                            <button class="action" (click)="toggleMenu($event, res.id)" title="Mehr">
+                              <mat-icon>more_vert</mat-icon>
+                            </button>
+                            @if (openMenuId() === res.id) {
+                              <div class="kebab-menu" (click)="$event.stopPropagation()">
+                                <button class="kebab-menu__item" (click)="setWaitlistStatus(waitlistEntryFor(res)!, 'notified'); closeMenu()">
+                                  <mat-icon>call</mat-icon> Als kontaktiert markieren
+                                </button>
+                                <button class="kebab-menu__item kebab-menu__item--danger" (click)="setWaitlistStatus(waitlistEntryFor(res)!, 'cancelled'); closeMenu()">
+                                  <mat-icon>cancel</mat-icon> Verwerfen
+                                </button>
+                              </div>
+                            }
+                          </div>
+                        } @else {
                         @switch (res.status) {
                           @case ('upcoming') {
                             <button class="action action--primary" (click)="checkIn(res)" [title]="'raum_detail.check_in' | translate">
@@ -426,6 +454,7 @@
                             </div>
                           }
                         </div>
+                        }
                       </div>
                     </div>
                   }
@@ -472,7 +501,9 @@
                   <!-- Spalten pro Tisch -->
                   <div class="tl-columns" [class.tl-columns--dragging]="!!tlDrag">
                     @for (table of r.tables; track table.id) {
-                      <div class="tl-col">
+                      <div class="tl-col"
+                           [attr.data-table-id]="table.id"
+                           [class.tl-col--drag-target]="tlDragTargetTableId() === table.id && !!tlDrag?.moved">
 
                         <!-- Öffnungszeiten-Zone (heller Hintergrund) — prozentual -->
                         @if (tlOpenPct()) {
@@ -500,6 +531,7 @@
                         @for (res of activeResForTable(table.id); track res.id) {
                           <div class="tl-res"
                                [class.tl-res--historic]="isResHistoric(res)"
+                               [class.tl-res--longpress]="tlLongPressResId() === res.id"
                                [class.tl-res--dragging]="tlDrag?.resId === res.id && tlDrag?.moved"
                                [style.top.%]="resBlockTopPct(res)"
                                [style.height.%]="resBlockHeightPct(res)"
@@ -565,7 +597,31 @@
             <span class="day-load-bar__title">
               <mat-icon>query_stats</mat-icon> {{ 'raum_detail.day_load' | translate }}
             </span>
-            <span class="day-load-bar__hint">{{ 'raum_detail.day_load_hint' | translate }}</span>
+            <div class="tl-free-panel tl-free-panel--inline" [class.tl-free-panel--collapsed]="!planFreeSlotsOpen()">
+              <div class="tl-free-panel__head" style="cursor:pointer" (click)="planFreeSlotsOpen.set(!planFreeSlotsOpen())">
+                <mat-icon>event_available</mat-icon>
+                {{ 'raum_detail.free_slots' | translate }}
+                <mat-icon class="tl-free-panel__chevron" [class.is-open]="planFreeSlotsOpen()">expand_more</mat-icon>
+              </div>
+              @if (planFreeSlotsOpen()) {
+                <div class="tl-free-panel__list tl-free-panel__list--dropdown">
+                  @for (s of freeSlotsToday(); track s.time) {
+                    <div class="tl-free-slot">
+                      <span class="tl-free-slot__dot"></span>
+                      <span class="tl-free-slot__time">{{ s.time }}</span>
+                      <span class="tl-free-slot__count">{{ s.freeCount }} Tisch{{ s.freeCount !== 1 ? 'e' : '' }}</span>
+                      <button class="tl-free-slot__btn" (click)="openNewDialog({time: s.time})">{{ 'raum_detail.book' | translate }}</button>
+                    </div>
+                  }
+                  @if (freeSlotsToday().length === 0) {
+                    <div class="tl-free-panel__empty">
+                      <mat-icon>event_busy</mat-icon>
+                      <span>{{ 'raum_detail.no_free_slots' | translate }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
           </div>
           <div class="day-load">
             @for (bucket of dayLoad(); track bucket.hour) {
@@ -666,6 +722,12 @@
         @if (reassignChoice()) {
           <div class="reassign-choice-backdrop" (click)="reassignChoice.set(null)">
             <div class="reassign-choice" (click)="$event.stopPropagation()">
+              @if (reassignTargetOccupied) {
+                <div class="reassign-choice__conflict">
+                  <mat-icon>warning</mat-icon>
+                  Tisch {{ reassignChoice()?.targetTableId }} ist zu dieser Zeit bereits belegt — trotzdem fortfahren?
+                </div>
+              }
               <p class="reassign-choice__title">
                 <mat-icon>help_outline</mat-icon>
                 Tisch {{ reassignMode()?.sourceTableId }} → Tisch {{ reassignChoice()?.targetTableId }}
@@ -674,8 +736,13 @@
                 <button class="reassign-choice__opt reassign-choice__opt--move" (click)="doReassign()">
                   <mat-icon>swap_horiz</mat-icon>
                   <div>
-                    <strong>{{ 'raum_detail.reassign_move' | translate }}</strong>
-                    <span>{{ 'raum_detail.reassign_move_hint' | translate : { id: reassignChoice()?.targetTableId } }}</span>
+                    @if (reassignTargetOccupied) {
+                      <strong>Trotzdem platzieren</strong>
+                      <span>Reservierung wird auf Tisch {{ reassignChoice()?.targetTableId }} umplatziert</span>
+                    } @else {
+                      <strong>{{ 'raum_detail.reassign_move' | translate }}</strong>
+                      <span>{{ 'raum_detail.reassign_move_hint' | translate : { id: reassignChoice()?.targetTableId } }}</span>
+                    }
                   </div>
                 </button>
                 @if (reassignResSplit) {
@@ -690,8 +757,13 @@
                   <button class="reassign-choice__opt reassign-choice__opt--split" (click)="doSplit()">
                     <mat-icon>call_split</mat-icon>
                     <div>
-                      <strong>{{ 'raum_detail.reassign_split_action' | translate }}</strong>
-                      <span>{{ 'raum_detail.reassign_split_hint' | translate : { src: reassignMode()?.sourceTableId, tgt: reassignChoice()?.targetTableId } }}</span>
+                      @if (reassignTargetOccupied) {
+                        <strong>Trotzdem Splitten</strong>
+                        <span>Reservierung auf Tisch {{ reassignMode()?.sourceTableId }} + {{ reassignChoice()?.targetTableId }} aufteilen</span>
+                      } @else {
+                        <strong>{{ 'raum_detail.reassign_split_action' | translate }}</strong>
+                        <span>{{ 'raum_detail.reassign_split_hint' | translate : { src: reassignMode()?.sourceTableId, tgt: reassignChoice()?.targetTableId } }}</span>
+                      }
                     </div>
                   </button>
                 }
@@ -716,6 +788,7 @@
         @for (decor of r.decors; track decor.id) {
           <div class="placed-decor"
                [class.placed-decor--window]="decor.type === 'window'"
+               [class.placed-decor--label]="decor.type === 'label'"
                [style.left.px]="decor.x"
                [style.top.px]="decor.y"
                [style.width.px]="getDecorSize(decor.type).w * decor.scale"
@@ -839,6 +912,11 @@
                   <rect x="124" y="54" width="6"  height="8" fill="#2979ff" opacity="0.8"/>
                 </svg>
               }
+              @case ('label') {
+                <div class="label-display label-display--readonly">
+                  <span class="label-text">{{ decor.text }}</span>
+                </div>
+              }
             }
           </div>
         }
@@ -902,7 +980,7 @@
             @if (table.type === 'long') {
               <svg viewBox="0 0 140 70" class="table-svg">
                 @for (pos of getLongTableSeatPositions(table.seats); track $index) {
-                  <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" fill="#2979ff" opacity="0.8"/>
+                  <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" [attr.fill]="tableSeatColor(table.id)" opacity="0.8"/>
                 }
                 <rect x="8" y="13" width="124" height="44" rx="5" class="table-svg__body"/>
               </svg>
@@ -910,9 +988,9 @@
               <svg viewBox="0 0 70 70" class="table-svg">
                 @for (pos of getSeatPositions(table.seats); track $index) {
                   @if (table.type === 'round') {
-                    <circle [attr.cx]="pos.x" [attr.cy]="pos.y" r="5" fill="#2979ff" opacity="0.8"/>
+                    <circle [attr.cx]="pos.x" [attr.cy]="pos.y" r="5" [attr.fill]="tableSeatColor(table.id)" opacity="0.8"/>
                   } @else {
-                    <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" fill="#2979ff" opacity="0.8"/>
+                    <rect [attr.x]="pos.x - 5" [attr.y]="pos.y - 5" width="10" height="10" rx="2" [attr.fill]="tableSeatColor(table.id)" opacity="0.8"/>
                   }
                 }
                 @if (table.type === 'round') {
@@ -937,13 +1015,6 @@
             </div>
 
             @if (tableAllActiveReservations(table.id).length > 0) {
-              @if (tableSplitColor(table.id); as sc0) {
-                <div class="placed-table__split-badge"
-                     [style.--split-badge-color]="sc0"
-                     [style.background]="sc0">
-                  <mat-icon>call_split</mat-icon>
-                </div>
-              }
               <div class="placed-table__guests">
                 @for (res of visibleGuestReservations(table.id); track res.id) {
                   <div class="placed-table__guest"
@@ -1326,9 +1397,10 @@
                 </div>
               }
 
+              <!-- Vorname -->
               <div class="field">
                 <span class="field__label">
-                  {{ 'raum_detail.full_name' | translate }}
+                  Vorname
                   @if (formSubmitAttempted() && !form.vorname.trim()) {
                     <span class="field__required-hint">{{ 'common.required' | translate }}</span>
                   }
@@ -1336,7 +1408,7 @@
                 <div class="guest-autocomplete">
                   <input class="field__input reservation-form__name-input"
                          name="vorname" type="text" maxlength="80"
-                         [placeholder]="'raum_detail.name_placeholder' | translate" autocomplete="off"
+                         placeholder="z. B. Max" autocomplete="off"
                          [(ngModel)]="form.vorname"
                          (ngModelChange)="newDialogOpen() && onVornameInput($event)"
                          (blur)="hideSuggestionsDelayed()"
@@ -1348,7 +1420,40 @@
                           <div class="guest-suggestion__avatar">{{ guestInitials(g.name) }}</div>
                           <div class="guest-suggestion__info">
                             <span class="guest-suggestion__name">{{ g.name }}</span>
-                            <span class="guest-suggestion__meta">{{ g.email }}@if (g.phone) { · {{ g.phone }} }</span>
+                            <span class="guest-suggestion__meta">
+                              @if (isRealEmail(g.email)) { {{ g.email }} }
+                              @if (g.phone) { · {{ g.phone }} }
+                            </span>
+                          </div>
+                          <span class="guest-suggestion__count">{{ g.total_reservations }}×</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Nachname -->
+              <div class="field">
+                <span class="field__label">Nachname</span>
+                <div class="guest-autocomplete">
+                  <input class="field__input"
+                         name="nachname" type="text" maxlength="80"
+                         placeholder="z. B. Mustermann" autocomplete="off"
+                         [(ngModel)]="form.nachname"
+                         (ngModelChange)="newDialogOpen() && onNachnameInput($event)"
+                         (blur)="hideSuggestionsDelayed()" />
+                  @if (showSuggestionsNachname() && newDialogOpen()) {
+                    <div class="guest-suggestions">
+                      @for (g of guestSuggestions(); track g.id) {
+                        <button type="button" class="guest-suggestion" (click)="selectGuest(g)">
+                          <div class="guest-suggestion__avatar">{{ guestInitials(g.name) }}</div>
+                          <div class="guest-suggestion__info">
+                            <span class="guest-suggestion__name">{{ g.name }}</span>
+                            <span class="guest-suggestion__meta">
+                              @if (isRealEmail(g.email)) { {{ g.email }} }
+                              @if (g.phone) { · {{ g.phone }} }
+                            </span>
                           </div>
                           <span class="guest-suggestion__count">{{ g.total_reservations }}×</span>
                         </button>
@@ -1466,13 +1571,17 @@
                            [class.table-inline--invalid]="formSubmitAttempted() && !form.time">
                         @for (slot of filteredTimeSlots(); track slot) {
                           @let slotFull = occupiedTimeSlots().has(slot);
+                          @let tableOccupied = !slotFull && isSelectedTableOccupiedAt(slot);
                           <button type="button" class="table-inline__card"
                                   [class.table-inline__card--selected]="form.time === slot"
                                   [class.table-inline__card--slot-full]="slotFull && form.time !== slot"
+                                  [class.table-inline__card--table-occupied]="tableOccupied && form.time !== slot"
                                   (click)="form.time = slot">
                             <span class="table-inline__num">{{ slot }}</span>
                             @if (slotFull) {
                               <span class="table-inline__badge table-inline__badge--slot-full">Belegt</span>
+                            } @else if (tableOccupied) {
+                              <span class="table-inline__badge table-inline__badge--table-occupied">Tisch belegt</span>
                             }
                           </button>
                         }
@@ -1495,7 +1604,7 @@
                       @for (n of partyOptions; track n) {
                         <button type="button" class="table-inline__card picker-row__card"
                                 [class.table-inline__card--selected]="form.partySize === n"
-                                (click)="form.partySize = n">
+                                (click)="onPartySizeChange(n)">
                           <span class="table-inline__num">{{ n }}</span>
                         </button>
                       }
@@ -1504,7 +1613,7 @@
                              [class.picker-row__more-input--active]="form.partySize > 6"
                              placeholder="7+"
                              [value]="form.partySize > 6 ? form.partySize : null"
-                             (change)="form.partySize = +$any($event.target).value" />
+                             (change)="onPartySizeChange(+$any($event.target).value)" />
                     </div>
                   </div>
                 </div>
@@ -1571,7 +1680,7 @@
                       @let actuallyOccupied = isTableOccupied(t.id, form.time, form.durationMinutes, editingId());
                       @let occupied         = actuallyOccupied && !isTableSelected(t.id);
                       @let selectedOccupied = actuallyOccupied && isTableSelected(t.id);
-                      @let tooSmall         = !actuallyOccupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id);
+                      @let tooSmall         = !actuallyOccupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id) && selectedSeatsTotal() < form.partySize;
                       @let isSuggested      = bestMergeSuggestion() === t.id && !isTableSelected(t.id);
                       @let mergeIdx         = form.tableIds.indexOf(t.id);
                       @let isMerged         = isTableMerged(t.id);
@@ -1606,7 +1715,7 @@
                           </span>
                         }
                         @if (isMerged) {
-                          <span class="table-inline__link-dot"></span>
+                          <mat-icon class="table-inline__link-dot">link</mat-icon>
                         }
                       </button>
                     }
@@ -1769,6 +1878,17 @@
                 </a>
               }
             </div>
+            @if (guestCardRes()?.source === 'pms') {
+              <a class="gc-hotel-badge" routerLink="/hotelgaeste"
+                 [queryParams]="{ highlight: guestCardRes()?.hotelRoomNumber || guestCardRes()?.guestName }"
+                 (click)="closeGuestCard()">
+                <mat-icon>hotel</mat-icon>
+                <span>Hotel Gast</span>
+                @if (guestCardRes()?.hotelRoomNumber) {
+                  <span class="gc-hotel-badge__room">· Zimmer {{ guestCardRes()!.hotelRoomNumber }}</span>
+                }
+              </a>
+            }
             @if ((guestCardRes()?.guestNoShowCount ?? 0) > 0) {
               <span class="gc-noshow-badge">
                 <mat-icon>warning</mat-icon>

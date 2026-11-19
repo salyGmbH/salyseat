@@ -40,6 +40,8 @@ export class RaumComponent implements OnInit {
         prefillEmail: q.get('prefillEmail') ?? '',
         prefillPhone: q.get('prefillPhone') ?? '',
         prefillSize:  q.get('prefillSize')  ?? '2',
+        source:       q.get('source')       ?? '',
+        roomNumber:   q.get('roomNumber')   ?? '',
       };
     }
 

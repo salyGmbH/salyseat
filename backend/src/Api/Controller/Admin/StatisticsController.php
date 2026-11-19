@@ -33,11 +33,11 @@ class StatisticsController extends AbstractController
 
         $from = $request->query->has('from')
             ? new \DateTimeImmutable($request->query->getString('from'))
-            : new \DateTimeImmutable('-30 days midnight');
+            : null;
 
         $to = $request->query->has('to')
             ? (new \DateTimeImmutable($request->query->getString('to')))->modify('+1 day midnight')
-            : new \DateTimeImmutable('tomorrow midnight');
+            : null;
 
         return $this->json(
             ($this->handler)($tenant->getId()->toRfc4122(), $from, $to)

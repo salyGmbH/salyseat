@@ -82,7 +82,7 @@
       } @else {
         <div class="hg__grid">
           @for (g of inHouse(); track g.id) {
-            <div class="hg__card">
+            <div class="hg__card" [class.hg__card--highlight]="highlightedId() === g.id" [id]="'hg-card-' + g.id">
               <div class="hg__card-avatar">{{ fullName(g).charAt(0).toUpperCase() }}</div>
               <div class="hg__card-body">
                 <div class="hg__card-name">

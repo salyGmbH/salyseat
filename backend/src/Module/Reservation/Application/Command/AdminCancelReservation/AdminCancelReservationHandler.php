@@ -53,7 +53,7 @@ final class AdminCancelReservationHandler
             reservationId: $reservation->getId()->toRfc4122(),
             guestEmail:    $reservation->getGuestEmail(),
             guestName:     $reservation->getGuestName(),
-            startsAt:      $reservation->getStartsAt()->format(\DateTimeInterface::ATOM),
+            startsAt:      $reservation->getStartsAt()->format('d.m.Y H:i'),
             venueName:     $reservation->getVenue()->getName(),
             tenantId:      $reservation->getVenue()->getTenant()->getId()->toRfc4122(),
         ));

@@ -40,6 +40,7 @@ export class AllgemeinComponent implements OnInit {
 
   themeInfo  = signal(false);
   themeSaved = signal(false);
+  logoInfo   = signal(false);
 
   // =========================
   // LOGO
@@ -169,7 +170,10 @@ export class AllgemeinComponent implements OnInit {
   }
 
   saveTheme(): void {
-    this.themeSaved.set(true);
-    setTimeout(() => this.themeSaved.set(false), 2000);
+    const current = this.tenantSettings.snapshot ?? {};
+    this.tenantSettings.save({ ...current, themeMode: this.theme() }).subscribe({
+      next: () => { this.themeSaved.set(true); setTimeout(() => this.themeSaved.set(false), 2000); },
+      error: () => {},
+    });
   }
 }

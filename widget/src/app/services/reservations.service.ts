@@ -36,14 +36,23 @@ export interface WidgetVenueDecor {
   scale: number;
 }
 
+export interface VenueBlockedRange {
+  date_from: string;
+  date_to:   string;
+  full_day:  boolean;
+  time_from: string | null;
+  time_to:   string | null;
+}
+
 export interface WidgetVenue {
-  id: string;
-  name: string;
-  category: string;
-  address: string | null;
-  tables: WidgetVenueTable[];
-  walls:  WidgetVenueWall[];
-  decors: WidgetVenueDecor[];
+  id:            string;
+  name:          string;
+  category:      string;
+  address:       string | null;
+  tables:        WidgetVenueTable[];
+  walls:         WidgetVenueWall[];
+  decors:        WidgetVenueDecor[];
+  blockedRanges: VenueBlockedRange[];
 }
 
 export interface WidgetPageBackground {
@@ -122,9 +131,13 @@ export interface WidgetFunctionalConfig {
   noShowBetragCents?:      number;
   noShowWidgetText?:       string;
   venueReihenfolge?:       { venueId: string; onlineVerfuegbar: boolean }[];
+  wartelisteAktiv?:            boolean;
+  wartelisteMaxPlaetze?:       number;
+  wartelisteKanal?:            'email' | 'telefon' | 'beide';
+  wartelisteAntwortStunden?:   number;
+  wartelisteHinweis?:          string;
 }
 
-/** Sprachen, die das Widget unterstützt */
 export type WidgetLang = 'de' | 'en';
 
 export interface WidgetConfig {
@@ -132,12 +145,12 @@ export interface WidgetConfig {
   venues:            WidgetVenue[];
   widgetDesign:      WidgetDesignConfig      | null;
   widgetFunctional:  WidgetFunctionalConfig  | null;
+  widgetLanguage?:   WidgetLang;
   closedWeekdays:       number[];
   openingSchedule?:     Record<number, { open_time: string | null; close_time: string | null; breaks: { from: string; to: string }[] }>;
   specialClosedRanges?: { date_from: string; date_to: string }[];
   allergene?:           WidgetAllergen[];
   stripePublishableKey?: string | null;
-  widgetLanguage?:      WidgetLang | null;
 }
 
 export interface CreateReservationPayload {
@@ -163,6 +176,33 @@ export interface CreateReservationResponse {
     ends_at:    string;
     status:     string;
     [key: string]: unknown;
+  };
+  message: string;
+}
+
+export interface JoinWaitlistPayload {
+  venue_id:      string;
+  requested_at:  string;
+  party_size:    number;
+  guest_name:    string;
+  guest_email:   string;
+  guest_phone?:  string;
+  notes?:        string;
+}
+
+export interface JoinWaitlistResponse {
+  waitlist_entry: {
+    id:           string;
+    status:       string;
+    venue_id:     string;
+    venue_name:   string;
+    guest_name:   string;
+    guest_email:  string;
+    guest_phone:  string | null;
+    notes:        string | null;
+    party_size:   number;
+    requested_at: string;
+    created_at:   string;
   };
   message: string;
 }
@@ -203,6 +243,7 @@ export class ReservationsService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/widget/reservations`;
   private readonly availBase = `${environment.apiUrl}/widget/availability`;
+  private readonly waitlistBase = `${environment.apiUrl}/widget/waitlist`;
 
   loadConfig(publicKey: string): Observable<WidgetConfig> {
     return this.http.get<WidgetConfig>(`${this.base}/config/${publicKey}`).pipe(
@@ -219,6 +260,10 @@ export class ReservationsService {
 
   create(payload: CreateReservationPayload): Observable<CreateReservationResponse> {
     return this.http.post<CreateReservationResponse>(this.base, payload);
+  }
+
+  joinWaitlist(payload: JoinWaitlistPayload): Observable<JoinWaitlistResponse> {
+    return this.http.post<JoinWaitlistResponse>(this.waitlistBase, payload);
   }
 
   createPaymentIntent(reservationToken: string, mode: 'charge' | 'authorize' = 'charge'): Observable<PaymentIntentResponse> {

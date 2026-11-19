@@ -37,6 +37,7 @@ final class TenantEmailSettingsProvider
         $design  = $es['design']  ?? [];
         $social  = $es['social']  ?? [];
         $content = $es['content'] ?? [];
+        $wf      = $ui['widgetFunctional'] ?? [];
 
         $mode = $design['mode'] ?? 'dark';
 
@@ -78,6 +79,12 @@ final class TenantEmailSettingsProvider
             'attachments' => $es['attachments'] ?? [],
             'logoLight' => $ui['logoLight'] ?? null,
             'logoDark'  => $ui['logoDark']  ?? null,
+            'policy' => [
+                'onlineAenderungen'        => (bool) ($wf['onlineAenderungen'] ?? false),
+                'onlineAenderungenMinuten' => (int) ($wf['onlineAenderungenMinuten'] ?? 120),
+                'onlineStornierung'        => (bool) ($wf['onlineStornierung'] ?? false),
+                'onlineStornierungMinuten' => (int) ($wf['onlineStornierungMinuten'] ?? 120),
+            ],
         ];
     }
 }

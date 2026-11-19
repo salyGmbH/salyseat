@@ -19,35 +19,47 @@ final class StatisticsHandler
         private readonly DoctrineOpeningHoursRepository $ohRepo,
     ) {}
 
-    public function __invoke(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function __invoke(string $tenantId, ?\DateTimeImmutable $from, ?\DateTimeImmutable $to): array
     {
         $tid = Uuid::fromString($tenantId);
 
-        $totals = $this->totals($tid);
-        $totals['auslastung'] = $this->auslastung($tid, $from, $to);
+        // Fallback für Auslastung wenn kein Zeitraum: aktuelles Jahr
+        $auslastungFrom = $from ?? new \DateTimeImmutable('first day of january this year midnight');
+        $auslastungTo   = $to   ?? new \DateTimeImmutable('tomorrow midnight');
+
+        $totals = $this->totals($tid, $from, $to);
+        $totals['auslastung'] = $this->auslastung($tid, $auslastungFrom, $auslastungTo);
 
         return [
-            'totals'    => $totals,
-            'timeslots' => $this->timeslots($tid, $from, $to),
-            'monthly'   => $this->monthly($tid),
-            'topGuests' => $this->topGuests($tid),
+            'totals'     => $totals,
+            'timeslots'  => $this->timeslots($tid, $auslastungFrom, $auslastungTo),
+            'monthly'    => $this->monthly($tid, $from, $to),
+            'topGuests'  => $this->topGuests($tid),
+            'guestTypes' => $this->guestTypes($tid, $from, $to),
+            'sources'    => $this->sources($tid, $from, $to),
         ];
     }
 
-    // ─── Gesamt-KPIs (all-time) ───────────────────────────────────────────────
+    // ─── Gesamt-KPIs (gefiltert nach Zeitraum wenn angegeben) ────────────────
 
-    private function totals(Uuid $tenantId): array
+    private function totals(Uuid $tenantId, ?\DateTimeImmutable $from, ?\DateTimeImmutable $to): array
     {
-        $rows = $this->em->createQueryBuilder()
+        $qb = $this->em->createQueryBuilder()
             ->select('r.status, COUNT(r.id) as cnt, COALESCE(SUM(r.partySize), 0) as guests')
             ->from(Reservation::class, 'r')
             ->join('r.venue', 'v')
             ->join('v.tenant', 't')
             ->where('t.id = :tenantId')
-            ->groupBy('r.status')
-            ->setParameter('tenantId', $tenantId, 'uuid')
-            ->getQuery()
-            ->getResult();
+            ->setParameter('tenantId', $tenantId, 'uuid');
+
+        if ($from !== null) {
+            $qb->andWhere('r.startsAt >= :from')->setParameter('from', $from);
+        }
+        if ($to !== null) {
+            $qb->andWhere('r.startsAt < :to')->setParameter('to', $to);
+        }
+
+        $rows = $qb->groupBy('r.status')->getQuery()->getResult();
 
         $totalCount  = 0;
         $totalGuests = 0;
@@ -205,30 +217,34 @@ final class StatisticsHandler
         ], $rows);
     }
 
-    // ─── Monatliche Reservierungen (letzten 12 Monate) ────────────────────────
+    // ─── Monatliche Reservierungen (gefiltert nach Zeitraum) ─────────────────
 
-    private function monthly(Uuid $tenantId): array
+    private function monthly(Uuid $tenantId, ?\DateTimeImmutable $from, ?\DateTimeImmutable $to): array
     {
-        $conn     = $this->em->getConnection();
-        $fromDate = (new \DateTimeImmutable('-12 months'))->format('Y-m-01');
+        $conn      = $this->em->getConnection();
+        $fromDate  = $from?->format('Y-m-01') ?? (new \DateTimeImmutable('-12 months'))->format('Y-m-01');
+        $toDate    = $to?->format('Y-m-d H:i:s');
 
-        $rows = $conn->fetchAllAssociative(
-            "SELECT DATE_FORMAT(r.starts_at, '%Y-%m') AS month,
-                    COUNT(r.id)                        AS cnt,
-                    COALESCE(SUM(r.party_size), 0)     AS guests
-             FROM reservations r
-             INNER JOIN venues  v ON v.id = r.venue_id
-             INNER JOIN tenants t ON t.id = v.tenant_id
-             WHERE t.id      = UNHEX(REPLACE(:tenantId, '-', ''))
-               AND r.starts_at >= :from
-               AND r.status NOT IN ('cancelled')
-             GROUP BY month
-             ORDER BY month",
-            [
-                'tenantId' => $tenantId->toRfc4122(),
-                'from'     => $fromDate,
-            ]
-        );
+        $sql = "SELECT DATE_FORMAT(r.starts_at, '%Y-%m') AS month,
+                        COUNT(r.id)                        AS cnt,
+                        COALESCE(SUM(r.party_size), 0)     AS guests
+                 FROM reservations r
+                 INNER JOIN venues  v ON v.id = r.venue_id
+                 INNER JOIN tenants t ON t.id = v.tenant_id
+                 WHERE t.id      = UNHEX(REPLACE(:tenantId, '-', ''))
+                   AND r.starts_at >= :from
+                   AND r.status NOT IN ('cancelled')";
+
+        $params = ['tenantId' => $tenantId->toRfc4122(), 'from' => $fromDate];
+
+        if ($toDate !== null) {
+            $sql .= " AND r.starts_at < :to";
+            $params['to'] = $toDate;
+        }
+
+        $sql .= " GROUP BY month ORDER BY month";
+
+        $rows = $conn->fetchAllAssociative($sql, $params);
 
         return array_map(fn(array $row) => [
             'month'  => $row['month'],
@@ -261,6 +277,89 @@ final class StatisticsHandler
             'reliabilityScore' => $g->getReliabilityScore(),
             'blocked'          => $g->isBlocked(),
         ], $guests);
+    }
+
+    // ─── Gästeart: Neukunden vs. Bestandskunden ───────────────────────────────
+    // Bestandskunde = guest mit total_reservations > 1
+
+    private function guestTypes(Uuid $tenantId, ?\DateTimeImmutable $from, ?\DateTimeImmutable $to): array
+    {
+        $conn   = $this->em->getConnection();
+        $params = ['tenantId' => $tenantId->toRfc4122()];
+
+        $dateFilter = '';
+        if ($from !== null) {
+            $dateFilter  .= ' AND r.starts_at >= :from';
+            $params['from'] = $from->format('Y-m-d H:i:s');
+        }
+        if ($to !== null) {
+            $dateFilter  .= ' AND r.starts_at < :to';
+            $params['to'] = $to->format('Y-m-d H:i:s');
+        }
+
+        $row = $conn->fetchAssociative(
+            "SELECT
+                COALESCE(SUM(CASE WHEN g.total_reservations <= 1 OR g.id IS NULL THEN 1 ELSE 0 END), 0) AS new_count,
+                COALESCE(SUM(CASE WHEN g.total_reservations > 1                              THEN 1 ELSE 0 END), 0) AS returning_count
+             FROM reservations r
+             LEFT JOIN guests g ON g.id = r.guest_id
+             INNER JOIN venues  v ON v.id = r.venue_id
+             INNER JOIN tenants t ON t.id = v.tenant_id
+             WHERE t.id = UNHEX(REPLACE(:tenantId, '-', ''))
+               AND r.status NOT IN ('cancelled', 'no_show')
+               {$dateFilter}",
+            $params
+        );
+
+        $new       = (int) ($row['new_count']       ?? 0);
+        $returning = (int) ($row['returning_count'] ?? 0);
+        $total     = $new + $returning;
+
+        return [
+            'new'            => $new,
+            'returning'      => $returning,
+            'newPercent'     => $total > 0 ? round($new       / $total * 100, 1) : 0,
+            'returningPercent' => $total > 0 ? round($returning / $total * 100, 1) : 0,
+        ];
+    }
+
+    // ─── Quellen: Online / Manuell / Walk-in ─────────────────────────────────
+
+    private function sources(Uuid $tenantId, ?\DateTimeImmutable $from, ?\DateTimeImmutable $to): array
+    {
+        $conn   = $this->em->getConnection();
+        $params = ['tenantId' => $tenantId->toRfc4122()];
+
+        $dateFilter = '';
+        if ($from !== null) { $dateFilter .= ' AND r.starts_at >= :from'; $params['from'] = $from->format('Y-m-d H:i:s'); }
+        if ($to   !== null) { $dateFilter .= ' AND r.starts_at < :to';   $params['to']   = $to->format('Y-m-d H:i:s'); }
+
+        $row = $conn->fetchAssociative(
+            "SELECT
+                COALESCE(SUM(CASE WHEN r.source = 'online'  THEN 1 ELSE 0 END), 0) AS online_count,
+                COALESCE(SUM(CASE WHEN r.source = 'walk_in' THEN 1 ELSE 0 END), 0) AS walk_in_count,
+                COALESCE(SUM(CASE WHEN r.source = 'admin' OR r.source IS NULL THEN 1 ELSE 0 END), 0) AS admin_count
+             FROM reservations r
+             INNER JOIN venues  v ON v.id = r.venue_id
+             INNER JOIN tenants t ON t.id = v.tenant_id
+             WHERE t.id = UNHEX(REPLACE(:tenantId, '-', ''))
+               AND r.status NOT IN ('cancelled', 'no_show')
+               {$dateFilter}",
+            $params
+        );
+
+        $online  = (int) ($row['online_count']  ?? 0);
+        $walkIn  = (int) ($row['walk_in_count'] ?? 0);
+        $admin   = (int) ($row['admin_count']   ?? 0);
+        $total   = $online + $walkIn + $admin;
+
+        $pct = fn(int $n) => $total > 0 ? round($n / $total * 100, 1) : 0.0;
+
+        return [
+            'online'  => $online,  'onlinePercent'  => $pct($online),
+            'walkIn'  => $walkIn,  'walkInPercent'  => $pct($walkIn),
+            'admin'   => $admin,   'adminPercent'   => $pct($admin),
+        ];
     }
 
     // ─── Hilfsmethode ────────────────────────────────────────────────────────

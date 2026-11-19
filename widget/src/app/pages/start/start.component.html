@@ -2,21 +2,21 @@
 
 <!-- ─── Loading ─────────────────────────────────────────────────────────── -->
   @if (state() === 'loading') {
-    <div class="loading-card" role="status" aria-label="Seite wird geladen">
+    <div class="loading-card" role="status" [attr.aria-label]="t().pageLoading">
       <span class="spinner" aria-hidden="true"></span>
-      <span>Wird geladen …</span>
+      <span>{{ t().loading }}</span>
     </div>
   }
 
   <!-- ─── Payment ─────────────────────────────────────────────────────────── -->
   @else if (state() === 'payment' || state() === 'paying') {
-    <div class="payment-card" role="region" aria-label="Zahlung">
+    <div class="payment-card" role="region" [attr.aria-label]="t().paymentRegion">
       <div class="payment-card__icon" aria-hidden="true">💳</div>
       <h2 class="payment-card__title">
-        {{ noShowSchutzAktiv() ? 'Kreditkarte hinterlegen' : 'Zahlung abschließen' }}
+        {{ noShowSchutzAktiv() ? t().creditCardTitle : t().completePayment }}
       </h2>
       <p class="payment-card__lead">
-        {{ noShowSchutzAktiv() ? noShowWidgetText() : 'Deine Reservierung ist vorgemerkt. Bitte schließe jetzt die Zahlung ab.' }}
+        {{ noShowSchutzAktiv() ? noShowWidgetText() : t().reservationPending }}
       </p>
       <div id="stripe-payment-element" class="payment-card__element"></div>
       @if (paymentError()) {
@@ -27,11 +27,11 @@
         class="payment-card__btn"
         [disabled]="state() === 'paying'"
         [attr.aria-busy]="state() === 'paying'"
-        aria-label="Zahlung bestätigen"
+        [attr.aria-label]="t().paymentConfirm"
         (click)="confirmPayment()">
-        @if (state() === 'paying') { Wird verarbeitet … } @else { Jetzt bezahlen }
+        @if (state() === 'paying') { {{ t().processing }} } @else { {{ t().paying }} }
       </button>
-      <button type="button" class="btn-secondary" aria-label="Zahlung abbrechen" (click)="reset()">Abbrechen</button>
+      <button type="button" class="btn-secondary" [attr.aria-label]="t().paymentCancel" (click)="reset()">{{ t().cancel }}</button>
     </div>
   }
 
@@ -39,27 +39,27 @@
   @else if (state() === 'success') {
     <div class="success-card" role="status" aria-live="polite" aria-atomic="true">
       <div class="success-icon" aria-hidden="true">✓</div>
-      <h2>Reservierung bestätigt</h2>
+      <h2>{{ t().bookingConfirmed }}</h2>
       <p class="success-lead">
-        Danke <strong>{{ successInfo()!.name }}</strong>! Deine Reservierung am
-        <strong>{{ formatDate(successInfo()!.date) }}</strong> um
-        <strong>{{ successInfo()!.time }} Uhr</strong> für
-        <strong>{{ successInfo()!.people }} {{ successInfo()!.people === 1 ? 'Person' : 'Personen' }}</strong>
-        @if (venues().length > 1) { im <strong>{{ successInfo()!.venue }}</strong> }
-        wurde gespeichert.
+        {{ t().successThanks }} <strong>{{ successInfo()!.name }}</strong>! {{ t().successReservOn }}
+        <strong>{{ formatDate(successInfo()!.date) }}</strong> {{ t().successAtTime }}
+        <strong>{{ successInfo()!.time }}{{ t().clockSuffix }}</strong> {{ t().successForPeople }}
+        <strong>{{ successInfo()!.people }} {{ successInfo()!.people === 1 ? t().successPerson : t().successPersons }}</strong>
+        @if (venues().length > 1) { {{ t().successInVenue }} <strong>{{ successInfo()!.venue }}</strong> }
+        {{ t().successSaved }}
       </p>
-      <p class="success-hint">Du erhältst in Kürze eine Bestätigungsmail.</p>
+      <p class="success-hint">{{ t().successConfirmEmail }}</p>
       @if (onlineAenderungen() || onlineStornierung()) {
         <div class="success-policy">
           @if (onlineAenderungen()) {
-            <p>✏️ Änderungen möglich bis {{ formatMinutenPolicy(onlineAenderungenMinuten()) }} vor der Reservierung.</p>
+            <p>✏️ {{ t().changePossibleUntil }} {{ formatMinutenPolicy(onlineAenderungenMinuten()) }} {{ t().beforeReserv }}</p>
           }
           @if (onlineStornierung()) {
-            <p>🗑 Stornierung möglich bis {{ formatMinutenPolicy(onlineStornierungMinuten()) }} vor der Reservierung.</p>
+            <p>🗑 {{ t().cancelPossibleUntil }} {{ formatMinutenPolicy(onlineStornierungMinuten()) }} {{ t().beforeReserv }}</p>
           }
         </div>
       }
-      <button type="button" class="btn-secondary" aria-label="Neue Reservierung starten" (click)="reset()">Neue Reservierung</button>
+      <button type="button" class="btn-secondary" [attr.aria-label]="t().newBooking" (click)="reset()">{{ t().newBooking }}</button>
     </div>
   }
 
@@ -82,7 +82,7 @@
            (click)="$event.stopPropagation()">
         <div class="widget-menu-overlay__header">
           <span id="hinweis-title">{{ hinweistextUeberschrift() || 'Hinweis' }}</span>
-          <button type="button" class="widget-menu-overlay__close" aria-label="Hinweis schließen" (click)="dismissHinweis()">✕</button>
+          <button type="button" class="widget-menu-overlay__close" [attr.aria-label]="t().hintClose" (click)="dismissHinweis()">✕</button>
         </div>
         @if (hinweistextInhalt()) {
           <div class="widget-hinweis-content">{{ hinweistextInhalt() }}</div>
@@ -92,7 +92,7 @@
         }
         <div class="widget-hinweis-actions">
           <button type="button" class="widget-hinweis-actions__btn" (click)="dismissHinweis()">
-            Verstanden
+            {{ t().understood }}
           </button>
         </div>
       </div>
@@ -108,15 +108,15 @@
           <!-- Back header (Step 2+) -->
           @if (cardStep() > 1) {
             <div class="preview-card__topbar">
-              <button class="preview-card__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="cardPrevStep()">
+              <button class="preview-card__topbar-back" type="button" [attr.aria-label]="t().back" (click)="cardPrevStep()">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                   <polyline points="13,4 7,10 13,16"/>
                 </svg>
-                Zurück
+                {{ t().back }}
               </button>
               @if (cardStep() === 2 && cardWasOnSummary()) {
-                <button class="preview-card__topbar-fwd" type="button" aria-label="Weiter zur Zusammenfassung" (click)="cardGoToSummary()">
-                  Zusammenfassung
+                <button class="preview-card__topbar-fwd" type="button" [attr.aria-label]="t().nextToSummary" (click)="cardGoToSummary()">
+                  {{ t().stepSummary }}
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="7,4 13,10 7,16"/>
                   </svg>
@@ -136,7 +136,7 @@
 
           @if (cardStep() === 1) {
             <!-- Step 1: date / time / seats -->
-            <h4 class="preview-card__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+            <h4 class="preview-card__title">{{ headingTitle() }}</h4>
             @if (showSubtitle() && headingSubtitle()) {
               <p class="preview-card__subtitle">{{ headingSubtitle() }}</p>
             }
@@ -146,7 +146,7 @@
               @if (cardOpenPicker() === 'seats') {
                 <div class="preview-card__picker preview-card__picker--seats">
                   <div class="preview-planner">
-                    <div class="preview-planner__chips preview-planner__chips--seats" role="group" aria-label="Personenanzahl wählen">
+                    <div class="preview-planner__chips preview-planner__chips--seats" role="group" [attr.aria-label]="t().guestsSelect">
                       @for (seat of seatOptions(); track seat.count) {
                         <button type="button"
                                 class="preview-planner__chip preview-planner__chip--seat"
@@ -167,18 +167,18 @@
                   </div>
                 </div>
               }
-              <div class="preview-card__stepper" role="group" aria-label="Personenanzahl">
-                <button type="button" class="preview-card__stepper-btn" aria-label="Personenanzahl verringern" (click)="cardDecSeats()">−</button>
+              <div class="preview-card__stepper" role="group" [attr.aria-label]="t().guestsCount">
+                <button type="button" class="preview-card__stepper-btn" [attr.aria-label]="t().guestsDecrease" (click)="cardDecSeats()">−</button>
                 <button type="button"
                         class="preview-card__stepper-num"
                         [class.is-active]="cardOpenPicker() === 'seats'"
                         role="spinbutton"
                         [attr.aria-valuenow]="people()"
-                        [attr.aria-valuetext]="people() + (people() === 1 ? ' Gast' : ' Gäste')"
-                        aria-label="Personenanzahl"
+                        [attr.aria-valuetext]="people() + ' ' + (people() === 1 ? t().guest : t().guests)"
+                        [attr.aria-label]="t().guestsCount"
                         [attr.aria-expanded]="cardOpenPicker() === 'seats'"
                         (click)="cardTogglePicker('seats')">{{ people() }}</button>
-                <button type="button" class="preview-card__stepper-btn" aria-label="Personenanzahl erhöhen" (click)="cardIncSeats()">+</button>
+                <button type="button" class="preview-card__stepper-btn" [attr.aria-label]="t().guestsIncrease" (click)="cardIncSeats()">+</button>
               </div>
             </div>
 
@@ -188,9 +188,9 @@
                 <div class="preview-card__picker preview-card__picker--date">
                   <div class="preview-planner">
                     <div class="preview-planner__cal-bar">
-                      <button class="preview-planner__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">‹</button>
+                      <button class="preview-planner__cal-nav" type="button" [attr.aria-label]="t().prevMonth" (click)="prevMonth()">‹</button>
                       <span class="preview-planner__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
-                      <button class="preview-planner__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">›</button>
+                      <button class="preview-planner__cal-nav" type="button" [attr.aria-label]="t().nextMonth" (click)="nextMonth()">›</button>
                     </div>
                     <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays" aria-hidden="true">
                       @for (wd of weekdays(); track $index) {
@@ -223,18 +223,29 @@
               @if (cardOpenPicker() === 'time') {
                 <div class="preview-card__picker preview-card__picker--time">
                   <div class="preview-planner">
-                    <div class="preview-planner__chips preview-planner__chips--times" role="group" aria-label="Uhrzeit wählen">
+                    <div class="preview-planner__chips preview-planner__chips--times" role="group" [attr.aria-label]="t().timeSelect">
                       @for (slot of timeSlots(); track slot) {
                         <button type="button"
                                 class="preview-planner__chip"
                                 [class.is-selected]="slot === validTime()"
                                 [attr.aria-pressed]="slot === validTime()"
-                                [attr.aria-label]="slot + ' Uhr'"
+                                [attr.aria-label]="slot + t().clockSuffix"
                                 (click)="cardSelectTime(slot)">
                           {{ slot }}
                         </button>
                       }
                     </div>
+                    @if (wartelisteAktiv() && waitlistSlots().length > 0) {
+                      <div class="preview-planner__chips preview-planner__chips--waitlist" role="group" [attr.aria-label]="t().waitlistHint">
+                        @for (slot of waitlistSlots(); track slot) {
+                          <button type="button"
+                                  class="preview-planner__chip preview-planner__chip--waitlist"
+                                  (click)="openWaitlistForm(slot)">
+                            {{ slot }} · {{ t().waitlistFull }}
+                          </button>
+                        }
+                      </div>
+                    }
                   </div>
                 </div>
               }
@@ -256,7 +267,7 @@
                     </svg>
                   </span>
                   <span class="preview-card__datetime-meta">
-                    <span class="preview-card__datetime-hint" aria-hidden="true">Datum</span>
+                    <span class="preview-card__datetime-hint" aria-hidden="true">{{ t().stepDate }}</span>
                     <span class="preview-card__datetime-text" aria-hidden="true">{{ selectedDateLabel() }}</span>
                   </span>
                   <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'date'" aria-hidden="true">⌄</span>
@@ -265,7 +276,7 @@
                         type="button"
                         [class.is-active]="cardOpenPicker() === 'time'"
                         [attr.aria-expanded]="cardOpenPicker() === 'time'"
-                        [attr.aria-label]="'Uhrzeit: ' + validTime() + ' Uhr, Auswahl öffnen'"
+                        [attr.aria-label]="t().stepTime + ': ' + validTime() + t().clockSuffix"
                         (click)="cardTogglePicker('time')">
                   <span class="preview-card__datetime-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="16" height="16">
@@ -274,8 +285,8 @@
                     </svg>
                   </span>
                   <span class="preview-card__datetime-meta">
-                    <span class="preview-card__datetime-hint" aria-hidden="true">Uhrzeit</span>
-                    <span class="preview-card__datetime-text" aria-hidden="true">{{ validTime() }} Uhr</span>
+                    <span class="preview-card__datetime-hint" aria-hidden="true">{{ t().stepTime }}</span>
+                    <span class="preview-card__datetime-text" aria-hidden="true">{{ validTime() }}{{ t().clockSuffix }}</span>
                   </span>
                   <span class="preview-card__datetime-chevron" [class.is-open]="cardOpenPicker() === 'time'" aria-hidden="true">⌄</span>
                 </button>
@@ -284,7 +295,7 @@
 
             @if (tischartenAktiv() && tischartenModus() === 'liste' && availableTischarten().length > 0) {
               <div class="tischart-picker">
-                <div class="tischart-picker__label">Tischart</div>
+                <div class="tischart-picker__label">{{ t().tableType }}</div>
                 <div class="tischart-picker__chips">
                   @for (t of availableTischarten(); track t.key) {
                     <button type="button"
@@ -339,26 +350,26 @@
                   <path d="M6 6a1 1 0 0 0 2 0"/>
                   <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
                 </svg>
-                Speisekarte ansehen
+                {{ t().menuLabel }}
               </button>
             }
 
             <button class="preview-card__cta" type="button" (click)="cardNextStep()">
-              {{ buttonLabel() || 'Reservieren' }}
+              {{ buttonLabel() || t().reserve }}
             </button>
 
           } @else if (cardStep() === 2) {
             <!-- Step 2: guest data -->
             <p class="preview-card__subtitle">
-              {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+              {{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}
               · {{ selectedDateLabel() }}
-              · {{ validTime() }}&nbsp;Uhr
+              · {{ validTime() }}{{ t().clockSuffix }}
             </p>
 
             <div class="preview-card__form">
               @if (raumauswahl() && filteredVenues().length > 1) {
                 <div class="preview-card__field">
-                  <label class="preview-card__field-label">Bereich</label>
+                  <label class="preview-card__field-label">{{ t().venue }}</label>
                   <div class="preview-card__form-row preview-card__form-row--venue">
                     @for (v of filteredVenues(); track v.id) {
                       <button type="button"
@@ -377,16 +388,16 @@
                   <label class="preview-card__field-label" for="card-name">Name <span class="field-required">*</span></label>
                   <input id="card-name" type="text" class="preview-card__field-input preview-card__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         placeholder="Vor- und Nachname" autocomplete="name" name="cardName"
+                         [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="cardName"
                          aria-required="true"
                          [attr.aria-invalid]="cardShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
                 <div class="preview-card__field preview-card__field--required"
                      [class.preview-card__field--error]="cardShowErrors() && !emailLooksOk()">
-                  <label class="preview-card__field-label" for="card-email">E-Mail <span class="field-required">*</span></label>
+                  <label class="preview-card__field-label" for="card-email">{{ t().email }} <span class="field-required">*</span></label>
                   <input id="card-email" type="email" class="preview-card__field-input preview-card__field-input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         placeholder="name@beispiel.de" autocomplete="email" name="cardEmail"
+                         [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="cardEmail"
                          aria-required="true"
                          [attr.aria-invalid]="cardShowErrors() && !emailLooksOk() ? 'true' : null">
                 </div>
@@ -396,22 +407,22 @@
                    [class.preview-card__field--required]="isRequired('phone')"
                    [class.preview-card__field--error]="cardShowErrors() && isRequired('phone') && !guestPhone().trim()">
                 <label class="preview-card__field-label" for="card-phone">
-                  Telefon
+                  {{ t().phone }}
                   @if (isRequired('phone')) { <span class="field-required">*</span> }
                   @else { <span class="preview-card__field-optional">(optional)</span> }
                 </label>
                 <input id="card-phone" type="tel" class="preview-card__field-input preview-card__field-input--real"
                        [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
-                       placeholder="+49 …" autocomplete="tel" name="cardPhone">
+                       [attr.placeholder]="t().phonePlaceholder" autocomplete="tel" name="cardPhone">
               </div>
 
               @if (kinderStuehleAktiv()) {
                 <div class="preview-card__field">
-                  <label class="preview-card__field-label">Kinderstühle</label>
-                  <div class="kinder-stepper" role="group" aria-label="Kinderstühle">
-                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle verringern" (click)="decKinderStuehle()">−</button>
-                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' Kinderstühle'">{{ kinderStuehle() }}</span>
-                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle erhöhen" (click)="incKinderStuehle()">+</button>
+                  <label class="preview-card__field-label">{{ t().childChairs }}</label>
+                  <div class="kinder-stepper" role="group" [attr.aria-label]="t().childChairs">
+                    <button type="button" class="kinder-stepper__btn" [attr.aria-label]="t().childChairs + ' –'" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' ' + t().childChairs">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" [attr.aria-label]="t().childChairs + ' +'" (click)="incKinderStuehle()">+</button>
                     <span class="kinder-stepper__hint" [attr.aria-label]="'maximal ' + kinderStuehleOnline()">max. {{ kinderStuehleOnline() }}</span>
                   </div>
                 </div>
@@ -430,7 +441,7 @@
                       <circle cx="10.5" cy="16.5" r="2"/>
                       <path d="M14 8l2.5 6.5"/>
                     </svg>
-                    Rollstuhlgerechter Platz gewünscht
+                    {{ t().wheelchairLabel }}
                   </span>
                 </label>
               }
@@ -449,13 +460,13 @@
                       <line x1="6.5" y1="15" x2="6.5" y2="17.5"/>
                       <line x1="4.5" y1="15" x2="4.5" y2="17.5"/>
                     </svg>
-                    Hund dabei
+                    {{ t().dogLabel }}
                   </span>
                 </label>
               }
               @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
                 <div class="allergen-picker">
-                  <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                  <span class="allergen-picker__label">{{ t().allergiesLabel }}</span>
                   <div class="allergen-picker__chips">
                     @for (a of verfuegbareAllergene(); track a.key) {
                       <button type="button" class="allergen-chip"
@@ -471,13 +482,13 @@
                    [class.preview-card__field--required]="isRequired('notes')"
                    [class.preview-card__field--error]="cardShowErrors() && isRequired('notes') && !notes().trim()">
                 <label class="preview-card__field-label" for="card-notes">
-                  Notizen
+                  {{ t().notes }}
                   @if (isRequired('notes')) { <span class="field-required">*</span> }
                   @else { <span class="preview-card__field-optional">(optional)</span> }
                 </label>
                 <textarea id="card-notes" class="preview-card__field-input preview-card__field-input--real preview-card__field-input--area"
                           [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                          placeholder="Allergien, Kinderstuhl, besondere Wünsche …"
+                          [attr.placeholder]="t().notesPlaceholder"
                           name="cardNotes" rows="2"></textarea>
               </div>
             </div>
@@ -493,7 +504,7 @@
                 @if (cardConsent()) { <span class="check-icon">✓</span> }
               </span>
               <span class="preview-card__consent-text">
-                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
+                {{ t().consentText }} <span class="field-required">*</span>
               </span>
             </label>
 
@@ -501,7 +512,7 @@
               <button class="preview-card__cta"
                       type="button"
                       (click)="cardGoToSummary()">
-                Weiter zur Zusammenfassung
+                {{ t().nextToSummary }}
               </button>
             </div>
 
@@ -512,20 +523,20 @@
               <div class="widget-summary__booking">
                 <div class="widget-summary__booking-item">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
-                  <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                  <div><span class="widget-summary__booking-label">{{ t().stepDate }}</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
                 </div>
                 <div class="widget-summary__booking-item">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
-                  <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                  <div><span class="widget-summary__booking-label">{{ t().stepTime }}</span><span class="widget-summary__booking-val">{{ validTime() }}{{ t().clockSuffix }}</span></div>
                 </div>
                 <div class="widget-summary__booking-item">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
-                  <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                  <div><span class="widget-summary__booking-label">{{ t().stepGuests }}</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}</span></div>
                 </div>
                 @if (raumauswahl() && filteredVenues().length > 1) {
                   <div class="widget-summary__booking-item">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
-                    <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                    <div><span class="widget-summary__booking-label">{{ t().venue }}</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
                   </div>
                 }
               </div>
@@ -537,27 +548,27 @@
                 </div>
                 <div class="widget-summary__field">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
-                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().email }}</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
                 </div>
                 @if (guestPhone()) {
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
-                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
                   </div>
                 }
                 @if (notes()) {
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
-                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().notes }}</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
                   </div>
                 }
               </div>
 
               @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
                 <div class="widget-summary__extras">
-                  @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
-                  @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
-                  @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                  @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
+                  @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
+                  @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                   @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                   @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
                 </div>
@@ -574,10 +585,10 @@
                       [class.is-disabled]="!canSubmit()"
                       [disabled]="!canSubmit()"
                       [attr.aria-busy]="state() === 'submitting'"
-                      aria-label="Reservierung absenden"
+                      [attr.aria-label]="t().submitReservation"
                       (click)="weiter()">
-                @if (state() === 'submitting') { Wird gesendet … }
-                @else { Reservierung absenden }
+                @if (state() === 'submitting') { {{ t().submitting }} }
+                @else { {{ t().submitReservation }} }
               </button>
             </div>
           }
@@ -618,15 +629,15 @@
                 <button type="button"
                         class="preview-sidebar__group preview-sidebar__group--button"
                         (click)="sidebarTogglePicker('date')">
-                  <label class="preview-sidebar__label">Datum</label>
+                  <label class="preview-sidebar__label">{{ t().stepDate }}</label>
                   <div class="preview-sidebar__value">{{ selectedDateLabel() }}</div>
                   <span class="preview-sidebar__chevron">›</span>
                 </button>
                 <button type="button"
                         class="preview-sidebar__group preview-sidebar__group--button"
                         (click)="sidebarTogglePicker('time')">
-                  <label class="preview-sidebar__label">Uhrzeit</label>
-                  <div class="preview-sidebar__value">{{ validTime() }}&nbsp;Uhr</div>
+                  <label class="preview-sidebar__label">{{ t().stepTime }}</label>
+                  <div class="preview-sidebar__value">{{ validTime() }}{{ t().clockSuffix }}</div>
                   <span class="preview-sidebar__chevron">›</span>
                 </button>
               </div>
@@ -634,16 +645,16 @@
               <button type="button"
                       class="preview-sidebar__group preview-sidebar__group--button"
                       (click)="sidebarTogglePicker('seats')">
-                <label class="preview-sidebar__label">Personen</label>
+                <label class="preview-sidebar__label">{{ t().stepGuests }}</label>
                 <div class="preview-sidebar__value">
-                  {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+                  {{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}
                 </div>
                 <span class="preview-sidebar__chevron">›</span>
               </button>
 
               @if (tischartenAktiv() && tischartenModus() === 'liste' && availableTischarten().length > 0) {
                 <div class="tischart-picker">
-                  <div class="tischart-picker__label">Tischart</div>
+                  <div class="tischart-picker__label">{{ t().tableType }}</div>
                   <div class="tischart-picker__chips">
                     @for (t of availableTischarten(); track t.key) {
                       <button type="button"
@@ -664,7 +675,7 @@
                     <path d="M6 6a1 1 0 0 0 2 0"/>
                     <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
                   </svg>
-                  Speisekarte ansehen
+                  {{ t().menuLabel }}
                 </button>
               }
 
@@ -701,33 +712,33 @@
                 </div>
               }
               <button class="preview-sidebar__cta" type="button" (click)="sidebarNextStep()">
-                {{ buttonLabel() || 'Reservieren' }}
+                {{ buttonLabel() || t().reserve }}
               </button>
 
             } @else if (sidebarStep() === 2) {
               <!-- Step 2: guest data -->
               <div class="preview-sidebar__topbar">
-                <button class="preview-sidebar__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="sidebarPrevStep()">
+                <button class="preview-sidebar__topbar-back" type="button" [attr.aria-label]="t().back" (click)="sidebarPrevStep()">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                 </button>
                 @if (sidebarWasOnSummary()) {
-                  <button class="preview-sidebar__topbar-fwd" type="button" aria-label="Weiter zur Zusammenfassung" (click)="sidebarGoToSummary()">
+                  <button class="preview-sidebar__topbar-fwd" type="button" [attr.aria-label]="t().nextToSummary" (click)="sidebarGoToSummary()">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="7,4 13,10 7,16"/></svg>
                   </button>
                 }
               </div>
               <h4 class="preview-sidebar__title">
-                <span>Deine Daten</span>
+                <span>{{ t().yourData }}</span>
               </h4>
               <p class="preview-sidebar__subtitle">
-                {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+                {{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}
                 · {{ selectedDateLabel() }}
-                · {{ validTime() }}&nbsp;Uhr
+                · {{ validTime() }}{{ t().clockSuffix }}
               </p>
 
               @if (raumauswahl() && filteredVenues().length > 1) {
                 <div class="preview-sidebar__group">
-                  <label class="preview-sidebar__label">Bereich</label>
+                  <label class="preview-sidebar__label">{{ t().venue }}</label>
                   <div class="venue-chip-row">
                     @for (v of filteredVenues(); track v.id) {
                       <button type="button"
@@ -746,16 +757,16 @@
                   <label class="preview-sidebar__label" for="sb-name">Name <span class="field-required">*</span></label>
                   <input id="sb-name" type="text" class="preview-sidebar__input preview-sidebar__input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         placeholder="Vor- und Nachname" autocomplete="name" name="sbName"
+                         [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="sbName"
                          aria-required="true"
                          [attr.aria-invalid]="sidebarShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
                 <div class="preview-sidebar__group"
                      [class.preview-sidebar__group--error]="sidebarShowErrors() && !emailLooksOk()">
-                  <label class="preview-sidebar__label" for="sb-email">E-Mail <span class="field-required">*</span></label>
+                  <label class="preview-sidebar__label" for="sb-email">{{ t().email }} <span class="field-required">*</span></label>
                   <input id="sb-email" type="email" class="preview-sidebar__input preview-sidebar__input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         placeholder="name@beispiel.de" autocomplete="email" name="sbEmail"
+                         [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="sbEmail"
                          aria-required="true"
                          [attr.aria-invalid]="sidebarShowErrors() && !emailLooksOk() ? 'true' : null">
                 </div>
@@ -763,22 +774,22 @@
 
               <div class="preview-sidebar__group">
                 <label class="preview-sidebar__label" for="sb-phone">
-                  Telefon
+                  {{ t().phone }}
                   @if (isRequired('phone')) { <span class="field-required">*</span> }
                   @else { <span class="preview-sidebar__optional">(optional)</span> }
                 </label>
                 <input id="sb-phone" type="tel" class="preview-sidebar__input preview-sidebar__input--real"
                        [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
-                       placeholder="+49 …" autocomplete="tel" name="sbPhone">
+                       [attr.placeholder]="t().phonePlaceholder" autocomplete="tel" name="sbPhone">
               </div>
 
               @if (kinderStuehleAktiv()) {
                 <div class="preview-sidebar__group">
-                  <label class="preview-sidebar__label">Kinderstühle</label>
-                  <div class="kinder-stepper" role="group" aria-label="Kinderstühle">
-                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle verringern" (click)="decKinderStuehle()">−</button>
-                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' Kinderstühle'">{{ kinderStuehle() }}</span>
-                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle erhöhen" (click)="incKinderStuehle()">+</button>
+                  <label class="preview-sidebar__label">{{ t().childChairs }}</label>
+                  <div class="kinder-stepper" role="group" [attr.aria-label]="t().childChairs">
+                    <button type="button" class="kinder-stepper__btn" [attr.aria-label]="t().childChairs + ' –'" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' ' + t().childChairs">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" [attr.aria-label]="t().childChairs + ' +'" (click)="incKinderStuehle()">+</button>
                     <span class="kinder-stepper__hint" [attr.aria-label]="'maximal ' + kinderStuehleOnline()">max. {{ kinderStuehleOnline() }}</span>
                   </div>
                 </div>
@@ -797,7 +808,7 @@
                       <circle cx="10.5" cy="16.5" r="2"/>
                       <path d="M14 8l2.5 6.5"/>
                     </svg>
-                    Rollstuhlgerechter Platz gewünscht
+                    {{ t().wheelchairLabel }}
                   </span>
                 </label>
               }
@@ -816,13 +827,13 @@
                       <line x1="6.5" y1="15" x2="6.5" y2="17.5"/>
                       <line x1="4.5" y1="15" x2="4.5" y2="17.5"/>
                     </svg>
-                    Hund dabei
+                    {{ t().dogLabel }}
                   </span>
                 </label>
               }
               @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
                 <div class="allergen-picker">
-                  <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                  <span class="allergen-picker__label">{{ t().allergiesLabel }}</span>
                   <div class="allergen-picker__chips">
                     @for (a of verfuegbareAllergene(); track a.key) {
                       <button type="button" class="allergen-chip"
@@ -836,13 +847,13 @@
 
               <div class="preview-sidebar__group">
                 <label class="preview-sidebar__label" for="sb-notes">
-                  Notizen
+                  {{ t().notes }}
                   @if (isRequired('notes')) { <span class="field-required">*</span> }
                   @else { <span class="preview-sidebar__optional">(optional)</span> }
                 </label>
                 <textarea id="sb-notes" class="preview-sidebar__input preview-sidebar__input--real preview-sidebar__input--area"
                           [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                          placeholder="Allergien, Kinderstuhl …"
+                          [attr.placeholder]="t().notesPlaceholder"
                           name="sbNotes" rows="2"></textarea>
               </div>
 
@@ -857,7 +868,7 @@
                   @if (sidebarConsent()) { <span class="check-icon">✓</span> }
                 </span>
                 <span class="preview-sidebar__consent-text">
-                  Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
+                  {{ t().consentText }} <span class="field-required">*</span>
                 </span>
               </label>
 
@@ -865,37 +876,37 @@
                 <button class="preview-sidebar__cta"
                         type="button"
                         (click)="sidebarGoToSummary()">
-                  Weiter zur Zusammenfassung
+                  {{ t().nextToSummary }}
                 </button>
               </div>
 
             } @else if (sidebarStep() === 3) {
               <!-- Step 3: Zusammenfassung -->
               <div class="preview-sidebar__topbar">
-                <button class="preview-sidebar__topbar-back" type="button" aria-label="Zurück zur Dateneingabe" (click)="sidebarPrevStep()">
+                <button class="preview-sidebar__topbar-back" type="button" [attr.aria-label]="t().backToForm" (click)="sidebarPrevStep()">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                 </button>
               </div>
-              <h4 class="preview-sidebar__title"><span>Zusammen-</span><span>fassung</span></h4>
+              <h4 class="preview-sidebar__title"><span>{{ t().stepSummary }}</span></h4>
 
               <div class="widget-summary">
                 <div class="widget-summary__booking">
                   <div class="widget-summary__booking-item">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
-                    <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                    <div><span class="widget-summary__booking-label">{{ t().stepDate }}</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
                   </div>
                   <div class="widget-summary__booking-item">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
-                    <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                    <div><span class="widget-summary__booking-label">{{ t().stepTime }}</span><span class="widget-summary__booking-val">{{ validTime() }}{{ t().clockSuffix }}</span></div>
                   </div>
                   <div class="widget-summary__booking-item">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
-                    <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                    <div><span class="widget-summary__booking-label">{{ t().stepGuests }}</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}</span></div>
                   </div>
                   @if (raumauswahl() && filteredVenues().length > 1) {
                     <div class="widget-summary__booking-item">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
-                      <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                      <div><span class="widget-summary__booking-label">{{ t().venue }}</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
                     </div>
                   }
                 </div>
@@ -907,27 +918,27 @@
                   </div>
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
-                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().email }}</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
                   </div>
                   @if (guestPhone()) {
                     <div class="widget-summary__field">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
-                      <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                      <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
                     </div>
                   }
                   @if (notes()) {
                     <div class="widget-summary__field">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
-                      <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                      <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().notes }}</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
                     </div>
                   }
                 </div>
 
                 @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
                   <div class="widget-summary__extras">
-                    @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
-                    @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
-                    @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                    @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
+                    @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
+                    @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                     @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                     @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
                   </div>
@@ -944,10 +955,10 @@
                         [class.is-disabled]="!canSubmit()"
                         [disabled]="!canSubmit()"
                         [attr.aria-busy]="state() === 'submitting'"
-                        aria-label="Reservierung absenden"
+                        [attr.aria-label]="t().submitReservation"
                         (click)="weiter()">
-                  @if (state() === 'submitting') { Wird gesendet … }
-                  @else { Reservierung absenden }
+                  @if (state() === 'submitting') { {{ t().submitting }} }
+                  @else { {{ t().submitReservation }} }
                 </button>
               </div>
 
@@ -955,14 +966,14 @@
               <!-- Picker overlay -->
               <div class="preview-sidebar__picker">
                 <div class="preview-sidebar__picker-head">
-                  <button class="preview-sidebar__picker-back" type="button" aria-label="Auswahl schließen" (click)="sidebarClosePicker()">
+                  <button class="preview-sidebar__picker-back" type="button" [attr.aria-label]="t().closePicker" (click)="sidebarClosePicker()">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                   </button>
                   <span class="preview-sidebar__picker-title">
                     @switch (sidebarOpenPicker()) {
-                      @case ('date')  { Datum wählen }
-                      @case ('time')  { Uhrzeit wählen }
-                      @case ('seats') { Personen wählen }
+                      @case ('date')  { {{ t().selectDate }} }
+                      @case ('time')  { {{ t().selectTime }} }
+                      @case ('seats') { {{ t().selectGuests }} }
                     }
                   </span>
                 </div>
@@ -972,11 +983,11 @@
                   @case ('date') {
                     <div class="preview-sidebar__cal">
                       <div class="preview-sidebar__cal-bar">
-                        <button class="preview-sidebar__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">
+                        <button class="preview-sidebar__cal-nav" type="button" [attr.aria-label]="t().prevMonth" (click)="prevMonth()">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
                         </button>
                         <span class="preview-sidebar__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
-                        <button class="preview-sidebar__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">
+                        <button class="preview-sidebar__cal-nav" type="button" [attr.aria-label]="t().nextMonth" (click)="nextMonth()">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><polyline points="7,4 13,10 7,16"/></svg>
                         </button>
                       </div>
@@ -1008,27 +1019,38 @@
                     </div>
                   }
                   @case ('time') {
-                    <div class="preview-sidebar__times" role="group" aria-label="Uhrzeit wählen">
+                    <div class="preview-sidebar__times" role="group" [attr.aria-label]="t().timeSelect">
                       @for (slot of timeSlots(); track slot) {
                         <button type="button"
                                 class="preview-sidebar__time"
                                 [class.is-selected]="slot === validTime()"
                                 [attr.aria-pressed]="slot === validTime()"
-                                [attr.aria-label]="slot + ' Uhr'"
+                                [attr.aria-label]="slot + t().clockSuffix"
                                 (click)="sidebarSelectTime(slot)">
                           {{ slot }}
                         </button>
                       }
                     </div>
+                    @if (wartelisteAktiv() && waitlistSlots().length > 0) {
+                      <div class="preview-sidebar__times preview-sidebar__times--waitlist" role="group" [attr.aria-label]="t().waitlistHint">
+                        @for (slot of waitlistSlots(); track slot) {
+                          <button type="button"
+                                  class="preview-sidebar__time preview-sidebar__time--waitlist"
+                                  (click)="openWaitlistForm(slot)">
+                            {{ slot }} · {{ t().waitlistFull }}
+                          </button>
+                        }
+                      </div>
+                    }
                   }
                   @case ('seats') {
-                    <div class="preview-sidebar__seats" role="group" aria-label="Personenanzahl wählen">
+                    <div class="preview-sidebar__seats" role="group" [attr.aria-label]="t().guestsSelect">
                       @for (seat of seatOptions(); track seat.count) {
                         <button type="button"
                                 class="preview-sidebar__seat"
                                 [class.is-selected]="seat.count === people()"
                                 [attr.aria-pressed]="seat.count === people()"
-                                [attr.aria-label]="seat.count + (seat.count === 1 ? ' Gast' : ' Gäste')"
+                                [attr.aria-label]="seat.count + (seat.count === 1 ? ' ' + t().guest : ' ' + t().guests)"
                                 (click)="sidebarSelectSeats(seat.count)">
                           <span class="preview-sidebar__seat-icon" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
@@ -1037,7 +1059,7 @@
                             </svg>
                           </span>
                           <span class="preview-sidebar__seat-count">{{ seat.count }}</span>
-                          <span class="preview-sidebar__seat-label">{{ seat.count === 1 ? 'Gast' : 'Gäste' }}</span>
+                          <span class="preview-sidebar__seat-label">{{ seat.count === 1 ? t().guest : t().guests }}</span>
                         </button>
                       }
                     </div>
@@ -1059,7 +1081,7 @@
           <div class="preview-stacked__head">
             <div class="preview-stacked__head-top">
               @if (stackedStep() > 1) {
-                <button class="preview-stacked__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="stackedPrevStep()">
+                <button class="preview-stacked__topbar-back" type="button" [attr.aria-label]="t().back" (click)="stackedPrevStep()">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="13,4 7,10 13,16"/>
                   </svg>
@@ -1067,28 +1089,28 @@
               } @else {
                 <div class="preview-stacked__live">
                   <span class="preview-stacked__live-dot" aria-hidden="true"></span>
-                  <span class="preview-stacked__live-label">Live · Tisch buchen</span>
+                  <span class="preview-stacked__live-label">{{ t().liveBooking }}</span>
                 </div>
               }
-              <nav class="preview-stacked__steps" aria-label="Buchungsfortschritt">
+              <nav class="preview-stacked__steps" [attr.aria-label]="t().bookingProgress">
                 <span class="preview-stacked__step"
                       [class.is-active]="stackedStep() === 1"
                       [class.is-done]="stackedStep() > 1"
                       [attr.aria-current]="stackedStep() === 1 ? 'step' : null"
-                      aria-label="Schritt 1: Buchungsdetails">1</span>
+                      [attr.aria-label]="'1: ' + t().stepDate">1</span>
                 <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 1" aria-hidden="true"></span>
                 <span class="preview-stacked__step"
                       [class.is-active]="stackedStep() === 2"
                       [class.is-done]="stackedStep() > 2"
                       [attr.aria-current]="stackedStep() === 2 ? 'step' : null"
-                      aria-label="Schritt 2: Kontaktdaten">2</span>
+                      [attr.aria-label]="'2: ' + t().stepContact">2</span>
                 <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 2" aria-hidden="true"></span>
                 <span class="preview-stacked__step" [class.is-active]="stackedStep() === 3"
                       [attr.aria-current]="stackedStep() === 3 ? 'step' : null"
-                      aria-label="Schritt 3: Zusammenfassung">3</span>
+                      [attr.aria-label]="'3: ' + t().stepSummary">3</span>
               </nav>
               @if (stackedStep() === 2 && stackedWasOnSummary()) {
-                <button class="preview-stacked__topbar-fwd" type="button" aria-label="Weiter zur Zusammenfassung" (click)="stackedGoToSummary()">
+                <button class="preview-stacked__topbar-fwd" type="button" [attr.aria-label]="t().nextToSummary" (click)="stackedGoToSummary()">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="7,4 13,10 7,16"/>
                   </svg>
@@ -1096,7 +1118,7 @@
               }
             </div>
             <header class="preview-stacked__header">
-              <h4 class="preview-stacked__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+              <h4 class="preview-stacked__title">{{ headingTitle() }}</h4>
               @if (showSubtitle() && headingSubtitle()) {
                 <p class="preview-stacked__subtitle">{{ headingSubtitle() }}</p>
               }
@@ -1126,7 +1148,7 @@
                       <rect x="5" y="11.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none"/>
                       <rect x="8.75" y="11.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none"/>
                     </svg>
-                  </span> Datum
+                  </span> {{ t().stepDate }}
                 </span>
                 <span class="preview-stacked__tile-value">{{ stackedShortDateLabel().day }}</span>
                 <span class="preview-stacked__tile-meta">{{ stackedShortDateLabel().month }} {{ calendarYear() }}</span>
@@ -1136,7 +1158,7 @@
                       type="button"
                       [class.is-active]="stackedOpenPicker() === 'time'"
                       [attr.aria-expanded]="stackedOpenPicker() === 'time'"
-                      [attr.aria-label]="'Uhrzeit: ' + validTime() + ' Uhr, Auswahl öffnen'"
+                      [attr.aria-label]="t().stepTime + ': ' + validTime() + t().clockSuffix"
                       (click)="stackedTogglePicker('time')">
                 <span class="preview-stacked__tile-eyebrow">
                   <span class="tile-icon">
@@ -1144,17 +1166,17 @@
                       <circle cx="10" cy="10" r="8"/>
                       <polyline points="10,4.5 10,10 13.5,13"/>
                     </svg>
-                  </span> Uhrzeit
+                  </span> {{ t().stepTime }}
                 </span>
                 <span class="preview-stacked__tile-value">{{ validTime() }}</span>
-                <span class="preview-stacked__tile-meta">Uhr</span>
+                <span class="preview-stacked__tile-meta">{{ t().clockSuffix.trim() }}</span>
               </button>
 
               <button class="preview-stacked__tile"
                       type="button"
                       [class.is-active]="stackedOpenPicker() === 'seats'"
                       [attr.aria-expanded]="stackedOpenPicker() === 'seats'"
-                      [attr.aria-label]="people() + (people() === 1 ? ' Gast, Auswahl öffnen' : ' Gäste, Auswahl öffnen')"
+                      [attr.aria-label]="people() + ' ' + (people() === 1 ? t().guest : t().guests)"
                       (click)="stackedTogglePicker('seats')">
                 <span class="preview-stacked__tile-eyebrow">
                     <span class="tile-icon">
@@ -1164,10 +1186,10 @@
                       <circle cx="13" cy="5.5" r="2.5"/>
                       <path d="M7.5 18c0-3.314 2.462-6 5.5-6s5.5 2.686 5.5 6"/>
                     </svg>
-                  </span> Personen
+                  </span> {{ t().stepGuests }}
                 </span>
                 <span class="preview-stacked__tile-value">{{ people() }}</span>
-                <span class="preview-stacked__tile-meta">{{ people() === 1 ? 'Gast' : 'Gäste' }}</span>
+                <span class="preview-stacked__tile-meta">{{ people() === 1 ? t().guest : t().guests }}</span>
               </button>
             </div>
 
@@ -1177,13 +1199,13 @@
                   @case ('date') {
                     <div class="preview-stacked__cal">
                       <div class="preview-stacked__cal-bar">
-                        <button class="preview-stacked__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">
+                        <button class="preview-stacked__cal-nav" type="button" [attr.aria-label]="t().prevMonth" (click)="prevMonth()">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
                             <polyline points="13,4 7,10 13,16"/>
                           </svg>
                         </button>
                         <span class="preview-stacked__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
-                        <button class="preview-stacked__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">
+                        <button class="preview-stacked__cal-nav" type="button" [attr.aria-label]="t().nextMonth" (click)="nextMonth()">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
                             <polyline points="7,4 13,10 7,16"/>
                           </svg>
@@ -1217,30 +1239,41 @@
                     </div>
                   }
                   @case ('time') {
-                    <div class="preview-stacked__times" role="group" aria-label="Uhrzeit wählen">
+                    <div class="preview-stacked__times" role="group" [attr.aria-label]="t().timeSelect">
                       @for (t of timeSlots(); track t) {
                         <button class="preview-stacked__time"
                                 type="button"
                                 [class.is-selected]="validTime() === t"
                                 [attr.aria-pressed]="validTime() === t"
-                                [attr.aria-label]="t + ' Uhr'"
+                                [attr.aria-label]="t + i18n.t().clockSuffix"
                                 (click)="stackedSelectTime(t)">
                           {{ t }}
                         </button>
                       }
                     </div>
+                    @if (wartelisteAktiv() && waitlistSlots().length > 0) {
+                      <div class="preview-stacked__times preview-stacked__times--waitlist" role="group" [attr.aria-label]="i18n.t().waitlistHint">
+                        @for (slot of waitlistSlots(); track slot) {
+                          <button class="preview-stacked__time preview-stacked__time--waitlist"
+                                  type="button"
+                                  (click)="openWaitlistForm(slot)">
+                            {{ slot }} · {{ i18n.t().waitlistFull }}
+                          </button>
+                        }
+                      </div>
+                    }
                   }
                   @case ('seats') {
-                    <div class="preview-stacked__seats" role="group" aria-label="Personenanzahl wählen">
+                    <div class="preview-stacked__seats" role="group" [attr.aria-label]="t().guestsSelect">
                       @for (s of seatOptions(); track s.count) {
                         <button class="preview-stacked__seat"
                                 type="button"
                                 [class.is-selected]="people() === s.count"
                                 [attr.aria-pressed]="people() === s.count"
-                                [attr.aria-label]="s.count + (s.count === 1 ? ' Gast' : ' Gäste')"
+                                [attr.aria-label]="s.count + (s.count === 1 ? ' ' + t().guest : ' ' + t().guests)"
                                 (click)="stackedSelectSeats(s.count)">
                           <span class="preview-stacked__seat-num" aria-hidden="true">{{ s.count }}</span>
-                          <span class="preview-stacked__seat-label" aria-hidden="true">{{ s.count === 1 ? 'Gast' : 'Gäste' }}</span>
+                          <span class="preview-stacked__seat-label" aria-hidden="true">{{ s.count === 1 ? t().guest : t().guests }}</span>
                         </button>
                       }
                     </div>
@@ -1252,7 +1285,7 @@
 
             @if (tischartenAktiv() && tischartenModus() === 'liste' && availableTischarten().length > 0) {
               <div class="tischart-picker">
-                <div class="tischart-picker__label">Tischart</div>
+                <div class="tischart-picker__label">{{ t().tableType }}</div>
                 <div class="tischart-picker__chips">
                   @for (t of availableTischarten(); track t.key) {
                     <button type="button"
@@ -1308,28 +1341,28 @@
                       <path d="M6 6a1 1 0 0 0 2 0"/>
                       <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
                     </svg>
-                    Speisekarte ansehen
+                    {{ t().menuLabel }}
                   </button>
                 }
               </div>
             }
             <button class="preview-stacked__cta" type="button" (click)="stackedNextStep()">
-              <span>{{ buttonLabel() || 'Reservieren' }}</span>
+              <span>{{ buttonLabel() || t().reserve }}</span>
               <span>→</span>
             </button>
 
           } @else if (stackedStep() === 2) {
             <!-- Step 2 -->
             <p class="preview-stacked__summary">
-              {{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}
+              {{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}
               · {{ selectedDateLabel() }}
-              · {{ validTime() }}&nbsp;Uhr
+              · {{ validTime() }}{{ t().clockSuffix }}
             </p>
 
             @if (raumauswahl() && filteredVenues().length > 1) {
               <div class="preview-stacked__form">
                 <div class="preview-stacked__field">
-                  <label class="preview-stacked__field-label">Bereich</label>
+                  <label class="preview-stacked__field-label">{{ t().venue }}</label>
                   <div class="venue-chip-row">
                     @for (v of filteredVenues(); track v.id) {
                       <button type="button"
@@ -1350,16 +1383,16 @@
                   <label class="preview-stacked__field-label" for="st-name">Name <span class="field-required">*</span></label>
                   <input id="st-name" type="text" class="preview-stacked__field-input preview-stacked__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         placeholder="Vor- und Nachname" autocomplete="name" name="stName"
+                         [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="stName"
                          aria-required="true"
                          [attr.aria-invalid]="stackedShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
                 <div class="preview-stacked__field"
                      [class.preview-stacked__field--error]="stackedShowErrors() && !emailLooksOk()">
-                  <label class="preview-stacked__field-label" for="st-email">E-Mail <span class="field-required">*</span></label>
+                  <label class="preview-stacked__field-label" for="st-email">{{ t().email }} <span class="field-required">*</span></label>
                   <input id="st-email" type="email" class="preview-stacked__field-input preview-stacked__field-input--real"
                          [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         placeholder="name@beispiel.de" autocomplete="email" name="stEmail"
+                         [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="stEmail"
                          aria-required="true"
                          [attr.aria-invalid]="stackedShowErrors() && !emailLooksOk() ? 'true' : null">
                 </div>
@@ -1368,22 +1401,22 @@
               <div class="preview-stacked__field"
                    [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('phone') && !guestPhone().trim()">
                 <label class="preview-stacked__field-label" for="st-phone">
-                  Telefon
+                  {{ t().phone }}
                   @if (isRequired('phone')) { <span class="field-required">*</span> }
                   @else { <span class="preview-stacked__optional">(optional)</span> }
                 </label>
                 <input id="st-phone" type="tel" class="preview-stacked__field-input preview-stacked__field-input--real"
                        [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
-                       placeholder="+49 …" autocomplete="tel" name="stPhone">
+                       [attr.placeholder]="t().phonePlaceholder" autocomplete="tel" name="stPhone">
               </div>
 
               @if (kinderStuehleAktiv()) {
                 <div class="preview-stacked__field">
-                  <label class="preview-stacked__field-label">Kinderstühle</label>
-                  <div class="kinder-stepper" role="group" aria-label="Kinderstühle">
-                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle verringern" (click)="decKinderStuehle()">−</button>
-                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' Kinderstühle'">{{ kinderStuehle() }}</span>
-                    <button type="button" class="kinder-stepper__btn" aria-label="Kinderstühle erhöhen" (click)="incKinderStuehle()">+</button>
+                  <label class="preview-stacked__field-label">{{ t().childChairs }}</label>
+                  <div class="kinder-stepper" role="group" [attr.aria-label]="t().childChairs">
+                    <button type="button" class="kinder-stepper__btn" [attr.aria-label]="t().childChairs + ' –'" (click)="decKinderStuehle()">−</button>
+                    <span class="kinder-stepper__val" role="status" [attr.aria-label]="kinderStuehle() + ' ' + t().childChairs">{{ kinderStuehle() }}</span>
+                    <button type="button" class="kinder-stepper__btn" [attr.aria-label]="t().childChairs + ' +'" (click)="incKinderStuehle()">+</button>
                     <span class="kinder-stepper__hint" [attr.aria-label]="'maximal ' + kinderStuehleOnline()">max. {{ kinderStuehleOnline() }}</span>
                   </div>
                 </div>
@@ -1402,7 +1435,7 @@
                       <circle cx="10.5" cy="16.5" r="2"/>
                       <path d="M14 8l2.5 6.5"/>
                     </svg>
-                    Rollstuhlgerechter Platz gewünscht
+                    {{ t().wheelchairLabel }}
                   </span>
                 </label>
               }
@@ -1421,13 +1454,13 @@
                       <line x1="6.5" y1="15" x2="6.5" y2="17.5"/>
                       <line x1="4.5" y1="15" x2="4.5" y2="17.5"/>
                     </svg>
-                    Hund dabei
+                    {{ t().dogLabel }}
                   </span>
                 </label>
               }
               @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
                 <div class="allergen-picker">
-                  <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                  <span class="allergen-picker__label">{{ t().allergiesLabel }}</span>
                   <div class="allergen-picker__chips">
                     @for (a of verfuegbareAllergene(); track a.key) {
                       <button type="button" class="allergen-chip"
@@ -1442,13 +1475,13 @@
               <div class="preview-stacked__field"
                    [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('notes') && !notes().trim()">
                 <label class="preview-stacked__field-label" for="st-notes">
-                  Anmerkungen
+                  {{ t().notes }}
                   @if (isRequired('notes')) { <span class="field-required">*</span> }
                   @else { <span class="preview-stacked__optional">(optional)</span> }
                 </label>
                 <textarea id="st-notes" class="preview-stacked__field-input preview-stacked__field-input--real preview-stacked__field-input--area"
                           [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                          placeholder="Besonderheiten, Allergien …"
+                          [attr.placeholder]="t().notesPlaceholder"
                           name="stNotes" rows="2"></textarea>
               </div>
             </div>
@@ -1464,7 +1497,7 @@
                 @if (stackedConsent()) { <span class="check-icon">✓</span> }
               </span>
               <span class="preview-stacked__consent-text">
-                Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
+                {{ t().consentText }} <span class="field-required">*</span>
               </span>
             </label>
 
@@ -1476,7 +1509,7 @@
               <button class="preview-stacked__cta preview-stacked__cta--goto-summary"
                       type="button"
                       (click)="stackedGoToSummary()">
-                Weiter zur Zusammenfassung
+                {{ t().nextToSummary }}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                   <polyline points="7,4 13,10 7,16"/>
                 </svg>
@@ -1485,26 +1518,26 @@
 
           } @else {
             <!-- Step 3: Zusammenfassung -->
-            <h4 class="preview-stacked__summary-title">Zusammenfassung</h4>
+            <h4 class="preview-stacked__summary-title">{{ t().stepSummary }}</h4>
 
             <div class="widget-summary">
               <div class="widget-summary__booking">
                 <div class="widget-summary__booking-item">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
-                  <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                  <div><span class="widget-summary__booking-label">{{ t().stepDate }}</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
                 </div>
                 <div class="widget-summary__booking-item">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
-                  <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                  <div><span class="widget-summary__booking-label">{{ t().stepTime }}</span><span class="widget-summary__booking-val">{{ validTime() }}{{ t().clockSuffix }}</span></div>
                 </div>
                 <div class="widget-summary__booking-item">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
-                  <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                  <div><span class="widget-summary__booking-label">{{ t().stepGuests }}</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}</span></div>
                 </div>
                 @if (raumauswahl() && filteredVenues().length > 1) {
                   <div class="widget-summary__booking-item">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
-                    <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                    <div><span class="widget-summary__booking-label">{{ t().venue }}</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
                   </div>
                 }
               </div>
@@ -1516,27 +1549,27 @@
                 </div>
                 <div class="widget-summary__field">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
-                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().email }}</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
                 </div>
                 @if (guestPhone()) {
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
-                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
                   </div>
                 }
                 @if (notes()) {
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
-                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().notes }}</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
                   </div>
                 }
               </div>
 
               @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
                 <div class="widget-summary__extras">
-                  @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
-                  @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
-                  @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                  @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
+                  @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
+                  @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                   @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                   @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
                 </div>
@@ -1553,9 +1586,9 @@
                       [class.is-disabled]="!canSubmit()"
                       [disabled]="!canSubmit()"
                       [attr.aria-busy]="state() === 'submitting'"
-                      aria-label="Reservierung absenden"
+                      [attr.aria-label]="t().submitReservation"
                       (click)="weiter()">
-                <span>@if (state() === 'submitting') { Wird gesendet … } @else { Reservierung absenden }</span>
+                <span>@if (state() === 'submitting') { {{ t().submitting }} } @else { {{ t().submitReservation }} }</span>
                 <span aria-hidden="true">✓</span>
               </button>
             </div>
@@ -1571,7 +1604,7 @@
         <div class="preview-planner-wrapper">
           <header class="preview__header">
             <div class="preview__header-text">
-              <h4 class="preview__title">{{ headingTitle() || 'Tisch reservieren' }}</h4>
+              <h4 class="preview__title">{{ headingTitle() }}</h4>
               @if (showSubtitle() && headingSubtitle()) {
                 <p class="preview__subtitle">{{ headingSubtitle() }}</p>
               }
@@ -1583,13 +1616,13 @@
             <!-- Topbar navigation (step 2+) -->
             @if (plannerStep() > 1) {
               <div class="preview-planner__topbar">
-                <button class="preview-planner__topbar-back" type="button" aria-label="Zurück zum vorherigen Schritt" (click)="plannerPrev()">
+                <button class="preview-planner__topbar-back" type="button" [attr.aria-label]="t().back" (click)="plannerPrev()">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                     <polyline points="13,4 7,10 13,16"/>
                   </svg>
                 </button>
                 @if (plannerStep() < plannerMaxStep()) {
-                  <button class="preview-planner__topbar-fwd" type="button" aria-label="Weiter zum nächsten Schritt" (click)="plannerNext()">
+                  <button class="preview-planner__topbar-fwd" type="button" [attr.aria-label]="t().next" (click)="plannerNext()">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                       <polyline points="7,4 13,10 7,16"/>
                     </svg>
@@ -1599,18 +1632,18 @@
             }
 
             <!-- Step indicator -->
-            <nav class="preview-planner__steps" aria-label="Buchungsfortschritt">
+            <nav class="preview-planner__steps" [attr.aria-label]="t().bookingProgress">
               <button type="button"
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 1"
                       [class.is-done]="plannerStep() > 1"
                       [attr.aria-current]="plannerStep() === 1 ? 'step' : null"
-                      aria-label="Schritt 1: Datum"
+                      [attr.aria-label]="'1: ' + t().stepDate"
                       (click)="setPlannerStep(1)">
                 <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 1) { ✓ } @else { 1 }
                 </span>
-                <span class="preview-planner__step-label">Datum</span>
+                <span class="preview-planner__step-label">{{ t().stepDate }}</span>
               </button>
 
               <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 1" aria-hidden="true"></span>
@@ -1620,12 +1653,12 @@
                       [class.is-active]="plannerStep() === 2"
                       [class.is-done]="plannerStep() > 2"
                       [attr.aria-current]="plannerStep() === 2 ? 'step' : null"
-                      aria-label="Schritt 2: Uhrzeit"
+                      [attr.aria-label]="'2: ' + t().stepTime"
                       (click)="setPlannerStep(2)">
                 <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 2) { ✓ } @else { 2 }
                 </span>
-                <span class="preview-planner__step-label">Uhrzeit</span>
+                <span class="preview-planner__step-label">{{ t().stepTime }}</span>
               </button>
 
               <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 2" aria-hidden="true"></span>
@@ -1635,12 +1668,12 @@
                       [class.is-active]="plannerStep() === 3"
                       [class.is-done]="plannerStep() > 3"
                       [attr.aria-current]="plannerStep() === 3 ? 'step' : null"
-                      aria-label="Schritt 3: Personenanzahl"
+                      [attr.aria-label]="'3: ' + t().stepGuests"
                       (click)="setPlannerStep(3)">
                 <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 3) { ✓ } @else { 3 }
                 </span>
-                <span class="preview-planner__step-label">Personen</span>
+                <span class="preview-planner__step-label">{{ t().stepGuests }}</span>
               </button>
 
               <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 3" aria-hidden="true"></span>
@@ -1650,12 +1683,12 @@
                       [class.is-active]="plannerStep() === 4"
                       [class.is-done]="plannerStep() > 4"
                       [attr.aria-current]="plannerStep() === 4 ? 'step' : null"
-                      aria-label="Schritt 4: Kontaktdaten"
+                      [attr.aria-label]="'4: ' + t().stepContact"
                       (click)="setPlannerStep(4)">
                 <span class="preview-planner__step-num" aria-hidden="true">
                   @if (plannerStep() > 4) { ✓ } @else { 4 }
                 </span>
-                <span class="preview-planner__step-label">Daten</span>
+                <span class="preview-planner__step-label">{{ t().stepContact }}</span>
               </button>
 
               <span class="preview-planner__step-bar" [class.is-done]="plannerStep() > 4" aria-hidden="true"></span>
@@ -1664,10 +1697,10 @@
                       class="preview-planner__step"
                       [class.is-active]="plannerStep() === 5"
                       [attr.aria-current]="plannerStep() === 5 ? 'step' : null"
-                      aria-label="Schritt 5: Übersicht"
+                      [attr.aria-label]="'5: ' + t().overviewLabel"
                       (click)="canGoToSummary() && setPlannerStep(5)">
                 <span class="preview-planner__step-num" aria-hidden="true">5</span>
-                <span class="preview-planner__step-label">Übersicht</span>
+                <span class="preview-planner__step-label">{{ t().overviewLabel }}</span>
               </button>
             </nav>
 
@@ -1687,14 +1720,14 @@
                       <rect x="8.75" y="11.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none"/>
                     </svg>
                   </span>
-                  <span class="preview-planner__panel-title">Datum</span>
+                  <span class="preview-planner__panel-title">{{ t().stepDate }}</span>
                 </div>
 
                 <div class="preview-planner__cal">
                   <div class="preview-planner__cal-bar">
-                    <button class="preview-planner__cal-nav" type="button" aria-label="Vorheriger Monat" (click)="prevMonth()">‹</button>
+                    <button class="preview-planner__cal-nav" type="button" [attr.aria-label]="t().prevMonth" (click)="prevMonth()">‹</button>
                     <span class="preview-planner__cal-month" aria-live="polite" aria-atomic="true">{{ calendarMonthLabel() }}</span>
-                    <button class="preview-planner__cal-nav" type="button" aria-label="Nächster Monat" (click)="nextMonth()">›</button>
+                    <button class="preview-planner__cal-nav" type="button" [attr.aria-label]="t().nextMonth" (click)="nextMonth()">›</button>
                   </div>
 
                   <div class="preview-planner__cal-grid preview-planner__cal-grid--weekdays" aria-hidden="true">
@@ -1735,7 +1768,7 @@
                       <polyline points="10,4.5 10,10 13.5,13"/>
                     </svg>
                   </span>
-                  <span class="preview-planner__panel-title">Uhrzeit</span>
+                  <span class="preview-planner__panel-title">{{ t().stepTime }}</span>
                 </div>
 
                 <div class="preview-planner__dial">
@@ -1789,7 +1822,7 @@
                               [style.left.%]="(h.x / 140) * 100"
                               [style.top.%]="(h.y / 140) * 100"
                               (click)="selectPlannerHour(h.hour)"
-                              [attr.aria-label]="h.label + ' Uhr'"></button>
+                              [attr.aria-label]="h.label + t().clockSuffix"></button>
                     }
                   } @else {
                     @for (m of dialPhaseMinuteDots(); track m.minute) {
@@ -1806,7 +1839,7 @@
                   <div class="preview-planner__dial-readout" aria-hidden="true">
                     <span class="preview-planner__dial-time">{{ validTime() }}</span>
                     <span class="preview-planner__dial-meta">
-                      {{ plannerDialPhase() === 'hour' ? 'Stunde' : 'Minute' }}
+                      {{ plannerDialPhase() === 'hour' ? t().hour : t().minute }}
                     </span>
                   </div>
                 </div>
@@ -1823,10 +1856,10 @@
                       <path d="M7.5 18c0-3.314 2.462-6 5.5-6s5.5 2.686 5.5 6"/>
                     </svg>
                   </span>
-                  <span class="preview-planner__panel-title">Personen</span>
+                  <span class="preview-planner__panel-title">{{ t().stepGuests }}</span>
                 </div>
 
-                <div class="preview-planner__chips preview-planner__chips--seats" role="group" aria-label="Personenanzahl wählen">
+                <div class="preview-planner__chips preview-planner__chips--seats" role="group" [attr.aria-label]="t().guestsSelect">
                   @for (s of seatOptions(); track s.count) {
                     <button class="preview-planner__chip preview-planner__chip--seat"
                             type="button"
@@ -1885,7 +1918,7 @@
                       <path d="M6 6a1 1 0 0 0 2 0"/>
                       <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
                     </svg>
-                    Speisekarte ansehen
+                    {{ t().menuLabel }}
                   </button>
                 }
               </section>
@@ -1900,7 +1933,7 @@
                       <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/>
                     </svg>
                   </span>
-                  <span class="preview-planner__panel-title">Ihre Daten</span>
+                  <span class="preview-planner__panel-title">{{ t().yourDataFormal }}</span>
                 </div>
 
                 <div class="preview-planner__summary">
@@ -1933,13 +1966,13 @@
                       <circle cx="13" cy="5.5" r="2.5"/>
                       <path d="M7.5 18c0-3.314 2.462-6 5.5-6s5.5 2.686 5.5 6"/>
                     </svg>
-                    @if (people() === 1) { 1 Gast } @else { {{ people() }} Gäste }
+                    @if (people() === 1) { 1 {{ t().guest }} } @else { {{ people() }} {{ t().guests }} }
                   </span>
                 </div>
 
                 @if (raumauswahl() && filteredVenues().length > 1) {
                   <div class="preview-planner__form-group">
-                    <label class="preview-planner__form-label">Bereich</label>
+                    <label class="preview-planner__form-label">{{ t().venue }}</label>
                     <div class="venue-chip-row">
                       @for (v of filteredVenues(); track v.id) {
                         <button type="button"
@@ -1959,29 +1992,29 @@
                       <label class="preview-planner__form-label" for="pl-name">Name <span class="field-required">*</span></label>
                       <input id="pl-name" type="text" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                             placeholder="Vor- und Nachname" autocomplete="name" name="plName"
+                             [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="plName"
                              aria-required="true"
                              [attr.aria-invalid]="plannerShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                     </div>
                     <div class="preview-planner__form-group"
                          [class.preview-planner__form-group--error]="plannerShowErrors() && !emailLooksOk()">
-                      <label class="preview-planner__form-label" for="pl-email">E-Mail <span class="field-required">*</span></label>
+                      <label class="preview-planner__form-label" for="pl-email">{{ t().email }} <span class="field-required">*</span></label>
                       <input id="pl-email" type="email" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                             placeholder="name@beispiel.de" autocomplete="email" name="plEmail"
+                             [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="plEmail"
                              aria-required="true"
                              [attr.aria-invalid]="plannerShowErrors() && !emailLooksOk() ? 'true' : null">
                     </div>
                     <div class="preview-planner__form-group"
                          [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('phone') && !guestPhone().trim()">
                       <label class="preview-planner__form-label" for="pl-phone">
-                        Telefon
+                        {{ t().phone }}
                         @if (isRequired('phone')) { <span class="field-required">*</span> }
                         @else { <span class="preview-planner__form-optional">(optional)</span> }
                       </label>
                       <input id="pl-phone" type="tel" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
-                             placeholder="+49 …" autocomplete="tel" name="plPhone">
+                             [attr.placeholder]="t().phonePlaceholder" autocomplete="tel" name="plPhone">
                     </div>
                   </div>
 
@@ -1992,13 +2025,13 @@
                       <div class="preview-planner__form-group preview-planner__form-group--stretch"
                            [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('notes') && !notes().trim()">
                         <label class="preview-planner__form-label" for="pl-notes">
-                          Notizen
+                          {{ t().notes }}
                           @if (isRequired('notes')) { <span class="field-required">*</span> }
                           @else { <span class="preview-planner__form-optional">(optional)</span> }
                         </label>
                         <textarea id="pl-notes" class="preview-planner__form-input preview-planner__form-input--real preview-planner__form-input--area preview-planner__form-input--stretch"
                                   [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                                  placeholder="Besondere Wünsche, Anmerkungen …"
+                                  [attr.placeholder]="t().notesPlaceholder"
                                   name="plNotes" rows="2"></textarea>
                       </div>
                     </div>
@@ -2007,7 +2040,7 @@
                     <div class="preview-planner__form-extras-col">
                       @if (tischartenAktiv() && tischartenModus() === 'liste' && availableTischarten().length > 0) {
                         <div class="tischart-picker tischart-picker--planner">
-                          <div class="tischart-picker__label">Tischart</div>
+                          <div class="tischart-picker__label">{{ t().tableType }}</div>
                           <div class="tischart-picker__chips">
                             @for (t of availableTischarten(); track t.key) {
                               <button type="button"
@@ -2024,14 +2057,14 @@
                       @if (tischartenAktiv() && tischartenModus() === 'plan' && selectedTableId() !== null) {
                         <div class="plan-selected-badge">
                           <span class="plan-selected-badge__icon">✓</span>
-                          <span class="plan-selected-badge__text">Tisch #{{ selectedTableId() }} ausgewählt</span>
-                          <button type="button" class="plan-selected-badge__change" (click)="tischplanOverlayOpen.set(true)">Ändern</button>
+                          <span class="plan-selected-badge__text">Tisch #{{ selectedTableId() }} {{ t().tableSelected }}</span>
+                          <button type="button" class="plan-selected-badge__change" (click)="tischplanOverlayOpen.set(true)">{{ t().changeTable }}</button>
                         </div>
                       }
 
                       @if (kinderStuehleAktiv()) {
                         <div class="preview-planner__form-group">
-                          <label class="preview-planner__form-label">Kinderstühle</label>
+                          <label class="preview-planner__form-label">{{ t().childChairs }}</label>
                           <div class="kinder-stepper">
                             <button type="button" class="kinder-stepper__btn" (click)="decKinderStuehle()">−</button>
                             <span class="kinder-stepper__val">{{ kinderStuehle() }}</span>
@@ -2054,7 +2087,7 @@
                               <circle cx="10.5" cy="16.5" r="2"/>
                               <path d="M14 8l2.5 6.5"/>
                             </svg>
-                            Rollstuhlgerechter Platz gewünscht
+                            {{ t().wheelchairLabel }}
                           </span>
                         </label>
                       }
@@ -2073,13 +2106,13 @@
                               <line x1="6.5" y1="15" x2="6.5" y2="17.5"/>
                               <line x1="4.5" y1="15" x2="4.5" y2="17.5"/>
                             </svg>
-                            Hund dabei
+                            {{ t().dogLabel }}
                           </span>
                         </label>
                       }
                       @if (allergeneAktiv() && verfuegbareAllergene().length > 0) {
                         <div class="allergen-picker">
-                          <span class="allergen-picker__label">Allergien / Unverträglichkeiten</span>
+                          <span class="allergen-picker__label">{{ t().allergiesLabel }}</span>
                           <div class="allergen-picker__chips">
                             @for (a of verfuegbareAllergene(); track a.key) {
                               <button type="button" class="allergen-chip"
@@ -2104,7 +2137,7 @@
                       @if (plannerConsent()) { <span class="check-icon">✓</span> }
                     </span>
                     <span class="preview-planner__consent-text">
-                      Ich willige ein, dass meine Daten zur Bearbeitung der Reservierung gespeichert werden. <span class="field-required">*</span>
+                      {{ t().consentText }} <span class="field-required">*</span>
                     </span>
                   </label>
                 </div>
@@ -2118,7 +2151,7 @@
                       <path d="M4 6h12M4 10h8M4 14h6"/>
                     </svg>
                   </span>
-                  <span class="preview-planner__panel-title">Zusammenfassung</span>
+                  <span class="preview-planner__panel-title">{{ t().stepSummary }}</span>
                 </div>
 
                 <div class="preview-planner__summary-body">
@@ -2126,20 +2159,20 @@
                     <div class="widget-summary__booking">
                       <div class="widget-summary__booking-item">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="2" y="3.5" width="16" height="14" rx="2.5"/><line x1="2" y1="8.5" x2="18" y2="8.5"/><line x1="6.5" y1="1" x2="6.5" y2="5.5"/><line x1="13.5" y1="1" x2="13.5" y2="5.5"/></svg>
-                        <div><span class="widget-summary__booking-label">Datum</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
+                        <div><span class="widget-summary__booking-label">{{ t().stepDate }}</span><span class="widget-summary__booking-val">{{ selectedDateLabel() }}</span></div>
                       </div>
                       <div class="widget-summary__booking-item">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="10" r="8"/><polyline points="10,5 10,10 13,13"/></svg>
-                        <div><span class="widget-summary__booking-label">Uhrzeit</span><span class="widget-summary__booking-val">{{ validTime() }} Uhr</span></div>
+                        <div><span class="widget-summary__booking-label">{{ t().stepTime }}</span><span class="widget-summary__booking-val">{{ validTime() }}{{ t().clockSuffix }}</span></div>
                       </div>
                       <div class="widget-summary__booking-item">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="10" cy="6" r="3"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
-                        <div><span class="widget-summary__booking-label">Personen</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? 'Gast' : 'Gäste' }}</span></div>
+                        <div><span class="widget-summary__booking-label">{{ t().stepGuests }}</span><span class="widget-summary__booking-val">{{ people() }}&nbsp;{{ people() === 1 ? t().guest : t().guests }}</span></div>
                       </div>
                       @if (raumauswahl() && filteredVenues().length > 1) {
                         <div class="widget-summary__booking-item">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
-                          <div><span class="widget-summary__booking-label">Bereich</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
+                          <div><span class="widget-summary__booking-label">{{ t().venue }}</span><span class="widget-summary__booking-val">{{ selectedVenue()?.name }}</span></div>
                         </div>
                       }
                     </div>
@@ -2151,27 +2184,27 @@
                       </div>
                       <div class="widget-summary__field">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
-                        <div class="widget-summary__field-text"><span class="widget-summary__field-label">E-Mail</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
+                        <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().email }}</span><span class="widget-summary__field-value">{{ guestEmail() }}</span></div>
                       </div>
                       @if (guestPhone()) {
                         <div class="widget-summary__field">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
-                          <div class="widget-summary__field-text"><span class="widget-summary__field-label">Telefon</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                          <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
                         </div>
                       }
                       @if (notes()) {
                         <div class="widget-summary__field">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 6h12M4 10h8M4 14h6"/></svg>
-                          <div class="widget-summary__field-text"><span class="widget-summary__field-label">Notizen</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
+                          <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().notes }}</span><span class="widget-summary__field-value">{{ notes() }}</span></div>
                         </div>
                       }
                     </div>
 
                     @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
                       <div class="widget-summary__extras">
-                        @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× Kinderstuhl</span> }
-                        @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">Rollstuhlplatz</span> }
-                        @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">Hund dabei</span> }
+                        @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
+                        @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
+                        @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                         @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                         @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
                       </div>
@@ -2191,17 +2224,17 @@
               @if (plannerStep() < 4) {
                 <button class="preview__cta preview-planner__cta"
                         type="button"
-                        aria-label="Weiter zum nächsten Schritt"
+                        [attr.aria-label]="t().next"
                         (click)="plannerNext()">
-                  Weiter
+                  {{ t().next }}
                   <span class="preview-planner__cta-icon" aria-hidden="true">›</span>
                 </button>
               } @else if (plannerStep() === 4) {
                 <button class="preview__cta preview-planner__cta"
                         type="button"
-                        aria-label="Weiter zur Zusammenfassung"
+                        [attr.aria-label]="t().nextToSummary"
                         (click)="plannerNext()">
-                  Weiter zur Zusammenfassung
+                  {{ t().nextToSummary }}
                   <span class="preview-planner__cta-icon" aria-hidden="true">›</span>
                 </button>
               } @else {
@@ -2210,10 +2243,10 @@
                         [class.is-disabled]="!canSubmit()"
                         [disabled]="!canSubmit()"
                         [attr.aria-busy]="state() === 'submitting'"
-                        aria-label="Reservierung absenden"
+                        [attr.aria-label]="t().submitReservation"
                         (click)="weiter()">
-                  @if (state() === 'submitting') { Wird gesendet … }
-                  @else { {{ buttonLabel() || 'Reservierung absenden' }} }
+                  @if (state() === 'submitting') { {{ t().submitting }} }
+                  @else { {{ buttonLabel() || t().submitReservation }} }
                 </button>
               }
             </div>
@@ -2232,7 +2265,7 @@
     @if (tischwahlActive()) {
       <div class="tischwahl-overlay">
         <div class="tischwahl-overlay__box">
-          <button type="button" class="tischwahl-overlay__close" (click)="tischwahlActive.set(false)" aria-label="Schließen">✕</button>
+          <button type="button" class="tischwahl-overlay__close" (click)="tischwahlActive.set(false)" [attr.aria-label]="t().close">✕</button>
           <div class="tischwahl-overlay__icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="36" height="36">
               <rect x="3" y="11" width="18" height="2" rx="1"/>
@@ -2241,9 +2274,9 @@
               <rect x="2" y="9" width="20" height="3" rx="1.2"/>
             </svg>
           </div>
-          <h3 class="tischwahl-overlay__title">Tisch auswählen</h3>
+          <h3 class="tischwahl-overlay__title">{{ t().selectTableTitle }}</h3>
           <p class="tischwahl-overlay__subtitle">
-            Möchtest du deinen Tisch selbst aussuchen oder soll automatisch ein passender Tisch für dich reserviert werden?
+            {{ t().selectTableSubtitle }}
           </p>
           <div class="tischwahl-overlay__actions">
             <button type="button" class="tischwahl-overlay__btn tischwahl-overlay__btn--auto"
@@ -2255,8 +2288,8 @@
                 </svg>
               </span>
               <span class="tischwahl-overlay__btn-body">
-                <span class="tischwahl-overlay__btn-title">Automatisch zuweisen</span>
-                <span class="tischwahl-overlay__btn-sub">Wir wählen den besten Tisch für dich</span>
+                <span class="tischwahl-overlay__btn-title">{{ t().autoAssign }}</span>
+                <span class="tischwahl-overlay__btn-sub">{{ t().autoAssignSub }}</span>
               </span>
             </button>
             <button type="button" class="tischwahl-overlay__btn tischwahl-overlay__btn--self"
@@ -2273,8 +2306,8 @@
                 </svg>
               </span>
               <span class="tischwahl-overlay__btn-body">
-                <span class="tischwahl-overlay__btn-title">Tisch selbst wählen</span>
-                <span class="tischwahl-overlay__btn-sub">Wähle deinen Lieblingstisch im Grundriss</span>
+                <span class="tischwahl-overlay__btn-title">{{ t().chooseSelf }}</span>
+                <span class="tischwahl-overlay__btn-sub">{{ t().chooseSelfSub }}</span>
               </span>
               <span class="tischwahl-overlay__btn-arrow">›</span>
             </button>
@@ -2295,17 +2328,17 @@
                  width="15" height="15">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
-            Zurück
+            {{ t().back }}
           </button>
 
-          <span class="tischplan-overlay__title">Tisch wählen</span>
+          <span class="tischplan-overlay__title">{{ t().selectTableTitle }}</span>
 
           @if (hiddenTableCount() > 0) {
             <span class="tischplan-overlay__hint-filter">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
                 <path d="M3 4h18l-7 8.5V20l-4-2v-5.5L3 4z"/>
               </svg>
-              {{ hiddenTableCount() }} {{ hiddenTableCount() === 1 ? 'Tisch' : 'Tische' }} ausgegraut
+              {{ hiddenTableCount() }} {{ hiddenTableCount() === 1 ? t().tablesDimmed : t().tablesDimmedPlural }}
             </span>
           }
 
@@ -2314,9 +2347,9 @@
                   [disabled]="selectedTableId() === null"
                   (click)="tischplanOverlayConfirm()">
             @if (selectedTableId() !== null) {
-              Tisch #{{ selectedTableId() }} bestätigen
+              Tisch #{{ selectedTableId() }} {{ t().confirmTable }}
             } @else {
-              Tisch antippen
+              {{ t().tapTable }}
             }
           </button>
         </div>
@@ -2507,14 +2540,14 @@
                 <path d="M6 6a1 1 0 0 0 2 0"/>
                 <path d="M13 2v16M13 2c2.5 1.5 3 3.5 2.5 6"/>
               </svg>
-              Speisekarte
+              {{ t().menuTitle }}
             </span>
             <button type="button" class="widget-menu-overlay__close" (click)="menuOpen.set(false)">✕</button>
           </div>
           @if (speisekarteUrl()) {
             <iframe class="widget-menu-overlay__frame"
                     [src]="safeMenuUrl()"
-                    title="Speisekarte"
+                    [title]="t().menuTitle"
                     frameborder="0"></iframe>
           } @else {
             <div class="widget-menu-overlay__empty">
@@ -2529,6 +2562,66 @@
       </div>
     }
 
+    @if (waitlistModalOpen()) {
+      <div class="widget-menu-overlay" (click)="closeWaitlistModal()">
+        <div class="widget-menu-overlay__box widget-menu-overlay__box--hinweis widget-waitlist-modal" (click)="$event.stopPropagation()">
+          <div class="widget-menu-overlay__header">
+            <span class="widget-menu-overlay__title-row">{{ t().waitlistModalTitle }}</span>
+            <button type="button" class="widget-menu-overlay__close" (click)="closeWaitlistModal()">✕</button>
+          </div>
+
+          @if (waitlistSuccess()) {
+            <div class="widget-waitlist-modal__success">
+              <p>{{ t().waitlistModalSuccess.replace('{hours}', wartelisteAntwortStunden().toString()) }}</p>
+              <button type="button" class="widget-waitlist-modal__submit" (click)="closeWaitlistModal()">OK</button>
+            </div>
+          } @else {
+            <div class="widget-waitlist-modal__body">
+              <p class="widget-waitlist-modal__slot">{{ selectedDateLabel() }} · {{ waitlistSlotTime() }}{{ t().clockSuffix }}</p>
+
+              <label class="widget-waitlist-modal__field">
+                <span>{{ t().firstName }} {{ t().lastName }}</span>
+                <input type="text"
+                       [ngModel]="waitlistGuestName()" (ngModelChange)="waitlistGuestName.set($event)"
+                       name="waitlistName" autocomplete="name" />
+              </label>
+
+              <label class="widget-waitlist-modal__field">
+                <span>{{ t().email }}</span>
+                <input type="email"
+                       [ngModel]="waitlistGuestEmail()" (ngModelChange)="waitlistGuestEmail.set($event)"
+                       name="waitlistEmail" autocomplete="email" />
+              </label>
+
+              <label class="widget-waitlist-modal__field">
+                <span>{{ t().phone }}</span>
+                <input type="tel"
+                       [ngModel]="waitlistGuestPhone()" (ngModelChange)="waitlistGuestPhone.set($event)"
+                       name="waitlistPhone" autocomplete="tel" />
+              </label>
+
+              <label class="widget-waitlist-modal__field">
+                <span>{{ t().guestsSelect }}</span>
+                <input type="number" min="1" max="50"
+                       [ngModel]="waitlistPartySize()" (ngModelChange)="waitlistPartySize.set($event)"
+                       name="waitlistPartySize" />
+              </label>
+
+              @if (waitlistError()) {
+                <div class="widget-waitlist-modal__error">{{ waitlistError() }}</div>
+              }
+
+              <button type="button"
+                      class="widget-waitlist-modal__submit"
+                      [disabled]="!waitlistCanSubmit() || waitlistSubmitting()"
+                      (click)="submitWaitlist()">
+                {{ waitlistSubmitting() ? '…' : t().waitlistModalSubmit }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
 
   }
 </div>

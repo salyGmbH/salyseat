@@ -32,6 +32,8 @@ export class KundenComponent implements OnInit {
   private readonly route           = inject(ActivatedRoute);
   readonly reminderSvc             = inject(ReminderService);
 
+  readonly infoOpen = signal(false);
+
   guests      = signal<Guest[]>([]);
   total       = signal(0);
   loading     = signal(false);
@@ -45,18 +47,56 @@ export class KundenComponent implements OnInit {
   // ── Aktiver Filter ─────────────────────────────────────────────────────────
   activeFilter = signal<FilterKey>('alle');
 
+  // ── Sortierung ─────────────────────────────────────────────────────────────
+  sortBy = signal<'name_asc' | 'name_desc' | 'bookings_desc' | 'bookings_asc' | 'noshows_desc' | 'reliability_desc' | 'since_desc' | 'since_asc'>('name_asc');
+  sortMenuOpen = signal(false);
+
+  readonly sortOptions: { value: 'name_asc' | 'name_desc' | 'bookings_desc' | 'bookings_asc' | 'noshows_desc' | 'reliability_desc' | 'since_desc' | 'since_asc'; label: string; icon: string }[] = [
+    { value: 'name_asc',        label: 'Name A → Z',           icon: 'sort_by_alpha' },
+    { value: 'name_desc',       label: 'Name Z → A',           icon: 'sort_by_alpha' },
+    { value: 'bookings_desc',   label: 'Meiste Buchungen',      icon: 'event_note'    },
+    { value: 'bookings_asc',    label: 'Wenigste Buchungen',    icon: 'event_note'    },
+    { value: 'noshows_desc',    label: 'Meiste No-Shows',       icon: 'event_busy'    },
+    { value: 'reliability_desc',label: 'Beste Zuverlässigkeit', icon: 'verified'      },
+    { value: 'since_desc',      label: 'Neueste zuerst',        icon: 'schedule'      },
+    { value: 'since_asc',       label: 'Älteste zuerst',        icon: 'history'       },
+  ];
+
+  toggleSortMenu() { this.sortMenuOpen.update(v => !v); }
+
+  selectSort(value: 'name_asc' | 'name_desc' | 'bookings_desc' | 'bookings_asc' | 'noshows_desc' | 'reliability_desc' | 'since_desc' | 'since_asc') {
+    this.sortBy.set(value);
+    this.sortMenuOpen.set(false);
+  }
+
+  currentSortLabel = computed(() =>
+    this.sortOptions.find(o => o.value === this.sortBy())?.label ?? 'Sortierung'
+  );
+
   filteredGuests = computed(() => {
-    const list = this.guests();
+    let list = this.guests();
     switch (this.activeFilter()) {
-      case 'vip':        return list.filter(g => this.isVip(g));
-      case 'stammgast':  return list.filter(g => this.isRegular(g));
-      case 'neukunde':   return list.filter(g => !this.isVip(g) && !this.isRegular(g) && !g.blocked);
-      case 'gesperrt':   return list.filter(g => g.blocked);
-      case 'noshows':    return list.filter(g => g.no_show_count > 0);
-      case 'geburtstag': return list.filter(g => g.birthday?.slice(5) === this.todayMmDd);
-      case 'jahrestag':  return list.filter(g => g.wedding_date?.slice(5) === this.todayMmDd);
-      default:           return list;
+      case 'vip':        list = list.filter(g => this.isVip(g)); break;
+      case 'stammgast':  list = list.filter(g => this.isRegular(g)); break;
+      case 'neukunde':   list = list.filter(g => !this.isVip(g) && !this.isRegular(g) && !g.blocked); break;
+      case 'gesperrt':   list = list.filter(g => g.blocked); break;
+      case 'noshows':    list = list.filter(g => g.no_show_count > 0); break;
+      case 'geburtstag': list = list.filter(g => g.birthday?.slice(5) === this.todayMmDd); break;
+      case 'jahrestag':  list = list.filter(g => g.wedding_date?.slice(5) === this.todayMmDd); break;
     }
+    return [...list].sort((a, b) => {
+      switch (this.sortBy()) {
+        case 'name_asc':         return a.name.localeCompare(b.name, 'de');
+        case 'name_desc':        return b.name.localeCompare(a.name, 'de');
+        case 'bookings_desc':    return (b.total_reservations ?? 0) - (a.total_reservations ?? 0);
+        case 'bookings_asc':     return (a.total_reservations ?? 0) - (b.total_reservations ?? 0);
+        case 'noshows_desc':     return (b.no_show_count ?? 0) - (a.no_show_count ?? 0);
+        case 'reliability_desc': return (b.reliability_score ?? 0) - (a.reliability_score ?? 0);
+        case 'since_desc':       return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+        case 'since_asc':        return (a.created_at ?? '').localeCompare(b.created_at ?? '');
+        default:                 return 0;
+      }
+    });
   });
 
   filterCounts = computed(() => {
@@ -133,6 +173,12 @@ export class KundenComponent implements OnInit {
   reminderSaving  = signal(false);
 
   // ── E-Mail senden ─────────────────────────────────────────────────────────
+  /** true wenn eine echte E-Mail hinterlegt ist (keine noemail.local-Platzhalter) */
+  readonly hasRealEmail = computed(() => {
+    const email = this.editTarget()?.email ?? '';
+    return !!email && !email.endsWith('@noemail.local');
+  });
+
   readonly mailTemplates: MailTemplate[] = [
     { key: 'confirmation', label: 'Reservierungsbestätigung', description: 'Bestätigung mit allen Reservierungsdetails und Stornierungs-Link', icon: 'check_circle',    color: 'blue'   },
     { key: 'reminder',     label: 'Erinnerungsmail',          description: 'Freundliche Erinnerung an den bevorstehenden Termin',                icon: 'alarm',           color: 'amber'  },

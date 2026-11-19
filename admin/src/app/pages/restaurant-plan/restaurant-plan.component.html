@@ -145,6 +145,13 @@
         </svg>
         <span>{{ 'restaurant_plan.window' | translate }}</span>
       </div>
+      <div class="palette__item palette__item--wide" draggable="true" (dragstart)="onPaletteDragStart($event, 'label')" (pointerdown)="onPalettePointerDown($event, 'label')">
+        <svg viewBox="0 0 120 40" class="wall-svg table-svg--wide">
+          <rect x="2" y="2" width="116" height="36" rx="4" fill="#1a1f2e" stroke="#2979ff" stroke-width="1.6"/>
+          <text x="60" y="26" text-anchor="middle" font-family="Roboto, sans-serif" font-size="13" font-weight="600" fill="#ffffff" opacity="0.8">Textfeld</text>
+        </svg>
+        <span>Textfeld</span>
+      </div>
 
       <div class="palette__divider"></div>
       <span class="palette__label">{{ 'restaurant_plan.decor' | translate }}</span>
@@ -328,6 +335,7 @@
         <div class="placed-decor"
              [class.is-selected]="selectedDecorId() === decor.id"
              [class.placed-decor--window]="decor.type === 'window'"
+             [class.placed-decor--label]="decor.type === 'label'"
              [style.left.px]="decor.x"
              [style.top.px]="decor.y"
              [style.width.px]="getDecorSize(decor.type).w * decor.scale"
@@ -453,6 +461,20 @@
                 <rect x="124" y="54" width="6"  height="8" fill="#2979ff" opacity="0.8"/>
               </svg>
             }
+            @case ('label') {
+              <div class="label-display" (dblclick)="onLabelDblClick($event, decor.id)">
+                @if (editingLabelId() === decor.id) {
+                  <input class="label-edit-input"
+                         [value]="decor.text ?? ''"
+                         placeholder="Text eingeben…"
+                         (pointerdown)="$event.stopPropagation()"
+                         (keydown)="onLabelInputKeydown($event, decor.id)"
+                         (blur)="onLabelInputBlur($event, decor.id)">
+                } @else {
+                  <span class="label-text">{{ decor.text || '✎ Doppelklick' }}</span>
+                }
+              </div>
+            }
           }
 
           @if (selectedDecorId() === decor.id) {
@@ -566,12 +588,22 @@
           <div class="dialog__icon dialog__icon--danger"><mat-icon>delete_forever</mat-icon></div>
           <h3 class="dialog__title">{{ 'restaurant_plan.delete_room_title' | translate }}</h3>
           <p class="dialog__text">{{ 'restaurant_plan.delete_room_text' | translate:{ name: currentRoomName() } }}</p>
+          @if (deleteBlockedCount() !== null) {
+            <div class="dialog__warn">
+              <mat-icon>warning</mat-icon>
+              <span>Dieser Raum hat noch <strong>{{ deleteBlockedCount() }} {{ deleteBlockedCount() === 1 ? 'Reservierung' : 'Reservierungen' }}</strong> — diese werden ebenfalls gelöscht.</span>
+            </div>
+          }
           @if (deleteError()) {
             <p class="dialog__error">{{ deleteError() }}</p>
           }
           <div class="dialog__actions">
             <button class="dialog__btn dialog__btn--secondary" (click)="cancelDelete()">{{ 'common.cancel' | translate }}</button>
-            <button class="dialog__btn dialog__btn--danger"    (click)="confirmDeleteRoom()">{{ 'restaurant_plan.delete_room_confirm' | translate }}</button>
+            @if (deleteBlockedCount() !== null) {
+              <button class="dialog__btn dialog__btn--danger" (click)="confirmDeleteRoom(true)">Trotzdem löschen</button>
+            } @else {
+              <button class="dialog__btn dialog__btn--danger" (click)="confirmDeleteRoom()">{{ 'restaurant_plan.delete_room_confirm' | translate }}</button>
+            }
           </div>
         </div>
       }

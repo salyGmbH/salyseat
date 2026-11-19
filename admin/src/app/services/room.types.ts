@@ -17,7 +17,8 @@ export type DecorType =
   | 'stage'
   | 'coatrack'
   | 'sofa'
-  | 'cashier';
+  | 'cashier'
+  | 'label';
 
 export interface PlacedTable {
   id: number;
@@ -43,6 +44,8 @@ export interface PlacedDecor {
   x: number; y: number;
   rotation: number;
   scale: number;
+  /** Nur für type 'label': frei editierbarer Text */
+  text?: string;
 }
 
 export interface SavedRoom {

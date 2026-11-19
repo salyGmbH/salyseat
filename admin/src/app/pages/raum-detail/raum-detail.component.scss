@@ -1,5 +1,12 @@
 @use '../../../styles/variables' as *;
 
+// ── Long-Press Keyframe ────────────────────────────────────────────────────
+@keyframes tl-res-longpress-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+  60%  { transform: scale(1.09); box-shadow: 0 0 0 4px rgba(255,255,255,.6), 0 10px 28px rgba(0,0,0,.6); }
+  100% { transform: scale(1.06); box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 8px 24px rgba(0,0,0,.55); }
+}
+
 // ── Globale Scrollbar-Styles für diese Komponente ──────────────────────────
 :host {
   * {
@@ -274,23 +281,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid $color-border;
-  background: rgba(var(--color-text-rgb), 0.04);
-  color: $color-text-muted;
-  font-size: 12.5px;
+  background: rgba(var(--color-text-rgb), 0.06);
+  color: $color-text-on-dark;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all .15s;
 
   svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-  &:hover {
-    background: rgba(var(--color-primary-rgb), 0.08);
-    border-color: rgba(var(--color-primary-rgb), 0.35);
-    color: $color-primary;
-  }
+  &:hover { background: rgba(var(--color-text-rgb), 0.1); }
 
   &--active {
     background: rgba(var(--color-primary-rgb), 0.12);
@@ -440,6 +443,13 @@
   display: flex;
   flex-direction: column;
 
+  // Ziel-Spalte beim Horizontal-Drag hervorheben
+  &--drag-target {
+    background: rgba($color-primary, 0.1);
+    outline: 2px solid rgba($color-primary, 0.5);
+    outline-offset: -2px;
+  }
+
   // Öffnungszeiten-Zone — heller Hintergrund für geöffnete Stunden
   &__open-zone {
     position: absolute;
@@ -495,6 +505,7 @@
   border-radius: 5px;
   padding: 3px 6px;
   overflow: hidden;
+  z-index: 2; // muss über tl-col__slot (z-index: 1) liegen damit Klicks ankommen
   cursor: grab;
   touch-action: none;
   user-select: none;       // verhindert Textauswahl die Drag abbricht
@@ -504,12 +515,24 @@
 
   &:hover { opacity: 0.88; transform: scaleX(0.97); }
 
+  // Long-Press erkannt → Glow + leicht vergrößern → signalisiert "bereit zum Verschieben"
+  &--longpress {
+    z-index: 9;
+    transform: scale(1.06) !important;
+    box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 8px 24px rgba(0,0,0,.55) !important;
+    opacity: 1 !important;
+    animation: tl-res-longpress-pulse 0.3s ease-out forwards;
+    transition: transform .12s ease-out, box-shadow .12s ease-out;
+    cursor: grabbing;
+  }
+
   &--dragging {
     cursor: grabbing;
     opacity: 0.9;
-    transform: scaleX(1) !important;
-    box-shadow: 0 6px 20px rgba(0,0,0,.5);
+    transform: scale(1.04) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.55);
     z-index: 10;
+    pointer-events: none; // lässt elementsFromPoint die Spalte dahinter sehen → Tisch-Wechsel
     transition: none; // kein Lag während Drag
   }
 
@@ -645,6 +668,69 @@
     text-align: center;
 
     mat-icon { font-size: 28px; width: 28px; height: 28px; opacity: .5; }
+  }
+
+  // ── Inline-Variante im Tischplan (day-load-bar) ──────────────────────
+  &--inline {
+    width: auto;
+    flex-shrink: 0;
+    border-left: none;
+    background: none;
+    overflow: visible;
+    align-self: auto;
+    position: relative;
+  }
+
+  &--inline &__head {
+    padding: 3px 8px;
+    border-bottom: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: $color-text-muted;
+    transition: color 0.15s, background 0.15s;
+
+    mat-icon { color: $color-success; }
+
+    &:hover {
+      background: rgba(var(--color-text-rgb), 0.06);
+      color: $color-text-on-dark;
+    }
+  }
+
+  &__chevron {
+    margin-left: auto;
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+    color: inherit !important;
+    transition: transform 0.2s;
+    opacity: 0.6;
+
+    &.is-open {
+      transform: rotate(180deg);
+      opacity: 1;
+    }
+  }
+
+  &__list--dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 240px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: $color-dark;
+    border: 1px solid $color-border;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    padding: 6px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
   }
 }
 
@@ -919,7 +1005,48 @@
   &__hint {
     font-size: 11px;
     color: $color-text-muted;
+
+    &--toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      padding: 2px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: $color-text-muted;
+      font-size: 11px;
+      transition: color 0.15s, background 0.15s;
+
+      &:hover {
+        color: $color-text-on-dark;
+        background: rgba(var(--color-text-rgb), 0.06);
+      }
+    }
   }
+
+  &__hint-chevron {
+    font-size: 14px !important;
+    width: 14px !important;
+    height: 14px !important;
+    transition: transform 0.2s;
+
+    &.is-open { transform: rotate(180deg); }
+  }
+}
+
+.plan-free-slots__list {
+  padding: 6px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid $color-border;
+  background: $color-dark;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
 }
 
 .day-load {
@@ -1292,7 +1419,7 @@
   // Farbiger Border-Left zeigt den Status; rest der Border bleibt dezent.
   border: 1px solid $color-border;
   border-left: 3px solid var(--status-color);
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   position: relative;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 
@@ -1301,7 +1428,6 @@
     border-color: rgba(var(--color-text-rgb), 0.14);
     border-left-color: var(--status-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
-    transform: translateY(-1px);
   }
 
   // „Tote" Status (Beendet/Storniert/No-Show) etwas zurücktreten lassen
@@ -1625,10 +1751,9 @@
 
   .wall-body {
     width: 100%;
-    height: 8px;
-    background: rgba(var(--color-text-rgb), 0.28);
-    border: 1px solid rgba(var(--color-text-rgb), 0.18);
-    border-radius: 2px;
+    height: 6px;
+    background: linear-gradient(180deg, #78909c 0%, #546e7a 50%, #78909c 100%);
+    border: 1px solid #90a4ae;
   }
 }
 
@@ -2035,6 +2160,27 @@
   flex-direction: column;
   gap: 14px;
 
+  &__conflict {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: rgba(#e53935, 0.15);
+    border: 1px solid rgba(#e53935, 0.45);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #ff6b6b;
+    font-size: 12px;
+    line-height: 1.4;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+
   &__title {
     display: flex;
     align-items: center;
@@ -2261,24 +2407,24 @@
 // ── Merge-Hinweis & Sitzplatz-Info (Tischauswahl im Dialog) ─────────────
 .merge-hint {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 8px 12px;
   background: rgba(var(--color-accent-rgb), 0.08);
   border: 1px solid rgba(var(--color-accent-rgb), 0.3);
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: $color-accent;
 
   mat-icon {
-    font-size: 15px;
-    width: 15px;
-    height: 15px;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
   }
 
-  span { flex: 1; min-width: 100%; }
+  span { flex: 1; }
 
   &__chip {
     display: flex;
@@ -2289,7 +2435,7 @@
     border: 1px solid rgba(var(--color-accent-rgb), 0.4);
     border-radius: 20px;
     color: $color-accent;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
@@ -2924,30 +3070,19 @@
 
   // Tisch ist mit einem anderen zusammengeführt (aber noch nicht ausgewählt)
   &--linked {
-    border-color: rgba(var(--color-primary-rgb), 0.5);
-    border-style: dashed;
-    background: rgba(var(--color-primary-rgb), 0.07);
-
-    .table-inline__num { color: $color-primary; }
-    .table-inline__lbl { color: rgba(var(--color-primary-rgb), 0.7); }
-
-    &:hover:not(:disabled) {
-      background: rgba(var(--color-primary-rgb), 0.14);
-      border-color: $color-primary;
-      border-style: solid;
-    }
+    // kein besonderer Rahmen / Hintergrund — nur das Link-Icon zeigt die Verknüpfung
   }
 
-  // Kleiner Link-Indikator oben rechts (Kette-Symbol via Pseudo-Element)
+  // Link-Icon oben rechts (gelb, wie im Tischplan)
   .table-inline__link-dot {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: $color-primary;
-    opacity: 0.8;
+    top: 3px;
+    right: 3px;
+    font-size: 26px !important;
+    width: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    color: rgba(220, 162, 0, 0.9);
   }
 
   &--selected-full {
@@ -3033,6 +3168,14 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
+
+  &--table-occupied {
+    color: #ef4444;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 }
 
 // Zeitslot-Karte: voll belegt (orange Markierung)
@@ -3042,6 +3185,23 @@
 
   .table-inline__num {
     color: #f97316;
+  }
+}
+
+// Tisch-Karte: besetzt (rote Border + Hintergrund)
+.table-inline__card--full {
+  border-color: rgba(#e53935, 0.6) !important;
+  background: rgba(#e53935, 0.07);
+  box-shadow: 0 0 0 1px rgba(#e53935, 0.2);
+}
+
+// Zeitslot: gewählter Tisch ist zu dieser Zeit belegt
+.table-inline__card--table-occupied {
+  border-color: rgba(#e53935, 0.45) !important;
+  background: rgba(#e53935, 0.06);
+
+  .table-inline__num {
+    color: #ef4444;
   }
 }
 
@@ -3374,6 +3534,21 @@
 }
 
 // ── Getränke-Alert-Icon direkt in der Reservierungszeile ─────────────────────
+.res-row__hotel-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: default;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #f97316;
+    filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.45));
+  }
+}
+
 .drinks-alert {
   display: inline-flex;
   align-items: center;
@@ -3600,6 +3775,35 @@
 
   mat-icon { font-size: 13px; width: 13px; height: 13px; }
   &:hover { color: $color-primary; }
+}
+
+.gc-hotel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-radius: 20px;
+  padding: 3px 10px 3px 6px;
+  width: fit-content;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+
+  &:hover {
+    background: rgba(249, 115, 22, 0.22);
+    border-color: rgba(249, 115, 22, 0.6);
+  }
+
+  &__room {
+    color: rgba(249, 115, 22, 0.75);
+    font-weight: 500;
+  }
 }
 
 .gc-noshow-badge {
@@ -4342,6 +4546,31 @@
     height: 100%;
     display: block;
     filter: drop-shadow(0 2px 6px rgba(var(--color-primary-rgb), 0.14));
+  }
+
+  &--label {
+    .label-display {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid rgba(41, 121, 255, 0.5);
+      border-radius: 4px;
+      background: rgba(41, 121, 255, 0.07);
+      box-sizing: border-box;
+      padding: 4px 8px;
+
+      .label-text {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 11px;
+        font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
   }
 }
 
@@ -5623,24 +5852,20 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 13px;
-  background: none;
+  padding: 8px 14px;
+  background: rgba(var(--color-text-rgb), 0.06);
   border: 1px solid $color-border;
   border-radius: 8px;
-  color: $color-text-muted;
+  color: $color-text-on-dark;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: background 0.15s;
   flex-shrink: 0;
 
   svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-  &:hover {
-    border-color: $color-primary;
-    color: $color-primary;
-    background: rgba(var(--color-primary-rgb), 0.07);
-  }
+  &:hover { background: rgba(var(--color-text-rgb), 0.1); }
 
   &--label {
     // kein extra Style nötig — Base-Style reicht

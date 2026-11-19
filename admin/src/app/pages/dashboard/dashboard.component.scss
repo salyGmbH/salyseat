@@ -304,7 +304,7 @@
   }
 
   &__value {
-    font-size: 32px;
+    font-size: 38px;
     font-weight: 700;
     color: $color-text-on-dark;
     line-height: 1;
@@ -313,13 +313,13 @@
   }
 
   &__label {
-    font-size: 12px;
+    font-size: 14px;
     color: $color-text-muted;
     font-weight: 500;
   }
 
   &__sub {
-    font-size: 11.5px;
+    font-size: 13px;
     color: $color-text-muted;
 
     &--warn { color: #f97316; font-weight: 500; }
@@ -645,6 +645,13 @@
   border: 1px solid $color-border;
 
   mat-icon { font-size: 16px; width: 16px; height: 16px; color: $color-primary; }
+
+  &--info {
+    background: rgba(99, 102, 241, 0.07);
+    border-color: rgba(99, 102, 241, 0.25);
+    color: #818cf8;
+    mat-icon { color: #818cf8; }
+  }
 
   &--warn {
     background: rgba(249, 115, 22, 0.07);

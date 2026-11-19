@@ -945,7 +945,10 @@
 
     <div class="toggle-row" style="margin-top: 12px;">
       <div class="toggle-row__label">
-        <span>{{ 'widget_einstellungen.wheelchair_label' | translate }}</span>
+        <span class="toggle-row__label-icon">
+          <mat-icon>accessible</mat-icon>
+          {{ 'widget_einstellungen.wheelchair_label' | translate }}
+        </span>
         <small>{{ 'widget_einstellungen.wheelchair_hint' | translate }}</small>
       </div>
       <label class="toggle">
@@ -956,7 +959,10 @@
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>{{ 'widget_einstellungen.dog_label' | translate }}</span>
+        <span class="toggle-row__label-icon">
+          <mat-icon>pets</mat-icon>
+          {{ 'widget_einstellungen.dog_label' | translate }}
+        </span>
         <small>{{ 'widget_einstellungen.dog_hint' | translate }}</small>
       </div>
       <label class="toggle">
@@ -1288,124 +1294,14 @@
         <mat-icon class="section-icon">payments</mat-icon>
         {{ 'widget_einstellungen.payment' | translate }}
       </h2>
-      <button class="info-button" [class.active]="info17()" (click)="info17.set(!info17())">
-        <mat-icon>info</mat-icon>
-      </button>
     </div>
-    <div class="info-box" [class.open]="info17()">
-      {{ 'widget_einstellungen.payment_info' | translate }}
-    </div>
-
-    <!-- Master-Toggle -->
-    <div class="toggle-row">
-      <div class="toggle-row__label">
-        <span>{{ 'widget_einstellungen.payment_activate' | translate }}</span>
-        <small>{{ 'widget_einstellungen.payment_activate_hint' | translate }}</small>
+    <div class="info-hint">
+      <mat-icon>key</mat-icon>
+      <div>
+        <p>{{ 'widget_einstellungen.payment_moved_hint' | translate }}
+          <a href="/einstellungen/kreditkarte">{{ 'widget_einstellungen.payment_stripe_link' | translate }}</a>
+        </p>
       </div>
-      <label class="toggle">
-        <input type="checkbox" [(ngModel)]="settings.zahlungAktiv">
-        <span class="toggle__track"><span class="toggle__thumb"></span></span>
-      </label>
-    </div>
-
-    <!-- Zahlungsmethoden-Karten -->
-    <div class="tischart-grid" [class.stepper-grid--disabled]="!settings.zahlungAktiv">
-      <!-- Kreditkarte / Debitkarte -->
-      <button
-        class="tischart-card"
-        [class.tischart-card--active]="settings.zahlungsmethoden.kreditkarte"
-        [disabled]="!settings.zahlungAktiv"
-        (click)="settings.zahlungsmethoden.kreditkarte = !settings.zahlungsmethoden.kreditkarte">
-        <div class="tischart-card__visual tischart-card__visual--payment">
-          <mat-icon style="font-size:22px;width:22px;height:22px">credit_card</mat-icon>
-        </div>
-        <span class="tischart-card__label">{{ 'widget_einstellungen.payment_card' | translate }}</span>
-        <small class="tischart-card__sub">Visa · Mastercard · Amex</small>
-        <mat-icon class="tischart-card__check">
-          {{ settings.zahlungsmethoden.kreditkarte ? 'check_circle' : 'radio_button_unchecked' }}
-        </mat-icon>
-      </button>
-
-      <!-- SEPA Lastschrift -->
-      <button
-        class="tischart-card"
-        [class.tischart-card--active]="settings.zahlungsmethoden.sepa"
-        [disabled]="!settings.zahlungAktiv"
-        (click)="settings.zahlungsmethoden.sepa = !settings.zahlungsmethoden.sepa">
-        <div class="tischart-card__visual tischart-card__visual--payment">
-          <mat-icon style="font-size:22px;width:22px;height:22px">account_balance</mat-icon>
-        </div>
-        <span class="tischart-card__label">{{ 'widget_einstellungen.payment_sepa' | translate }}</span>
-        <small class="tischart-card__sub">SEPA Lastschrift</small>
-        <mat-icon class="tischart-card__check">
-          {{ settings.zahlungsmethoden.sepa ? 'check_circle' : 'radio_button_unchecked' }}
-        </mat-icon>
-      </button>
-
-      <!-- Vorkasse -->
-      <button
-        class="tischart-card"
-        [class.tischart-card--active]="settings.zahlungsmethoden.vorkasse"
-        [disabled]="!settings.zahlungAktiv"
-        (click)="settings.zahlungsmethoden.vorkasse = !settings.zahlungsmethoden.vorkasse">
-        <div class="tischart-card__visual tischart-card__visual--payment">
-          <mat-icon style="font-size:22px;width:22px;height:22px">receipt_long</mat-icon>
-        </div>
-        <span class="tischart-card__label">{{ 'widget_einstellungen.payment_prepay' | translate }}</span>
-        <small class="tischart-card__sub">Banküberweisung</small>
-        <mat-icon class="tischart-card__check">
-          {{ settings.zahlungsmethoden.vorkasse ? 'check_circle' : 'radio_button_unchecked' }}
-        </mat-icon>
-      </button>
-
-      <!-- Barzahlung -->
-      <button
-        class="tischart-card"
-        [class.tischart-card--active]="settings.zahlungsmethoden.bar"
-        [disabled]="!settings.zahlungAktiv"
-        (click)="settings.zahlungsmethoden.bar = !settings.zahlungsmethoden.bar">
-        <div class="tischart-card__visual tischart-card__visual--payment">
-          <mat-icon style="font-size:22px;width:22px;height:22px">payments</mat-icon>
-        </div>
-        <span class="tischart-card__label">{{ 'widget_einstellungen.payment_cash' | translate }}</span>
-        <small class="tischart-card__sub">Bar vor Ort</small>
-        <mat-icon class="tischart-card__check">
-          {{ settings.zahlungsmethoden.bar ? 'check_circle' : 'radio_button_unchecked' }}
-        </mat-icon>
-      </button>
-    </div>
-
-    <!-- Stripe-Hinweis wenn Kreditkarte oder SEPA gewählt -->
-    @if (settings.zahlungAktiv && (settings.zahlungsmethoden.kreditkarte || settings.zahlungsmethoden.sepa)) {
-      <div class="info-hint">
-        <mat-icon>key</mat-icon>
-        <div>
-          <strong>{{ 'widget_einstellungen.payment_stripe_required' | translate }}</strong>
-          <p>{{ 'widget_einstellungen.payment_stripe_hint' | translate }}
-            <a href="/einstellungen/kreditkarte">{{ 'widget_einstellungen.payment_stripe_link' | translate }}</a>
-          </p>
-        </div>
-      </div>
-    }
-
-    <!-- Zahlung Pflicht-Toggle -->
-    @if (settings.zahlungAktiv) {
-      <div class="toggle-row" style="margin-top: 12px;">
-        <div class="toggle-row__label">
-          <span>{{ 'widget_einstellungen.payment_required' | translate }}</span>
-          <small>{{ 'widget_einstellungen.payment_required_hint' | translate }}</small>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" [(ngModel)]="settings.zahlungPflicht">
-          <span class="toggle__track"><span class="toggle__thumb"></span></span>
-        </label>
-      </div>
-    }
-
-    <div class="actions">
-      <button class="save-button" [class.saved]="saved17()" (click)="saveBlock(17)">
-        {{ saved17() ? ('common.saved' | translate) : ('common.save' | translate) }}
-      </button>
     </div>
   </div>
 

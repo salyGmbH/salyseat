@@ -72,6 +72,18 @@
         </div>
         {% endif %}
 
+        {# ── Änderungs-/Stornierungsfrist ── #}
+        {% if (change_deadline_text is defined and change_deadline_text) or (cancel_deadline_text is defined and cancel_deadline_text) %}
+        <div class="info-text" style="font-size:13px;">
+            {% if change_deadline_text is defined and change_deadline_text %}
+            ✏️ {{ change_deadline_text }}<br>
+            {% endif %}
+            {% if cancel_deadline_text is defined and cancel_deadline_text %}
+            🗑 {{ cancel_deadline_text }}
+            {% endif %}
+        </div>
+        {% endif %}
+
         {# ── Action-Button ── #}
         {% if action_url is defined and action_url %}
         <p><a href="{{ action_url }}" class="action-btn">{{ action_label ?? 'Mehr erfahren' }}</a></p>

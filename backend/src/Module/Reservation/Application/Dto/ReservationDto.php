@@ -35,6 +35,7 @@ final readonly class ReservationDto
         public ?string $paymentStatus,
         public ?string $paymentCaptureMethod,
         public ?string $source,
+        public ?string $hotelRoomNumber,
     ) {}
 
     public static function fromEntity(Reservation $r): self
@@ -66,6 +67,7 @@ final readonly class ReservationDto
             paymentStatus:        $r->getPaymentStatus(),
             paymentCaptureMethod: $r->getPaymentCaptureMethod(),
             source:               $r->getSource(),
+            hotelRoomNumber:      $r->getHotelRoomNumber(),
         );
     }
 
@@ -98,6 +100,7 @@ final readonly class ReservationDto
             'payment_status'         => $this->paymentStatus,
             'payment_capture_method' => $this->paymentCaptureMethod,
             'source'                 => $this->source,
+            'hotel_room_number'      => $this->hotelRoomNumber,
         ];
     }
 }

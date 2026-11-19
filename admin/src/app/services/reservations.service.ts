@@ -116,6 +116,8 @@ export class ReservationsService {
     notes?: string;
     duration_minutes?: number;
     table_id?: number;
+    source?: 'online' | 'admin' | 'walk_in';
+    room_number?: string;
   }): Observable<Reservation> {
     return this.http.post<Reservation>(this.base, payload);
   }

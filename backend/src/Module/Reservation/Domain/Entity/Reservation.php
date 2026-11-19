@@ -94,6 +94,9 @@ class Reservation
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $pmsSyncStatus = null;
 
+    #[ORM\Column(name: 'hotel_room_number', length: 20, nullable: true)]
+    private ?string $hotelRoomNumber = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -312,6 +315,9 @@ class Reservation
     public function setSource(?string $source): void { $this->source = $source; }
 
     public function getMewsReservationId(): ?string { return $this->mewsReservationId; }
+    public function getHotelRoomNumber(): ?string   { return $this->hotelRoomNumber;    }
+    public function setHotelRoomNumber(?string $n): void { $this->hotelRoomNumber = $n; }
+
     public function getPmsSyncStatus(): ?string     { return $this->pmsSyncStatus;     }
 
     public function setPmsSyncStatus(string $status, ?string $mewsReservationId = null): void

@@ -10,6 +10,7 @@ import { ReservationsService } from '../../services/reservations.service';
 import { Reservation, ReservationStatus, STATUS_LABELS } from '../../services/reservation.types';
 import { GuestsService, Guest } from '../../services/guests.service';
 import { ReminderService } from '../../services/reminder.service';
+import { RoomsService } from '../../services/rooms.service';
 
 const REFRESH_INTERVAL_MS = 60_000; // 60 Sekunden
 
@@ -25,6 +26,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private readonly resSvc      = inject(ReservationsService);
   private readonly guestsSvc   = inject(GuestsService);
   private readonly reminderSvc = inject(ReminderService);
+  private readonly roomsSvc    = inject(RoomsService);
   private refreshSub?: Subscription;
 
   /** Fällige Erinnerungen — direkt vom Service (reaktiv) */
@@ -32,11 +34,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly stats          = signal<DashboardStats | null>(null);
   readonly todayRes       = signal<Reservation[]>([]);
+  readonly weekRes        = signal<Reservation[]>([]);
   readonly birthdayGuests = signal<Guest[]>([]);
   readonly weddingGuests  = signal<Guest[]>([]);
   readonly loading        = signal(true);
   readonly error         = signal(false);
   readonly lastUpdated   = signal<Date | null>(null);
+
+  /** Montag und Sonntag der aktuellen Woche als ISO-Strings */
+  private readonly weekRange = (() => {
+    const d = new Date();
+    const day = d.getDay(); // 0=So, 1=Mo, ...
+    const diffToMon = (day === 0 ? -6 : 1 - day);
+    const mon = new Date(d); mon.setDate(d.getDate() + diffToMon);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const fmt = (dt: Date) => new Date(dt.getTime() - dt.getTimezoneOffset() * 60_000).toISOString().split('T')[0];
+    return { from: fmt(mon), to: fmt(sun) };
+  })();
 
   readonly today = new Date().toLocaleDateString('de-DE', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
@@ -95,6 +109,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return Math.round((t.no_show / t.total) * 100);
   });
 
+  /** Gesamtkapazität aller Räume (Summe der Sitzplätze) */
+  readonly totalCapacity = computed(() =>
+    this.roomsSvc.rooms().reduce((sum, r) => sum + (r.seatCount ?? 0), 0)
+  );
+
+  /** Aktuell besetzte Plätze (seated + cleanup Reservierungen heute) */
+  readonly occupiedSeats = computed(() => this.todayStats().seated_guests);
+
+  /** Freie Plätze = Gesamtkapazität − besetzte Plätze */
+  readonly freeSeats = computed(() => {
+    const cap = this.totalCapacity();
+    if (cap === 0) return null;
+    return Math.max(0, cap - this.occupiedSeats());
+  });
+
   /** Auslastung in % (abgeschlossene + aktive / gesamt) */
   readonly utilizationRate = computed(() => {
     const t = this.todayStats();
@@ -102,22 +131,78 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return Math.round(((t.seated + t.completed) / t.total) * 100);
   });
 
-  /** Wochentag-Insight (einziger angezeigter Chip) */
+  /** Insight-Chips: stärkster Tag, Stoßzeit, Walk-ins, Auslastung, Pending, Ø-Gruppe */
   readonly insights = computed((): { icon: string; text: string; type: 'info' | 'warn' | 'success' }[] => {
-    const s = this.stats();
-    const t = this.todayStats();
-    if (!s || s.week.total === 0) return [];
+    const result: { icon: string; text: string; type: 'info' | 'warn' | 'success' }[] = [];
+    const res    = this.weekRes();
+    const today  = this.todayRes();
+    const ts     = this.todayStats();
+    const src    = this.sourceBreakdown();
+    const active = today.filter(r => !['cancelled', 'no_show'].includes(r.status));
 
-    const weekday = new Date().toLocaleDateString('de-DE', { weekday: 'long' });
-    const avgPerDay = s.week.total / 7;
+    // ── 1. Stärkster Wochentag ────────────────────────────────────────────────
+    if (res.length > 0) {
+      const DAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+      const counts = new Array(7).fill(0);
+      for (const r of res) counts[new Date(r.starts_at).getDay()]++;
+      const maxCount = Math.max(...counts);
+      if (maxCount > 0) {
+        const peakDays  = DAYS.filter((_, i) => counts[i] === maxCount);
+        const isToday   = counts[new Date().getDay()] === maxCount;
+        const label     = isToday ? 'Heute' : peakDays.join(' & ');
+        result.push({
+          icon: 'trending_up',
+          text: `${label} ist euer stärkster Tag dieser Woche — ${maxCount} Reservierungen`,
+          type: 'success',
+        });
+      }
+    }
 
-    if (t.total > avgPerDay * 1.3) {
-      return [{ icon: 'trending_up', text: `${weekday} ist ein starker Tag — heute ${t.total} Reservierungen`, type: 'success' }];
+    // ── 2. Kapazitäts-Auslastung (Gäste heute / Gesamtsitzplätze) ────────────
+    const cap = this.totalCapacity();
+    if (cap > 0 && ts.guests > 0) {
+      const capUtil = Math.round((ts.guests / cap) * 100);
+      if (capUtil >= 75) {
+        result.push({
+          icon: 'local_fire_department',
+          text: `Heute zu ${Math.min(capUtil, 100)}% ausgebucht — starker Tag!`,
+          type: 'success',
+        });
+      }
     }
-    if (t.total > 0 && t.total < avgPerDay * 0.6) {
-      return [{ icon: 'info', text: `Ruhiger ${weekday} — heute ${t.total} Reservierungen`, type: 'info' }];
+
+    // ── 3. Offene Bestätigungen ───────────────────────────────────────────────
+    if (ts.pending >= 2) {
+      result.push({
+        icon: 'pending_actions',
+        text: `${ts.pending} Reservierungen heute warten noch auf Bestätigung`,
+        type: 'warn',
+      });
     }
-    return [];
+
+    // ── 5. Walk-ins ───────────────────────────────────────────────────────────
+    if (src.walk_in >= 2 && ts.total > 0) {
+      const pct = Math.round((src.walk_in / ts.total) * 100);
+      result.push({
+        icon: 'directions_walk',
+        text: `${src.walk_in} Walk-ins heute — ${pct}% eurer Gäste sind spontan da`,
+        type: 'info',
+      });
+    }
+
+    // ── 6. Ø-Gruppengröße (nur wenn interessant ≥ 3 Personen) ────────────────
+    if (active.length >= 3) {
+      const avg = active.reduce((s, r) => s + (r.party_size ?? 0), 0) / active.length;
+      if (avg >= 3) {
+        result.push({
+          icon: 'group',
+          text: `Durchschnittliche Gruppe heute: ${avg.toFixed(1)} Personen`,
+          type: 'info',
+        });
+      }
+    }
+
+    return result;
   });
 
   ngOnInit(): void {
@@ -145,13 +230,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const todayMmDd = this.todayIso.slice(5); // 'MM-DD'
 
     forkJoin({
-      stats:  this.svc.load(),
-      res:    this.resSvc.load({ date: this.todayIso, limit: 200 }),
-      guests: this.guestsSvc.load({ limit: 500 }),
+      stats:   this.svc.load(),
+      res:     this.resSvc.load({ date: this.todayIso, limit: 200 }),
+      weekRes: this.resSvc.load({ dateFrom: this.weekRange.from, dateTo: this.weekRange.to, limit: 1000 }),
+      guests:  this.guestsSvc.load({ limit: 500 }),
     }).subscribe({
-      next: ({ stats, res, guests }) => {
+      next: ({ stats, res, weekRes, guests }) => {
         this.stats.set(stats);
         this.todayRes.set(res.reservations);
+        this.weekRes.set(weekRes.reservations.filter(r => r.status !== 'cancelled' && r.status !== 'no_show'));
         this.birthdayGuests.set(
           guests.guests.filter(g => g.birthday?.slice(5) === todayMmDd)
         );

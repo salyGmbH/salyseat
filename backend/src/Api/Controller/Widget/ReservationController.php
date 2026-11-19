@@ -14,6 +14,7 @@ use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservatio
 use App\Module\Availability\Infrastructure\Persistence\DoctrineOpeningHoursRepository;
 use App\Module\Availability\Infrastructure\Persistence\DoctrineSpecialClosingRepository;
 use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -35,6 +36,7 @@ class ReservationController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly DoctrineOpeningHoursRepository $ohRepo,
         private readonly DoctrineSpecialClosingRepository $scRepo,
+        private readonly Connection $dbal,
     ) {}
 
     /**
@@ -89,22 +91,55 @@ class ReservationController extends AbstractController
 
         $uiSettings = $tenant->getUiSettings() ?? [];
 
+        // Venue-Sperrzeiten (alle zukünftigen + laufenden) für das Widget laden
+        $venueBlockRows = $this->dbal->fetchAllAssociative(
+            'SELECT LOWER(CONCAT(
+                SUBSTR(HEX(venue_id),1,8), \'-\',
+                SUBSTR(HEX(venue_id),9,4), \'-\',
+                SUBSTR(HEX(venue_id),13,4), \'-\',
+                SUBSTR(HEX(venue_id),17,4), \'-\',
+                SUBSTR(HEX(venue_id),21)
+             )) AS venue_id,
+             date_from, date_to, full_day, time_from, time_to
+               FROM venue_blocks vb
+              WHERE vb.venue_id IN (
+                SELECT id FROM venues WHERE tenant_id = UNHEX(REPLACE(?, \'-\', \'\'))
+              )
+                AND date_to >= CURDATE()',
+            [$tenant->getId()->toRfc4122()],
+        );
+
+        // Gruppieren nach venue_id
+        $venueBlocksByVenue = [];
+        foreach ($venueBlockRows as $row) {
+            $venueBlocksByVenue[$row['venue_id']][] = [
+                'date_from' => $row['date_from'],
+                'date_to'   => $row['date_to'],
+                'full_day'  => (bool) $row['full_day'],
+                'time_from' => $row['time_from'],
+                'time_to'   => $row['time_to'],
+            ];
+        }
+
         return $this->json([
             'name'         => $tenant->getName(),
             'venues'       => array_map(fn ($v) => [
-                'id'       => $v->getId()->toRfc4122(),
-                'name'     => $v->getName(),
-                'category' => $v->getCategory(),
-                'address'  => $v->getAddress(),
-                'tables'   => $v->getLayout()['tables'] ?? [],
-                'walls'    => $v->getLayout()['walls']  ?? [],
-                'decors'   => $v->getLayout()['decors'] ?? [],
+                'id'           => $v->getId()->toRfc4122(),
+                'name'         => $v->getName(),
+                'category'     => $v->getCategory(),
+                'address'      => $v->getAddress(),
+                'tables'       => $v->getLayout()['tables'] ?? [],
+                'walls'        => $v->getLayout()['walls']  ?? [],
+                'decors'       => $v->getLayout()['decors'] ?? [],
+                'blockedRanges' => $venueBlocksByVenue[$v->getId()->toRfc4122()] ?? [],
             ], $venueList),
             'widgetDesign'         => $uiSettings['widgetDesign'] ?? null,
             'widgetFunctional'     => array_merge(
                 $uiSettings['widgetFunctional'] ?? [],
                 ['defaultDurationMinutes' => $uiSettings['reservationTiming']['defaultDurationMinutes'] ?? 120],
             ),
+            'widgetLanguage'       => $uiSettings['widgetLanguage'] ?? 'de',
+            'allergene'            => $uiSettings['allergene'] ?? [],
             'stripePublishableKey' => $uiSettings['stripeSettings']['publishableKey'] ?? null,
             'closedWeekdays'      => $closedWeekdays,
             'openingSchedule'     => $openingSchedule,

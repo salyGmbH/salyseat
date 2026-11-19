@@ -8,40 +8,103 @@
     </div>
   </div>
 
+  <!-- ─── Zeitraum-Filter ──────────────────────────────────────────────────── -->
+  <div class="time-filter">
+
+    <!-- Label + aktiver Filter -->
+    <div class="time-filter__header">
+      <mat-icon class="time-filter__icon">calendar_month</mat-icon>
+      <span class="time-filter__title">Zeitraum</span>
+      <span class="time-filter__active-label">{{ filterLabel() }}</span>
+    </div>
+
+    <!-- Jahr-Pills -->
+    <div class="time-filter__year-row">
+      <button
+        class="year-pill"
+        [class.year-pill--active]="selectedYear() === 'all'"
+        (click)="selectYear('all')">
+        <mat-icon>all_inclusive</mat-icon>
+        Gesamt
+      </button>
+      @for (y of years; track y) {
+        <button
+          class="year-pill"
+          [class.year-pill--active]="selectedYear() === y"
+          (click)="selectYear(y)">
+          {{ y }}
+        </button>
+      }
+    </div>
+
+    <!-- Monat-Kacheln (nur wenn Jahr gewählt) -->
+    @if (showMonths()) {
+      <div class="time-filter__month-section">
+        <div class="time-filter__month-header">
+          <span class="time-filter__month-label">Monat</span>
+          @if (selectedMonths().length > 0) {
+            <span class="time-filter__month-selection">{{ selectedMonthLabels() }}</span>
+            <button class="time-filter__clear" (click)="clearMonths()" title="Auswahl zurücksetzen">
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <span class="time-filter__month-all">Alle</span>
+          }
+        </div>
+        <div class="month-grid">
+          @for (m of MONTHS; track m.n) {
+            <button
+              class="month-tile"
+              [class.month-tile--active]="hasMonth(m.n)"
+              (click)="toggleMonth(m.n)">
+              {{ m.label }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+  </div>
+
   <!-- ─── KPI Cards ─────────────────────────────────────────────────────────── -->
   <div class="stats-section">
     <h2 class="section-label">{{ 'statistiken.key_figures' | translate }}</h2>
-    <div class="stats-grid">
+    <div class="stats-grid" [class.stats-grid--loading]="kpiLoading()">
 
       <div class="stat-card stat-card--green">
         <div class="stat-card__icon"><mat-icon>people</mat-icon></div>
         <div class="stat-card__content">
-          <span class="stat-card__label">{{ 'statistiken.total_guests' | translate }}</span>
-          <span class="stat-card__value">{{ totals().guests | number }}</span>
+          <span class="stat-card__label">Gäste gesamt</span>
+          <span class="stat-card__value">{{ kpiLoading() ? '—' : (totals().guests | number) }}</span>
         </div>
       </div>
 
       <div class="stat-card stat-card--warn">
         <div class="stat-card__icon"><mat-icon>event_available</mat-icon></div>
         <div class="stat-card__content">
-          <span class="stat-card__label">{{ 'statistiken.reservations' | translate }}</span>
-          <span class="stat-card__value">{{ totals().reservations | number }}</span>
+          <span class="stat-card__label">Reservierungen</span>
+          <span class="stat-card__value">{{ kpiLoading() ? '—' : (totals().reservations | number) }}</span>
         </div>
       </div>
 
       <div class="stat-card stat-card--danger">
         <div class="stat-card__icon"><mat-icon>person_off</mat-icon></div>
         <div class="stat-card__content">
-          <span class="stat-card__label">{{ 'statistiken.no_shows' | translate }}</span>
-          <span class="stat-card__value">{{ totals().noShows | number }}</span>
+          <span class="stat-card__label">No-Shows</span>
+          <span class="stat-card__value">
+            {{ kpiLoading() ? '—' : (totals().noShows | number) }}
+            @if (!kpiLoading() && totals().reservations > 0) {
+              <span class="stat-card__sub">{{ noShowRate() }} %</span>
+            }
+          </span>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-card__icon"><mat-icon>percent</mat-icon></div>
         <div class="stat-card__content">
-          <span class="stat-card__label">{{ 'statistiken.utilization_30' | translate }}</span>
-          <span class="stat-card__value">{{ totals().auslastung | number:'1.0-1' }} %</span>
+          <span class="stat-card__label">{{ auslastungLabel() }}</span>
+          <span class="stat-card__value">{{ kpiLoading() ? '—' : (totals().auslastung | number:'1.0-1') + ' %' }}</span>
         </div>
       </div>
 
@@ -66,23 +129,24 @@
     <h2 class="section-label">{{ 'statistiken.booking_overview' | translate }}</h2>
     <div class="donut-pair">
 
-      <!-- Anlässe -->
+      <!-- Gästeart -->
       <div class="donut-card">
-        <h3 class="donut-card__title">{{ 'statistiken.occasions' | translate }}</h3>
+        <h3 class="donut-card__title">Gästeart</h3>
         <div class="donut-card__visual">
           <div class="donut-wrap">
-            <canvas id="anlassChart"></canvas>
+            <canvas id="guestTypesChart"></canvas>
             <div class="donut-center">
-              <span class="donut-center__num">{{ anlassTotal }}</span>
-              <span class="donut-center__lbl">{{ 'statistiken.total' | translate }}</span>
+              <span class="donut-center__num">{{ guestTypesTotal() }}</span>
+              <span class="donut-center__lbl">Reserv.</span>
             </div>
           </div>
           <div class="donut-legend">
-            @for (item of anlassData; track item.label) {
+            @for (item of guestTypesData(); track item.label) {
               <div class="donut-legend__row">
                 <span class="donut-legend__dot" [style.background]="item.color"></span>
                 <span class="donut-legend__name">{{ item.label }}</span>
                 <span class="donut-legend__val">{{ item.value }}</span>
+                <span class="donut-legend__pct">{{ item.pct }} %</span>
               </div>
             }
           </div>
@@ -96,16 +160,17 @@
           <div class="donut-wrap">
             <canvas id="quellenChart"></canvas>
             <div class="donut-center">
-              <span class="donut-center__num">{{ quellenTotal }}</span>
+              <span class="donut-center__num">{{ quellenTotal() }}</span>
               <span class="donut-center__lbl">{{ 'statistiken.total' | translate }}</span>
             </div>
           </div>
           <div class="donut-legend">
-            @for (item of quellenData; track item.label) {
+            @for (item of quellenData(); track item.label) {
               <div class="donut-legend__row">
                 <span class="donut-legend__dot" [style.background]="item.color"></span>
                 <span class="donut-legend__name">{{ item.label }}</span>
                 <span class="donut-legend__val">{{ item.value }}</span>
+                <span class="donut-legend__pct">{{ item.pct }} %</span>
               </div>
             }
           </div>

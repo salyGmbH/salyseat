@@ -1,6 +1,48 @@
 @use '../../../../styles/variables' as *;
 @use '../_placeholder' as *;
 
+// ── Info-Button & Info-Box ────────────────────────────────────────────────────
+.info-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-accent;
+  padding: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background .2s, transform .2s;
+
+  mat-icon { font-size: 20px; }
+
+  &:hover { background: rgba(var(--color-accent-rgb), 0.1); transform: scale(1.05); }
+  &.active { background: rgba(var(--color-accent-rgb), 0.15); }
+}
+
+.info-box {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  color: $color-text-muted;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.25s ease;
+  margin-top: 8px;
+
+  &.open {
+    max-height: 200px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 // ── Globaler mat-icon Fix: immer mittig ───────────────────────────────────────
 mat-icon {
   display: inline-flex !important;
@@ -52,6 +94,98 @@ mat-icon {
     opacity: .55;
     margin-right: 2px;
   }
+}
+
+// ── Filter-Chips Zeile ────────────────────────────────────────────────────────
+.filter-chips-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 28px;
+}
+
+// ── Sortier-Button ────────────────────────────────────────────────────────────
+.sort-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 20px;
+  color: $color-text-muted;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &__chevron { transition: transform 0.2s; }
+
+  &--active {
+    border-color: $color-accent;
+    color: $color-accent;
+    background: rgba(var(--color-accent-rgb), 0.06);
+
+    .sort-btn__chevron { transform: rotate(180deg); }
+  }
+
+  &:hover:not(&--active) {
+    border-color: rgba(var(--color-text-rgb), 0.3);
+    color: $color-text-on-dark;
+  }
+}
+
+.sort-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  z-index: 50;
+  min-width: 210px;
+  overflow: hidden;
+  padding: 4px;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 12px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: $color-text-muted;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s, color 0.12s;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; flex-shrink: 0; }
+
+    &:hover { background: rgba(var(--color-text-rgb), 0.06); color: $color-text-on-dark; }
+
+    &--active {
+      color: $color-accent;
+      background: rgba(var(--color-accent-rgb), 0.08);
+      font-weight: 600;
+    }
+  }
+
+  &__check { margin-left: auto; font-size: 16px !important; }
 }
 
 // ── Filter-Chips ──────────────────────────────────────────────────────────────
@@ -391,6 +525,11 @@ mat-icon {
 
 .contact-email {
   color: $color-text;
+
+  &--none {
+    color: $color-text-muted;
+    opacity: .5;
+  }
 }
 
 .contact-phone {
@@ -595,9 +734,9 @@ mat-icon {
   border: 1px solid $color-border;
   border-radius: 20px;
   width: 100%;
-  max-width: 980px;
+  max-width: 1140px;
   height: 88vh;
-  max-height: 820px;
+  max-height: 860px;
   box-shadow: 0 28px 70px rgba(0,0,0,.28);
   display: flex;
   flex-direction: row;  // ← 2-Panel
@@ -1011,40 +1150,43 @@ mat-icon {
 }
 
 // ── Toggle-Switch ─────────────────────────────────────────────────────────────
-.switch {
+.toggle {
   position: relative;
-  display: inline-block;
-  width: 40px;
-  height: 22px;
+  display: inline-flex;
+  cursor: pointer;
   flex-shrink: 0;
 
-  input { opacity: 0; width: 0; height: 0; }
+  input { position: absolute; opacity: 0; width: 0; height: 0; }
 
-  .slider {
-    position: absolute;
-    inset: 0;
-    background: $color-border;
-    border-radius: 22px;
-    cursor: pointer;
-    transition: background .2s;
-
-    &::before {
-      content: '';
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      left: 3px;
-      top: 3px;
-      background: #fff;
-      border-radius: 50%;
-      transition: transform .2s;
-    }
+  &__track {
+    width: 44px;
+    height: 24px;
+    background: rgba(var(--color-text-rgb), 0.12);
+    border-radius: 99px;
+    transition: background 0.2s;
+    position: relative;
   }
 
-  input:checked + .slider {
-    background: $color-primary;
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transition: transform 0.2s;
+  }
 
-    &::before { transform: translateX(18px); }
+  input:checked ~ .toggle__track {
+    background: rgba(var(--color-accent-rgb), 0.35);
+  }
+
+  input:checked ~ .toggle__track .toggle__thumb {
+    transform: translateX(20px);
+    background: $color-accent;
+    box-shadow: 0 1px 6px rgba(var(--color-accent-rgb), 0.6);
   }
 }
 
@@ -2183,12 +2325,61 @@ mat-icon {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 40px 0 24px;
+  gap: 12px;
+  padding: 36px 24px 24px;
   color: $color-text-muted;
 
   mat-icon { font-size: 40px; width: 40px; height: 40px; opacity: .4; }
   p { margin: 0; font-size: 14px; }
+
+  &__hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(var(--color-primary-rgb), 0.07);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+    font-size: 13px;
+    color: $color-text;
+    line-height: 1.5;
+    text-align: left;
+    max-width: 360px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      opacity: 1;
+      color: var(--color-primary);
+      margin-top: 1px;
+    }
+
+    strong { color: var(--color-primary); }
+  }
+
+  &__goto {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--color-primary-rgb), 0.45);
+    background: rgba(var(--color-primary-rgb), 0.10);
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; opacity: 1; }
+
+    &:hover {
+      background: rgba(var(--color-primary-rgb), 0.18);
+      border-color: var(--color-primary);
+    }
+  }
 }
 
 .mail-success {
@@ -2398,5 +2589,96 @@ mat-icon {
 
   .mail-recipient {
     background: rgba(var(--color-primary-rgb), 0.04);
+  }
+}
+
+// ── Responsive: kleine Viewports ─────────────────────────────────────────────
+@media (max-width: 767px) {
+
+  .modal-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .profile-modal {
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    max-width: 100%;
+  }
+
+  // Sidebar: kompakte horizontale Leiste
+  .profile-sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-right: none;
+    border-bottom: 1px solid $color-border;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+  }
+
+  .sidebar-hero {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .sidebar-hero__info {
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .profile-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+
+  .profile-name {
+    font-size: 14px;
+    text-align: left;
+  }
+
+  .profile-badges {
+    justify-content: flex-start;
+  }
+
+  // Alles außer Avatar + Name + Badges in Sidebar ausblenden
+  .sidebar-meta,
+  .sidebar-divider,
+  .sidebar-stats {
+    display: none;
+  }
+
+  // Haupt-Panel nimmt restlichen Platz ein und scrollt intern
+  .profile-main {
+    flex: 1;
+    min-height: 0;
+  }
+
+  // Tabs bleiben horizontal scrollbar (bereits so definiert)
+  .profile-tab {
+    padding: 10px 12px;
+    font-size: 12.5px;
+  }
+
+  // Body-Padding reduzieren
+  .profile-body {
+    padding: 16px 16px;
+  }
+
+  // Feld-Grid auf 1 Spalte
+  .field-grid {
+    grid-template-columns: 1fr;
+
+    &--3 { grid-template-columns: 1fr; }
   }
 }

@@ -160,6 +160,10 @@ export class ReservationTimingService {
    *     Cleanup-Zeit seit Statuswechsel abgelaufen.
    */
   private runExpiryCheck(): void {
+    // Während eines Drag-Vorgangs keine Status-Übergänge auslösen —
+    // sonst wird eine RV die kurz auf einer vergangenen Uhrzeit landet
+    // fälschlicherweise auf "Abgelaufen" / "Verspätet" gesetzt.
+    if (this.reservations.isDragging) return;
     const now = Date.now();
     const list = this.reservations.reservations();
     for (const r of list) {

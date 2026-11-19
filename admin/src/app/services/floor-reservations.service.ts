@@ -13,6 +13,12 @@ export class FloorReservationsService {
   private readonly _reservations    = signal<FloorReservation[]>([]);
   readonly reservations = computed(() => this._reservations());
 
+  /** Wird während eines Timeline-Drags auf true gesetzt — pausiert Status-Heartbeat-Checks. */
+  private _dragging = false;
+  get isDragging(): boolean { return this._dragging; }
+  beginDrag(): void { this._dragging = true; }
+  endDrag():   void { this._dragging = false; }
+
   /**
    * Backend-IDs von Reservierungen, die der Nutzer manuell "gelöscht" hat
    * (z. B. abgeschlossene / stornierte aus dem Tischplan entfernt).
@@ -157,6 +163,8 @@ export class FloorReservationsService {
       guestNoShowCount:    br.guest_no_show_count   ?? 0,
       paymentStatus:       (br as any).payment_status        ?? null,
       paymentCaptureMethod:(br as any).payment_capture_method ?? null,
+      source:              (br as any).source               ?? null,
+      hotelRoomNumber:     (br as any).hotel_room_number    ?? null,
       createdAt:           new Date(br.created_at).getTime(),
       updatedAt:          Date.now(),
     };

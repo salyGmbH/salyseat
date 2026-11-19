@@ -24,6 +24,13 @@ final class CompleteReservationHandler
         }
 
         $reservation->complete();
+
+        // Letzten Besuch beim Gast aktualisieren
+        $guest = $reservation->getGuest();
+        if ($guest !== null) {
+            $guest->updateLastVisitAt($reservation->getStartsAt());
+        }
+
         $this->reservations->save($reservation);
 
         return $reservation;

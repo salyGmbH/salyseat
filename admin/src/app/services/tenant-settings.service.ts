@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, of, tap, throwError } from 'rxjs';
 import { StatusColor } from './status-colors.service';
+import { ThemeMode, ThemeService } from './theme.service';
 
 export interface ConfigItem {
   key: string;
@@ -96,9 +97,16 @@ export interface GutscheinDesignSettings {
 
 // ─── Tenant-UI-Settings ───────────────────────────────────────────────────────
 
+export type WidgetLang = 'de' | 'en';
+export type AdminLang = 'de' | 'en';
+
 export interface TenantUiSettings {
   /** Wird vom Backend automatisch mitgeliefert — nie manuell setzen. */
   _publicKey?: string;
+  /** Anzeigesprache des Admin-Panels. Default: 'de' */
+  adminLanguage?: AdminLang;
+  /** Anzeigesprache des Buchungs-Widgets. Default: 'de' */
+  widgetLanguage?: WidgetLang;
   statuses?: StatusColor[];
   statusView?: 'card' | 'text' | 'svg';
   hinweise?: ConfigItem[];
@@ -163,6 +171,9 @@ export interface TenantUiSettings {
    */
   logoLight?: string | null;
   logoDark?:  string | null;
+
+  /** Darstellung des Admin-Panels (light / dim / dark / system). In DB gespeichert. */
+  themeMode?: ThemeMode;
 
   /** Gespeicherte Packages (Menü-Angebote, Events, Feiern …). */
   packages?: any[];
@@ -395,8 +406,9 @@ export const DEFAULT_RESERVATION_TIMING: ReservationTimingSettings = {
 
 @Injectable({ providedIn: 'root' })
 export class TenantSettingsService {
-  private readonly http = inject(HttpClient);
-  private readonly url = '/api/v1/admin/tenant/settings';
+  private readonly http  = inject(HttpClient);
+  private readonly theme = inject(ThemeService);
+  private readonly url   = '/api/v1/admin/tenant/settings';
 
   /** Zentraler Snapshot — wird nach jedem load() und save() aktualisiert. */
   snapshot: TenantUiSettings = {};
@@ -409,6 +421,7 @@ export class TenantSettingsService {
       tap(s => {
         this.snapshot = s;
         if (s._publicKey) this.publicKey.set(s._publicKey);
+        if (s.themeMode)  this.theme.setMode(s.themeMode);
       }),
       catchError(() => of({} as TenantUiSettings))
     );

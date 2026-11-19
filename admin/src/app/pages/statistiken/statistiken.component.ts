@@ -1,9 +1,9 @@
-import { Component, AfterViewInit, inject, signal } from '@angular/core';
+import { Component, AfterViewInit, inject, signal, computed } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import Chart from 'chart.js/auto';
-import { StatistikenService, StatsTotals, StatsTimeslot, StatsMonthly, StatsTopGuest } from '../../services/statistiken.service';
+import { StatistikenService, StatsTotals, StatsTimeslot, StatsMonthly, StatsTopGuest, StatsGuestTypes, StatsSources } from '../../services/statistiken.service';
 
 // Inline-Plugin: Werte über den Balken rendern
 const topLabelsPlugin = {
@@ -37,6 +37,111 @@ const topLabelsPlugin = {
 export class StatistikenComponent implements AfterViewInit {
   private readonly svc = inject(StatistikenService);
 
+  // ─── Filter ──────────────────────────────────────────────────────────────────
+  readonly MONTHS = [
+    { n: 1, label: 'Jan' }, { n: 2,  label: 'Feb' }, { n: 3,  label: 'Mär' },
+    { n: 4, label: 'Apr' }, { n: 5,  label: 'Mai' }, { n: 6,  label: 'Jun' },
+    { n: 7, label: 'Jul' }, { n: 8,  label: 'Aug' }, { n: 9,  label: 'Sep' },
+    { n: 10, label: 'Okt' }, { n: 11, label: 'Nov' }, { n: 12, label: 'Dez' },
+  ];
+
+  readonly years = (() => {
+    const cur = new Date().getFullYear();
+    const list: number[] = [];
+    for (let y = 2025; y <= cur; y++) list.push(y);
+    return list;
+  })();
+
+  selectedYear   = signal<number | 'all'>('all');
+  selectedMonths = signal<number[]>([]);  // 1-12, leer = alle
+
+  readonly showMonths = computed(() => this.selectedYear() !== 'all');
+
+  readonly filterLabel = computed(() => {
+    const y = this.selectedYear();
+    if (y === 'all') return 'Gesamter Zeitraum';
+    const ms = this.selectedMonths();
+    if (ms.length === 0) return `Jahr ${y}`;
+    if (ms.length === 1) return `${this.MONTHS[ms[0] - 1].label} ${y}`;
+    return `${ms.length} Monate · ${y}`;
+  });
+
+  readonly selectedMonthLabels = computed(() =>
+    this.selectedMonths().map(n => this.MONTHS[n - 1].label).join(', ')
+  );
+
+  readonly auslastungLabel = computed(() => {
+    const y = this.selectedYear();
+    if (y === 'all') return 'Auslastung (gesamt)';
+    const ms = this.selectedMonths();
+    if (ms.length === 0) return `Auslastung ${y}`;
+    if (ms.length === 1) return `Auslastung ${this.MONTHS[ms[0] - 1].label} ${y}`;
+    return `Auslastung (${ms.length} Monate)`;
+  });
+
+  readonly noShowRate = computed(() => {
+    const t = this.totals();
+    if (t.reservations === 0) return 0;
+    return Math.round((t.noShows / t.reservations) * 100);
+  });
+
+  kpiLoading = signal(false);
+
+  hasMonth(n: number): boolean {
+    return this.selectedMonths().includes(n);
+  }
+
+  selectYear(y: number | 'all'): void {
+    this.selectedYear.set(y);
+    this.selectedMonths.set([]);
+    this.reloadData();
+  }
+
+  toggleMonth(n: number): void {
+    const cur = this.selectedMonths();
+    const next = cur.includes(n) ? cur.filter(m => m !== n) : [...cur, n].sort((a, b) => a - b);
+    this.selectedMonths.set(next);
+    this.reloadData();
+  }
+
+  clearMonths(): void {
+    this.selectedMonths.set([]);
+    this.reloadData();
+  }
+
+  private getDateRange(): { from?: string; to?: string } {
+    const y = this.selectedYear();
+    if (y === 'all') return {};
+    const ms = this.selectedMonths();
+    if (ms.length === 0) return { from: `${y}-01-01`, to: `${y}-12-31` };
+    const first = ms[0];
+    const last  = ms[ms.length - 1];
+    const lastDay = new Date(y, last, 0).getDate();
+    return {
+      from: `${y}-${String(first).padStart(2,'0')}-01`,
+      to:   `${y}-${String(last).padStart(2,'0')}-${lastDay}`,
+    };
+  }
+
+  private reloadData(): void {
+    this.destroyCharts();
+    this.kpiLoading.set(true);
+    const { from, to } = this.getDateRange();
+    this.svc.load(from, to).subscribe(data => {
+      this.totals.set(data.totals);
+      this.guestTypes.set(data.guestTypes);
+      this.sources.set(data.sources);
+      this.topGuests = data.topGuests;
+      this.processTimeslots(data.timeslots);
+      this.processMonthly(data.monthly);
+      this.kpiLoading.set(false);
+      this.createLineChart();
+      this.createGuestTypesChart();
+      this.createQuellenChart();
+      this.buildAuslastungChart();
+    });
+  }
+
   // ─── KPI (real data) ────────────────────────────────────────────────────────
   totals = signal<StatsTotals>({ reservations: 0, guests: 0, noShows: 0, auslastung: 0 });
 
@@ -51,18 +156,22 @@ export class StatistikenComponent implements AfterViewInit {
 
   topGuests: StatsTopGuest[] = [];
 
-  // ─── Anlässe & Quellen (static — source not tracked in DB) ──────────────────
-  anlassData = [
-    { label: 'Barbereich',      value: 42, color: '#2979ff' },
-    { label: 'Essen & Trinken', value: 35, color: '#ffb700' },
-    { label: 'VIP-Lounge',      value: 23, color: '#22c55e' },
-  ];
+  // ─── Gästeart (real data) ────────────────────────────────────────────────────
+  guestTypes = signal<StatsGuestTypes>({ new: 0, returning: 0, newPercent: 0, returningPercent: 0 });
 
-  quellenData = [
-    { label: 'Webseite', value: 148, color: '#2979ff' },
-    { label: 'In Haus',  value:  52, color: '#ffb700' },
-    { label: 'Telefon',  value:  31, color: '#22c55e' },
-  ];
+  readonly guestTypesData = computed(() => [
+    { label: 'Neukunden',       value: this.guestTypes().new,       pct: this.guestTypes().newPercent,       color: '#2979ff' },
+    { label: 'Bestandskunden',  value: this.guestTypes().returning,  pct: this.guestTypes().returningPercent, color: '#22c55e' },
+  ]);
+
+  // ─── Quellen (real data) ─────────────────────────────────────────────────────
+  sources = signal<StatsSources>({ online: 0, onlinePercent: 0, walkIn: 0, walkInPercent: 0, admin: 0, adminPercent: 0 });
+
+  readonly quellenData = computed(() => [
+    { label: 'Online-Widget', value: this.sources().online,  pct: this.sources().onlinePercent,  color: '#2979ff' },
+    { label: 'Walk-in',       value: this.sources().walkIn,  pct: this.sources().walkInPercent,  color: '#f59e0b' },
+    { label: 'Manuell',       value: this.sources().admin,   pct: this.sources().adminPercent,   color: '#22c55e' },
+  ]);
 
   geraeteData = [
     { label: 'Desktop', value: 55, color: '#2979ff' },
@@ -70,8 +179,8 @@ export class StatistikenComponent implements AfterViewInit {
     { label: 'Tablet',  value: 10, color: '#22c55e' },
   ];
 
-  get anlassTotal(): number { return this.anlassData.reduce((s, d) => s + d.value, 0); }
-  get quellenTotal(): number { return this.quellenData.reduce((s, d) => s + d.value, 0); }
+  readonly guestTypesTotal = computed(() => this.guestTypes().new + this.guestTypes().returning);
+  readonly quellenTotal    = computed(() => this.sources().online + this.sources().walkIn + this.sources().admin);
 
   // ─── Auslastung (real data) ──────────────────────────────────────────────────
   auslastungFilter = 'ganzerTag';
@@ -87,7 +196,15 @@ export class StatistikenComponent implements AfterViewInit {
     abend:     { labels: [], data: [] },
   };
 
+  private lineChartInst?: Chart;
   private auslastungChart?: Chart;
+
+  private destroyCharts(): void {
+    this.lineChartInst?.destroy();
+    this.auslastungChart?.destroy();
+    this.lineChartInst = undefined;
+    this.auslastungChart = undefined;
+  }
 
   // ─── Monatliche Reservierungen (real data) ───────────────────────────────────
   private monthlyLabels: string[] = [];
@@ -111,13 +228,15 @@ export class StatistikenComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     this.svc.load().subscribe(data => {
       this.totals.set(data.totals);
+      this.guestTypes.set(data.guestTypes);
+      this.sources.set(data.sources);
       this.topGuests = data.topGuests;
       this.processTimeslots(data.timeslots);
       this.processMonthly(data.monthly);
 
       this.createLineChart();
       this.createDoughnutChart();
-      this.createAnlassChart();
+      this.createGuestTypesChart();
       this.createQuellenChart();
       this.buildAuslastungChart();
     });
@@ -183,7 +302,7 @@ export class StatistikenComponent implements AfterViewInit {
     const labels = this.monthlyLabels.length ? this.monthlyLabels : ['–'];
     const data   = this.monthlyCounts.length ? this.monthlyCounts : [0];
 
-    new Chart('lineChart', {
+    this.lineChartInst = new Chart('lineChart', {
       type: 'line',
       data: {
         labels,
@@ -227,12 +346,13 @@ export class StatistikenComponent implements AfterViewInit {
     });
   }
 
-  private createAnlassChart(): void {
-    new Chart('anlassChart', {
+  private createGuestTypesChart(): void {
+    const data = this.guestTypesData();
+    new Chart('guestTypesChart', {
       type: 'doughnut',
       data: {
-        labels: this.anlassData.map(d => d.label),
-        datasets: [{ data: this.anlassData.map(d => d.value), backgroundColor: this.anlassData.map(d => d.color), borderWidth: 0, hoverOffset: 6 }]
+        labels: data.map(d => d.label),
+        datasets: [{ data: data.map(d => d.value), backgroundColor: data.map(d => d.color), borderWidth: 0, hoverOffset: 6 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '74%',
@@ -242,11 +362,12 @@ export class StatistikenComponent implements AfterViewInit {
   }
 
   private createQuellenChart(): void {
+    const data = this.quellenData();
     new Chart('quellenChart', {
       type: 'doughnut',
       data: {
-        labels: this.quellenData.map(d => d.label),
-        datasets: [{ data: this.quellenData.map(d => d.value), backgroundColor: this.quellenData.map(d => d.color), borderWidth: 0, hoverOffset: 6 }]
+        labels: data.map(d => d.label),
+        datasets: [{ data: data.map(d => d.value), backgroundColor: data.map(d => d.color), borderWidth: 0, hoverOffset: 6 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '74%',

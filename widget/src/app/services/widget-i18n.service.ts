@@ -147,6 +147,14 @@ export interface WidgetLabels {
   paymentConfirm:       string;
   paymentCancel:        string;
   hintClose:            string;
+
+  // Warteliste
+  waitlistHint:         string;
+  waitlistFull:         string;
+  waitlistModalTitle:   string;
+  waitlistModalSubmit:  string;
+  waitlistModalSuccess: string;
+  waitlistModalError:   string;
 }
 
 const DE: WidgetLabels = {
@@ -280,6 +288,13 @@ const DE: WidgetLabels = {
   paymentConfirm:       'Zahlung bestätigen',
   paymentCancel:        'Zahlung abbrechen',
   hintClose:            'Hinweis schließen',
+
+  waitlistHint:         'Auf die Warteliste setzen',
+  waitlistFull:         'Warteliste',
+  waitlistModalTitle:   'Auf die Warteliste setzen',
+  waitlistModalSubmit:  'Eintragen',
+  waitlistModalSuccess: 'Du wurdest auf die Warteliste gesetzt. Wir melden uns innerhalb von {hours} Stunden, falls ein Platz frei wird.',
+  waitlistModalError:   'Eintragung fehlgeschlagen. Bitte versuche es erneut.',
 };
 
 const EN: WidgetLabels = {
@@ -413,6 +428,13 @@ const EN: WidgetLabels = {
   paymentConfirm:       'Confirm payment',
   paymentCancel:        'Cancel payment',
   hintClose:            'Close notice',
+
+  waitlistHint:         'Join the waitlist',
+  waitlistFull:         'Waitlist',
+  waitlistModalTitle:   'Join the waitlist',
+  waitlistModalSubmit:  'Join waitlist',
+  waitlistModalSuccess: 'You\'ve been added to the waitlist. We\'ll get in touch within {hours} hours if a spot opens up.',
+  waitlistModalError:   'Could not join the waitlist. Please try again.',
 };
 
 const DICT: Record<WidgetLang, WidgetLabels> = { de: DE, en: EN };

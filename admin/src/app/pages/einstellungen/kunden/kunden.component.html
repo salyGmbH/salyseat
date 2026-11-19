@@ -2,10 +2,16 @@
 <div class="settings-block">
   <div class="page-hero">
     <div class="page-hero__icon"><mat-icon>groups</mat-icon></div>
-    <div>
+    <div style="flex:1">
       <h2 class="page-hero__title">{{ 'kunden.title' | translate }}</h2>
       <p class="page-hero__sub">{{ 'kunden.subtitle' | translate }}</p>
     </div>
+    <button class="info-button" [class.active]="infoOpen()" (click)="infoOpen.set(!infoOpen())">
+      <mat-icon>info</mat-icon>
+    </button>
+  </div>
+  <div class="info-box" [class.open]="infoOpen()">
+    {{ 'kunden.info' | translate }}
   </div>
 </div>
 
@@ -86,6 +92,7 @@
   </div>
 
   <!-- ── Filter-Chips ─────────────────────────────────────────────────────── -->
+  <div class="filter-chips-row">
   <div class="filter-chips">
 
     <button class="filter-chip filter-chip--alle"
@@ -158,6 +165,28 @@
 
   </div>
 
+  <!-- Sort-Button -->
+  <div class="sort-wrap">
+    <button class="sort-btn" [class.sort-btn--active]="sortMenuOpen()" (click)="toggleSortMenu()">
+      <mat-icon>sort</mat-icon>
+      <span>{{ currentSortLabel() }}</span>
+      <mat-icon class="sort-btn__chevron">expand_more</mat-icon>
+    </button>
+    @if (sortMenuOpen()) {
+      <div class="sort-dropdown">
+        @for (opt of sortOptions; track opt.value) {
+          <button class="sort-dropdown__item" [class.sort-dropdown__item--active]="sortBy() === opt.value" (click)="selectSort(opt.value)">
+            <mat-icon>{{ opt.icon }}</mat-icon>
+            {{ opt.label }}
+            @if (sortBy() === opt.value) { <mat-icon class="sort-dropdown__check">check</mat-icon> }
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  </div><!-- end filter-chips-row -->
+
   @if (loading()) {
     <div class="guest-loading">
       <span class="spinner"></span> {{ 'common.loading' | translate }}
@@ -212,7 +241,11 @@
               <!-- Kontakt -->
               <td>
                 <div class="contact-cell">
-                  <span class="contact-email">{{ g.email }}</span>
+                  @if (g.email && !g.email.endsWith('@noemail.local')) {
+                    <span class="contact-email">{{ g.email }}</span>
+                  } @else {
+                    <span class="contact-email contact-email--none">—</span>
+                  }
                   @if (g.phone) {
                     <span class="contact-phone">{{ g.phone }}</span>
                   }
@@ -520,11 +553,11 @@
                     <span class="field__sub">{{ 'kunden.blocked_label' | translate }}</span>
                   </div>
                 </div>
-                <label class="switch">
+                <label class="toggle">
                   <input type="checkbox"
                          [checked]="editBlocked()"
                          (change)="editBlocked.set(!editBlocked())" />
-                  <span class="slider"></span>
+                  <span class="toggle__track"><span class="toggle__thumb"></span></span>
                 </label>
               </div>
 
@@ -645,11 +678,11 @@
             <!-- Filter-Leiste -->
             <div class="res-filter">
               <span class="res-filter__label">{{ 'kunden.future_only' | translate }}</span>
-              <label class="switch">
+              <label class="toggle">
                 <input type="checkbox"
                        [checked]="reservationsUpcomingOnly()"
                        (change)="toggleUpcomingOnly()" />
-                <span class="slider"></span>
+                <span class="toggle__track"><span class="toggle__thumb"></span></span>
               </label>
               <span class="res-filter__count">
                 {{ filteredReservations().length }} von {{ reservations().length }}
@@ -793,15 +826,23 @@
         @if (activeTab() === 'email') {
           <div class="tab-content tab-content--mail">
 
-            <!-- Kein E-Mail-Konto -->
-            @if (!editTarget()?.email) {
+            <!-- Kein E-Mail-Konto / nur Platzhalter -->
+            @if (!hasRealEmail()) {
               <div class="mail-no-email">
                 <mat-icon>mail_off</mat-icon>
                 <p>{{ 'kunden.no_email' | translate }}</p>
+                <div class="mail-no-email__hint">
+                  <mat-icon>info_outline</mat-icon>
+                  Bitte trage zuerst im Tab <strong>Profil</strong> eine E-Mail-Adresse ein, um eine E-Mail versenden zu können.
+                </div>
+                <button class="mail-no-email__goto" (click)="activeTab.set('profil')">
+                  <mat-icon>edit</mat-icon>
+                  Zum Profil
+                </button>
               </div>
             }
 
-            @if (editTarget()?.email) {
+            @if (hasRealEmail()) {
 
               <!-- Empfänger-Info -->
               <div class="mail-recipient">

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PmsService, PmsGuest } from '../../services/pms.service';
 
 @Component({
@@ -14,13 +14,15 @@ import { PmsService, PmsGuest } from '../../services/pms.service';
 export class HotelgaesteComponent implements OnInit {
   private readonly pms    = inject(PmsService);
   private readonly router = inject(Router);
+  private readonly route  = inject(ActivatedRoute);
 
-  readonly enabled     = signal(false);
-  readonly inHouse     = signal<PmsGuest[]>([]);
+  readonly enabled       = signal(false);
+  readonly inHouse       = signal<PmsGuest[]>([]);
   readonly searchResults = signal<PmsGuest[]>([]);
   readonly loadingInHouse  = signal(true);
   readonly loadingSearch   = signal(false);
-  readonly error       = signal<string | null>(null);
+  readonly error         = signal<string | null>(null);
+  readonly highlightedId = signal<string | null>(null);
 
   searchQuery = '';
   activeTab: 'inhouse' | 'search' = 'inhouse';
@@ -41,9 +43,31 @@ export class HotelgaesteComponent implements OnInit {
   private loadInHouse(): void {
     this.loadingInHouse.set(true);
     this.pms.getInHouseGuests().subscribe({
-      next: res => { this.inHouse.set(res.guests); this.loadingInHouse.set(false); },
+      next: res => {
+        this.inHouse.set(res.guests);
+        this.loadingInHouse.set(false);
+        this.tryHighlight(res.guests);
+      },
       error: () => { this.error.set('Verbindung zu Mews fehlgeschlagen.'); this.loadingInHouse.set(false); },
     });
+  }
+
+  private tryHighlight(guests: PmsGuest[]): void {
+    const term = this.route.snapshot.queryParamMap.get('highlight');
+    if (!term) return;
+
+    const match = guests.find(g =>
+      g.roomNumber === term ||
+      this.fullName(g).toLowerCase() === term.toLowerCase()
+    );
+    if (!match) return;
+
+    this.highlightedId.set(match.id);
+    setTimeout(() => {
+      const el = document.getElementById('hg-card-' + match.id);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    setTimeout(() => this.highlightedId.set(null), 3000);
   }
 
   onSearchInput(): void {
@@ -95,11 +119,13 @@ export class HotelgaesteComponent implements OnInit {
 
   reserveTable(g: PmsGuest): void {
     const params: Record<string, string> = {
-      prefillName: this.fullName(g),
-      prefillSize: String((g.adultCount ?? 1) + (g.childCount ?? 0)),
+      prefillName:  this.fullName(g),
+      prefillSize:  String((g.adultCount ?? 1) + (g.childCount ?? 0)),
+      source:       'pms',
     };
-    if (g.email) params['prefillEmail'] = g.email;
-    if (g.phone) params['prefillPhone'] = g.phone;
+    if (g.email)      params['prefillEmail'] = g.email;
+    if (g.phone)      params['prefillPhone'] = g.phone;
+    if (g.roomNumber) params['roomNumber']   = g.roomNumber;
     this.router.navigate(['/raum'], { queryParams: params });
   }
 }

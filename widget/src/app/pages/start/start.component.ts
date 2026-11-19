@@ -297,7 +297,11 @@ export class StartComponent implements OnInit {
     { initialValue: null },
   );
 
-  readonly isClosedDay = computed(() => this.dayAvail()?.open === false);
+  // null = noch am Laden → als gesperrt behandeln um Race-Condition zu vermeiden
+  readonly isClosedDay = computed(() => {
+    const avail = this.dayAvail();
+    return avail === null || avail.open === false;
+  });
 
   readonly showMaxPersonenWarning = computed(() => this.people() >= this.maxPeople());
 
@@ -311,8 +315,9 @@ export class StartComponent implements OnInit {
   );
 
   readonly filteredVenues = computed<WidgetVenue[]>(() => {
-    const all = this.venues();
+    const all        = this.venues();
     const reihenfolge = this.venueReihenfolge();
+    const date       = this.date();
 
     // Step 1: apply raumauswahl filter (active room IDs)
     let result = all;
@@ -329,7 +334,12 @@ export class StartComponent implements OnInit {
       result = result.filter(v => !offlineIds.has(v.id));
     }
 
-    // Step 3: sort by venueReihenfolge position (unlisted venues go to end)
+    // Step 3: filter out venues blocked for the selected date
+    if (date) {
+      result = result.filter(v => !this.isVenueBlockedOn(v, date));
+    }
+
+    // Step 4: sort by venueReihenfolge position (unlisted venues go to end)
     if (reihenfolge.length > 0) {
       const posMap = new Map(reihenfolge.map((r, i) => [r.venueId, i]));
       result = [...result].sort((a, b) => {
@@ -341,6 +351,12 @@ export class StartComponent implements OnInit {
 
     return result;
   });
+
+  private isVenueBlockedOn(venue: WidgetVenue, date: string): boolean {
+    return (venue.blockedRanges ?? []).some(r =>
+      r.full_day && r.date_from <= date && r.date_to >= date
+    );
+  }
 
   readonly timeSlots = computed<string[]>(() => {
     const avail = this.dayAvail();
@@ -416,6 +432,143 @@ export class StartComponent implements OnInit {
   /** Gibt es tatsächlich buchbare Slots für das gewählte Datum? */
   readonly hasBookableSlots = computed(() => this.timeSlots().length > 0);
 
+  // ─── Warteliste ──────────────────────────────────────────────────────────
+  wartelisteAktiv          = signal(false);
+  wartelisteMaxPlaetze     = signal(3);
+  wartelisteKanal          = signal<'email' | 'telefon' | 'beide'>('email');
+  wartelisteAntwortStunden = signal(24);
+
+  /**
+   * Zeitslots, die für das gewählte Datum vollständig ausgebucht sind — Gegenstück
+   * zu `timeSlots` (die genau diese Slots ausblendet). Wird nur befüllt, wenn die
+   * Warteliste aktiv ist; hat sonst keinerlei Effekt auf das bestehende Verhalten.
+   * Bewusst als eigener Computed implementiert statt `timeSlots` zu erweitern,
+   * damit die bestehende Slot-Filterung unangetastet bleibt.
+   */
+  readonly waitlistSlots = computed<string[]>(() => {
+    if (!this.wartelisteAktiv()) return [];
+
+    const avail = this.dayAvail();
+    if (avail?.open === false) return [];
+    const from   = avail?.open_time  ?? DEFAULT_FROM;
+    const to     = avail?.close_time ?? DEFAULT_TO;
+    const breaks = avail?.breaks     ?? [];
+    let slots = buildSlots(from, to, this.stepMinutes(), breaks);
+
+    if (this.date() === this.today) {
+      const now = new Date();
+      const cutoff = now.getHours() * 60 + now.getMinutes() + this.mindestvorlaufMinuten();
+      slots = slots.filter(s => {
+        const [h, mm] = s.split(':').map(Number);
+        return h * 60 + mm >= cutoff;
+      });
+    }
+
+    const blockedRanges = avail?.blockedRanges ?? [];
+    if (blockedRanges.length > 0) {
+      slots = slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotMin = sh * 60 + sm;
+        return !blockedRanges.some(br => {
+          const [fh, fm] = br.from.split(':').map(Number);
+          const [th, tm] = br.to.split(':').map(Number);
+          return slotMin >= fh * 60 + fm && slotMin < th * 60 + tm;
+        });
+      });
+    }
+
+    const periods     = avail?.bookedPeriods ?? [];
+    const totalTables = avail?.totalTables ?? 0;
+    const duration    = this.defaultDurationMinutes();
+
+    if (totalTables === 0 || periods.length === 0) return [];
+
+    return slots.filter(slotTime => {
+      const [sh, sm] = slotTime.split(':').map(Number);
+      const slotStart = sh * 60 + sm;
+      const slotEnd   = slotStart + duration;
+
+      let concurrent = 0;
+      for (const p of periods) {
+        const [fh, fm] = p.from.split(':').map(Number);
+        const [th, tm] = p.to.split(':').map(Number);
+        const pStart = fh * 60 + fm;
+        const pEnd   = th * 60 + tm;
+        if (pStart < slotEnd && pEnd > slotStart) concurrent++;
+      }
+      return concurrent >= totalTables;
+    });
+  });
+
+  // ─── Warteliste-Anmeldung (eigenständiges Formular, unabhängig vom Buchungsflow) ──
+  waitlistModalOpen   = signal(false);
+  waitlistSlotTime    = signal<string | null>(null);
+  waitlistGuestName   = signal('');
+  waitlistGuestEmail  = signal('');
+  waitlistGuestPhone  = signal('');
+  waitlistPartySize   = signal(2);
+  waitlistSubmitting  = signal(false);
+  waitlistSuccess     = signal(false);
+  waitlistError       = signal('');
+
+  readonly waitlistEmailLooksOk = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.waitlistGuestEmail().trim()));
+
+  readonly waitlistCanSubmit = computed(() =>
+    this.waitlistGuestName().trim().length >= 2 &&
+    this.waitlistEmailLooksOk() &&
+    this.waitlistPartySize() >= 1
+  );
+
+  openWaitlistForm(slot: string): void {
+    this.waitlistSlotTime.set(slot);
+    this.waitlistGuestName.set('');
+    this.waitlistGuestEmail.set('');
+    this.waitlistGuestPhone.set('');
+    this.waitlistPartySize.set(this.people() || 2);
+    this.waitlistSuccess.set(false);
+    this.waitlistError.set('');
+    this.waitlistModalOpen.set(true);
+  }
+
+  closeWaitlistModal(): void {
+    this.waitlistModalOpen.set(false);
+  }
+
+  submitWaitlist(): void {
+    const venue = this.selectedVenue();
+    const date  = this.date();
+    const slot  = this.waitlistSlotTime();
+    if (!venue || !date || !slot || !this.waitlistCanSubmit()) return;
+
+    this.waitlistSubmitting.set(true);
+    this.waitlistError.set('');
+
+    this.reservations.joinWaitlist({
+      venue_id:     venue.id,
+      requested_at: toAtomDateTime(date, slot),
+      party_size:   this.waitlistPartySize(),
+      guest_name:   this.waitlistGuestName().trim(),
+      guest_email:  this.waitlistGuestEmail().trim(),
+      guest_phone:  this.waitlistGuestPhone().trim() || undefined,
+    }).subscribe({
+      next: () => {
+        this.waitlistSubmitting.set(false);
+        this.waitlistSuccess.set(true);
+      },
+      error: (err) => {
+        this.waitlistSubmitting.set(false);
+        const body = err?.error;
+        if (body?.error) {
+          this.waitlistError.set(body.error);
+        } else if (body?.errors) {
+          this.waitlistError.set(Object.values(body.errors).join(' '));
+        } else {
+          this.waitlistError.set('Eintragung fehlgeschlagen. Bitte versuche es erneut.');
+        }
+      },
+    });
+  }
+
   // ─── Zahlung ─────────────────────────────────────────────────────────────
   zahlungAktiv         = signal(false);
   zahlungPflicht       = signal(false);
@@ -465,7 +618,9 @@ export class StartComponent implements OnInit {
                     l === 'stacked' ? this.stackedConsent() :
                     l === 'planner' ? this.plannerConsent() :
                     this.cardConsent();
-    return this.guestName().trim().length >= 2 &&
+    return !this.isClosedDay() &&
+      this.hasBookableSlots() &&
+      this.guestName().trim().length >= 2 &&
       this.emailLooksOk() &&
       (!req.includes('phone') || this.guestPhone().trim().length > 0) &&
       (!req.includes('notes') || this.notes().trim().length > 0) &&
@@ -767,7 +922,14 @@ export class StartComponent implements OnInit {
     if (cellDate < todayStart || cellDate > maxD || this.closedWeekdays().includes(weekday)) return;
     const mStr = (m + 1).toString().padStart(2, '0');
     const dStr = day.toString().padStart(2, '0');
-    this.date.set(`${y}-${mStr}-${dStr}`);
+    const iso = `${y}-${mStr}-${dStr}`;
+    this.date.set(iso);
+    // Wenn der aktuell gewählte Raum für dieses Datum gesperrt ist → ersten verfügbaren wählen
+    const current = this.selectedVenue();
+    if (current && this.isVenueBlockedOn(current, iso)) {
+      const available = this.filteredVenues();
+      this.selectedVenue.set(available[0] ?? null);
+    }
   }
 
   // ─── Card methods ─────────────────────────────────────────────────────────
@@ -1359,6 +1521,10 @@ export class StartComponent implements OnInit {
     if (typeof func.noShowSchutzAktiv === 'boolean')   this.noShowSchutzAktiv.set(func.noShowSchutzAktiv);
     this.noShowWidgetText.set(func.noShowWidgetText || this.i18n.t().noShowNotice);
     if (Array.isArray(func.venueReihenfolge))          this.venueReihenfolge.set(func.venueReihenfolge);
+    if (typeof func.wartelisteAktiv === 'boolean')       this.wartelisteAktiv.set(func.wartelisteAktiv);
+    if (typeof func.wartelisteMaxPlaetze === 'number')   this.wartelisteMaxPlaetze.set(func.wartelisteMaxPlaetze);
+    if (func.wartelisteKanal)                            this.wartelisteKanal.set(func.wartelisteKanal);
+    if (typeof func.wartelisteAntwortStunden === 'number') this.wartelisteAntwortStunden.set(func.wartelisteAntwortStunden);
   }
 
   private isDarkBackground(hex: string): boolean {

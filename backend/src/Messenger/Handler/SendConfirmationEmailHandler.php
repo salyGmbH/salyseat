@@ -26,7 +26,8 @@ final class SendConfirmationEmailHandler
 
     public function __invoke(SendConfirmationEmail $message): void
     {
-        $s = $message->tenantId !== '' ? $this->settings->getForTenant($message->tenantId) : $this->settings->defaults();
+        $s      = $message->tenantId !== '' ? $this->settings->getForTenant($message->tenantId) : $this->settings->defaults();
+        $policy = $s['policy'];
 
         $html = $this->twig->render('email/reservation_confirmed.html.twig', [
             'guest_name'  => $message->guestName,
@@ -34,6 +35,12 @@ final class SendConfirmationEmailHandler
             'starts_at'   => $message->startsAt,
             'party_size'  => $message->partySize,
             'cancel_url'  => sprintf('https://widget.salyseat.io/cancel/%s', $message->reservationToken),
+            'change_deadline_text' => $policy['onlineAenderungen']
+                ? 'Änderungen möglich bis ' . $this->formatMinutenPolicy($policy['onlineAenderungenMinuten']) . ' vor der Reservierung.'
+                : null,
+            'cancel_deadline_text' => $policy['onlineStornierung']
+                ? 'Stornierung möglich bis ' . $this->formatMinutenPolicy($policy['onlineStornierungMinuten']) . ' vor der Reservierung.'
+                : null,
             'mail_content' => $s['content']['confirmation'],
             'design'       => $s['design'],
             'social'       => $s['social'],
@@ -70,5 +77,16 @@ final class SendConfirmationEmailHandler
             ]);
             throw $e;
         }
+    }
+
+    /** Formatiert Minuten wie im Widget: "45 Min." / "2 Std." / "2 Std. 30 Min." */
+    private function formatMinutenPolicy(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return $minutes . ' Min.';
+        }
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+        return $m === 0 ? $h . ' Std.' : $h . ' Std. ' . $m . ' Min.';
     }
 }

@@ -180,7 +180,7 @@
     @if (insights().length > 0) {
       <div class="insights-row">
         @for (tip of insights(); track tip.text) {
-          <div class="insight-chip" [class.insight-chip--warn]="tip.type === 'warn'" [class.insight-chip--success]="tip.type === 'success'">
+          <div class="insight-chip" [class.insight-chip--info]="tip.type === 'info'" [class.insight-chip--warn]="tip.type === 'warn'" [class.insight-chip--success]="tip.type === 'success'">
             <mat-icon>{{ tip.icon }}</mat-icon>
             <span>{{ tip.text }}</span>
           </div>
@@ -232,17 +232,17 @@
             </div>
 
             <!-- Freie Plätze -->
-            <div class="hero-card" [class.hero-card--active]="s.free_seats != null && s.free_seats > 0">
+            <div class="hero-card" [class.hero-card--active]="(freeSeats() ?? 0) > 0">
               <div class="hero-card__icon"><mat-icon>chair</mat-icon></div>
               <div class="hero-card__body">
-                <span class="hero-card__value">{{ s.free_seats != null ? s.free_seats : '—' }}</span>
+                <span class="hero-card__value">{{ freeSeats() ?? '—' }}</span>
                 <span class="hero-card__label">Freie Plätze</span>
               </div>
               <div class="hero-card__sub">
-                @if (s.total_capacity != null) {
-                  von {{ s.total_capacity }} gesamt
+                @if (totalCapacity() > 0) {
+                  von {{ totalCapacity() }} gesamt
                 } @else {
-                  Kapazität folgt
+                  Keine Räume angelegt
                 }
               </div>
             </div>
@@ -260,7 +260,7 @@
                 </span>
                 <span class="hero-card__label">Umsatz heute</span>
               </div>
-              <div class="hero-card__sub">Kommt bald</div>
+              <div class="hero-card__sub">Nur mit Kassenschnittstelle sichtbar</div>
             </div>
 
             <!-- Ausstehend / Probleme -->

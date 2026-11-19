@@ -18,5 +18,6 @@ final readonly class CreateReservationCommand
         public ?int $durationMinutes = null,
         public bool $adminOverride = false,
         public ?string $source = null,
+        public ?string $hotelRoomNumber = null,
     ) {}
 }

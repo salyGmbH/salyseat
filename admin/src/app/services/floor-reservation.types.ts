@@ -34,6 +34,8 @@ export interface FloorReservation {
   guestNoShowCount?: number;
   paymentStatus?:        string | null;
   paymentCaptureMethod?: string | null;
+  source?:               string | null;
+  hotelRoomNumber?:      string | null;
   createdAt: number;
   updatedAt: number;
 }

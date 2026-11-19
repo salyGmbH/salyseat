@@ -29,18 +29,35 @@ export interface StatsTopGuest {
   blocked: boolean;
 }
 
+export interface StatsGuestTypes {
+  new: number;
+  returning: number;
+  newPercent: number;
+  returningPercent: number;
+}
+
+export interface StatsSources {
+  online: number;  onlinePercent: number;
+  walkIn: number;  walkInPercent: number;
+  admin: number;   adminPercent: number;
+}
+
 export interface StatisticsOverview {
   totals: StatsTotals;
   timeslots: StatsTimeslot[];
   monthly: StatsMonthly[];
   topGuests: StatsTopGuest[];
+  guestTypes: StatsGuestTypes;
+  sources: StatsSources;
 }
 
 const EMPTY: StatisticsOverview = {
-  totals:    { reservations: 0, guests: 0, noShows: 0, auslastung: 0 },
-  timeslots: [],
-  monthly:   [],
-  topGuests: [],
+  totals:     { reservations: 0, guests: 0, noShows: 0, auslastung: 0 },
+  timeslots:  [],
+  monthly:    [],
+  topGuests:  [],
+  guestTypes: { new: 0, returning: 0, newPercent: 0, returningPercent: 0 },
+  sources:    { online: 0, onlinePercent: 0, walkIn: 0, walkInPercent: 0, admin: 0, adminPercent: 0 },
 };
 
 @Injectable({ providedIn: 'root' })
