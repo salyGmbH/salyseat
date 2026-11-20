@@ -3,6 +3,8 @@ import { UpperCasePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { TenantsService, Tenant, PlatformStats } from '../../services/tenants.service';
+import { PricingService, PlanPrices } from '../../services/pricing.service';
+import { AddonsService } from '../../services/addons.service';
 import { KundeDetailComponent } from './detail/kunde-detail.component';
 import { KundeNeuComponent } from './neu/kunde-neu.component';
 
@@ -14,7 +16,9 @@ import { KundeNeuComponent } from './neu/kunde-neu.component';
   styleUrl: './kunden.component.scss',
 })
 export class KundenComponent implements OnInit {
-  private readonly svc = inject(TenantsService);
+  private readonly svc       = inject(TenantsService);
+  private readonly pricing   = inject(PricingService);
+  private readonly addonsSvc = inject(AddonsService);
 
   tenants        = signal<Tenant[]>([]);
   stats          = signal<PlatformStats | null>(null);
@@ -22,6 +26,14 @@ export class KundenComponent implements OnInit {
   loading        = signal(true);
   selectedTenant = signal<Tenant | null>(null);
   showNeu        = signal(false);
+
+  prices          = signal<PlanPrices | null>(null);
+  pricingModalOpen = signal(false);
+  pricingSaving    = signal(false);
+  pricingForm: PlanPrices = { tisch: 0, menu: 0, maitre: 0 };
+
+  /** Add-on-Katalog, dynamisch geladen für addonLabel() — siehe /api/v1/superadmin/addons. */
+  private readonly addonCatalog = signal<Record<string, string>>({});
 
   filtered = computed(() => {
     const q = this.search().toLowerCase();
@@ -36,6 +48,51 @@ export class KundenComponent implements OnInit {
   ngOnInit(): void {
     this.svc.list().subscribe(t => { this.tenants.set(t); this.loading.set(false); });
     this.svc.stats().subscribe(s => this.stats.set(s));
+    this.pricing.getPrices().subscribe(p => this.prices.set(p));
+    this.addonsSvc.list().subscribe(list => {
+      this.addonCatalog.set(Object.fromEntries(list.map(a => [a.key, a.name])));
+    });
+  }
+
+  priceFor(plan: 'tisch' | 'menu' | 'maitre'): number | null {
+    const p = this.prices();
+    return p ? p[plan] : null;
+  }
+
+  formatPrice(cents: number | null): string {
+    if (cents == null) return '';
+    return (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+
+  openPricingModal(): void {
+    const p = this.prices();
+    this.pricingForm = {
+      tisch:  (p?.tisch  ?? 0) / 100,
+      menu:   (p?.menu   ?? 0) / 100,
+      maitre: (p?.maitre ?? 0) / 100,
+    };
+    this.pricingModalOpen.set(true);
+  }
+
+  closePricingModal(): void {
+    this.pricingModalOpen.set(false);
+  }
+
+  savePricing(): void {
+    this.pricingSaving.set(true);
+    const cents: PlanPrices = {
+      tisch:  Math.round(this.pricingForm.tisch  * 100),
+      menu:   Math.round(this.pricingForm.menu   * 100),
+      maitre: Math.round(this.pricingForm.maitre * 100),
+    };
+    this.pricing.updatePrices(cents).subscribe({
+      next: p => {
+        this.prices.set(p);
+        this.pricingSaving.set(false);
+        this.pricingModalOpen.set(false);
+      },
+      error: () => { this.pricingSaving.set(false); },
+    });
   }
 
   planLabel(plan: string): string {
@@ -47,13 +104,7 @@ export class KundenComponent implements OnInit {
   }
 
   addonLabel(key: string): string {
-    const map: Record<string, string> = {
-      vouchers:    'Gutscheine',
-      speisekarte: 'Speisekarte',
-      pms:         'Hotel-PMS',
-      pos:         'Kasse',
-    };
-    return map[key] ?? key;
+    return this.addonCatalog()[key] ?? key;
   }
 
   openDetail(t: Tenant): void {

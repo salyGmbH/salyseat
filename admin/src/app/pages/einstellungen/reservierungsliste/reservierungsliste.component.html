@@ -8,6 +8,12 @@
         <span class="total-badge">{{ total() }} {{ 'reservierungsliste.total' | translate }}</span>
       }
     </div>
+    <button class="info-button" [class.active]="infoOpen()" (click)="infoOpen.set(!infoOpen())">
+      <mat-icon>info</mat-icon>
+    </button>
+  </div>
+  <div class="info-box" [class.open]="infoOpen()">
+    {{ 'reservierungsliste.info' | translate }}
   </div>
 
   <!-- Filter Bar -->
@@ -180,6 +186,9 @@
                 }
                 @if (r.guest_notes) {
                   <span><mat-icon>notes</mat-icon>{{ r.guest_notes }}</span>
+                }
+                @if (r.packages?.length) {
+                  <span><mat-icon>redeem</mat-icon>{{ packageSummary(r) }}</span>
                 }
               </div>
             </div>

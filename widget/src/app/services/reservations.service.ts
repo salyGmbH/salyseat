@@ -90,6 +90,22 @@ export interface WidgetAllergen {
   icon?:  string;
 }
 
+export type WidgetPackageCategory = 'menu' | 'event' | 'feier' | 'sonstiges';
+
+/** Öffentliche, gebuchte Package-Auswahl — reine Info/Kalkulation, keine Zahlung im Widget. */
+export interface WidgetPackage {
+  id:             string;
+  name:           string;
+  description:    string;
+  category:       WidgetPackageCategory;
+  pricePerPerson: number;
+  minPeople:      number;
+  maxPeople:      number;
+  durationHours:  number | null;
+  includes:       string[];
+  image?:         string | null;
+}
+
 export interface WidgetFunctionalConfig {
   intervall:               number;
   speisekarte:             boolean;
@@ -136,6 +152,7 @@ export interface WidgetFunctionalConfig {
   wartelisteKanal?:            'email' | 'telefon' | 'beide';
   wartelisteAntwortStunden?:   number;
   wartelisteHinweis?:          string;
+  packageBuchung?:             boolean;
 }
 
 export type WidgetLang = 'de' | 'en';
@@ -150,6 +167,7 @@ export interface WidgetConfig {
   openingSchedule?:     Record<number, { open_time: string | null; close_time: string | null; breaks: { from: string; to: string }[] }>;
   specialClosedRanges?: { date_from: string; date_to: string }[];
   allergene?:           WidgetAllergen[];
+  packages?:            WidgetPackage[];
   stripePublishableKey?: string | null;
 }
 
@@ -163,6 +181,7 @@ export interface CreateReservationPayload {
   notes?:            string;
   table_id?:         number;
   duration_minutes?: number;
+  packages?:         { package_id: string; quantity: number }[];
 }
 
 export interface CreateReservationResponse {

@@ -49,6 +49,17 @@ class Tenant
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $pmsConfig = null;
 
+    /** Meta-style phone_number_id — primäre Zuordnung eingehender WhatsApp-Webhooks. */
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    private ?string $whatsappPhoneNumberId = null;
+
+    /** 360dialog channel/WABA-Id — sekundäre Zuordnung, falls das Payload nur diese trägt. */
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    private ?string $whatsappChannelId = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $whatsappConfig = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $contactEmail = null;
 
@@ -140,6 +151,36 @@ class Tenant
     public function setPmsConfig(?array $config): void
     {
         $this->pmsConfig = $config;
+    }
+
+    public function getWhatsappPhoneNumberId(): ?string
+    {
+        return $this->whatsappPhoneNumberId;
+    }
+
+    public function setWhatsappPhoneNumberId(?string $id): void
+    {
+        $this->whatsappPhoneNumberId = $id;
+    }
+
+    public function getWhatsappChannelId(): ?string
+    {
+        return $this->whatsappChannelId;
+    }
+
+    public function setWhatsappChannelId(?string $id): void
+    {
+        $this->whatsappChannelId = $id;
+    }
+
+    public function getWhatsappConfig(): ?array
+    {
+        return $this->whatsappConfig;
+    }
+
+    public function setWhatsappConfig(?array $config): void
+    {
+        $this->whatsappConfig = $config;
     }
 
     public function setName(string $name): void

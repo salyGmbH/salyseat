@@ -19,6 +19,8 @@ import autoTable from 'jspdf-autotable';
 })
 export class ReservierungslisteComponent implements OnInit {
 
+  readonly infoOpen = signal(false);
+
   private readonly svc          = inject(ReservationsService);
   private readonly statusColors = inject(StatusColorsService);
   private readonly roomsService = inject(RoomsService);
@@ -250,5 +252,12 @@ export class ReservierungslisteComponent implements OnInit {
 
   formatTime(iso: string): string {
     return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  /** "2× Bday Feier, 1× Aperitif" — für Anzeige in der Reservierungsliste. */
+  packageSummary(r: Reservation): string {
+    return (r.packages ?? [])
+      .map(p => `${p.quantity}× ${p.package_name}`)
+      .join(', ');
   }
 }

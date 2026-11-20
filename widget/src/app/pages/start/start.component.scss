@@ -3432,6 +3432,11 @@
       max-height: 80vh;
       max-width: 520px;
       overflow-y: auto;
+      // Gleiche Farben wie die Widget-Karte (--preview-card-bg + --preview-text
+      // gehören zusammen) statt der Seitenhintergrundfarbe (--preview-bg) — sonst
+      // kann Text und Hintergrund je nach Tenant-Farbschema gleich hell/dunkel
+      // sein (z.B. weißer Text auf weißem Grund = kaum lesbar/"verwaschen").
+      background: var(--preview-card-bg, #fff);
     }
   }
 
@@ -3447,6 +3452,12 @@
     font-size: 1em;
     color: var(--preview-text, #1f2937);
     flex-shrink: 0;
+  }
+
+  // Header innerhalb der Hinweis/Warteliste-Box: gleicher Karten-Hintergrund
+  // wie die Box selbst, aus demselben Grund wie oben bei &--hinweis.
+  &__box--hinweis &__header {
+    background: color-mix(in srgb, var(--preview-primary, #2563eb) 8%, var(--preview-card-bg, #fff));
   }
 
   &__close {
@@ -3935,6 +3946,226 @@
     background: var(--preview-primary, #2563eb);
     border-color: var(--preview-primary, #2563eb);
     color: #fff;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Package-Picker — visuell an die Package-Cards im Backend angelehnt
+//  (Einstellungen → Packages: Bild/Kategorie-Header, Titel, Preis-Chip,
+//  Personenspanne, Includes-Liste).
+// ─────────────────────────────────────────────────────────────────────────
+.package-picker {
+  padding: 6px 0 4px;
+
+  // Kategorie-Akzentfarben, 1:1 aus dem Backend übernommen (packages.component.scss)
+  --cat-menu-rgb:      245, 158, 11;
+  --cat-event-rgb:     139, 92, 246;
+  --cat-feier-rgb:     236, 72, 153;
+  --cat-sonstiges-rgb: 20, 184, 166;
+
+  &__label {
+    display: block;
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--preview-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+}
+
+.package-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-radius: var(--w-radius, 10px);
+  border: 1.5px solid var(--preview-border, #e5e7eb);
+  background: var(--preview-card-bg, #ffffff);
+  color: var(--preview-text, #1f2937);
+  text-align: left;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &.is-selected {
+    border-color: var(--preview-primary, #2563eb);
+    box-shadow: 0 0 0 1.5px var(--preview-primary, #2563eb);
+  }
+
+  &--menu      &__media { background: linear-gradient(135deg, rgba(var(--cat-menu-rgb), 0.30), rgba(var(--cat-menu-rgb), 0.12)); }
+  &--event     &__media { background: linear-gradient(135deg, rgba(var(--cat-event-rgb), 0.30), rgba(var(--cat-event-rgb), 0.12)); }
+  &--feier     &__media { background: linear-gradient(135deg, rgba(var(--cat-feier-rgb), 0.30), rgba(var(--cat-feier-rgb), 0.12)); }
+  &--sonstiges &__media { background: linear-gradient(135deg, rgba(var(--cat-sonstiges-rgb), 0.30), rgba(var(--cat-sonstiges-rgb), 0.12)); }
+
+  &__media {
+    position: relative;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__media-icon {
+    font-size: 1.8em;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+  }
+
+  &__category-chip {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #111;
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  &__check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--preview-primary, #2563eb);
+    color: #fff;
+    font-size: 0.72em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px 10px;
+  }
+
+  &__title {
+    font-size: 0.88em;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  &__desc {
+    font-size: 0.76em;
+    line-height: 1.4;
+    color: var(--preview-muted, #6b7280);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  &__meta-item {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--preview-soft, rgba(0, 0, 0, 0.05));
+    font-size: 0.7em;
+    font-weight: 600;
+
+    &--price {
+      background: color-mix(in srgb, var(--preview-primary, #2563eb) 14%, transparent);
+      color: var(--preview-primary, #2563eb);
+    }
+  }
+
+  &__includes {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+
+    li {
+      font-size: 0.7em;
+      line-height: 1.4;
+      color: var(--preview-muted, #6b7280);
+
+      &::before {
+        content: '✓ ';
+        color: var(--preview-primary, #2563eb);
+      }
+    }
+  }
+
+  &__includes-more {
+    font-size: 0.68em;
+    font-style: italic;
+    opacity: 0.75;
+
+    &::before { content: none; }
+  }
+
+  &__stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--preview-border, #e5e7eb);
+  }
+
+  &__stepper-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    border: 1.5px solid var(--preview-border, #e5e7eb);
+    background: var(--preview-card-bg, #ffffff);
+    color: var(--preview-text, #1f2937);
+    font-size: 0.9em;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+
+    &:hover:not(:disabled) {
+      border-color: var(--preview-primary, #2563eb);
+      color: var(--preview-primary, #2563eb);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+  }
+
+  &__stepper-count {
+    min-width: 16px;
+    text-align: center;
+    font-size: 0.85em;
+    font-weight: 700;
+  }
+
+  &.is-selected &__title,
+  &.is-selected &__desc {
+    color: var(--preview-text, #1f2937);
   }
 }
 
@@ -4651,6 +4882,13 @@
 
 // ── Allergen chips ───────────────────────────────────────────────────────────
 .allergen-chip {
+  &:focus-visible {
+    @include focus-ring(999px);
+  }
+}
+
+// ── Package stepper buttons ──────────────────────────────────────────────────
+.package-card__stepper-btn {
   &:focus-visible {
     @include focus-ring(999px);
   }

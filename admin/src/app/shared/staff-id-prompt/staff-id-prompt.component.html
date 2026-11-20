@@ -1,0 +1,43 @@
+@if (open) {
+  <div class="modal-backdrop" (click)="cancel()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h3>{{ title }}</h3>
+        <button class="icon-btn" (click)="cancel()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal__body">
+        <p class="modal__message">{{ message }}</p>
+
+        <div class="field">
+          <span class="field__label">Mitarbeiter-Nummer</span>
+          <input
+            type="text"
+            inputmode="numeric"
+            class="field__input--mono"
+            placeholder="z.B. 002"
+            [(ngModel)]="numberInput"
+            (keydown.enter)="submit()"
+            autofocus
+          />
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="modal-error">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="cancel()">Abbrechen</button>
+        <button class="btn-primary" [disabled]="verifying()" (click)="submit()">
+          {{ verifying() ? 'Prüfe…' : 'Bestätigen' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -36,8 +36,16 @@ export interface FloorReservation {
   paymentCaptureMethod?: string | null;
   source?:               string | null;
   hotelRoomNumber?:      string | null;
+  packages?:             FloorReservationPackage[];
   createdAt: number;
   updatedAt: number;
+}
+
+export interface FloorReservationPackage {
+  packageId:       string;
+  packageName:     string;
+  pricePerPerson:  number | null;
+  quantity:        number;
 }
 
 export const STATUS_LABELS: Record<FloorReservationStatus, string> = {

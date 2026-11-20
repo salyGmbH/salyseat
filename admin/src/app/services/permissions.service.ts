@@ -117,9 +117,17 @@ export class PermissionsService {
     }));
   }
 
-  /** Alle Änderungen ins Backend speichern. */
-  save(): void {
-    const settings = { ...this.tenantSettings.snapshot, permissions: this._matrix() };
+  /**
+   * Alle Änderungen ins Backend speichern. `actingEmployeeNumber` stammt aus der
+   * Mitarbeiter-ID-Abfrage (Rolle 'admin' bereits im Frontend verifiziert) — das
+   * Backend prüft diese Nummer serverseitig erneut, bevor die Änderung greift.
+   */
+  save(actingEmployeeNumber: number): void {
+    const settings = {
+      ...this.tenantSettings.snapshot,
+      permissions: this._matrix(),
+      actingEmployeeNumber,
+    };
     this.tenantSettings.save(settings).subscribe({
       error: () => console.warn('Berechtigungen-Sync fehlgeschlagen'),
     });

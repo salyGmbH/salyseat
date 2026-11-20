@@ -93,6 +93,15 @@
     @if (activeTab() === 'vertrag') {
       <div class="form-grid">
 
+        <!-- Preis (read-only, aus Superadmin-Preisverwaltung) -->
+        <div class="field field--readonly">
+          <span>Preis ({{ planLabel() }})</span>
+          <div class="field__value">
+            @if (planPrice()) { {{ planPrice() }} }
+            @else { <span class="no-val">—</span> }
+          </div>
+        </div>
+
         <!-- Vertragsdauer -->
         <div class="field field--full">
           <span>Vertragsdauer</span>

@@ -25,6 +25,15 @@ export interface Reservation {
   guest_no_show_count: number;
   // Herkunft der Reservierung — wird vom Backend später befüllt
   source?: 'online' | 'admin' | 'walk_in';
+  // Gebuchte Packages mit Menge (falls im Widget ausgewählt) — Name/Preis als Snapshot zum Buchungszeitpunkt
+  packages?: ReservationPackage[];
+}
+
+export interface ReservationPackage {
+  package_id: string;
+  package_name: string;
+  price_per_person: number | null;
+  quantity: number;
 }
 
 export interface ReservationListResponse {

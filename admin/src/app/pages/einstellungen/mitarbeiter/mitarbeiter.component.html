@@ -16,6 +16,11 @@
           <mat-icon>person_add</mat-icon>
           <span>{{ 'common.add' | translate }}</span>
         </button>
+      } @else {
+        <button class="primary-button" (click)="requestUnlock()">
+          <mat-icon>lock_open</mat-icon>
+          <span>Entsperren</span>
+        </button>
       }
     </div>
   </div>
@@ -32,7 +37,7 @@
         <div class="role-card__icon"><mat-icon>{{ r.icon }}</mat-icon></div>
         <div class="role-card__text">
           <div class="role-card__label">{{ r.label }}</div>
-          <div class="role-card__tagline">{{ r.tagline }}</div>
+          <div class="role-card__tagline">{{ r.tagline | translate }}</div>
         </div>
       </div>
     }
@@ -80,9 +85,9 @@
             <button class="icon-button" (click)="openEdit(user)" [title]="'mitarbeiter.edit_title' | translate">
               <mat-icon>edit</mat-icon>
             </button>
-            <label class="switch" [title]="('common.active' | translate) + ' / ' + ('common.inactive' | translate)">
+            <label class="toggle" [title]="('common.active' | translate) + ' / ' + ('common.inactive' | translate)">
               <input type="checkbox" [checked]="user.active" (change)="toggleActive(user)" />
-              <span class="slider"></span>
+              <span class="toggle__track"><span class="toggle__thumb"></span></span>
             </label>
             <button class="icon-button danger" (click)="removeUser(user)">
               <mat-icon>delete_outline</mat-icon>
@@ -152,7 +157,7 @@
                 </div>
                 <div class="role-option__text">
                   <div class="role-option__label">{{ r.label }}</div>
-                  <div class="role-option__tagline">{{ r.tagline }}</div>
+                  <div class="role-option__tagline">{{ r.tagline | translate }}</div>
                 </div>
                 @if (formUser.role === r.key) {
                   <mat-icon class="role-option__check">check_circle</mat-icon>
@@ -250,3 +255,12 @@
     </div>
   </div>
 }
+
+<app-staff-id-prompt
+  [open]="promptOpen()"
+  requireRole="admin"
+  title="Mitarbeiter-ID bestätigen"
+  message="Nur Mitarbeiter mit der Rolle Admin dürfen Mitarbeiter & Rollen verwalten."
+  (confirmed)="onStaffConfirmed($event)"
+  (cancelled)="onStaffCancelled()">
+</app-staff-id-prompt>

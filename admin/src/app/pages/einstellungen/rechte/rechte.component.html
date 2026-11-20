@@ -10,6 +10,11 @@
           <mat-icon>lock</mat-icon>
           {{ 'rechte.read_only' | translate }}
         </span>
+      } @else {
+        <span class="readonly-pill readonly-pill--unlocked">
+          <mat-icon>lock_open</mat-icon>
+          Entsperrt als {{ unlockedAs()?.name }}
+        </span>
       }
     </div>
 
@@ -34,6 +39,21 @@
     {{ 'rechte.subtitle' | translate }}
   </div>
 
+  <!-- Mitarbeiter-ID-Abfrage: Schalter -->
+  <div class="staff-id-toggle">
+    <div class="staff-id-toggle__text">
+      <div class="staff-id-toggle__title">Mitarbeiter-ID-Abfrage</div>
+      <div class="staff-id-toggle__sub">
+        Wenn aktiv, muss bei Stornieren, No-Show und Anlegen einer Reservierung die
+        Mitarbeiter-Nummer angegeben werden — rein zur Nachvollziehbarkeit, wer was gemacht hat.
+      </div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" [checked]="staffIdCheckEnabled()" (change)="toggleStaffIdCheck()" />
+      <span class="toggle__track"><span class="toggle__thumb"></span></span>
+    </label>
+  </div>
+
   <!-- Admin-Only-Warnung wenn kein Admin -->
   @if (!isAdmin()) {
     <div class="admin-only-warning">
@@ -44,6 +64,7 @@
           {{ 'rechte.admin_only' | translate }}
         </div>
       </div>
+      <button class="btn-primary" (click)="requestUnlock()">Entsperren</button>
     </div>
   }
 
@@ -124,3 +145,12 @@
   }
 
 </div>
+
+<app-staff-id-prompt
+  [open]="promptOpen()"
+  requireRole="admin"
+  title="Mitarbeiter-ID bestätigen"
+  message="Nur Mitarbeiter mit der Rolle Admin dürfen Berechtigungen bearbeiten."
+  (confirmed)="onStaffConfirmed($event)"
+  (cancelled)="onStaffCancelled()">
+</app-staff-id-prompt>

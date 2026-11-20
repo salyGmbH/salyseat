@@ -91,6 +91,24 @@ class ReservationController extends AbstractController
 
         $uiSettings = $tenant->getUiSettings() ?? [];
 
+        // Packages nur ausliefern wenn der Owner "Package-Buchung" im Widget aktiviert hat,
+        // und nur aktive Packages — Entwürfe/deaktivierte bleiben intern.
+        $packageBuchungAktiv = (bool) ($uiSettings['widgetFunctional']['packageBuchung'] ?? false);
+        $packages = $packageBuchungAktiv
+            ? array_values(array_map(fn (array $p) => [
+                'id'             => $p['id']             ?? null,
+                'name'           => $p['name']            ?? '',
+                'description'    => $p['description']     ?? '',
+                'category'       => $p['category']        ?? 'sonstiges',
+                'pricePerPerson' => $p['pricePerPerson']  ?? 0,
+                'minPeople'      => $p['minPeople']       ?? 1,
+                'maxPeople'      => $p['maxPeople']       ?? 99,
+                'durationHours'  => $p['durationHours']   ?? null,
+                'includes'       => $p['includes']        ?? [],
+                'image'          => $p['image']           ?? null,
+            ], array_filter($uiSettings['packages'] ?? [], fn (array $p) => !empty($p['active']))))
+            : [];
+
         // Venue-Sperrzeiten (alle zukünftigen + laufenden) für das Widget laden
         $venueBlockRows = $this->dbal->fetchAllAssociative(
             'SELECT LOWER(CONCAT(
@@ -140,6 +158,7 @@ class ReservationController extends AbstractController
             ),
             'widgetLanguage'       => $uiSettings['widgetLanguage'] ?? 'de',
             'allergene'            => $uiSettings['allergene'] ?? [],
+            'packages'             => $packages,
             'stripePublishableKey' => $uiSettings['stripeSettings']['publishableKey'] ?? null,
             'closedWeekdays'      => $closedWeekdays,
             'openingSchedule'     => $openingSchedule,
@@ -166,6 +185,7 @@ class ReservationController extends AbstractController
             'notes'       => new Assert\Optional([new Assert\Length(max: 1000)]),
             'table_id'         => new Assert\Optional([new Assert\Type('integer'), new Assert\Positive()]),
             'duration_minutes' => new Assert\Optional([new Assert\Type('integer'), new Assert\Positive()]),
+            'packages'         => new Assert\Optional([new Assert\Type('array')]),
         ]);
 
         $violations = $this->validator->validate($data ?? [], $constraints);
@@ -190,6 +210,7 @@ class ReservationController extends AbstractController
                 tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
                 source:          'online',
+                packages:        $data['packages'] ?? null,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);

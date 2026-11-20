@@ -34,12 +34,22 @@
         <div class="abo__card-header">
           <span class="abo__plan-name">{{ plan.name }}</span>
           <p class="abo__plan-tagline">{{ plan.taglineKey | translate }}</p>
+          @if (planService.prices()?.[plan.key] != null) {
+            <p class="abo__plan-price">
+              {{ formatPrice(planService.prices()![plan.key]) }}
+              <span class="abo__plan-price-period">/ Monat</span>
+            </p>
+          }
         </div>
 
         <ul class="abo__features">
           @for (row of features; track row.labelKey) {
             @let val = valueFor(row, plan.key);
-            <li class="abo__feature" [class.abo__feature--off]="val === false">
+            <li class="abo__feature"
+                [class.abo__feature--off]="val === false"
+                [class.abo__feature--expandable]="!!row.subKeys?.length"
+                [class.abo__feature--open]="!!row.subKeys?.length && isFeatureOpen(row, plan.key)"
+                (click)="row.subKeys?.length && toggleFeature(row, plan.key)">
               @if (val === true) {
                 <mat-icon class="abo__feature-icon abo__feature-icon--yes">check_circle</mat-icon>
               } @else if (val === false) {
@@ -53,7 +63,19 @@
                 {{ row.labelKey | translate }}
                 @if (val === 'addon') { <em class="abo__tag">{{ 'abo.tag_addon' | translate }}</em> }
                 @if (val === 'soon')  { <em class="abo__tag abo__tag--soon">{{ 'abo.tag_soon' | translate }}</em> }
+                @if (row.subKeys?.length) {
+                  <mat-icon class="abo__feature-chevron">expand_more</mat-icon>
+                }
               </span>
+              @if (row.subKeys?.length) {
+                <span class="abo__feature-sub" [class.abo__feature-sub--open]="isFeatureOpen(row, plan.key)">
+                  @for (sk of row.subKeys!; track sk) {
+                    <span class="abo__feature-sub-item">
+                      <mat-icon>check</mat-icon>{{ sk | translate }}
+                    </span>
+                  }
+                </span>
+              }
             </li>
           }
         </ul>
@@ -102,99 +124,46 @@
     </div>
 
     <div class="addon-grid">
-
-      <!-- Gutscheine -->
-      <div class="addon-card" [class.addon-card--active]="planService.hasAddon('vouchers')"
-           (click)="toggleAddon('vouchers')">
-        <div class="addon-card__icon">
-          @if (addonSaving() === 'vouchers') {
-            <mat-icon class="abo__spin">sync</mat-icon>
-          } @else {
-            <mat-icon>card_giftcard</mat-icon>
-          }
-        </div>
-        <div class="addon-card__content">
-          <div class="addon-card__title">{{ 'abo.addon_vouchers_name' | translate }}</div>
-          <div class="addon-card__sub">{{ 'abo.addon_vouchers_desc' | translate }}</div>
-          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
-        </div>
-        <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon('vouchers')">
-          {{ (planService.hasAddon('vouchers') ? 'common.active' : 'common.inactive') | translate }}
-        </div>
-      </div>
-
-      <!-- Speisekarte -->
-      <div class="addon-card" [class.addon-card--active]="planService.hasAddon('speisekarte')"
-           (click)="toggleAddon('speisekarte')">
-        <div class="addon-card__icon">
-          @if (addonSaving() === 'speisekarte') {
-            <mat-icon class="abo__spin">sync</mat-icon>
-          } @else {
-            <mat-icon>menu_book</mat-icon>
-          }
-        </div>
-        <div class="addon-card__content">
-          <div class="addon-card__title">{{ 'abo.addon_speisekarte_name' | translate }}</div>
-          <div class="addon-card__sub">{{ 'abo.addon_speisekarte_desc' | translate }}</div>
-          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
-        </div>
-        <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon('speisekarte')">
-          {{ (planService.hasAddon('speisekarte') ? 'common.active' : 'common.inactive') | translate }}
-        </div>
-      </div>
-
-      <!-- Hotel-PMS -->
-      <div class="addon-card" [class.addon-card--active]="planService.hasAddon('pms')"
-           (click)="toggleAddon('pms')">
-        <div class="addon-card__icon">
-          @if (addonSaving() === 'pms') {
-            <mat-icon class="abo__spin">sync</mat-icon>
-          } @else {
-            <mat-icon>hotel</mat-icon>
-          }
-        </div>
-        <div class="addon-card__content">
-          <div class="addon-card__title">{{ 'abo.addon_pms_name' | translate }}</div>
-          <div class="addon-card__sub">{{ 'abo.addon_pms_desc' | translate }}</div>
-          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
-        </div>
-        <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon('pms')">
-          {{ (planService.hasAddon('pms') ? 'common.active' : 'common.inactive') | translate }}
-        </div>
-      </div>
-
-      <!-- Kassenschnittstellen (demnächst) -->
-      <div class="addon-card addon-card--soon">
-        <div class="addon-card__icon">
-          <mat-icon>point_of_sale</mat-icon>
-        </div>
-        <div class="addon-card__content">
-          <div class="addon-card__title">
-            {{ 'abo.addon_pos_name' | translate }}
-            <em class="abo__tag abo__tag--soon">{{ 'abo.tag_soon' | translate }}</em>
+      @for (a of planService.addons(); track a.key) {
+        <div class="addon-card"
+             [class.addon-card--active]="a.status === 'active' && planService.hasAddon(a.key)"
+             [class.addon-card--soon]="a.status === 'soon'"
+             [class.addon-card--locked]="a.status === 'active' && !planService.canPurchaseAddon(a.key)"
+             (click)="a.status === 'active' && planService.canPurchaseAddon(a.key) && toggleAddon(a.key)">
+          <div class="addon-card__icon">
+            @if (addonSaving() === a.key) {
+              <mat-icon class="abo__spin">sync</mat-icon>
+            } @else {
+              <mat-icon>{{ a.icon }}</mat-icon>
+            }
           </div>
-          <div class="addon-card__sub">{{ 'abo.addon_pos_desc' | translate }}</div>
-          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
-        </div>
-        <div class="addon-card__status">{{ 'common.inactive' | translate }}</div>
-      </div>
-
-      <!-- Telefonassistent (demnächst) -->
-      <div class="addon-card addon-card--soon">
-        <div class="addon-card__icon">
-          <mat-icon>support_agent</mat-icon>
-        </div>
-        <div class="addon-card__content">
-          <div class="addon-card__title">
-            {{ 'abo.addon_phone_name' | translate }}
-            <em class="abo__tag abo__tag--soon">{{ 'abo.tag_soon' | translate }}</em>
+          <div class="addon-card__content">
+            <div class="addon-card__title">
+              {{ a.name }}
+              @if (a.status === 'soon') { <em class="abo__tag abo__tag--soon">{{ 'abo.tag_soon' | translate }}</em> }
+            </div>
+            <div class="addon-card__sub">{{ a.description }}</div>
+            <div class="addon-card__price">
+              @if (a.priceCents != null) {
+                {{ formatPrice(a.priceCents) }} <span class="abo__plan-price-period">/ Monat</span>
+              } @else {
+                {{ 'abo.addon_price_on_request' | translate }}
+              }
+            </div>
           </div>
-          <div class="addon-card__sub">{{ 'abo.addon_phone_desc' | translate }}</div>
-          <div class="addon-card__price">{{ 'abo.addon_price_on_request' | translate }}</div>
+          @if (a.status === 'soon') {
+            <div class="addon-card__status">{{ 'common.inactive' | translate }}</div>
+          } @else if (!planService.canPurchaseAddon(a.key)) {
+            <div class="addon-card__status addon-card__status--locked">
+              {{ 'abo.addon_min_plan' | translate:{ plan: planService.addonMinPlanLabel(a.key) } }}
+            </div>
+          } @else {
+            <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon(a.key)">
+              {{ (planService.hasAddon(a.key) ? 'common.active' : 'common.inactive') | translate }}
+            </div>
+          }
         </div>
-        <div class="addon-card__status">{{ 'common.inactive' | translate }}</div>
-      </div>
-
+      }
     </div>
   </div>
 

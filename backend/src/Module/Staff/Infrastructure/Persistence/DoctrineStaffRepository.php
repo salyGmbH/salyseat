@@ -28,6 +28,15 @@ class DoctrineStaffRepository extends ServiceEntityRepository
         return $this->findOneBy(['id' => $id]);
     }
 
+    public function findActiveByTenantAndNumber(Tenant $tenant, int $employeeNumber): ?Staff
+    {
+        return $this->findOneBy([
+            'tenant'         => $tenant,
+            'employeeNumber' => $employeeNumber,
+            'active'         => true,
+        ]);
+    }
+
     public function nextEmployeeNumber(Tenant $tenant): int
     {
         $max = $this->createQueryBuilder('s')

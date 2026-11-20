@@ -34,6 +34,7 @@ import { SpeisekarteComponent } from './speisekarte/speisekarte.component';
 import { GutscheinDesignerComponent } from './gutschein-designer/gutschein-designer.component';
 import { AboComponent } from './abo/abo.component';
 import { PmsAnbindungComponent } from './pms-anbindung/pms-anbindung.component';
+import { WhatsappAnbindungComponent } from './whatsapp-anbindung/whatsapp-anbindung.component';
 
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
@@ -53,7 +54,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
 
       { path: 'status-kennzeichnungen', component: StatusFarbenComponent },
 
-      { path: 'packages',          component: PackagesComponent },
+      { path: 'packages',          component: PackagesComponent, canActivate: [addonGuard('packages')] },
       { path: 'reservierungen',    component: ReservierungenComponent },
       { path: 'login',             component: LoginComponent },
       { path: 'statistiken',       component: StatistikenComponent },
@@ -75,6 +76,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'gutschein-designer', component: GutscheinDesignerComponent },
       { path: 'abo',                component: AboComponent },
       { path: 'pms-anbindung',      component: PmsAnbindungComponent },
+      { path: 'whatsapp-anbindung', component: WhatsappAnbindungComponent, canActivate: [addonGuard('whatsapp')] },
     ]
   }
 ];

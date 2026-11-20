@@ -354,9 +354,18 @@
                             </span>
                           }
                         </div>
-                        @if (res.notes || res.gasttypen?.length || res.hinweise?.length) {
-                          <div class="res-row__info-badge">
-                            <mat-icon>sticky_note_2</mat-icon>
+                        @if ((res.notes || res.gasttypen?.length || res.hinweise?.length) || res.packages?.length) {
+                          <div class="res-row__badges">
+                            @if (res.notes || res.gasttypen?.length || res.hinweise?.length) {
+                              <div class="res-row__info-badge">
+                                <mat-icon>sticky_note_2</mat-icon>
+                              </div>
+                            }
+                            @if (res.packages?.length) {
+                              <div class="res-row__info-badge res-row__info-badge--package" [title]="'Package: ' + packageSummary(res)">
+                                <mat-icon>redeem</mat-icon>
+                              </div>
+                            }
                           </div>
                         }
                       </div>
@@ -960,6 +969,7 @@
                [class.is-reassign-source]="reassignMode()?.sourceTableId === table.id"
                [class.is-reassign-target]="reassignMode() && reassignMode()?.sourceTableId !== table.id"
                [class.is-table-blocked]="isTableBlockedOnSelectedDate(table.id)"
+               [class.has-guests-open]="isGuestsExpanded(table.id)"
                [style.left.px]="table.x"
                [style.top.px]="table.y"
                [style.width.px]="getTableSize(table.type).w * table.scale"
@@ -1015,34 +1025,30 @@
             </div>
 
             @if (tableAllActiveReservations(table.id).length > 0) {
-              <div class="placed-table__guests">
+              <div class="placed-table__guests" [class.is-expanded]="isGuestsExpanded(table.id)">
                 @for (res of visibleGuestReservations(table.id); track res.id) {
                   <div class="placed-table__guest"
                        [class.is-multi]="tableAllActiveReservations(table.id).length > 1"
                        [class.is-split]="splitColor(res.id) !== null"
                        [style.border-left-color]="splitColor(res.id) ?? ''"
                        (click)="onGuestChipClick(table.id, res, $event)"
-                       [title]="reassignMode() ? ('raum_detail.reassign_here' | translate) : 'Klick: Gastkartei öffnen'"
+                       [title]="reassignMode() ? ('raum_detail.reassign_here' | translate) : res.guestName"
                        style="cursor: pointer;">
                     @if (splitColor(res.id); as sc) {
                       <span class="placed-table__guest-dot" [style.background]="sc"></span>
                     }
-                    <span>{{ res.guestName }}</span>
-                    @if (tableAllActiveReservations(table.id).length > 1 && !reassignMode()) {
-                      <button class="placed-table__guest-remove"
-                              (click)="removeFromTable(res.id, $event)"
-                              title="Vom Tisch entfernen">×</button>
-                    }
+                    <span>{{ firstName(res.guestName) }}</span>
                   </div>
                 }
-                @if (tableAllActiveReservations(table.id).length > 2) {
+                @if (tableAllActiveReservations(table.id).length > 1) {
                   <button class="placed-table__guest-expand"
+                          [class.is-open]="isGuestsExpanded(table.id)"
                           (click)="toggleGuestsExpanded(table.id, $event)"
-                          [title]="isGuestsExpanded(table.id) ? 'Weniger anzeigen' : (tableAllActiveReservations(table.id).length - 2) + ' weitere anzeigen'">
+                          [title]="isGuestsExpanded(table.id) ? 'Weniger anzeigen' : (tableAllActiveReservations(table.id).length - 1) + ' weitere anzeigen'">
                     @if (isGuestsExpanded(table.id)) {
                       <mat-icon>expand_less</mat-icon>
                     } @else {
-                      +{{ tableAllActiveReservations(table.id).length - 2 }}
+                      +{{ tableAllActiveReservations(table.id).length - 1 }}
                       <mat-icon>expand_more</mat-icon>
                     }
                   </button>
@@ -1572,14 +1578,21 @@
                         @for (slot of filteredTimeSlots(); track slot) {
                           @let slotFull = occupiedTimeSlots().has(slot);
                           @let tableOccupied = !slotFull && isSelectedTableOccupiedAt(slot);
+                          @let tableInCleanup = tableOccupied && isSelectedTableInCleanupAt(slot);
                           <button type="button" class="table-inline__card"
                                   [class.table-inline__card--selected]="form.time === slot"
                                   [class.table-inline__card--slot-full]="slotFull && form.time !== slot"
-                                  [class.table-inline__card--table-occupied]="tableOccupied && form.time !== slot"
+                                  [class.table-inline__card--table-occupied]="tableOccupied && !tableInCleanup && form.time !== slot"
+                                  [class.table-inline__card--cleanup]="tableInCleanup && form.time !== slot"
                                   (click)="form.time = slot">
                             <span class="table-inline__num">{{ slot }}</span>
                             @if (slotFull) {
                               <span class="table-inline__badge table-inline__badge--slot-full">Belegt</span>
+                            } @else if (tableInCleanup) {
+                              <span class="table-inline__badge table-inline__badge--cleanup">
+                                <mat-icon>cleaning_services</mat-icon>
+                                Clean-up
+                              </span>
                             } @else if (tableOccupied) {
                               <span class="table-inline__badge table-inline__badge--table-occupied">Tisch belegt</span>
                             }
@@ -1680,6 +1693,7 @@
                       @let actuallyOccupied = isTableOccupied(t.id, form.time, form.durationMinutes, editingId());
                       @let occupied         = actuallyOccupied && !isTableSelected(t.id);
                       @let selectedOccupied = actuallyOccupied && isTableSelected(t.id);
+                      @let inCleanup        = actuallyOccupied && isTableInCleanup(t.id, form.time, editingId());
                       @let tooSmall         = !actuallyOccupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id) && selectedSeatsTotal() < form.partySize;
                       @let isSuggested      = bestMergeSuggestion() === t.id && !isTableSelected(t.id);
                       @let mergeIdx         = form.tableIds.indexOf(t.id);
@@ -1690,6 +1704,7 @@
                               [class.table-inline__card--selected]="isTableSelected(t.id) && !selectedOccupied && !isBlocked"
                               [class.table-inline__card--selected-full]="selectedOccupied"
                               [class.table-inline__card--full]="occupied"
+                              [class.table-inline__card--cleanup]="inCleanup"
                               [class.table-inline__card--blocked]="isBlocked"
                               [class.table-inline__card--small]="tooSmall && !isSuggested && !isBlocked"
                               [class.table-inline__card--suggested]="isSuggested && !isBlocked"
@@ -1701,6 +1716,11 @@
                         <span class="table-inline__lbl">{{ tableLabel(t.id) }}</span>
                         @if (isBlocked) {
                           <span class="table-inline__badge table-inline__badge--blocked">Gesperrt</span>
+                        } @else if (inCleanup) {
+                          <span class="table-inline__badge table-inline__badge--cleanup">
+                            <mat-icon>cleaning_services</mat-icon>
+                            Clean-up
+                          </span>
                         } @else if (occupied || selectedOccupied) {
                           <span class="table-inline__badge">{{ 'raum_detail.occupied' | translate }}</span>
                         } @else if (isSuggested) {
@@ -2028,6 +2048,14 @@
                     <span class="gc-detail__val">{{ res.notes }}</span>
                   </div>
                 }
+
+                @if (res.packages?.length) {
+                  <div class="gc-detail gc-detail--package">
+                    <span class="gc-detail__icon"><mat-icon>redeem</mat-icon></span>
+                    <span class="gc-detail__label">Package</span>
+                    <span class="gc-detail__val">{{ packageSummary(res) }}</span>
+                  </div>
+                }
               </div>
 
               <button class="gc-edit-btn" (click)="editFromGuestCard()" [title]="'raum_detail.edit_reservation' | translate">
@@ -2194,3 +2222,11 @@
     <a class="btn-primary" routerLink="/raum">{{ 'raum_detail.back' | translate }}</a>
   </div>
 }
+
+<app-staff-id-prompt
+  [open]="staffPromptOpen()"
+  title="Mitarbeiter-ID bestätigen"
+  message="Bitte gib deine Mitarbeiter-Nummer ein, damit nachvollziehbar bleibt, wer diese Aktion durchgeführt hat."
+  (confirmed)="onStaffPromptConfirmed($event)"
+  (cancelled)="onStaffPromptCancelled()">
+</app-staff-id-prompt>

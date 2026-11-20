@@ -25,6 +25,13 @@ export interface UpdateStaffDto {
   active?: boolean;
 }
 
+/** Antwort von POST /staff/verify */
+export interface VerifiedStaff {
+  id: string;
+  name: string;
+  role: 'admin' | 'manager' | 'staff';
+}
+
 @Injectable({ providedIn: 'root' })
 export class StaffService {
   private readonly http = inject(HttpClient);
@@ -34,15 +41,20 @@ export class StaffService {
     return this.http.get<StaffMember[]>(this.base);
   }
 
-  create(dto: CreateStaffDto): Observable<StaffMember> {
-    return this.http.post<StaffMember>(this.base, dto);
+  /** Löst eine Mitarbeiter-Nummer auf (nur aktive Mitarbeiter) */
+  verify(employeeNumber: number): Observable<VerifiedStaff> {
+    return this.http.post<VerifiedStaff>(`${this.base}/verify`, { employeeNumber });
   }
 
-  update(id: string, dto: UpdateStaffDto): Observable<StaffMember> {
-    return this.http.patch<StaffMember>(`${this.base}/${id}`, dto);
+  create(dto: CreateStaffDto, actingEmployeeNumber: number): Observable<StaffMember> {
+    return this.http.post<StaffMember>(this.base, { ...dto, actingEmployeeNumber });
   }
 
-  delete(id: string): Observable<{ ok: boolean }> {
-    return this.http.delete<{ ok: boolean }>(`${this.base}/${id}`);
+  update(id: string, dto: UpdateStaffDto, actingEmployeeNumber: number): Observable<StaffMember> {
+    return this.http.patch<StaffMember>(`${this.base}/${id}`, { ...dto, actingEmployeeNumber });
+  }
+
+  delete(id: string, actingEmployeeNumber: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/${id}`, { body: { actingEmployeeNumber } });
   }
 }

@@ -6,6 +6,10 @@
       <h1 class="kunden__title">Kundenübersicht</h1>
       <p class="kunden__sub">{{ stats()?.totalTenants ?? '–' }} Kunden gesamt</p>
     </div>
+    <button class="kunden__add-btn" (click)="openPricingModal()">
+      <mat-icon>payments</mat-icon>
+      Preise verwalten
+    </button>
   </div>
 
   <!-- KPI Cards -->
@@ -95,6 +99,9 @@
               </td>
               <td class="td-vertrag">
                 <span class="badge" [class]="planClass(t.plan)">{{ planLabel(t.plan) }}</span>
+                @if (priceFor(t.plan) != null) {
+                  <span class="td-vertrag__price">{{ formatPrice(priceFor(t.plan)) }} / Monat</span>
+                }
                 <span class="td-vertrag__since">seit {{ t.createdAt }}</span>
               </td>
               <td class="td-addons">
@@ -140,4 +147,35 @@
 
 @if (showNeu()) {
   <app-kunde-neu (closed)="onNeuClosed($event)"></app-kunde-neu>
+}
+
+@if (pricingModalOpen()) {
+  <div class="pricing-overlay" (click)="closePricingModal()"></div>
+  <div class="pricing-modal">
+    <div class="pricing-modal__header">
+      <div class="pricing-modal__icon"><mat-icon>payments</mat-icon></div>
+      <div class="pricing-modal__title">Abo-Preise verwalten</div>
+      <button class="pricing-modal__close" (click)="closePricingModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="pricing-modal__body">
+      <label class="pricing-modal__field">
+        <span>Tisch (€ / Monat)</span>
+        <input type="number" step="0.01" min="0" [(ngModel)]="pricingForm.tisch">
+      </label>
+      <label class="pricing-modal__field">
+        <span>Menü (€ / Monat)</span>
+        <input type="number" step="0.01" min="0" [(ngModel)]="pricingForm.menu">
+      </label>
+      <label class="pricing-modal__field">
+        <span>Maître (€ / Monat)</span>
+        <input type="number" step="0.01" min="0" [(ngModel)]="pricingForm.maitre">
+      </label>
+    </div>
+    <div class="pricing-modal__footer">
+      <button class="pricing-modal__cancel" (click)="closePricingModal()">Abbrechen</button>
+      <button class="pricing-modal__save" [disabled]="pricingSaving()" (click)="savePricing()">
+        {{ pricingSaving() ? 'Speichert…' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
 }

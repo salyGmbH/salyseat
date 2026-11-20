@@ -8,7 +8,9 @@
       <mat-icon>{{ item.icon || 'settings' }}</mat-icon>
     </div>
     <span>{{ item.label | translate }}</span>
-    @if (isAddonItem(item) && isLocked(item)) {
+    @if (isAddonItem(item) && isLocked(item) && addonBadgeLabel(item)) {
+      <span class="item__plan-badge">{{ addonBadgeLabel(item) }}</span>
+    } @else if (isAddonItem(item) && isLocked(item)) {
       <span class="item__plan-badge item__plan-badge--addon">{{ 'abo.tag_addon' | translate }}</span>
     } @else if (isLocked(item)) {
       <span class="item__plan-badge">{{ minPlanLabel(item) }}</span>

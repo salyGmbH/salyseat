@@ -24,6 +24,8 @@ import { Reservation } from '../../services/reservation.types';
 import { StatusIconComponent } from '../../shared/status-icon/status-icon.component';
 import { GetraenkeReminderService } from '../../services/getraenke-reminder.service';
 import { WaitlistService, WaitlistEntry, WaitlistEntryStatus } from '../../services/waitlist.service';
+import { VerifiedStaff } from '../../services/staff.service';
+import { StaffIdPromptComponent } from '../../shared/staff-id-prompt/staff-id-prompt.component';
 import { TranslateModule } from '@ngx-translate/core';
 
 type StatusFilter = 'all' | 'active' | FloorReservationStatus;
@@ -42,6 +44,7 @@ type StatusFilter = 'all' | 'active' | FloorReservationStatus;
     DatePipe,
     DecimalPipe,
     TranslateModule,
+    StaffIdPromptComponent,
   ],
   templateUrl: './raum-detail.component.html',
   styleUrl: './raum-detail.component.scss'
@@ -61,6 +64,37 @@ export class RaumDetailComponent implements OnInit {
   private readonly router              = inject(Router);
   readonly getraenke                   = inject(GetraenkeReminderService);
   readonly tableBlockSvc               = inject(TableBlockService);
+
+  // ── Mitarbeiter-ID-Abfrage (Audit-Trail für Stornieren/No-Show/Anlegen) ──
+  /** Schalter aus den Tenant-Settings (/einstellungen/rechte). */
+  staffIdCheckEnabled = signal<boolean>(false);
+  staffPromptOpen = signal(false);
+  private pendingStaffAction: ((performedBy: { employeeNumber: number; name: string }) => void) | null = null;
+
+  /**
+   * Führt `action` aus — falls die Mitarbeiter-ID-Abfrage aktiv ist, wird vorher
+   * die Mitarbeiter-Nummer abgefragt und erst nach Bestätigung ausgeführt.
+   */
+  private requestStaffIdThen(action: (performedBy?: { employeeNumber: number; name: string }) => void): void {
+    if (!this.staffIdCheckEnabled()) {
+      action();
+      return;
+    }
+    this.pendingStaffAction = (performedBy) => action(performedBy);
+    this.staffPromptOpen.set(true);
+  }
+
+  onStaffPromptConfirmed(staff: VerifiedStaff & { employeeNumber: number }): void {
+    this.staffPromptOpen.set(false);
+    const fn = this.pendingStaffAction;
+    this.pendingStaffAction = null;
+    fn?.({ employeeNumber: staff.employeeNumber, name: staff.name });
+  }
+
+  onStaffPromptCancelled(): void {
+    this.staffPromptOpen.set(false);
+    this.pendingStaffAction = null;
+  }
 
   // ── Tischplan Pan & Zoom ─────────────────────────────────────────────────
 
@@ -422,6 +456,13 @@ export class RaumDetailComponent implements OnInit {
     return this.timing.expiredMinutes(res, this.now());
   }
 
+  /** "2× Bday Feier, 1× Aperitif" — für Badge-Tooltip. */
+  packageSummary(res: FloorReservation): string {
+    return (res.packages ?? [])
+      .map(p => `${p.quantity}× ${p.packageName}`)
+      .join(', ');
+  }
+
   /** Farbe für eine Reservierung — kommt aus dem zentralen StatusColorsService. */
   colorFor(status: FloorReservationStatus): string {
     return this.statusColors.colorForReservation(status);
@@ -483,6 +524,7 @@ export class RaumDetailComponent implements OnInit {
     this.tenantSettings.load().subscribe(s => {
       if (s.gasttypen?.length) this.availableGasttypen.set(s.gasttypen);
       if (s.hinweise?.length)  this.availableHinweise.set(s.hinweise);
+      this.staffIdCheckEnabled.set(!!s.staffIdCheck?.enabled);
     });
 
     // xmove-Parameter nur beim ersten Aufruf auslesen (snapshot reicht hier)
@@ -510,19 +552,12 @@ export class RaumDetailComponent implements OnInit {
         const id = params.get('id');
         if (!id) return of(null);
         this.layoutLoading.set(true);
-
-        // Öffnungszeiten, Sonderschließungen & Sperrzeiten gelten pro Raum → bei jedem Raumwechsel neu laden
         this.ohService.getHours(id).subscribe(days => {
           this.allDayHours.set(days);
           this.closedWeekdays.set(days.filter(d => !d.open).map(d => d.weekday));
         });
-        this.ohService.getSpecialClosings(id).subscribe(closings => {
-          this.specialClosings.set(closings);
-        });
-        this.roomBlocksSvc.getBlocks(id).subscribe(blocks => {
-          this.venueBlocks.set(blocks);
-        });
-        this.tableBlockSvc.loadForVenue(id).subscribe();
+        this.ohService.getSpecialClosings(id).subscribe(closings => this.specialClosings.set(closings));
+        this.roomBlocksSvc.getBlocks(id).subscribe(blocks => this.venueBlocks.set(blocks));
 
         // Bei Direktaufruf von /raum/:id ist die Venue-Liste evtl. noch leer,
         // weil sonst nur /raum sie lädt. Erst Räume holen, dann das Layout.
@@ -904,20 +939,25 @@ export class RaumDetailComponent implements OnInit {
     const backendExtra = (this._backendResForFormDate() ?? [])
       .filter(r => !['cancelled', 'completed'].includes(r.status) && !localBackendIds.has(r.id));
 
+    // Clean-up-Zeit weitet das belegte Fenster jeder bestehenden Reservierung auf
+    // beiden Seiten — 0 (Schalter aus) ergibt exakt die bisherige Berechnung.
+    const cleanupMs = (this.timing.cleanupEnabled() ? this.timing.cleanupMinutes() : 0) * 60_000;
+
     for (const slotTime of this.filteredTimeSlots()) {
       const slotStartMs = new Date(`${formDateVal}T${slotTime}:00`).getTime();
       const slotEndMs   = slotStartMs + duration * 60_000;
       let concurrent = 0;
 
       for (const res of allLocal) {
-        const dur        = res.durationMinutes > 0 ? res.durationMinutes : duration;
-        const resStartMs = new Date(`${formDateVal}T${res.time}:00`).getTime();
-        const resEndMs   = resStartMs + dur * 60_000;
+        const dur          = res.durationMinutes > 0 ? res.durationMinutes : duration;
+        const rawStartMs   = new Date(`${formDateVal}T${res.time}:00`).getTime();
+        const resStartMs   = rawStartMs - cleanupMs;
+        const resEndMs     = rawStartMs + dur * 60_000 + cleanupMs;
         if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
       }
       for (const res of backendExtra) {
-        const resStartMs = new Date(res.starts_at).getTime();
-        const resEndMs   = new Date(res.ends_at).getTime();
+        const resStartMs = new Date(res.starts_at).getTime() - cleanupMs;
+        const resEndMs   = new Date(res.ends_at).getTime() + cleanupMs;
         if (resStartMs < slotEndMs && resEndMs > slotStartMs) concurrent++;
       }
 
@@ -1425,23 +1465,40 @@ export class RaumDetailComponent implements OnInit {
   }
 
   dayLoad = computed<Array<{ hour: number; count: number; guests: number; isPeak: boolean; pct: number; loadLevel: 'empty' | 'green' | 'amber' | 'red' }>>(() => {
-    const buckets    = new Map<number, number>();
+    const buckets      = new Map<number, number>(); // Anzahl Reservierungen
     const guestBuckets = new Map<number, number>();
+    const tableBuckets = new Map<number, number>();  // Anzahl belegter Tische (Zusammenlegungen zählen mehrfach)
     for (const r of this.allReservationsForDay()) {
       if (r.status === 'cancelled' || r.status === 'no-show') continue;
-      const h = parseInt(r.time.split(':')[0], 10);
-      buckets.set(h, (buckets.get(h) ?? 0) + 1);
-      guestBuckets.set(h, (guestBuckets.get(h) ?? 0) + (r.partySize ?? 0));
+      const [hh, mm] = r.time.split(':').map(v => parseInt(v, 10));
+      const startMinutes = hh * 60 + (mm || 0);
+      const durationMinutes = r.durationMinutes > 0 ? r.durationMinutes : this.timing.defaultDurationMinutes();
+      const endMinutes = startMinutes + durationMinutes;
+      const startHour = Math.floor(startMinutes / 60);
+      // Endstunde exklusiv, aber min. 1 Stunde belegt zählen
+      const endHour = Math.max(startHour + 1, Math.ceil(endMinutes / 60));
+      // Bei zusammengelegten Tischen belegt EINE Reservierung MEHRERE Tische
+      // gleichzeitig — für die Auslastung zählt die Tischanzahl, nicht die
+      // Reservierung selbst (sonst wird bei Zusammenlegungen unterzählt).
+      const occupiedTables = r.tableIds?.length ? r.tableIds.length : (r.tableId ? 1 : 0);
+      for (let h = startHour; h < endHour; h++) {
+        buckets.set(h, (buckets.get(h) ?? 0) + 1);
+        guestBuckets.set(h, (guestBuckets.get(h) ?? 0) + (r.partySize ?? 0));
+        if (occupiedTables > 0) {
+          tableBuckets.set(h, (tableBuckets.get(h) ?? 0) + occupiedTables);
+        }
+      }
     }
     const totalTables = Math.max(1, this.room()?.tables.length ?? 1);
-    const max = Math.max(1, ...buckets.values());
+    const max = Math.max(1, ...tableBuckets.values());
     const result: Array<{ hour: number; count: number; guests: number; isPeak: boolean; pct: number; loadLevel: 'empty' | 'green' | 'amber' | 'red' }> = [];
     for (let h = 11; h <= 23; h++) {
-      const count  = buckets.get(h) ?? 0;
-      const guests = guestBuckets.get(h) ?? 0;
-      const pct = Math.min(100, Math.round((count / totalTables) * 100));
-      const loadLevel = count === 0 ? 'empty' : pct <= 40 ? 'green' : pct <= 70 ? 'amber' : 'red';
-      result.push({ hour: h, count, guests, isPeak: count === max && count > 0, pct, loadLevel });
+      const count    = buckets.get(h) ?? 0;
+      const guests   = guestBuckets.get(h) ?? 0;
+      const occupied = tableBuckets.get(h) ?? 0;
+      const pct = Math.min(100, Math.round((occupied / totalTables) * 100));
+      const loadLevel = occupied === 0 ? 'empty' : pct <= 40 ? 'green' : pct <= 70 ? 'amber' : 'red';
+      result.push({ hour: h, count, guests, isPeak: occupied === max && occupied > 0, pct, loadLevel });
     }
     return result;
   });
@@ -2106,10 +2163,15 @@ export class RaumDetailComponent implements OnInit {
     });
   }
 
-  /** Sichtbare Reservierungen: max. 2 — außer der Tisch ist aufgeklappt. */
+  /** Sichtbare Reservierungen: nur 1 — außer der Tisch ist aufgeklappt. */
   visibleGuestReservations(tableId: number): FloorReservation[] {
     const all = this.tableAllActiveReservations(tableId);
-    return this.isGuestsExpanded(tableId) ? all : all.slice(0, 2);
+    return this.isGuestsExpanded(tableId) ? all : all.slice(0, 1);
+  }
+
+  /** Nur der Vorname (erstes Wort) — damit die Tisch-Chips nicht zu breit werden. */
+  firstName(name: string | null | undefined): string {
+    return (name ?? '').trim().split(/\s+/)[0] ?? '';
   }
 
   openSplitPicker(tableId: number, event: MouseEvent): void {
@@ -2304,7 +2366,11 @@ export class RaumDetailComponent implements OnInit {
       const slotStartMs  = new Date(`${formDateVal}T${this.form.time}:00`).getTime();
       const slotEndMs    = slotStartMs + this.form.durationMinutes * 60_000;
 
-      const doCreate = () => this.doCreateReservation(room, name, primaryTableId, formDateVal);
+      const doCreate = () => {
+        this.requestStaffIdThen((performedBy) => {
+          this.doCreateReservation(room, name, primaryTableId, formDateVal, performedBy);
+        });
+      };
 
       // Kein Tisch gewählt → direkt auf Warteliste, kein Konflikt-Check nötig
       const selectedTableIds = this.form.tableIds;
@@ -2371,7 +2437,13 @@ export class RaumDetailComponent implements OnInit {
     this._pendingCreate = null;
   }
 
-  private doCreateReservation(room: SavedRoom, name: string, primaryTableId: number, formDateVal: string) {
+  private doCreateReservation(
+    room: SavedRoom,
+    name: string,
+    primaryTableId: number,
+    formDateVal: string,
+    performedBy?: { employeeNumber: number; name: string },
+  ) {
     const isWalkIn = this.form.isWalkIn;
     const local = this.reservationsService.add({
       roomId:          room.id,
@@ -2400,8 +2472,10 @@ export class RaumDetailComponent implements OnInit {
       notes:            this.form.notes.trim() || undefined,
       duration_minutes: this.form.durationMinutes,
       table_id:         primaryTableId || undefined,
-      source:           isWalkIn ? 'walk_in' : 'admin',
+      table_ids:        this.form.tableIds.length ? this.form.tableIds : undefined,
+      source:           isWalkIn ? 'walk_in' : ((this.form.source || 'admin') as 'admin' | 'pms' | 'online' | 'walk_in'),
       room_number:      this.form.roomNumber || undefined,
+      performed_by_employee_number: performedBy?.employeeNumber,
     }).subscribe({
       next: res => {
         this.reservationsService.update(local.id, { backendId: res.id });
@@ -2504,7 +2578,9 @@ export class RaumDetailComponent implements OnInit {
 
   markNoShow(res: FloorReservation) {
     this.getraenke.cancelTimer(res.id);
-    this.reservationsService.setStatus(res.id, 'no-show');
+    this.requestStaffIdThen((performedBy) => {
+      this.reservationsService.setStatus(res.id, 'no-show', performedBy);
+    });
   }
 
   capturePayment(res: FloorReservation) {
@@ -2545,7 +2621,9 @@ export class RaumDetailComponent implements OnInit {
 
   cancel(res: FloorReservation) {
     this.getraenke.cancelTimer(res.id);
-    this.reservationsService.setStatus(res.id, 'cancelled');
+    this.requestStaffIdThen((performedBy) => {
+      this.reservationsService.setStatus(res.id, 'cancelled', performedBy);
+    });
   }
 
   remove(res: FloorReservation) {
@@ -3026,12 +3104,38 @@ export class RaumDetailComponent implements OnInit {
     excludeId?: string | null,
   ): boolean {
     if (!time) return false;
+    // Clean-up-Zeit weitet das belegte Fenster der bestehenden Reservierung auf
+    // beiden Seiten — 0 (Schalter aus) ergibt exakt die bisherige Berechnung.
+    const cleanupBuffer = this.timing.cleanupEnabled() ? this.timing.cleanupMinutes() : 0;
     const newStart = this.toMin(time);
     for (const r of (this.reservationsByTableForForm().get(tableId) ?? [])) {
       if (excludeId && r.id === excludeId) continue;
-      const resStart = this.toMin(r.time);
-      const resEnd   = resStart + r.durationMinutes;
+      const resStart = this.toMin(r.time) - cleanupBuffer;
+      const resEnd   = this.toMin(r.time) + r.durationMinutes + cleanupBuffer;
       if (newStart >= resStart && newStart < resEnd) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Gibt true zurück wenn der Tisch zum gewünschten Zeitpunkt NICHT durch eine
+   * aktuell laufende Reservierung belegt ist, sondern nur noch durch die
+   * Clean-up-Zeit danach — für eine eigene Kennzeichnung im Tisch-Picker
+   * ("Clean-up" statt "Belegt").
+   */
+  isTableInCleanup(
+    tableId: number,
+    time: string,
+    excludeId?: string | null,
+  ): boolean {
+    if (!time || !this.timing.cleanupEnabled()) return false;
+    const cleanupMinutes = this.timing.cleanupMinutes();
+    const newStart = this.toMin(time);
+    for (const r of (this.reservationsByTableForForm().get(tableId) ?? [])) {
+      if (excludeId && r.id === excludeId) continue;
+      const rawEnd    = this.toMin(r.time) + r.durationMinutes;
+      const cleanupEnd = rawEnd + cleanupMinutes;
+      if (newStart >= rawEnd && newStart < cleanupEnd) return true;
     }
     return false;
   }
@@ -3055,6 +3159,17 @@ export class RaumDetailComponent implements OnInit {
     return ids.some(id =>
       this.isTableOccupied(id, slot, this.formDurationMinutes(), this.editingId()),
     );
+  }
+
+  /**
+   * Gibt true zurück wenn mindestens einer der gewählten Tische zum Zeitslot
+   * `slot` nur noch durch die Clean-up-Zeit belegt ist (nicht durch eine
+   * aktuell laufende Reservierung) — für die Zeitslot-Farbmarkierung.
+   */
+  isSelectedTableInCleanupAt(slot: string): boolean {
+    const ids = this.form.tableIds ?? [];
+    if (ids.length === 0) return false;
+    return ids.some(id => this.isTableInCleanup(id, slot, this.editingId()));
   }
 
   /** ID des ersten ausgewählten, aber belegten Tisches — oder null. */

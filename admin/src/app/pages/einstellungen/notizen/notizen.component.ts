@@ -69,6 +69,9 @@ export class NotizenComponent implements OnInit {
   // ── Detail-Ansicht ────────────────────────────────────────────────────────
   viewNotiz = signal<Notiz | null>(null);
 
+  // ── Löschen-Bestätigung (schönes Modal statt Browser-confirm) ────────────
+  confirmDeleteNotiz = signal<Notiz | null>(null);
+
   colorLabels = COLOR_LABELS;
   colorKeys: ColorKey[] = ['default', 'info', 'success', 'warn'];
   weekdaysShort = WEEKDAYS_SHORT;
@@ -293,8 +296,18 @@ export class NotizenComponent implements OnInit {
     });
   }
 
-  delete(n: Notiz): void {
-    if (!confirm(`Notiz "${n.title}" wirklich löschen?`)) return;
+  askDelete(n: Notiz): void {
+    this.confirmDeleteNotiz.set(n);
+  }
+
+  cancelDelete(): void {
+    this.confirmDeleteNotiz.set(null);
+  }
+
+  confirmDelete(): void {
+    const n = this.confirmDeleteNotiz();
+    if (!n) return;
+    this.confirmDeleteNotiz.set(null);
     this.svc.delete(n.id).subscribe({
       next: () => {
         this.notizen.update(list => list.filter(x => x.id !== n.id));

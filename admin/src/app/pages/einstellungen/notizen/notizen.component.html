@@ -87,7 +87,7 @@
                 <button class="btn-icon btn-icon--sm" (click)="openEdit(n)">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="delete(n)">
+                <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="askDelete(n)">
                   <mat-icon>delete</mat-icon>
                 </button>
               </div>
@@ -154,7 +154,7 @@
             <button class="btn-icon btn-icon--sm" (click)="openEdit(n)">
               <mat-icon>edit</mat-icon>
             </button>
-            <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="delete(n)">
+            <button class="btn-icon btn-icon--sm btn-icon--danger" (click)="askDelete(n)">
               <mat-icon>delete</mat-icon>
             </button>
           </div>
@@ -313,5 +313,25 @@
 
     </div>
   </div>
+
+  <!-- ── Löschen-Bestätigung ───────────────────────────────────────────── -->
+  <ng-container *ngIf="confirmDeleteNotiz() as delNotiz">
+    <div class="confirm-backdrop" (click)="cancelDelete()"></div>
+    <div class="confirm-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div class="confirm-modal__icon">
+        <mat-icon>delete</mat-icon>
+      </div>
+      <h3 class="confirm-modal__title">Notiz löschen?</h3>
+      <p class="confirm-modal__text">"{{ delNotiz.title }}" wird dauerhaft entfernt.</p>
+      <div class="confirm-modal__actions">
+        <button type="button" class="confirm-modal__cancel" (click)="cancelDelete()">
+          Abbrechen
+        </button>
+        <button type="button" class="confirm-modal__confirm" (click)="confirmDelete()">
+          <mat-icon>delete</mat-icon> Ja, löschen
+        </button>
+      </div>
+    </div>
+  </ng-container>
 
 </div>

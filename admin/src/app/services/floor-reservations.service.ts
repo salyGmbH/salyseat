@@ -103,14 +103,18 @@ export class FloorReservationsService {
    * Setzt den Status — lokal sofort (optimistic), Backend async falls backendId vorhanden.
    * late und expired sind rein lokale UI-Zustände und werden nicht ans Backend gesendet.
    */
-  setStatus(id: string, status: FloorReservationStatus): void {
+  setStatus(
+    id: string,
+    status: FloorReservationStatus,
+    performedBy?: { employeeNumber: number; name: string },
+  ): void {
     const res = this._reservations().find(r => r.id === id);
     this._reservations.update(rs =>
       rs.map(r => r.id === id ? { ...r, status, updatedAt: Date.now() } : r),
     );
 
     if (res?.backendId && this.isSyncableStatus(status)) {
-      this.syncStatus(res.backendId, status).subscribe({
+      this.syncStatus(res.backendId, status, performedBy).subscribe({
         error: () => console.warn(`Status-Sync fehlgeschlagen: ${status} für ${res.backendId}`),
       });
     }
@@ -165,6 +169,12 @@ export class FloorReservationsService {
       paymentCaptureMethod:(br as any).payment_capture_method ?? null,
       source:              (br as any).source               ?? null,
       hotelRoomNumber:     (br as any).hotel_room_number    ?? null,
+      packages:            (br.packages ?? []).map(p => ({
+        packageId:      p.package_id,
+        packageName:    p.package_name,
+        pricePerPerson: p.price_per_person,
+        quantity:       p.quantity,
+      })),
       createdAt:           new Date(br.created_at).getTime(),
       updatedAt:          Date.now(),
     };
@@ -211,16 +221,22 @@ export class FloorReservationsService {
     );
   }
 
-  private syncStatus(backendId: string, status: FloorReservationStatus): Observable<unknown> {
+  private syncStatus(
+    backendId: string,
+    status: FloorReservationStatus,
+    performedBy?: { employeeNumber: number; name: string },
+  ): Observable<unknown> {
     const base = `${this.BASE}/${backendId}`;
+    // Mitarbeiter-ID-Abfrage: nur bei cancel/no-show ausgewertet (Audit-Trail).
+    const body = performedBy ? { performed_by_employee_number: performedBy.employeeNumber } : {};
     switch (status) {
-      case 'confirmed': return this.http.patch(`${base}/confirm`,  {});
-      case 'seated':    return this.http.patch(`${base}/seat`,     {});
-      case 'cleanup':   return this.http.patch(`${base}/cleanup`,  {});
-      case 'completed': return this.http.patch(`${base}/complete`, {});
-      case 'cancelled': return this.http.patch(`${base}/cancel`,   {});
-      case 'no-show':   return this.http.patch(`${base}/no-show`,  {});
-      case 'upcoming':  return this.http.patch(`${base}/reopen`,   {});
+      case 'confirmed': return this.http.patch(`${base}/confirm`,  body);
+      case 'seated':    return this.http.patch(`${base}/seat`,     body);
+      case 'cleanup':   return this.http.patch(`${base}/cleanup`,  body);
+      case 'completed': return this.http.patch(`${base}/complete`, body);
+      case 'cancelled': return this.http.patch(`${base}/cancel`,   body);
+      case 'no-show':   return this.http.patch(`${base}/no-show`,  body);
+      case 'upcoming':  return this.http.patch(`${base}/reopen`,   body);
       default:          return of(null);
     }
   }

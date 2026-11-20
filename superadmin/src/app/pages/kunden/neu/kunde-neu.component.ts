@@ -1,14 +1,8 @@
-import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TenantsService, Tenant, CreateTenantDto } from '../../../services/tenants.service';
-
-const ALL_ADDONS = [
-  { key: 'vouchers',    label: 'Gutscheine',     icon: 'card_giftcard' },
-  { key: 'speisekarte', label: 'Speisekarte',    icon: 'menu_book' },
-  { key: 'pms',         label: 'Hotel-PMS',      icon: 'hotel' },
-  { key: 'pos',         label: 'Kassenschnittst.', icon: 'point_of_sale' },
-];
+import { AddonsService } from '../../../services/addons.service';
 
 @Component({
   selector: 'app-kunde-neu',
@@ -17,16 +11,26 @@ const ALL_ADDONS = [
   templateUrl: './kunde-neu.component.html',
   styleUrl: './kunde-neu.component.scss',
 })
-export class KundeNeuComponent {
+export class KundeNeuComponent implements OnInit {
   @Output() closed = new EventEmitter<Tenant | null>();
 
-  private readonly svc = inject(TenantsService);
+  private readonly svc        = inject(TenantsService);
+  private readonly addonsSvc  = inject(AddonsService);
 
   saving   = signal(false);
   error    = signal('');
   activeTab = signal<'allgemein' | 'adresse' | 'rechnung' | 'zugangsdaten'>('allgemein');
 
-  readonly addons = ALL_ADDONS;
+  /** Add-on-Katalog, dynamisch von /api/v1/superadmin/addons geladen, damit hier nie eine
+   *  hartcodierte Liste veraltet, wenn ein neues Add-on angelegt wird. */
+  readonly addons = signal<{ key: string; label: string; icon: string }[]>([]);
+
+  ngOnInit(): void {
+    this.addonsSvc.list().subscribe({
+      next: list => this.addons.set(list.map(a => ({ key: a.key, label: a.name, icon: a.icon }))),
+      error: () => { /* Katalog bleibt leer — Add-on-Auswahl zeigt dann nichts an */ },
+    });
+  }
 
   readonly contractDurations = [
     { key: 'monthly', label: 'Monatlich',       desc: '1 Monat' },

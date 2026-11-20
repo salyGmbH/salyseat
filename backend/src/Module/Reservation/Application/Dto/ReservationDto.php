@@ -36,6 +36,8 @@ final readonly class ReservationDto
         public ?string $paymentCaptureMethod,
         public ?string $source,
         public ?string $hotelRoomNumber,
+        /** @var array<int, array{package_id: string, package_name: string, price_per_person: ?int, quantity: int}> */
+        public array $packages,
     ) {}
 
     public static function fromEntity(Reservation $r): self
@@ -68,6 +70,12 @@ final readonly class ReservationDto
             paymentCaptureMethod: $r->getPaymentCaptureMethod(),
             source:               $r->getSource(),
             hotelRoomNumber:      $r->getHotelRoomNumber(),
+            packages:             array_map(static fn ($p) => [
+                'package_id'        => $p->getPackageId(),
+                'package_name'      => $p->getPackageName(),
+                'price_per_person'  => $p->getPricePerPerson(),
+                'quantity'          => $p->getQuantity(),
+            ], $r->getPackages()->toArray()),
         );
     }
 
@@ -101,6 +109,7 @@ final readonly class ReservationDto
             'payment_capture_method' => $this->paymentCaptureMethod,
             'source'                 => $this->source,
             'hotel_room_number'      => $this->hotelRoomNumber,
+            'packages'               => $this->packages,
         ];
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Module\Staff\Domain\Entity\Staff;
+use App\Module\Staff\Infrastructure\Persistence\DoctrineStaffRepository;
 use App\Module\Tenant\Domain\Entity\Tenant;
 use App\Module\User\Domain\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -16,16 +18,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-/**
- * Legt einen Admin-User (inkl. optionalem Tenant) direkt in der Datenbank an.
- *
- * Beispiele:
- *   php bin/console app:create-admin info@saly.tech 1234
- *   php bin/console app:create-admin info@saly.tech 1234 --tenant="Salyseat Restaurant"
- *
- * Ist die E-Mail schon vergeben, wird das Passwort des bestehenden Users
- * überschrieben (praktisch für "hab's vergessen, setz mir einfach neu").
- */
 #[AsCommand(
     name: 'app:create-admin',
     description: 'Legt einen Admin-User an oder setzt dessen Passwort neu.'
@@ -35,6 +27,7 @@ class CreateAdminCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface       $em,
         private readonly UserPasswordHasherInterface  $hasher,
+        private readonly DoctrineStaffRepository      $staffRepo,
     ) {
         parent::__construct();
     }
@@ -100,6 +93,17 @@ class CreateAdminCommand extends Command
 
         $this->em->persist($user);
         $this->em->flush();
+
+        // Bootstrap: erster Mitarbeiter-Datensatz mit Rolle 'admin', damit der
+        // Tenant sofort die Mitarbeiter-ID-Abfrage nutzen kann. Nur wenn der
+        // Tenant noch keine Mitarbeiter hat — verhindert Duplikate bei
+        // wiederholter CLI-Nutzung für denselben Tenant.
+        if ($tenant !== null && empty($this->staffRepo->findByTenant($tenant))) {
+            $staffNumber = $this->staffRepo->nextEmployeeNumber($tenant);
+            $staff       = new Staff($tenant, $staffNumber, 'Administrator', $email, 'admin');
+            $this->em->persist($staff);
+            $this->em->flush();
+        }
 
         $io->success(sprintf(
             "Admin-User '%s' wurde angelegt.%s",

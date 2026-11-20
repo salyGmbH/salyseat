@@ -35,6 +35,10 @@ final class AdminCancelReservationHandler
 
         $reservation->cancel();
 
+        if ($cmd->performedByEmployeeNumber !== null && $cmd->performedByName !== null) {
+            $reservation->recordStaffAction($cmd->performedByEmployeeNumber, $cmd->performedByName, 'cancelled');
+        }
+
         $this->logger->info('Reservierung storniert (Admin)', [
             'reservation_id' => $cmd->reservationId,
             'email'          => $reservation->getGuestEmail(),

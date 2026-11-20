@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Reservation\Domain\Entity;
 
 use App\Module\Venue\Domain\Entity\Venue;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
@@ -97,6 +99,17 @@ class Reservation
     #[ORM\Column(name: 'hotel_room_number', length: 20, nullable: true)]
     private ?string $hotelRoomNumber = null;
 
+    /**
+     * Audit-Trail: wer hat welche Aktion ausgeführt (Mitarbeiter-ID-Abfrage).
+     * Append-only-Liste von {employeeNumber, name, action, at}.
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $staffActions = null;
+
+    /** @var Collection<int, ReservationPackage> */
+    #[ORM\OneToMany(targetEntity: ReservationPackage::class, mappedBy: 'reservation', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $packages;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -125,6 +138,18 @@ class Reservation
         $this->endsAt = $endsAt;
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->packages = new ArrayCollection();
+    }
+
+    /** @return Collection<int, ReservationPackage> */
+    public function getPackages(): Collection
+    {
+        return $this->packages;
+    }
+
+    public function addPackage(string $packageId, string $packageName, ?int $pricePerPerson, int $quantity): void
+    {
+        $this->packages->add(new ReservationPackage($this, $packageId, $packageName, $pricePerPerson, $quantity));
     }
 
     #[ORM\PreUpdate]
@@ -140,9 +165,7 @@ class Reservation
 
     public function cancel(): void
     {
-        if ($this->status === ReservationStatus::CONFIRMED || $this->status === ReservationStatus::PENDING) {
-            $this->status = ReservationStatus::CANCELLED;
-        }
+        $this->status = ReservationStatus::CANCELLED;
     }
 
     public function markAsNoShow(): void
@@ -319,6 +342,21 @@ class Reservation
     public function setHotelRoomNumber(?string $n): void { $this->hotelRoomNumber = $n; }
 
     public function getPmsSyncStatus(): ?string     { return $this->pmsSyncStatus;     }
+
+    public function getStaffActions(): ?array { return $this->staffActions; }
+
+    public function recordStaffAction(int $employeeNumber, string $name, string $action): void
+    {
+        $this->staffActions = [
+            ...($this->staffActions ?? []),
+            [
+                'employeeNumber' => $employeeNumber,
+                'name'           => $name,
+                'action'         => $action,
+                'at'             => (new \DateTimeImmutable())->format(DATE_ATOM),
+            ],
+        ];
+    }
 
     public function setPmsSyncStatus(string $status, ?string $mewsReservationId = null): void
     {

@@ -31,7 +31,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'restaurant-plan', component: RestaurantPlanComponent },
       { path: 'restaurant-plan/:id', component: RestaurantPlanComponent },
-      { path: 'statistiken', component: StatistikenComponent },
+      { path: 'statistiken', component: StatistikenComponent, canActivate: [planGuard('statistiken')] },
       { path: 'schichtplanung', component: SchichtplanungComponent, canActivate: [planGuard('schichtplan')] },
       { path: 'gutscheine', component: GutscheineComponent },
       { path: 'hotelgaeste', component: HotelgaesteComponent },

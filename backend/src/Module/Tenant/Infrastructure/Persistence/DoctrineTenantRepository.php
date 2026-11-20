@@ -45,6 +45,16 @@ class DoctrineTenantRepository extends ServiceEntityRepository
         return $this->findOneBy(['publicKey' => $key]);
     }
 
+    public function findByWhatsappPhoneNumberId(string $id): ?Tenant
+    {
+        return $this->findOneBy(['whatsappPhoneNumberId' => $id]);
+    }
+
+    public function findByWhatsappChannelId(string $id): ?Tenant
+    {
+        return $this->findOneBy(['whatsappChannelId' => $id]);
+    }
+
     public function save(Tenant $tenant): void
     {
         $this->getEntityManager()->persist($tenant);

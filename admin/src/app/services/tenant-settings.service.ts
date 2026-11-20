@@ -135,6 +135,13 @@ export interface TenantUiSettings {
   /** Rollen-Berechtigungsmatrix: role → permissionKey → boolean */
   permissions?: Record<string, Record<string, boolean>>;
 
+  /**
+   * Mitarbeiter-ID-Abfrage: wenn aktiv, muss bei sensiblen Reservierungs-Aktionen
+   * (Stornieren, No-Show, Anlegen) die Mitarbeiter-Nummer angegeben werden — rein
+   * zur Nachvollziehbarkeit, keine Berechtigungsprüfung.
+   */
+  staffIdCheck?: { enabled: boolean };
+
   /** Gespeicherte Speisekarte-Konfiguration (Design + Inhalte). */
   speisekarteKonfiguration?: {
     design: {

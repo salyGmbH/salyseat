@@ -1,0 +1,153 @@
+<div class="addons">
+
+  <div class="addons__header">
+    <div>
+      <h1 class="addons__title">Add-ons</h1>
+      <p class="addons__sub">{{ addons().length }} Add-ons im Katalog — erscheinen so im Kunden-Admin unter Abo & Add-ons.</p>
+    </div>
+    <button class="addons__add-btn" (click)="openCreate()">
+      <mat-icon>add</mat-icon>
+      Add-on anlegen
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    @if (loading()) {
+      <div class="table-loading"><span class="spinner"></span></div>
+    } @else {
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Add-on</th>
+            <th>Preis</th>
+            <th>Ab Plan buchbar</th>
+            <th>Enthalten ab</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of addons(); track a.id) {
+            <tr class="tr-clickable" (click)="openEdit(a)">
+              <td class="td-addon">
+                <div class="addon-icon"><mat-icon>{{ a.icon }}</mat-icon></div>
+                <div class="td-addon__info">
+                  <div class="td-addon__name">{{ a.name }}</div>
+                  <div class="td-addon__key">{{ a.key }}</div>
+                </div>
+              </td>
+              <td>{{ formatPrice(a.priceCents) }}</td>
+              <td>{{ planLabel(a.minPlan) }}</td>
+              <td>{{ planLabel(a.includedFromPlan) }}</td>
+              <td>
+                <span class="status-dot" [class.status-dot--active]="a.status === 'active'">
+                  {{ a.status === 'active' ? 'Aktiv' : 'Demnächst' }}
+                </span>
+              </td>
+              <td class="td-actions">
+                <button class="action-btn" (click)="remove(a, $event)" title="Löschen">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="table-empty">Noch keine Add-ons angelegt.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+</div>
+
+@if (modalOpen()) {
+  <div class="addon-overlay" (click)="closeModal()"></div>
+  <div class="addon-modal">
+    <div class="addon-modal__header">
+      <div class="addon-modal__icon"><mat-icon>{{ editingId() ? 'edit' : 'add_circle' }}</mat-icon></div>
+      <div class="addon-modal__title">{{ editingId() ? 'Add-on bearbeiten' : 'Add-on anlegen' }}</div>
+      <button class="addon-modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="addon-modal__body">
+      @if (error()) {
+        <div class="addon-modal__error">{{ error() }}</div>
+      }
+
+      @if (!editingId()) {
+        <label class="addon-modal__field">
+          <span>Key (technisch, danach nicht mehr änderbar)</span>
+          <input type="text" [(ngModel)]="form.key" placeholder="z.B. packages" autocomplete="off">
+        </label>
+      } @else {
+        <label class="addon-modal__field">
+          <span>Key</span>
+          <input type="text" [value]="form.key" disabled>
+        </label>
+      }
+
+      <label class="addon-modal__field">
+        <span>Name</span>
+        <input type="text" [(ngModel)]="form.name" placeholder="z.B. Packages">
+      </label>
+
+      <label class="addon-modal__field">
+        <span>Beschreibung</span>
+        <textarea rows="2" [(ngModel)]="form.description" placeholder="Kurzbeschreibung für die Abo-Seite"></textarea>
+      </label>
+
+      <div class="addon-modal__row">
+        <label class="addon-modal__field">
+          <span>Preis (€ / Monat, leer = "Auf Anfrage")</span>
+          <input type="number" step="0.01" min="0" [(ngModel)]="form.price">
+        </label>
+        <label class="addon-modal__field">
+          <span>Icon (Material-Icon-Name)</span>
+          <input type="text" [(ngModel)]="form.icon" placeholder="z.B. inventory_2">
+        </label>
+      </div>
+
+      <div class="addon-modal__row">
+        <label class="addon-modal__field">
+          <span>Ab welchem Plan buchbar?</span>
+          <select [(ngModel)]="form.minPlan">
+            <option value="">Ab jedem Plan</option>
+            @for (p of plans; track p.key) {
+              <option [value]="p.key">Ab {{ p.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="addon-modal__field">
+          <span>Ab welchem Plan automatisch enthalten?</span>
+          <select [(ngModel)]="form.includedFromPlan">
+            <option value="">Nie automatisch enthalten</option>
+            @for (p of plans; track p.key) {
+              <option [value]="p.key">Ab {{ p.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="addon-modal__row">
+        <label class="addon-modal__field">
+          <span>Status</span>
+          <select [(ngModel)]="form.status">
+            <option value="active">Aktiv (buchbar)</option>
+            <option value="soon">Demnächst (nur Anzeige)</option>
+          </select>
+        </label>
+        <label class="addon-modal__field">
+          <span>Sortierung</span>
+          <input type="number" [(ngModel)]="form.sortOrder">
+        </label>
+      </div>
+    </div>
+    <div class="addon-modal__footer">
+      <button class="addon-modal__cancel" (click)="closeModal()">Abbrechen</button>
+      <button class="addon-modal__save" [disabled]="saving()" (click)="save()">
+        {{ saving() ? 'Speichert…' : 'Speichern' }}
+      </button>
+    </div>
+  </div>
+}

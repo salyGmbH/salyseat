@@ -6,6 +6,7 @@ namespace App\Api\Controller\Admin;
 
 use App\Module\Staff\Domain\Entity\Staff;
 use App\Module\Staff\Infrastructure\Persistence\DoctrineStaffRepository;
+use App\Module\Tenant\Domain\Entity\Tenant;
 use App\Module\User\Domain\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,12 +38,40 @@ class StaffController extends AbstractController
         return $this->json(array_map($this->serialize(...), $this->repo->findByTenant($tenant)));
     }
 
+    #[Route('/verify', name: 'admin_staff_verify', methods: ['POST'])]
+    public function verify(Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $data   = json_decode($request->getContent(), true) ?? [];
+        $number = (int) ($data['employeeNumber'] ?? 0);
+
+        $staff = $number > 0 ? $this->repo->findActiveByTenantAndNumber($tenant, $number) : null;
+        if ($staff === null) {
+            return $this->json(['error' => 'Mitarbeiter-Nummer nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json([
+            'id'   => $staff->getId()->toRfc4122(),
+            'name' => $staff->getName(),
+            'role' => $staff->getRole(),
+        ]);
+    }
+
     #[Route('', name: 'admin_staff_create', methods: ['POST'])]
     public function create(Request $request, #[CurrentUser] User $user): JsonResponse
     {
         $tenant = $user->getTenant();
         if ($tenant === null) {
             return $this->json(['error' => 'Kein Tenant.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $authError = $this->assertActingAdmin($request, $tenant);
+        if ($authError !== null) {
+            return $authError;
         }
 
         $data  = json_decode($request->getContent(), true) ?? [];
@@ -69,8 +98,14 @@ class StaffController extends AbstractController
     #[Route('/{id}', name: 'admin_staff_update', methods: ['PATCH'])]
     public function update(string $id, Request $request, #[CurrentUser] User $user): JsonResponse
     {
-        if (!$this->isAdmin($user)) {
-            return $this->json(['error' => 'Keine Berechtigung.'], Response::HTTP_FORBIDDEN);
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $authError = $this->assertActingAdmin($request, $tenant);
+        if ($authError !== null) {
+            return $authError;
         }
 
         $staff = $this->resolveStaff($id, $user);
@@ -99,10 +134,16 @@ class StaffController extends AbstractController
     }
 
     #[Route('/{id}', name: 'admin_staff_delete', methods: ['DELETE'])]
-    public function delete(string $id, #[CurrentUser] User $user): JsonResponse
+    public function delete(string $id, Request $request, #[CurrentUser] User $user): JsonResponse
     {
-        if (!$this->isAdmin($user)) {
-            return $this->json(['error' => 'Keine Berechtigung.'], Response::HTTP_FORBIDDEN);
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $authError = $this->assertActingAdmin($request, $tenant);
+        if ($authError !== null) {
+            return $authError;
         }
 
         $staff = $this->resolveStaff($id, $user);
@@ -116,9 +157,27 @@ class StaffController extends AbstractController
         return $this->json(['ok' => true]);
     }
 
-    private function isAdmin(User $user): bool
+    /**
+     * Prüft die im Request mitgeschickte Mitarbeiter-Nummer (`actingEmployeeNumber`)
+     * gegen den Staff-Datensatz des Tenants — nur Rolle 'admin' darf Mitarbeiter
+     * anlegen/ändern/löschen. Bewusst keine ROLE_SUPER_ADMIN-Alternative mehr:
+     * diese Prüfung ist die einzige Autorisierung für diese Endpoints.
+     */
+    private function assertActingAdmin(Request $request, Tenant $tenant): ?JsonResponse
     {
-        return $user->isSuperAdmin();
+        $data   = json_decode($request->getContent(), true) ?? [];
+        $number = (int) ($data['actingEmployeeNumber'] ?? 0);
+
+        if ($number <= 0) {
+            return $this->json(['error' => 'Mitarbeiter-ID erforderlich.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $staff = $this->repo->findActiveByTenantAndNumber($tenant, $number);
+        if ($staff === null || $staff->getRole() !== 'admin') {
+            return $this->json(['error' => 'Nur Mitarbeiter mit der Rolle Admin dürfen das.'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     private function resolveStaff(string $id, User $user): ?Staff

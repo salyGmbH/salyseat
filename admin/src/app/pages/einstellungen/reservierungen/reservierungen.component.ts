@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -43,6 +43,7 @@ export class ReservierungenComponent {
   info3 = signal(false); // Clean-up-Zeit
   info4 = signal(false); // Getränke-Erinnerung
   info5 = signal(false); // VIP-Schwelle
+  info7 = signal(false); // Gast-Sperrung
 
   // ── Getränke-Erinnerung ──────────────────────────────────────────────────────
   getraenkeOn      = signal<boolean>(this.getraenke.enabled());
@@ -59,6 +60,20 @@ export class ReservierungenComponent {
   info6             = signal(false);
 
   constructor() {
+    // defaultDuration/autoExpire/cleanupOn/cleanupMinutes werden oben mit dem
+    // AKTUELLEN Stand von ReservationTimingService initialisiert — das ist beim
+    // allerersten Konstruieren des Service (z.B. frischer Reload dieser Seite)
+    // noch der Default, weil dessen eigener Backend-Load zu dem Zeitpunkt noch
+    // nicht angekommen ist. Ohne diesen Effect blieben die Felder dauerhaft auf
+    // "aus", auch wenn im Backend längst etwas anderes gespeichert ist.
+    effect(() => {
+      const s = this.timing.settings();
+      this.defaultDuration.set(s.defaultDurationMinutes);
+      this.autoExpire.set(s.autoExpireEnabled);
+      this.cleanupOn.set(s.cleanupEnabled);
+      this.cleanupMinutes.set(s.cleanupMinutes);
+    }, { allowSignalWrites: true });
+
     this.tenantSettings.load().subscribe(s => {
       this.noShowThreshold.set(s.noShowAutoBlockThreshold ?? null);
       this.autoCheckout.set(s.autoCheckoutEnabled ?? false);

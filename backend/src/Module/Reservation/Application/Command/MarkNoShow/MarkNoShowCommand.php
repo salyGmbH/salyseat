@@ -7,7 +7,9 @@ namespace App\Module\Reservation\Application\Command\MarkNoShow;
 final readonly class MarkNoShowCommand
 {
     public function __construct(
-        public string $reservationId,
-        public string $tenantId,
+        public string  $reservationId,
+        public string  $tenantId,
+        public ?int    $performedByEmployeeNumber = null,
+        public ?string $performedByName = null,
     ) {}
 }

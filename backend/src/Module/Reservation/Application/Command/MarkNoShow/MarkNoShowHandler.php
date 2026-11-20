@@ -31,6 +31,10 @@ final class MarkNoShowHandler
 
         $reservation->markAsNoShow();
 
+        if ($cmd->performedByEmployeeNumber !== null && $cmd->performedByName !== null) {
+            $reservation->recordStaffAction($cmd->performedByEmployeeNumber, $cmd->performedByName, 'no_show');
+        }
+
         $this->logger->info('Reservierung als No-Show markiert', [
             'reservation_id' => $cmd->reservationId,
             'email'          => $reservation->getGuestEmail(),

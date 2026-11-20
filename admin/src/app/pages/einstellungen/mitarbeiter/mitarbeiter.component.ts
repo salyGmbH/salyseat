@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
-import { AuthService } from '../../../services/auth.service';
 import {
   StaffService,
   StaffMember,
   CreateStaffDto,
+  VerifiedStaff,
 } from '../../../services/staff.service';
+import { StaffIdPromptComponent } from '../../../shared/staff-id-prompt/staff-id-prompt.component';
 
 export type EmployeeRole = 'admin' | 'manager' | 'staff';
 export type ModalMode    = 'add' | 'edit';
@@ -16,7 +17,6 @@ export type ModalMode    = 'add' | 'edit';
 export interface Employee {
   /** Interner UUID/Timestamp — niemals dem User gezeigt. */
   id: string;
-
   staffId: string;
   name: string;
   email: string;
@@ -60,13 +60,12 @@ export const ROLE_META: Record<EmployeeRole, RoleMeta> = {
 @Component({
   selector: 'app-mitarbeiter',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule, StaffIdPromptComponent],
   templateUrl: './mitarbeiter.component.html',
   styleUrl: './mitarbeiter.component.scss',
 })
 export class MitarbeiterComponent implements OnInit {
   private readonly staffService = inject(StaffService);
-  private readonly auth         = inject(AuthService);
 
   readonly roles: RoleMeta[] = [ROLE_META.admin, ROLE_META.manager, ROLE_META.staff];
   readonly roleMeta = ROLE_META;
@@ -88,21 +87,29 @@ export class MitarbeiterComponent implements OnInit {
   toggleInfo(): void { this.infoOpen.update(v => !v); }
 
   /**
-   * Darf der aktuelle Nutzer Mitarbeiter bearbeiten?
-   * Aktuell: alles, was nicht eingeloggt ist, darf nichts; Admins dürfen alles.
-   * Später kann hier feiner unterschieden werden.
+   * Darf der aktuelle Nutzer Mitarbeiter bearbeiten? Freigeschaltet, sobald sich
+   * ein Mitarbeiter mit Rolle 'admin' per Mitarbeiter-ID-Abfrage bestätigt hat —
+   * keine JWT-Rolle mehr relevant.
    */
-  readonly canEdit  = computed(() => {
-    const user = this.auth.user();
-    if (!user) return false;
-    return (user.roles ?? []).includes('ROLE_SUPER_ADMIN');
-  });
+  unlockedAs = signal<{ employeeNumber: number; name: string } | null>(null);
+  readonly canEdit  = computed(() => this.unlockedAs() !== null);
+  readonly canSeeId = computed(() => this.unlockedAs() !== null);
 
-  readonly canSeeId = computed(() => {
-    const user = this.auth.user();
-    if (!user) return false;
-    return (user.roles ?? []).includes('ROLE_SUPER_ADMIN');
-  });
+  promptOpen = signal(false);
+
+  requestUnlock(): void {
+    if (this.canEdit()) return;
+    this.promptOpen.set(true);
+  }
+
+  onStaffConfirmed(staff: VerifiedStaff & { employeeNumber: number }): void {
+    this.promptOpen.set(false);
+    this.unlockedAs.set({ employeeNumber: staff.employeeNumber, name: staff.name });
+  }
+
+  onStaffCancelled(): void {
+    this.promptOpen.set(false);
+  }
 
   // Modal-State (Add/Edit-Modal mit Rollenpicker)
   modalOpen = false;
@@ -202,21 +209,37 @@ export class MitarbeiterComponent implements OnInit {
       return;
     }
 
+    const acting = this.unlockedAs();
+    if (!acting) return;
+
     if (this.modalMode === 'add') {
-      this.employees.update(list => [
-        ...list,
-        { ...this.formUser, id: String(Date.now()), name, email, staffId }
-      ]);
-    } else if (this.editingId) {
-      const id = this.editingId;
-      this.employees.update(list => list.map(u =>
-        u.id === id
-          ? { ...this.formUser, id: u.id, name, email, staffId }
-          : u
-      ));
+      this.staffService.create(
+        { name, email, role: this.formUser.role },
+        acting.employeeNumber,
+      ).subscribe({
+        next: created => {
+          this.employees.update(list => [...list, this.toEmployee(created)]);
+          this.closeModal();
+        },
+        error: (err) => { this.saveError.set(err?.error?.error ?? 'Fehler beim Anlegen.'); },
+      });
+      return;
     }
 
-    this.closeModal();
+    if (this.editingId) {
+      const id = this.editingId;
+      this.staffService.update(
+        id,
+        { name, email, role: this.formUser.role },
+        acting.employeeNumber,
+      ).subscribe({
+        next: updated => {
+          this.replace(this.toEmployee(updated));
+          this.closeModal();
+        },
+        error: (err) => { this.saveError.set(err?.error?.error ?? 'Fehler beim Speichern.'); },
+      });
+    }
   }
 
   // ── Bearbeiten-Modal (nur Name + E-Mail) ──────────────────────────────
@@ -232,7 +255,8 @@ export class MitarbeiterComponent implements OnInit {
 
   saveEdit(): void {
     const target = this.editTarget();
-    if (!target || !this.editName().trim()) return;
+    const acting = this.unlockedAs();
+    if (!target || !acting || !this.editName().trim()) return;
     this.editSaving.set(true);
     this.editError.set(null);
 
@@ -242,7 +266,7 @@ export class MitarbeiterComponent implements OnInit {
     this.staffService.update(target.id, {
       name:  newName,
       email: newEmail || null,
-    }).subscribe({
+    }, acting.employeeNumber).subscribe({
       next: updated => {
         this.replace(this.toEmployee(updated));
         this.editSaving.set(false);
@@ -269,11 +293,14 @@ export class MitarbeiterComponent implements OnInit {
 
   // ── Aktiv/Inaktiv ──────────────────────────────────────────────────────
   toggleActive(user: Employee): void {
+    const acting = this.unlockedAs();
+    if (!acting) return;
+
     const target = { ...user, active: !user.active };
     // Optimistisches Update — falls Backend antwortet, mergen wir das
     // Ergebnis darüber. Falls nicht, bleibt unser optimistischer Stand.
     this.replace(target);
-    this.staffService.update(user.id, { active: target.active }).subscribe({
+    this.staffService.update(user.id, { active: target.active }, acting.employeeNumber).subscribe({
       next:  updated => this.replace(this.toEmployee(updated)),
       error: () => { /* lokaler Stand bleibt */ },
     });
@@ -281,11 +308,14 @@ export class MitarbeiterComponent implements OnInit {
 
   // ── Löschen ────────────────────────────────────────────────────────────
   removeUser(user: Employee): void {
+    const acting = this.unlockedAs();
+    if (!acting) return;
+
     // Optimistisches Entfernen — bei Backend-Fehler ggf. revert (hier
     // bewusst nicht implementiert, weil der Demo-Modus auch ohne Backend
     // klappen muss).
     this.employees.update(list => list.filter(u => u.id !== user.id));
-    this.staffService.delete(user.id).subscribe({
+    this.staffService.delete(user.id, acting.employeeNumber).subscribe({
       error: () => { /* lokaler Stand bleibt */ },
     });
   }

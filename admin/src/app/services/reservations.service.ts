@@ -116,8 +116,12 @@ export class ReservationsService {
     notes?: string;
     duration_minutes?: number;
     table_id?: number;
-    source?: 'online' | 'admin' | 'walk_in';
+    /** Mehrfach-Tischauswahl (zusammengelegte Tische) — table_id bleibt der erste Eintrag. */
+    table_ids?: number[];
+    source?: 'online' | 'admin' | 'walk_in' | 'pms';
     room_number?: string;
+    /** Mitarbeiter-ID-Abfrage (Audit-Trail) — nur gesetzt wenn der Schalter aktiv ist. */
+    performed_by_employee_number?: number;
   }): Observable<Reservation> {
     return this.http.post<Reservation>(this.base, payload);
   }

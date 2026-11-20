@@ -1,0 +1,96 @@
+<div class="wa">
+
+  <div class="wa__header">
+    <div class="wa__header-icon"><mat-icon>chat</mat-icon></div>
+    <div>
+      <h2 class="wa__title">{{ 'whatsapp.title' | translate }}</h2>
+      <p class="wa__subtitle">{{ 'whatsapp.subtitle' | translate }}</p>
+    </div>
+    <span class="wa__status" [class.wa__status--on]="connected()">
+      <mat-icon>{{ connected() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+      {{ (connected() ? 'whatsapp.status_connected' : 'whatsapp.status_disconnected') | translate }}
+    </span>
+  </div>
+
+  <div class="wa__section">
+    <div class="wa__section-title">{{ 'whatsapp.section_credentials' | translate }}</div>
+    <div class="wa__fields">
+
+      <label class="wa__field">
+        <span class="wa__label">{{ 'whatsapp.phone_number_id_label' | translate }}</span>
+        <span class="wa__hint">{{ 'whatsapp.phone_number_id_hint' | translate }}</span>
+        <input class="wa__input" type="text" autocomplete="off"
+               [ngModel]="phoneNumberId()" (ngModelChange)="phoneNumberId.set($event)"
+               placeholder="1234567890">
+      </label>
+
+      <label class="wa__field">
+        <span class="wa__label">{{ 'whatsapp.api_key_label' | translate }}</span>
+        <span class="wa__hint">{{ 'whatsapp.api_key_hint' | translate }}</span>
+        <input class="wa__input" type="password" autocomplete="off"
+               [ngModel]="apiKey()" (ngModelChange)="apiKey.set($event)"
+               placeholder="D360-API-KEY">
+      </label>
+
+    </div>
+  </div>
+
+  <details class="wa__advanced">
+    <summary class="wa__advanced-title">
+      <mat-icon>tune</mat-icon> {{ 'whatsapp.advanced_title' | translate }}
+    </summary>
+    <div class="wa__fields wa__fields--advanced">
+
+      <label class="wa__field">
+        <span class="wa__label">{{ 'whatsapp.channel_id_label' | translate }}</span>
+        <input class="wa__input" type="text"
+               [ngModel]="channelId()" (ngModelChange)="channelId.set($event)"
+               placeholder="optional">
+      </label>
+
+      <label class="wa__field">
+        <span class="wa__label">{{ 'whatsapp.base_url_label' | translate }}</span>
+        <span class="wa__hint">{{ 'whatsapp.base_url_hint' | translate }}</span>
+        <input class="wa__input" type="text"
+               [ngModel]="baseUrl()" (ngModelChange)="baseUrl.set($event)"
+               placeholder="https://waba-sandbox.360dialog.io">
+      </label>
+
+    </div>
+  </details>
+
+  <div class="wa__test-row">
+    <button class="wa__btn wa__btn--secondary" (click)="testConnection()" [disabled]="testing()">
+      @if (testing()) {
+        <span class="wa__spinner"></span> {{ 'whatsapp.btn_testing' | translate }}
+      } @else {
+        <mat-icon>wifi_tethering</mat-icon> {{ 'whatsapp.btn_test' | translate }}
+      }
+    </button>
+    @if (testOk() === true) {
+      <span class="wa__test-result wa__test-result--ok">
+        <mat-icon>check_circle</mat-icon> {{ 'whatsapp.test_success' | translate }}
+      </span>
+    }
+    @if (testOk() === false) {
+      <span class="wa__test-result wa__test-result--err">
+        <mat-icon>error_outline</mat-icon> {{ 'whatsapp.test_failed' | translate }}
+      </span>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="wa__error"><mat-icon>error_outline</mat-icon> {{ error() }}</div>
+  }
+
+  <div class="wa__actions">
+    <button class="wa__btn wa__btn--primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <span class="wa__spinner"></span> } @else { <mat-icon>save</mat-icon> }
+      {{ saving() ? ('whatsapp.btn_saving' | translate) : (saved() ? ('whatsapp.btn_saved' | translate) : ('whatsapp.btn_save' | translate)) }}
+    </button>
+    <button class="wa__btn wa__btn--danger" (click)="disconnect()">
+      <mat-icon>link_off</mat-icon> {{ 'whatsapp.btn_disconnect' | translate }}
+    </button>
+  </div>
+
+</div>

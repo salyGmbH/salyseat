@@ -90,6 +90,15 @@ export interface WidgetLabels {
   allergiesLabel:       string;
   dogLabel:             string;
   wheelchairLabel:      string;
+  packagesLabel:        string;
+  noPackageOption:      string;
+  perPersonSuffix:      string;
+  packageCatMenu:       string;
+  packageCatEvent:      string;
+  packageCatFeier:      string;
+  packageCatSonstiges:  string;
+  packageDurationSuffix: string;
+  packageIncludesMore:  string;
   bookingConfirmed:     string;
   successPerson:        string;
   successPersons:       string;
@@ -234,6 +243,15 @@ const DE: WidgetLabels = {
   allergiesLabel:       'Allergien / Unverträglichkeiten',
   dogLabel:             'Hund dabei',
   wheelchairLabel:      'Rollstuhlgerechter Platz gewünscht',
+  packagesLabel:        'Package auswählen (optional)',
+  noPackageOption:      'Kein Package',
+  perPersonSuffix:      '€ / Person',
+  packageCatMenu:       'Menü',
+  packageCatEvent:      'Event',
+  packageCatFeier:      'Feier',
+  packageCatSonstiges:  'Sonstiges',
+  packageDurationSuffix: 'h',
+  packageIncludesMore:  'mehr',
   bookingConfirmed:     'Reservierung bestätigt',
   successPerson:        'Person',
   successPersons:       'Personen',
@@ -374,6 +392,15 @@ const EN: WidgetLabels = {
   allergiesLabel:       'Allergies / Intolerances',
   dogLabel:             'Dog with me',
   wheelchairLabel:      'Wheelchair-accessible seat requested',
+  packagesLabel:        'Select a package (optional)',
+  noPackageOption:      'No package',
+  perPersonSuffix:      '€ / person',
+  packageCatMenu:       'Menu',
+  packageCatEvent:      'Event',
+  packageCatFeier:      'Celebration',
+  packageCatSonstiges:  'Other',
+  packageDurationSuffix: 'h',
+  packageIncludesMore:  'more',
   bookingConfirmed:     'Booking confirmed',
   successPerson:        'person',
   successPersons:       'people',

@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, NgZone, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -16,6 +16,7 @@ import {
   WidgetVenueTable,
   WidgetVenueWall,
   WidgetVenueDecor,
+  WidgetPackage,
   DayAvailability,
   BookedPeriod,
   Break,
@@ -165,6 +166,87 @@ export class StartComponent implements OnInit {
 
   isAllergenSelected(key: string): boolean {
     return this.selectedAllergene().includes(key);
+  }
+
+  // ─── Packages ────────────────────────────────────────────────────────────
+  // Pro Package eine Menge wählbar; Summe aller Mengen darf die Personenzahl
+  // (people()) nicht überschreiten — ein Package "gilt" pro Person.
+  packageBuchungAktiv = signal<boolean>(false);
+  verfuegbarePackages = signal<WidgetPackage[]>([]);
+  packageQuantities   = signal<Record<string, number>>({});
+
+  readonly totalSelectedPackages = computed(() =>
+    Object.values(this.packageQuantities()).reduce((sum, n) => sum + n, 0)
+  );
+
+  readonly remainingPackageCapacity = computed(() =>
+    Math.max(0, this.people() - this.totalSelectedPackages())
+  );
+
+  /** Package-Objekte mit gewählter Menge > 0, für Zusammenfassung/Payload. */
+  readonly selectedPackages = computed(() =>
+    this.verfuegbarePackages()
+      .map(pkg => ({ pkg, quantity: this.packageQuantities()[pkg.id] ?? 0 }))
+      .filter(x => x.quantity > 0)
+  );
+
+  packageQuantity(id: string): number {
+    return this.packageQuantities()[id] ?? 0;
+  }
+
+  incrementPackage(id: string): void {
+    if (this.remainingPackageCapacity() <= 0) return;
+    this.packageQuantities.update(q => ({ ...q, [id]: (q[id] ?? 0) + 1 }));
+  }
+
+  decrementPackage(id: string): void {
+    this.packageQuantities.update(q => {
+      const current = q[id] ?? 0;
+      if (current <= 0) return q;
+      const next = { ...q, [id]: current - 1 };
+      if (next[id] === 0) delete next[id];
+      return next;
+    });
+  }
+
+  // Wird die Personenzahl reduziert (z.B. Stepper, Dropdown, Dial), Package-
+  // Mengen automatisch auf die neue Kapazität zurückstutzen (von hinten her).
+  private readonly trimPackagesToCapacityEffect = effect(() => {
+    const cap = this.people();
+    this.packageQuantities.update(q => {
+      let total = Object.values(q).reduce((s, n) => s + n, 0);
+      if (total <= cap) return q;
+      const next = { ...q };
+      const ids = Object.keys(next);
+      let i = ids.length - 1;
+      while (total > cap && i >= 0) {
+        const id = ids[i];
+        const reduceBy = Math.min(next[id], total - cap);
+        next[id] -= reduceBy;
+        total -= reduceBy;
+        if (next[id] === 0) delete next[id];
+        i--;
+      }
+      return next;
+    });
+  });
+
+  private readonly packageCategoryIcons: Record<string, string> = {
+    menu: '🍽️', event: '🎉', feier: '🎂', sonstiges: '🏷️',
+  };
+
+  packageCategoryIcon(category: string): string {
+    return this.packageCategoryIcons[category] ?? this.packageCategoryIcons['sonstiges'];
+  }
+
+  packageCategoryLabel(category: string): string {
+    const l = this.t();
+    switch (category) {
+      case 'menu':   return l.packageCatMenu;
+      case 'event':  return l.packageCatEvent;
+      case 'feier':  return l.packageCatFeier;
+      default:       return l.packageCatSonstiges;
+    }
   }
 
   // ─── Vorausbuchung ───────────────────────────────────────────────────────
@@ -456,8 +538,12 @@ export class StartComponent implements OnInit {
     let slots = buildSlots(from, to, this.stepMinutes(), breaks);
 
     if (this.date() === this.today) {
+      // Bewusst ohne mindestvorlaufMinuten: Ein Wartelisten-Eintrag ist keine
+      // garantierte Reservierung, sondern nur die Chance auf einen frei
+      // werdenden Tisch — die Vorlaufzeit-Regel für echte Buchungen greift hier
+      // nicht. Nur tatsächlich vergangene Zeiten werden ausgeschlossen.
       const now = new Date();
-      const cutoff = now.getHours() * 60 + now.getMinutes() + this.mindestvorlaufMinuten();
+      const cutoff = now.getHours() * 60 + now.getMinutes();
       slots = slots.filter(s => {
         const [h, mm] = s.split(':').map(Number);
         return h * 60 + mm >= cutoff;
@@ -1299,6 +1385,7 @@ export class StartComponent implements OnInit {
       this.applyDesign(config.widgetDesign);
       this.applyFunctional(config.widgetFunctional);
       if (Array.isArray(config.allergene)) this.verfuegbareAllergene.set(config.allergene);
+      if (Array.isArray(config.packages)) this.verfuegbarePackages.set(config.packages);
       this.stripePublishableKey.set(config.stripePublishableKey ?? null);
 
       const closed = config.closedWeekdays ?? [];
@@ -1505,6 +1592,7 @@ export class StartComponent implements OnInit {
     if (typeof func.rollstuhlAktiv === 'boolean')      this.rollstuhlAktiv.set(func.rollstuhlAktiv);
     if (typeof func.hundAktiv === 'boolean')           this.hundAktiv.set(func.hundAktiv);
     if (typeof func.allergeneAktiv === 'boolean')      this.allergeneAktiv.set(func.allergeneAktiv);
+    if (typeof func.packageBuchung === 'boolean')      this.packageBuchungAktiv.set(func.packageBuchung);
     if (func.vorausbuchungEinheit)                     this.vorausbuchungEinheit.set(func.vorausbuchungEinheit);
     if (typeof func.vorausbuchungWert === 'number')    this.vorausbuchungWert.set(func.vorausbuchungWert);
     if (typeof func.mindestvorlaufMinuten === 'number')  this.mindestvorlaufMinuten.set(func.mindestvorlaufMinuten);
@@ -1672,6 +1760,9 @@ export class StartComponent implements OnInit {
       notes:             notesText || undefined,
       table_id:          tableId,
       duration_minutes:  this.defaultDurationMinutes(),
+      packages:          this.packageBuchungAktiv() && this.selectedPackages().length > 0
+        ? this.selectedPackages().map(x => ({ package_id: x.pkg.id, quantity: x.quantity }))
+        : undefined,
     }).subscribe({
       next: res => {
         // No-Show-Schutz hat Vorrang vor Sofortzahlung
@@ -1722,6 +1813,7 @@ export class StartComponent implements OnInit {
     this.guestEmail.set('');
     this.guestPhone.set('');
     this.notes.set('');
+    this.packageQuantities.set({});
     this.state.set('idle');
     this.errorMessage.set('');
     this.successInfo.set(null);

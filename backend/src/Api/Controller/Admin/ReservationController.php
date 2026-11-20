@@ -24,6 +24,8 @@ use App\Module\Reservation\Application\Query\GetReservation\GetReservationQuery;
 use App\Module\Reservation\Application\Query\ListReservations\ListReservationsHandler;
 use App\Module\Reservation\Application\Query\ListReservations\ListReservationsQuery;
 use App\Module\Reservation\Domain\Repository\ReservationRepositoryInterface;
+use App\Module\Staff\Infrastructure\Persistence\DoctrineStaffRepository;
+use App\Module\Tenant\Domain\Entity\Tenant;
 use App\Module\User\Domain\Entity\User;
 use App\Module\Venue\Domain\Entity\Venue;
 use Doctrine\ORM\EntityManagerInterface;
@@ -50,7 +52,26 @@ class ReservationController extends AbstractController
         private readonly ReopenReservationHandler $reopenHandler,
         private readonly ReservationRepositoryInterface $reservationRepo,
         private readonly EntityManagerInterface $em,
+        private readonly DoctrineStaffRepository $staffRepo,
     ) {}
+
+    /**
+     * Löst die optional mitgeschickte Mitarbeiter-Nummer (Audit-Trail, "Mitarbeiter-ID-Abfrage")
+     * auf einen Namen auf. Reiner Protokollierungszweck, keine Autorisierung — ist die Nummer
+     * ungültig/unbekannt, wird einfach nichts protokolliert statt die Aktion abzulehnen.
+     *
+     * @return array{0: ?int, 1: ?string}
+     */
+    private function resolvePerformedBy(array $data, Tenant $tenant): array
+    {
+        $number = (int) ($data['performed_by_employee_number'] ?? 0);
+        if ($number <= 0) {
+            return [null, null];
+        }
+
+        $staff = $this->staffRepo->findActiveByTenantAndNumber($tenant, $number);
+        return $staff !== null ? [$number, $staff->getName()] : [null, null];
+    }
 
     /**
      * POST /api/v1/admin/reservations
@@ -98,6 +119,8 @@ class ReservationController extends AbstractController
             return $this->json(['error' => 'Ungültiges Datum für starts_at.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        [$performedByNumber, $performedByName] = $this->resolvePerformedBy($data, $tenant);
+
         try {
             $reservation = ($this->createHandler)(new CreateReservationCommand(
                 venueId:    $venueId,
@@ -109,9 +132,12 @@ class ReservationController extends AbstractController
                 guestNotes:      ($data['notes'] ?? '') !== '' ? (string) $data['notes'] : null,
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
                 tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
+                tableIds:        isset($data['table_ids']) && is_array($data['table_ids']) ? $data['table_ids'] : null,
                 adminOverride:   true,
                 source:          in_array($data['source'] ?? '', ['admin', 'walk_in', 'pms'], true) ? $data['source'] : 'admin',
                 hotelRoomNumber: ($data['room_number'] ?? '') !== '' ? (string) $data['room_number'] : null,
+                performedByEmployeeNumber: $performedByNumber,
+                performedByName:           $performedByName,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -120,6 +146,7 @@ class ReservationController extends AbstractController
         return $this->json(ReservationDto::fromEntity($reservation)->toArray(), Response::HTTP_CREATED);
     }
 
+ 
     #[Route('', name: 'admin_reservation_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] User $user): JsonResponse
     {
@@ -255,17 +282,22 @@ class ReservationController extends AbstractController
      * PATCH /api/v1/admin/reservations/{id}/no-show
      */
     #[Route('/{id}/no-show', name: 'admin_reservation_noshow', methods: ['PATCH'])]
-    public function noShow(string $id, #[CurrentUser] User $user): JsonResponse
+    public function noShow(string $id, Request $request, #[CurrentUser] User $user): JsonResponse
     {
         $tenant = $user->getTenant();
         if ($tenant === null) {
             return $this->json(['error' => 'Kein Tenant zugewiesen.'], Response::HTTP_FORBIDDEN);
         }
 
+        $data = json_decode($request->getContent(), true) ?? [];
+        [$performedByNumber, $performedByName] = $this->resolvePerformedBy($data, $tenant);
+
         try {
             $reservation = ($this->noShowHandler)(new MarkNoShowCommand(
                 reservationId: $id,
                 tenantId:      $tenant->getId()->toRfc4122(),
+                performedByEmployeeNumber: $performedByNumber,
+                performedByName:           $performedByName,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -278,17 +310,22 @@ class ReservationController extends AbstractController
      * PATCH /api/v1/admin/reservations/{id}/cancel
      */
     #[Route('/{id}/cancel', name: 'admin_reservation_cancel', methods: ['PATCH'])]
-    public function cancel(string $id, #[CurrentUser] User $user): JsonResponse
+    public function cancel(string $id, Request $request, #[CurrentUser] User $user): JsonResponse
     {
         $tenant = $user->getTenant();
         if ($tenant === null) {
             return $this->json(['error' => 'Kein Tenant zugewiesen.'], Response::HTTP_FORBIDDEN);
         }
 
+        $data = json_decode($request->getContent(), true) ?? [];
+        [$performedByNumber, $performedByName] = $this->resolvePerformedBy($data, $tenant);
+
         try {
             $reservation = ($this->cancelHandler)(new AdminCancelReservationCommand(
                 reservationId: $id,
                 tenantId:      $tenant->getId()->toRfc4122(),
+                performedByEmployeeNumber: $performedByNumber,
+                performedByName:           $performedByName,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);

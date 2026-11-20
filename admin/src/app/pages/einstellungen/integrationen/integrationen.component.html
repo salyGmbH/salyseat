@@ -18,6 +18,15 @@
       <span class="feature__badge feature__badge--live">Verfügbar</span>
       <mat-icon class="feature__arrow">chevron_right</mat-icon>
     </a>
+    <a class="feature feature--link" routerLink="/einstellungen/whatsapp-anbindung">
+      <div class="feature__icon feature__icon--active"><mat-icon>chat</mat-icon></div>
+      <div class="feature__body">
+        <span class="feature__label">WhatsApp-Reservierung (360dialog)</span>
+        <span class="feature__desc">Gäste reservieren direkt per WhatsApp-Chat</span>
+      </div>
+      <span class="feature__badge feature__badge--live">Verfügbar</span>
+      <mat-icon class="feature__arrow">chevron_right</mat-icon>
+    </a>
     @for (f of features; track f.label) {
       <div class="feature">
         <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>

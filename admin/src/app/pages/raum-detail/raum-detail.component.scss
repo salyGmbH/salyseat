@@ -1507,6 +1507,14 @@
     }
   }
 
+  &__badges {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 4px;
+    margin-top: -3px;
+  }
+
   &__info-badge {
     display: inline-flex;
     align-items: center;
@@ -1515,7 +1523,6 @@
     height: 20px;
     border-radius: 5px;
     background: rgba($color-accent, 0.18);
-    margin-top: -3px;
     flex-shrink: 0;
 
     mat-icon {
@@ -1523,6 +1530,12 @@
       width: 13px;
       height: 13px;
       color: $color-accent;
+    }
+
+    &--package {
+      background: rgba(139, 92, 246, 0.18);
+
+      mat-icon { color: #8b5cf6; }
     }
   }
 
@@ -1763,6 +1776,12 @@
   transform-origin: center center;
   cursor: pointer;
 
+  // Aufgeklappte Gästeliste muss über ALLEN anderen Tischen/Overlays liegen,
+  // sonst wird sie von nachfolgenden (im DOM späteren) Tischen verdeckt.
+  &.has-guests-open {
+    z-index: 999;
+  }
+
   .table-svg {
     width: 100%;
     height: 100%;
@@ -1849,6 +1868,17 @@
     margin-top: 4px;
     pointer-events: none;
     z-index: 10;
+
+    // Aufgeklappter Zustand: deutlich abgehoben vom Tischplan, damit die
+    // komplette Liste gut lesbar ist statt im Hintergrund zu verschwinden.
+    &.is-expanded {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(var(--color-primary-rgb), 0.4);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+    }
   }
 
   &__guest {
@@ -1957,6 +1987,21 @@
     &:hover {
       background: rgba(var(--color-primary-rgb), 0.18);
       border-color: rgba(var(--color-primary-rgb), 0.55);
+    }
+
+    // Geöffnet: kräftiger blauer Hintergrund + dunkler Pfeil statt dem
+    // dezenten Ausgangs-Look, damit der offene Zustand klar erkennbar ist.
+    &.is-open {
+      background: $color-primary;
+      border-color: $color-primary;
+      color: #0b1120;
+
+      mat-icon { color: #0b1120; }
+
+      &:hover {
+        background: $color-primary;
+        filter: brightness(1.08);
+      }
     }
   }
 
@@ -3176,6 +3221,19 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
+
+  &--cleanup {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #f97316;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+
+    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+  }
 }
 
 // Zeitslot-Karte: voll belegt (orange Markierung)
@@ -3202,6 +3260,16 @@
 
   .table-inline__num {
     color: #ef4444;
+  }
+}
+
+// Tisch-Karte: nur noch Clean-up-Zeit, keine aktive Reservierung mehr (orange statt rot)
+.table-inline__card--cleanup {
+  border-color: rgba(#f97316, 0.5) !important;
+  background: rgba(#f97316, 0.06);
+
+  .table-inline__num {
+    color: #f97316;
   }
 }
 
@@ -4131,6 +4199,11 @@
     font-style: italic;
     color: $color-text-muted;
     font-size: 12px;
+  }
+
+  &--package &__icon {
+    background: rgba(139, 92, 246, 0.15);
+    mat-icon { color: #8b5cf6; }
   }
 }
 

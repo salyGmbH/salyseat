@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { Tenant, TenantDetailsDto } from '../../../services/tenants.service';
 import { TenantsService } from '../../../services/tenants.service';
+import { PricingService, PlanPrices } from '../../../services/pricing.service';
 
 @Component({
   selector: 'app-kunde-detail',
@@ -15,7 +16,10 @@ export class KundeDetailComponent implements OnChanges {
   @Input()  tenant!: Tenant;
   @Output() closed  = new EventEmitter<Tenant | null>();
 
-  private readonly svc = inject(TenantsService);
+  private readonly svc     = inject(TenantsService);
+  private readonly pricing = inject(PricingService);
+
+  prices = signal<PlanPrices | null>(null);
 
   saving        = signal(false);
   saved         = signal(false);
@@ -53,6 +57,10 @@ export class KundeDetailComponent implements OnChanges {
   contractDuration   = '';
   cancellationPeriod = '';
   contractStart      = '';
+
+  constructor() {
+    this.pricing.getPrices().subscribe(p => this.prices.set(p));
+  }
 
   ngOnChanges(): void {
     if (!this.tenant) return;
@@ -139,5 +147,13 @@ export class KundeDetailComponent implements OnChanges {
 
   planLabel(): string {
     return { tisch: 'Tisch', menu: 'Menü', maitre: 'Maître' }[this.tenant.plan] ?? this.tenant.plan;
+  }
+
+  planPrice(): string | null {
+    const p = this.prices();
+    if (!p) return null;
+    const cents = p[this.tenant.plan];
+    if (cents == null) return null;
+    return (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' € / Monat';
   }
 }

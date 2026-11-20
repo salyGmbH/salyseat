@@ -1,4 +1,3 @@
-
 <div class="overlay" (click)="close()"></div>
 
 <div class="modal">
@@ -87,7 +86,7 @@
         <div class="field field--full">
           <span>Add-ons</span>
           <div class="addon-selector">
-            @for (a of addons; track a.key) {
+            @for (a of addons(); track a.key) {
               <button class="addon-btn" [class.addon-btn--active]="hasAddon(a.key)"
                       (click)="toggleAddon(a.key)">
                 <mat-icon>{{ a.icon }}</mat-icon>

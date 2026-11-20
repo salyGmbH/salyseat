@@ -11,6 +11,8 @@ interface PlanFeatureRow {
   tisch:  boolean | 'addon' | 'soon';
   menu:   boolean | 'addon' | 'soon';
   maitre: boolean | 'addon' | 'soon';
+  /** Kurze Highlight-Unterpunkte (i18n-Keys), nur für besonders verkaufsstarke Zeilen. */
+  subKeys?: string[];
 }
 
 interface PlanCard {
@@ -37,6 +39,16 @@ export class AboComponent {
   readonly infoOpen    = signal(false);
   readonly infoAddons  = signal(false);
 
+  constructor() {
+    this.planService.loadPrices();
+    this.planService.loadAddons();
+  }
+
+  formatPrice(cents: number | undefined | null): string {
+    if (cents == null) return '';
+    return (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+
   readonly plans: PlanCard[] = [
     { key: 'tisch',  name: 'Tisch',  taglineKey: 'abo.plans.tisch.tagline',  color: '#64748b' },
     { key: 'menu',   name: 'Menü',   taglineKey: 'abo.plans.menu.tagline',   color: '#3b82f6' },
@@ -44,23 +56,112 @@ export class AboComponent {
   ];
 
   readonly features: PlanFeatureRow[] = [
-    { labelKey: 'abo.features.reservations',    tisch: true,    menu: true,    maitre: true    },
+    { labelKey: 'abo.features.reservations',    tisch: true,    menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.reservations_sub_dragdrop',
+        'abo.features.reservations_sub_timeline',
+        'abo.features.reservations_sub_autostatus',
+      ] },
     { labelKey: 'abo.features.dashboard',        tisch: true,    menu: true,    maitre: true    },
-    { labelKey: 'abo.features.widget',           tisch: true,    menu: true,    maitre: true    },
-    { labelKey: 'abo.features.guests',           tisch: true,    menu: true,    maitre: true    },
-    { labelKey: 'abo.features.opening_hours',    tisch: true,    menu: true,    maitre: true    },
-    { labelKey: 'abo.features.notes',            tisch: false,   menu: true,    maitre: true    },
-    { labelKey: 'abo.features.email_design',     tisch: false,   menu: true,    maitre: true    },
-    { labelKey: 'abo.features.shift_plan',       tisch: false,   menu: false,   maitre: true    },
-    { labelKey: 'abo.features.table_selection',  tisch: false,   menu: false,   maitre: true    },
+    { labelKey: 'abo.features.widget',           tisch: true,    menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.widget_sub_layouts',
+        'abo.features.widget_sub_preview',
+        'abo.features.widget_sub_branding',
+        'abo.features.widget_sub_embed',
+      ] },
+    { labelKey: 'abo.features.guests',           tisch: true,    menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.guests_sub_vip',
+        'abo.features.guests_sub_regulars',
+        'abo.features.guests_sub_birthday',
+        'abo.features.guests_sub_noshow',
+      ] },
+    { labelKey: 'abo.features.opening_hours',    tisch: true,    menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.opening_hours_sub_breaks',
+        'abo.features.opening_hours_sub_special',
+        'abo.features.opening_hours_sub_holidays',
+      ] },
+    { labelKey: 'abo.features.staff',            tisch: true,    menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.staff_sub_roles',
+        'abo.features.staff_sub_id',
+        'abo.features.staff_sub_active',
+      ] },
+    { labelKey: 'abo.features.permissions',      tisch: true,    menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.permissions_sub_matrix',
+        'abo.features.permissions_sub_roles',
+        'abo.features.permissions_sub_reset',
+      ] },
+    { labelKey: 'abo.features.statistics',       tisch: false,   menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.statistics_sub_utilization',
+        'abo.features.statistics_sub_guesttypes',
+        'abo.features.statistics_sub_reliability',
+      ] },
+    { labelKey: 'abo.features.notes',            tisch: false,   menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.notes_sub_calendar',
+        'abo.features.notes_sub_colors',
+        'abo.features.notes_sub_float',
+      ] },
+    { labelKey: 'abo.features.email_design',     tisch: false,   menu: false,   maitre: true,
+      subKeys: [
+        'abo.features.email_design_sub_preview',
+        'abo.features.email_design_sub_branding',
+        'abo.features.email_design_sub_types',
+      ] },
+    { labelKey: 'abo.features.shift_plan',       tisch: false,   menu: false,   maitre: true,
+      subKeys: [
+        'abo.features.shift_plan_sub_templates',
+        'abo.features.shift_plan_sub_swap',
+        'abo.features.shift_plan_sub_warning',
+      ] },
+    { labelKey: 'abo.features.table_selection',  tisch: false,   menu: false,   maitre: true,
+      subKeys: [
+        'abo.features.table_selection_sub_live',
+        'abo.features.table_selection_sub_filter',
+        'abo.features.table_selection_sub_auto',
+      ] },
     { labelKey: 'abo.features.phone_assistant',  tisch: 'addon', menu: 'addon', maitre: 'addon' },
     { labelKey: 'abo.features.vouchers',         tisch: 'addon', menu: 'addon', maitre: 'addon' },
-    { labelKey: 'abo.features.menu_card',        tisch: 'addon', menu: true,    maitre: true    },
+    { labelKey: 'abo.features.menu_card',        tisch: 'addon', menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.menu_card_sub_allergens',
+        'abo.features.menu_card_sub_pdf',
+        'abo.features.menu_card_sub_design',
+      ] },
     { labelKey: 'abo.features.pos',              tisch: 'addon', menu: 'addon', maitre: 'addon' },
+    { labelKey: 'abo.features.packages',         tisch: 'addon', menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.packages_sub_perperson',
+        'abo.features.packages_sub_categories',
+        'abo.features.packages_sub_media',
+        'abo.features.packages_sub_widget',
+      ] },
   ];
 
   valueFor(row: PlanFeatureRow, plan: Plan): boolean | 'addon' | 'soon' {
     return row[plan];
+  }
+
+  private readonly openFeatureKeys = signal<Set<string>>(new Set());
+
+  isFeatureOpen(row: PlanFeatureRow, plan: Plan): boolean {
+    return this.openFeatureKeys().has(`${plan}:${row.labelKey}`);
+  }
+
+  toggleFeature(row: PlanFeatureRow, plan: Plan): void {
+    const key = `${plan}:${row.labelKey}`;
+    const next = new Set(this.openFeatureKeys());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.openFeatureKeys.set(next);
   }
 
   isCurrentPlan(plan: Plan): boolean {

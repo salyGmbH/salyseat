@@ -13,6 +13,8 @@ services:
             string $widgetBaseUrl: '%widget_base_url%'
             string $uploadsDir: '%kernel.project_dir%/public/uploads'
             string $publicDir: '%kernel.project_dir%/public'
+            string $defaultBaseUrl: '%env(WHATSAPP_360DIALOG_BASE_URL)%'
+            string $sharedSecret: '%env(WHATSAPP_WEBHOOK_SHARED_SECRET)%'
 
     # Alle Klassen in src/ werden automatisch als Services registriert.
     # Entities sind keine Services und werden deshalb ausgeschlossen.

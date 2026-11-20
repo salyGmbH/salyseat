@@ -74,26 +74,27 @@
     }
 
     @if (hinweisOpen()) {
-      <div class="widget-menu-overlay" (click)="dismissHinweis()" aria-hidden="true"></div>
-      <div class="widget-menu-overlay__box widget-menu-overlay__box--hinweis"
-           role="dialog"
-           aria-modal="true"
-           [attr.aria-label]="hinweistextUeberschrift() || 'Hinweis'"
-           (click)="$event.stopPropagation()">
-        <div class="widget-menu-overlay__header">
-          <span id="hinweis-title">{{ hinweistextUeberschrift() || 'Hinweis' }}</span>
-          <button type="button" class="widget-menu-overlay__close" [attr.aria-label]="t().hintClose" (click)="dismissHinweis()">✕</button>
-        </div>
-        @if (hinweistextInhalt()) {
-          <div class="widget-hinweis-content">{{ hinweistextInhalt() }}</div>
-        }
-        @if (hinweistextFooter()) {
-          <div class="widget-hinweis-footer">{{ hinweistextFooter() }}</div>
-        }
-        <div class="widget-hinweis-actions">
-          <button type="button" class="widget-hinweis-actions__btn" (click)="dismissHinweis()">
-            {{ t().understood }}
-          </button>
+      <div class="widget-menu-overlay" (click)="dismissHinweis()">
+        <div class="widget-menu-overlay__box widget-menu-overlay__box--hinweis"
+             role="dialog"
+             aria-modal="true"
+             [attr.aria-label]="hinweistextUeberschrift() || 'Hinweis'"
+             (click)="$event.stopPropagation()">
+          <div class="widget-menu-overlay__header">
+            <span id="hinweis-title">{{ hinweistextUeberschrift() || 'Hinweis' }}</span>
+            <button type="button" class="widget-menu-overlay__close" [attr.aria-label]="t().hintClose" (click)="dismissHinweis()">✕</button>
+          </div>
+          @if (hinweistextInhalt()) {
+            <div class="widget-hinweis-content">{{ hinweistextInhalt() }}</div>
+          }
+          @if (hinweistextFooter()) {
+            <div class="widget-hinweis-footer">{{ hinweistextFooter() }}</div>
+          }
+          <div class="widget-hinweis-actions">
+            <button type="button" class="widget-hinweis-actions__btn" (click)="dismissHinweis()">
+              {{ t().understood }}
+            </button>
+          </div>
         </div>
       </div>
     }
@@ -477,6 +478,57 @@
                   </div>
                 </div>
               }
+              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
+                <div class="package-picker">
+                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
+                  <div class="package-picker__grid">
+                    @for (pkg of verfuegbarePackages(); track pkg.id) {
+                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
+                        <div class="package-card__media">
+                          @if (pkg.image) {
+                            <img [src]="pkg.image" alt="">
+                          } @else {
+                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
+                          }
+                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
+                        </div>
+                        <div class="package-card__body">
+                          <span class="package-card__title">{{ pkg.name }}</span>
+                          @if (pkg.description) {
+                            <span class="package-card__desc">{{ pkg.description }}</span>
+                          }
+                          <div class="package-card__meta">
+                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
+                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
+                            @if (pkg.durationHours) {
+                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
+                            }
+                          </div>
+                          @if (pkg.includes.length > 0) {
+                            <ul class="package-card__includes">
+                              @for (inc of pkg.includes.slice(0, 3); track $index) {
+                                <li>{{ inc }}</li>
+                              }
+                              @if (pkg.includes.length > 3) {
+                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
+                              }
+                            </ul>
+                          }
+                          <div class="package-card__stepper">
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="packageQuantity(pkg.id) === 0"
+                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
+                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="remainingPackageCapacity() === 0"
+                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
 
               <div class="preview-card__field"
                    [class.preview-card__field--required]="isRequired('notes')"
@@ -564,13 +616,14 @@
                 }
               </div>
 
-              @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+              @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) || (packageBuchungAktiv() && selectedPackages().length > 0)) {
                 <div class="widget-summary__extras">
                   @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
                   @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
                   @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                   @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                   @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                  @if (packageBuchungAktiv()) { @for (sel of selectedPackages(); track sel.pkg.id) { <span class="widget-summary__extra-tag">{{ sel.quantity }}× {{ sel.pkg.name }}</span> } }
                 </div>
               }
             </div>
@@ -844,6 +897,57 @@
                   </div>
                 </div>
               }
+              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
+                <div class="package-picker">
+                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
+                  <div class="package-picker__grid">
+                    @for (pkg of verfuegbarePackages(); track pkg.id) {
+                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
+                        <div class="package-card__media">
+                          @if (pkg.image) {
+                            <img [src]="pkg.image" alt="">
+                          } @else {
+                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
+                          }
+                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
+                        </div>
+                        <div class="package-card__body">
+                          <span class="package-card__title">{{ pkg.name }}</span>
+                          @if (pkg.description) {
+                            <span class="package-card__desc">{{ pkg.description }}</span>
+                          }
+                          <div class="package-card__meta">
+                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
+                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
+                            @if (pkg.durationHours) {
+                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
+                            }
+                          </div>
+                          @if (pkg.includes.length > 0) {
+                            <ul class="package-card__includes">
+                              @for (inc of pkg.includes.slice(0, 3); track $index) {
+                                <li>{{ inc }}</li>
+                              }
+                              @if (pkg.includes.length > 3) {
+                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
+                              }
+                            </ul>
+                          }
+                          <div class="package-card__stepper">
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="packageQuantity(pkg.id) === 0"
+                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
+                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="remainingPackageCapacity() === 0"
+                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
 
               <div class="preview-sidebar__group">
                 <label class="preview-sidebar__label" for="sb-notes">
@@ -934,13 +1038,14 @@
                   }
                 </div>
 
-                @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+                @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) || (packageBuchungAktiv() && selectedPackages().length > 0)) {
                   <div class="widget-summary__extras">
                     @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
                     @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
                     @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                     @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                     @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                    @if (packageBuchungAktiv()) { @for (sel of selectedPackages(); track sel.pkg.id) { <span class="widget-summary__extra-tag">{{ sel.quantity }}× {{ sel.pkg.name }}</span> } }
                   </div>
                 }
               </div>
@@ -1471,6 +1576,57 @@
                   </div>
                 </div>
               }
+              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
+                <div class="package-picker">
+                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
+                  <div class="package-picker__grid">
+                    @for (pkg of verfuegbarePackages(); track pkg.id) {
+                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
+                        <div class="package-card__media">
+                          @if (pkg.image) {
+                            <img [src]="pkg.image" alt="">
+                          } @else {
+                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
+                          }
+                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
+                        </div>
+                        <div class="package-card__body">
+                          <span class="package-card__title">{{ pkg.name }}</span>
+                          @if (pkg.description) {
+                            <span class="package-card__desc">{{ pkg.description }}</span>
+                          }
+                          <div class="package-card__meta">
+                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
+                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
+                            @if (pkg.durationHours) {
+                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
+                            }
+                          </div>
+                          @if (pkg.includes.length > 0) {
+                            <ul class="package-card__includes">
+                              @for (inc of pkg.includes.slice(0, 3); track $index) {
+                                <li>{{ inc }}</li>
+                              }
+                              @if (pkg.includes.length > 3) {
+                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
+                              }
+                            </ul>
+                          }
+                          <div class="package-card__stepper">
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="packageQuantity(pkg.id) === 0"
+                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
+                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="remainingPackageCapacity() === 0"
+                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
 
               <div class="preview-stacked__field"
                    [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('notes') && !notes().trim()">
@@ -1565,13 +1721,14 @@
                 }
               </div>
 
-              @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+              @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) || (packageBuchungAktiv() && selectedPackages().length > 0)) {
                 <div class="widget-summary__extras">
                   @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
                   @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
                   @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                   @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                   @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                  @if (packageBuchungAktiv()) { @for (sel of selectedPackages(); track sel.pkg.id) { <span class="widget-summary__extra-tag">{{ sel.quantity }}× {{ sel.pkg.name }}</span> } }
                 </div>
               }
             </div>
@@ -2122,6 +2279,57 @@
                           </div>
                         </div>
                       }
+                      @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
+                        <div class="package-picker">
+                          <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
+                          <div class="package-picker__grid">
+                            @for (pkg of verfuegbarePackages(); track pkg.id) {
+                              <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
+                                <div class="package-card__media">
+                                  @if (pkg.image) {
+                                    <img [src]="pkg.image" alt="">
+                                  } @else {
+                                    <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
+                                  }
+                                  <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
+                                </div>
+                                <div class="package-card__body">
+                                  <span class="package-card__title">{{ pkg.name }}</span>
+                                  @if (pkg.description) {
+                                    <span class="package-card__desc">{{ pkg.description }}</span>
+                                  }
+                                  <div class="package-card__meta">
+                                    <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
+                                    <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
+                                    @if (pkg.durationHours) {
+                                      <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
+                                    }
+                                  </div>
+                                  @if (pkg.includes.length > 0) {
+                                    <ul class="package-card__includes">
+                                      @for (inc of pkg.includes.slice(0, 3); track $index) {
+                                        <li>{{ inc }}</li>
+                                      }
+                                      @if (pkg.includes.length > 3) {
+                                        <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
+                                      }
+                                    </ul>
+                                  }
+                                  <div class="package-card__stepper">
+                                    <button type="button" class="package-card__stepper-btn"
+                                            [disabled]="packageQuantity(pkg.id) === 0"
+                                            (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
+                                    <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
+                                    <button type="button" class="package-card__stepper-btn"
+                                            [disabled]="remainingPackageCapacity() === 0"
+                                            (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
+                                  </div>
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
                     </div>
                   </div>
 
@@ -2200,13 +2408,14 @@
                       }
                     </div>
 
-                    @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel())) {
+                    @if ((kinderStuehleAktiv() && kinderStuehle() > 0) || (rollstuhlAktiv() && rollstuhl()) || (hundAktiv() && hund()) || (allergeneAktiv() && selectedAllergeneLabels()) || (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) || (packageBuchungAktiv() && selectedPackages().length > 0)) {
                       <div class="widget-summary__extras">
                         @if (kinderStuehleAktiv() && kinderStuehle() > 0) { <span class="widget-summary__extra-tag">{{ kinderStuehle() }}× {{ t().childChairs }}</span> }
                         @if (rollstuhlAktiv() && rollstuhl()) { <span class="widget-summary__extra-tag">{{ t().wheelchair }}</span> }
                         @if (hundAktiv() && hund()) { <span class="widget-summary__extra-tag">{{ t().dogLabel }}</span> }
                         @if (allergeneAktiv() && selectedAllergeneLabels()) { <span class="widget-summary__extra-tag">{{ selectedAllergeneLabels() }}</span> }
                         @if (tischartenAktiv() && tischartenModus() === 'liste' && selectedTischartenLabel()) { <span class="widget-summary__extra-tag">{{ selectedTischartenLabel() }}</span> }
+                        @if (packageBuchungAktiv()) { @for (sel of selectedPackages(); track sel.pkg.id) { <span class="widget-summary__extra-tag">{{ sel.quantity }}× {{ sel.pkg.name }}</span> } }
                       </div>
                     }
                   </div>

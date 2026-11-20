@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\SuperAdmin;
 
+use App\Module\Staff\Domain\Entity\Staff;
+use App\Module\Staff\Infrastructure\Persistence\DoctrineStaffRepository;
 use App\Module\Tenant\Domain\Entity\Tenant;
 use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
 use App\Module\User\Domain\Entity\User;
@@ -22,6 +24,7 @@ class TenantsController extends AbstractController
     public function __construct(
         private readonly DoctrineTenantRepository  $tenants,
         private readonly DoctrineUserRepository    $users,
+        private readonly DoctrineStaffRepository   $staff,
         private readonly EntityManagerInterface    $em,
         private readonly UserPasswordHasherInterface $hasher,
     ) {}
@@ -87,6 +90,17 @@ class TenantsController extends AbstractController
         $user->setPassword($this->hasher->hashPassword($user, $pass));
         $user->setTenant($tenant);
         $this->users->save($user);
+
+        // Bootstrap: erster Mitarbeiter-Datensatz mit Rolle 'admin', damit der neue
+        // Tenant sofort die Mitarbeiter-ID-Abfrage nutzen kann (Rechte/Mitarbeiter
+        // verwalten), ohne dass sich jemand erst manuell als Staff anlegen muss.
+        // Mitarbeiter-Nummer 1, Name als Platzhalter — über die Mitarbeiter-Seite
+        // später vom Kunden selbst umbenennbar (mit Nummer 001 kann er sich sofort
+        // freischalten).
+        $staffNumber = $this->staff->nextEmployeeNumber($tenant);
+        $staff       = new Staff($tenant, $staffNumber, 'Administrator', $email, 'admin');
+        $this->em->persist($staff);
+        $this->em->flush();
 
         return $this->json($this->serialize($tenant), 201);
     }

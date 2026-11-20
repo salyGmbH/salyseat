@@ -32,9 +32,15 @@
       @if (!collapsed()) { <span>{{ 'nav.floor_plan' | translate }}</span> }
     </a>
     <a routerLink="/statistiken" routerLinkActive="active" class="nav-item"
+       [class.nav-item--locked]="!plan.can('statistiken')"
        [title]="collapsed() ? ('nav.statistics' | translate) : ''" (click)="layout.closeMobile()">
       <mat-icon>bar_chart</mat-icon>
-      @if (!collapsed()) { <span>{{ 'nav.statistics' | translate }}</span> }
+      @if (!collapsed()) {
+        <span>{{ 'nav.statistics' | translate }}</span>
+        @if (!plan.can('statistiken')) {
+          <span class="nav-item__plan-badge">{{ 'abo.plans.menu.name' | translate }}</span>
+        }
+      }
     </a>
     <a routerLink="/schichtplanung" routerLinkActive="active" class="nav-item"
        [class.nav-item--locked]="!plan.can('schichtplan')"

@@ -23,6 +23,10 @@ interface SettingsItem {
 export class OverviewComponent {
   readonly plan = inject(PlanService);
 
+  constructor() {
+    this.plan.loadAddons();
+  }
+
   isLocked(item: SettingsItem): boolean {
     if (item.requiresFeature) return !this.plan.can(item.requiresFeature);
     if (item.addonKey)        return !this.plan.hasAddon(item.addonKey);
@@ -31,6 +35,29 @@ export class OverviewComponent {
 
   isAddonItem(item: SettingsItem): boolean {
     return !!item.addonKey;
+  }
+
+  /**
+   * Badge-Text für ein gesperrtes Add-on-Item — je nachdem was für dieses Add-on
+   * gerade zutrifft:
+   *  - "Ab Menü / Add-on"  → ab diesem Plan kostenlos enthalten, JETZT aber auch
+   *                          schon separat als Add-on buchbar (z.B. Speisekarte)
+   *  - "Ab Menü"           → erst ab diesem Plan überhaupt buchbar, davor keine
+   *                          Möglichkeit es als Add-on zu kaufen (z.B. Packages)
+   *  - "Add-on"            → jederzeit als Add-on buchbar, kein Plan-Bezug
+   */
+  addonBadgeLabel(item: SettingsItem): string {
+    if (!item.addonKey) return '';
+    const includedFrom = this.plan.addonIncludedFromLabel(item.addonKey);
+    const canBuyNow     = this.plan.canPurchaseAddon(item.addonKey);
+
+    if (!canBuyNow) {
+      return `Ab ${this.plan.addonMinPlanLabel(item.addonKey)}`;
+    }
+    if (includedFrom) {
+      return `Ab ${includedFrom} / Add-on`;
+    }
+    return '';
   }
 
   minPlanLabel(item: SettingsItem): string {
@@ -53,7 +80,7 @@ export class OverviewComponent {
     { label: 'settings.staff',             route: 'mitarbeiter',            icon: 'group' },              // Mitarbeiterverwaltung
     { label: 'settings.notes',             route: 'notizen',                icon: 'sticky_note_2',  requiresFeature: 'notizen' }, // Notizen
     { label: 'settings.opening_hours',     route: 'oeffnungszeiten',        icon: 'schedule' },           // Öffnungszeiten
-    { label: 'settings.packages',          route: 'packages',               icon: 'inventory_2' },        // Packages
+    { label: 'settings.packages',          route: 'packages',               icon: 'inventory_2',    addonKey: 'packages' }, // Packages
     { label: 'PMS Integration',            route: 'pms-anbindung',          icon: 'hotel',  addonKey: 'pms' }, // PMS Integration
     { label: 'settings.reservations',      route: 'reservierungen',         icon: 'event_available' },    // Reservierungen
     { label: 'settings.reservation_list',  route: 'reservierungsliste',     icon: 'list_alt' },           // Reservierungsliste
@@ -63,5 +90,6 @@ export class OverviewComponent {
     { label: 'settings.widget_settings',   route: 'widget-einstellungen',   icon: 'widgets' },            // Widget Einstellungen
     { label: 'settings.widget_designer',   route: 'widget',                 icon: 'palette' },            // Widget-Designer
     { label: 'settings.payments',          route: 'kreditkarte',            icon: 'credit_card' },        // Zahlungen & Stripe
+    { label: 'WhatsApp-Reservierung',      route: 'whatsapp-anbindung',     icon: 'chat',   addonKey: 'whatsapp' }, // WhatsApp-Reservierung
   ];
 }
