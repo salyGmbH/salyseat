@@ -80,6 +80,10 @@ export class GuestsService {
     return this.http.patch<Guest>(`${this.base}/${id}`, dto);
   }
 
+  delete(id: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/${id}`);
+  }
+
   loadReservations(guestId: string, upcomingOnly = false): Observable<{ reservations: GuestReservation[]; avg_party_size: number }> {
     let qp = new HttpParams();
     if (upcomingOnly) qp = qp.set('upcoming', '1');

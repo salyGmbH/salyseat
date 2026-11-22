@@ -39,6 +39,13 @@ export interface FloorReservation {
   packages?:             FloorReservationPackage[];
   createdAt: number;
   updatedAt: number;
+  /**
+   * Zeitpunkt des tatsächlichen Check-outs (Wechsel auf Status "cleanup").
+   * Getrennt von updatedAt, da updatedAt bei jedem Patch/Reload überschrieben
+   * wird und damit die Cleanup-Pufferzeit sonst bei jedem Backend-Sync
+   * verlängert würde.
+   */
+  checkedOutAt?: number;
 }
 
 export interface FloorReservationPackage {

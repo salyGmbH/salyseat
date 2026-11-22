@@ -376,12 +376,14 @@
 
         <!-- Kontakt -->
         <div class="sidebar-meta">
-          <a class="sidebar-meta__row sidebar-meta__row--link"
-             [href]="'mailto:' + editTarget()?.email"
-             (click)="$event.stopPropagation()">
-            <mat-icon>mail</mat-icon>
-            <span>{{ editTarget()?.email }}</span>
-          </a>
+          @if (hasRealEmail()) {
+            <a class="sidebar-meta__row sidebar-meta__row--link"
+               [href]="'mailto:' + editTarget()?.email"
+               (click)="$event.stopPropagation()">
+              <mat-icon>mail</mat-icon>
+              <span>{{ editTarget()?.email }}</span>
+            </a>
+          }
           @if (editTarget()?.phone) {
             <div class="sidebar-meta__row">
               <mat-icon>phone</mat-icon>
@@ -495,26 +497,34 @@
           @if (activeTab() === 'profil') {
             <div class="tab-content">
 
-              <div class="field-grid field-grid--3">
+              <div class="field-grid">
 
-                <!-- Name (Spalte 1–2) -->
-                <label class="field field--span2">
-                  <span class="field__label">{{ 'kunden.name_label' | translate }} *</span>
-                  <input type="text" [placeholder]="'kunden.search_placeholder' | translate"
-                         [ngModel]="editName()" (ngModelChange)="editName.set($event)" />
+                <!-- Vorname -->
+                <label class="field">
+                  <span class="field__label">{{ 'kunden.firstname_label' | translate }} *</span>
+                  <input type="text" [placeholder]="'kunden.firstname_placeholder' | translate"
+                         [ngModel]="editVorname()" (ngModelChange)="editVorname.set($event)" />
                 </label>
 
-                <!-- Telefon (Spalte 3) -->
+                <!-- Nachname -->
+                <label class="field">
+                  <span class="field__label">{{ 'kunden.lastname_label' | translate }}</span>
+                  <input type="text" [placeholder]="'kunden.lastname_placeholder' | translate"
+                         [ngModel]="editNachname()" (ngModelChange)="editNachname.set($event)" />
+                </label>
+
+                <!-- Telefon (50/50 mit E-Mail) -->
                 <label class="field">
                   <span class="field__label">{{ 'kunden.phone' | translate }}</span>
                   <input type="tel" placeholder="+49 123 456789"
                          [ngModel]="editPhone()" (ngModelChange)="editPhone.set($event)" />
                 </label>
 
-                <!-- E-Mail (readonly, volle Breite) -->
-                <label class="field field--full">
+                <!-- E-Mail (editierbar, 50/50 mit Telefon) -->
+                <label class="field">
                   <span class="field__label">{{ 'kunden.email_label' | translate }}</span>
-                  <input type="text" [value]="editTarget()?.email ?? ''" disabled class="field__disabled" />
+                  <input type="email" placeholder="name@beispiel.de"
+                         [ngModel]="editEmail()" (ngModelChange)="editEmail.set($event)" />
                 </label>
 
                 <!-- Geburtstag -->
@@ -544,21 +554,35 @@
 
               </div>
 
-              <!-- Gesperrt-Toggle -->
-              <div class="field field--toggle" [class.field--toggle-danger]="editBlocked()">
-                <div class="toggle-info">
-                  <mat-icon [class.toggle-icon--blocked]="editBlocked()">block</mat-icon>
-                  <div>
-                    <span class="field__label">{{ 'kunden.block_guest' | translate }}</span>
-                    <span class="field__sub">{{ 'kunden.blocked_label' | translate }}</span>
+              <!-- Löschen (links) + Gesperrt-Toggle (rechts), je 50% -->
+              <div class="danger-zone-row">
+
+                <button type="button" class="field field--danger-action" (click)="askDeleteGuest()" [disabled]="editDeleting()">
+                  <div class="toggle-info">
+                    <mat-icon class="toggle-icon--blocked">delete_forever</mat-icon>
+                    <div>
+                      <span class="field__label">{{ editDeleting() ? ('common.loading' | translate) : ('kunden.delete_guest' | translate) }}</span>
+                      <span class="field__sub">{{ 'kunden.delete_guest_hint' | translate }}</span>
+                    </div>
                   </div>
+                </button>
+
+                <div class="field field--toggle" [class.field--toggle-danger]="editBlocked()">
+                  <div class="toggle-info">
+                    <mat-icon [class.toggle-icon--blocked]="editBlocked()">block</mat-icon>
+                    <div>
+                      <span class="field__label">{{ 'kunden.block_guest' | translate }}</span>
+                      <span class="field__sub">{{ 'kunden.blocked_label' | translate }}</span>
+                    </div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox"
+                           [checked]="editBlocked()"
+                           (change)="editBlocked.set(!editBlocked())" />
+                    <span class="toggle__track"><span class="toggle__thumb"></span></span>
+                  </label>
                 </div>
-                <label class="toggle">
-                  <input type="checkbox"
-                         [checked]="editBlocked()"
-                         (change)="editBlocked.set(!editBlocked())" />
-                  <span class="toggle__track"><span class="toggle__thumb"></span></span>
-                </label>
+
               </div>
 
               @if (editBlocked()) {
@@ -767,9 +791,10 @@
                 (input)="newReminderNote.set($any($event.target).value)">
               </textarea>
               <div class="reminder-form__row">
-                <div class="reminder-form__date-wrap">
+                <div class="reminder-form__date-wrap" (click)="openDatePicker(reminderDateInput)">
                   <mat-icon>event</mat-icon>
                   <input
+                    #reminderDateInput
                     class="reminder-form__date"
                     type="date"
                     [value]="newReminderDate()"
@@ -944,7 +969,7 @@
         <div class="modal-actions">
           <button class="btn-secondary" (click)="closeEdit()">{{ 'common.close' | translate }}</button>
           <button class="btn-primary"
-                  [disabled]="!editName().trim() || editSaving()"
+                  [disabled]="!editVorname().trim() || editSaving()"
                   (click)="saveEdit()">
             <mat-icon>{{ editSaving() ? 'hourglass_empty' : 'save' }}</mat-icon>
             {{ 'common.save' | translate }}
@@ -955,4 +980,25 @@
       </div><!-- /profile-main -->
     </div><!-- /profile-modal -->
   </div><!-- /modal-backdrop -->
+}
+
+<!-- ── Löschen-Bestätigung (schönes Modal statt Browser-confirm) ────────────── -->
+@if (confirmDeleteGuest(); as delGuest) {
+  <div class="confirm-backdrop" (click)="cancelDeleteGuest()"></div>
+  <div class="confirm-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="confirm-modal__icon">
+      <mat-icon>delete_forever</mat-icon>
+    </div>
+    <h3 class="confirm-modal__title">{{ 'kunden.delete_guest_confirm_title' | translate }}</h3>
+    <p class="confirm-modal__text">{{ 'kunden.delete_guest_confirm_text' | translate: { name: delGuest.name } }}</p>
+    <div class="confirm-modal__actions">
+      <button type="button" class="confirm-modal__cancel" (click)="cancelDeleteGuest()">
+        {{ 'common.cancel' | translate }}
+      </button>
+      <button type="button" class="confirm-modal__confirm" [disabled]="editDeleting()" (click)="confirmDeleteGuestAction()">
+        <mat-icon>delete_forever</mat-icon>
+        {{ editDeleting() ? ('common.loading' | translate) : ('kunden.delete_guest_confirm_action' | translate) }}
+      </button>
+    </div>
+  </div>
 }

@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { FloorReservation, FloorReservationStatus } from './floor-reservation.types';
+import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from './floor-reservation.types';
 import { Reservation, ReservationListResponse } from './reservation.types';
 
 @Injectable({ providedIn: 'root' })
@@ -12,6 +12,9 @@ export class FloorReservationsService {
 
   private readonly _reservations    = signal<FloorReservation[]>([]);
   readonly reservations = computed(() => this._reservations());
+
+  /** Zeigt einen Fehler an, wenn ein Status-Sync mit dem Backend fehlschlägt (siehe setStatus()). */
+  readonly syncError = signal<string | null>(null);
 
   /** Wird während eines Timeline-Drags auf true gesetzt — pausiert Status-Heartbeat-Checks. */
   private _dragging = false;
@@ -48,7 +51,13 @@ export class FloorReservationsService {
             // Transiente UI-Zustände (late, expired) beibehalten —
             // sie sind nicht im Backend gespeichert
             const keepLocal = local.status === 'late' || local.status === 'expired';
-            return keepLocal ? { ...remote, status: local.status } : remote;
+            if (keepLocal) return { ...remote, status: local.status };
+            // checkedOutAt ist rein lokal (kein Backend-Feld) — bei jedem
+            // Reload sonst verloren, wodurch die Cleanup-Pufferzeit sich bei
+            // häufigen Reloads immer weiter verlängern würde.
+            return local.checkedOutAt !== undefined
+              ? { ...remote, checkedOutAt: local.checkedOutAt }
+              : remote;
           });
 
           // Optimistisch angelegte Einträge (noch kein backendId) beibehalten
@@ -109,13 +118,39 @@ export class FloorReservationsService {
     performedBy?: { employeeNumber: number; name: string },
   ): void {
     const res = this._reservations().find(r => r.id === id);
+    const prevStatus       = res?.status;
+    const prevCheckedOutAt = res?.checkedOutAt;
+    const now = Date.now();
     this._reservations.update(rs =>
-      rs.map(r => r.id === id ? { ...r, status, updatedAt: Date.now() } : r),
+      rs.map(r => r.id === id
+        ? {
+            ...r,
+            status,
+            updatedAt: now,
+            // Realer Check-out-Zeitpunkt separat festhalten — updatedAt wird
+            // sonst bei jedem Reload/Patch überschrieben (siehe loadForVenue()).
+            checkedOutAt: status === 'cleanup' ? now : r.checkedOutAt,
+          }
+        : r),
     );
 
     if (res?.backendId && this.isSyncableStatus(status)) {
       this.syncStatus(res.backendId, status, performedBy).subscribe({
-        error: () => console.warn(`Status-Sync fehlgeschlagen: ${status} für ${res.backendId}`),
+        error: () => {
+          console.warn(`Status-Sync fehlgeschlagen: ${status} für ${res.backendId}`);
+          // Optimistische Änderung zurücknehmen, da das Backend sie nicht übernommen hat.
+          if (prevStatus !== undefined) {
+            this._reservations.update(rs =>
+              rs.map(r => r.id === id
+                ? { ...r, status: prevStatus, checkedOutAt: prevCheckedOutAt, updatedAt: Date.now() }
+                : r),
+            );
+          }
+          this.syncError.set(
+            `Status "${STATUS_LABELS[status]}" konnte nicht gespeichert werden — wurde zurückgenommen.`,
+          );
+          setTimeout(() => this.syncError.set(null), 5000);
+        },
       });
     }
   }

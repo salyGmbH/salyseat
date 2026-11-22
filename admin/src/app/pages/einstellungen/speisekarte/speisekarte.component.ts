@@ -1,9 +1,11 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 import { jsPDF } from 'jspdf';
+import * as QRCode from 'qrcode';
 import { TenantSettingsService } from '../../../services/tenant-settings.service';
 import { AllergenIconComponent } from '../../../shared/allergen-icon/allergen-icon.component';
 
@@ -48,6 +50,7 @@ export type AllergenDef = {
 })
 export class SpeisekarteComponent implements OnInit, OnDestroy {
   private readonly tenantSettings = inject(TenantSettingsService);
+  private readonly http           = inject(HttpClient);
 
   // ── Design ─────────────────────────────────────────────────────────────────
   bgColor    = '#1a1a2e';
@@ -59,9 +62,15 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
   saved   = false;
   saving  = false;
   bgInfo  = false;
+  qrInfo  = false;
 
   /** Blob-URL der zuletzt generierten PDF — für den Download-Button. */
   pdfBlobUrl: string | null = null;
+
+  // ── QR-Code zur hochgeladenen Speisekarten-PDF ────────────────────────────
+  qrDataUrl   = signal<string | null>(null);
+  qrUploading = false;
+  qrUrlCopied = false;
 
   // Dieselben Font-Optionen wie im Widget-Designer
   readonly fontFamilyOptions = [
@@ -175,6 +184,63 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
     return [...ids].sort((a, b) => a - b).join(',');
   }
 
+  // ── QR-Code: PDF hochladen + Code bauen ──────────────────────────────────
+  // Ziel-URL nutzt bewusst die aktuelle Herkunft der Admin-Seite (statt einer
+  // fest eingetragenen Domain) — die funktioniert in jeder Umgebung, in der
+  // die Admin-App selbst läuft, weil /api/... schon für alles andere hier
+  // relativ zur eigenen Herkunft aufgerufen wird.
+  private menuDownloadUrl(): string | null {
+    const key = this.tenantSettings.publicKey();
+    if (!key) return null;
+    return `${window.location.origin}/api/v1/widget/menu-download?key=${key}`;
+  }
+
+  private async uploadPdfAndBuildQr(blob: Blob): Promise<{ pdfPath: string; pdfName: string } | null> {
+    this.qrUploading = true;
+    try {
+      const form = new FormData();
+      form.append('file', blob, 'speisekarte.pdf');
+
+      const res = await this.http
+        .post<{ url: string; name: string }>('/api/v1/admin/upload/attachment', form)
+        .toPromise();
+
+      if (!res?.url) return null;
+
+      const target = this.menuDownloadUrl();
+      if (target) {
+        const dataUrl = await QRCode.toDataURL(target, {
+          width: 320, margin: 1, color: { dark: '#111111', light: '#ffffff' },
+        });
+        this.qrDataUrl.set(dataUrl);
+      }
+
+      return { pdfPath: res.url, pdfName: res.name };
+    } catch {
+      return null;
+    } finally {
+      this.qrUploading = false;
+    }
+  }
+
+  copyQrUrl(): void {
+    const url = this.menuDownloadUrl();
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      this.qrUrlCopied = true;
+      setTimeout(() => (this.qrUrlCopied = false), 2000);
+    });
+  }
+
+  downloadQr(): void {
+    const dataUrl = this.qrDataUrl();
+    if (!dataUrl) return;
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'speisekarte-qr-code.png';
+    a.click();
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   ngOnInit() {
@@ -200,7 +266,7 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
 
       // Gespeicherte Speisekarte-Konfiguration laden
       if (settings.speisekarteKonfiguration) {
-        const { design, sections } = settings.speisekarteKonfiguration;
+        const { design, sections, pdfPath } = settings.speisekarteKonfiguration;
         if (design) {
           if (design.bgColor)      this.bgColor      = design.bgColor;
           if (design.bgImage)      this.bgImage      = design.bgImage;
@@ -210,6 +276,16 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
         }
         if (Array.isArray(sections) && sections.length > 0) {
           this.sections = sections;
+        }
+        // Bereits hochgeladene PDF vorhanden → QR-Code direkt clientseitig neu
+        // zeichnen, ohne erneut hochzuladen.
+        if (pdfPath) {
+          const target = this.menuDownloadUrl();
+          if (target) {
+            QRCode.toDataURL(target, { width: 320, margin: 1, color: { dark: '#111111', light: '#ffffff' } })
+              .then(dataUrl => this.qrDataUrl.set(dataUrl))
+              .catch(() => {});
+          }
         }
       }
     });
@@ -325,7 +401,22 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
   async save() {
     this.saving = true;
 
-    // In DB speichern
+    // PDF generieren + hochladen, damit der QR-Code immer auf den aktuellen
+    // Stand zeigt, ohne dass der Code neu gedruckt werden muss.
+    let pdfPath: string | null = null;
+    let pdfName: string | null = null;
+    try {
+      const blob = await this.buildPdf();
+      if (this.pdfBlobUrl) URL.revokeObjectURL(this.pdfBlobUrl);
+      this.pdfBlobUrl = URL.createObjectURL(blob);
+
+      const uploaded = await this.uploadPdfAndBuildQr(blob);
+      if (uploaded) { pdfPath = uploaded.pdfPath; pdfName = uploaded.pdfName; }
+    } catch (err) {
+      console.error('PDF-Generierung fehlgeschlagen:', err);
+    }
+
+    // In DB speichern — inkl. Pfad der (ggf. neu hochgeladenen) PDF für den QR-Code
     const konfiguration = {
       design: {
         bgColor:       this.bgColor,
@@ -335,6 +426,8 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
         fontFamilyKey: this.fontFamilyKey,
       },
       sections: this.sections,
+      pdfPath: pdfPath ?? this.tenantSettings.snapshot?.speisekarteKonfiguration?.pdfPath ?? null,
+      pdfName: pdfName ?? this.tenantSettings.snapshot?.speisekarteKonfiguration?.pdfName ?? null,
     };
 
     await new Promise<void>(resolve => {
@@ -342,15 +435,6 @@ export class SpeisekarteComponent implements OnInit, OnDestroy {
         .save({ ...this.tenantSettings.snapshot, speisekarteKonfiguration: konfiguration })
         .subscribe({ next: () => resolve(), error: () => resolve() });
     });
-
-    // PDF generieren
-    try {
-      const blob = await this.buildPdf();
-      if (this.pdfBlobUrl) URL.revokeObjectURL(this.pdfBlobUrl);
-      this.pdfBlobUrl = URL.createObjectURL(blob);
-    } catch (err) {
-      console.error('PDF-Generierung fehlgeschlagen:', err);
-    }
 
     this.saving = false;
     this.saved  = true;

@@ -30,6 +30,11 @@ export class ReservierungslisteComponent implements OnInit {
   readonly loading      = this.svc.loading;
   readonly viewMode     = this.statusColors.viewMode;
 
+  /** true wenn eine echte E-Mail hinterlegt ist (kein …@noemail.local-Backend-Platzhalter) */
+  isRealEmail(email: string | null | undefined): boolean {
+    return !!email && !email.endsWith('@noemail.local');
+  }
+
   /** Räume die in den geladenen Reservierungen vorkommen (dynamisch) */
   readonly availableRooms = computed(() => {
     const seen = new Map<string, string>();
@@ -161,7 +166,7 @@ export class ReservierungslisteComponent implements OnInit {
         `${this.formatDate(r.starts_at)}\n${this.formatTime(r.starts_at)} – ${this.formatTime(r.ends_at)}`,
         r.guest_name,
         String(r.party_size),
-        r.guest_email,
+        this.isRealEmail(r.guest_email) ? r.guest_email : '—',
         r.guest_phone ?? '—',
         STATUS_LABELS[r.status as ReservationStatus] ?? r.status,
         r.guest_notes ?? '',

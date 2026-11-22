@@ -7,6 +7,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
 import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
 import { PlacedTable, PlacedWall, PlacedDecor, SavedRoom, TableType, DecorType } from '../../services/room.types';
+import { localDateIso } from '../../shared/local-date.util';
 
 interface MergeDialogData {
   movingId: number;
@@ -390,7 +391,7 @@ export class RestaurantPlanComponent implements OnInit {
     const id = this.editingRoomId();
     if (!id) return;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateIso();
     this.blockDateFrom = today;
     this.blockDateTo   = today;
     this.blockFullDay  = true;
@@ -437,7 +438,7 @@ export class RestaurantPlanComponent implements OnInit {
       next: (block) => {
         this.blockSaving.set(false);
         this.venueBlocks.update(bs => [...bs, block]);
-        this.blockDateFrom = new Date().toISOString().slice(0, 10);
+        this.blockDateFrom = localDateIso();
         this.blockDateTo   = this.blockDateFrom;
         this.blockReason   = '';
       },
@@ -764,13 +765,40 @@ export class RestaurantPlanComponent implements OnInit {
 
   // ── Tisch: Entfernen & Sitzplätze ─────────────────────────────────────────
 
+  /**
+   * Ermittelt alle transitiv über `mergedWith` verbundenen Tische (inkl. sich
+   * selbst) per Graph-Traversierung. `mergedWith` ist normalerweise streng
+   * paarweise (checkMerge() erlaubt keine 3er-Ketten), aber bei
+   * inkonsistenten/importierten Layouts kann diese Invariante verletzt sein —
+   * eine reine 1-Schritt-Suche würde dann verwaiste Referenzen übersehen.
+   */
+  private getMergedGroup(tableId: number, tables: PlacedTable[]): number[] {
+    const ids = new Set<number>([tableId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const t of tables) {
+        if (ids.has(t.id) && t.mergedWith !== undefined && !ids.has(t.mergedWith)) {
+          ids.add(t.mergedWith);
+          changed = true;
+        }
+        if (t.mergedWith !== undefined && ids.has(t.mergedWith) && !ids.has(t.id)) {
+          ids.add(t.id);
+          changed = true;
+        }
+      }
+    }
+    return Array.from(ids);
+  }
+
   removeTable(event: Event, id: number) {
     event.stopPropagation();
-    // Ggf. gemergten Partner lösen
-    const table = this.placedTables().find(t => t.id === id);
-    if (table?.mergedWith) {
+    // Ggf. gemergte Partner lösen (ganze transitive Gruppe, nicht nur einen)
+    const tables = this.placedTables();
+    const group = this.getMergedGroup(id, tables).filter(gid => gid !== id);
+    if (group.length) {
       this.placedTables.update(ts => ts.map(t =>
-        t.id === table.mergedWith ? { ...t, mergedWith: undefined, originalSeats: undefined } : t
+        group.includes(t.id) ? { ...t, mergedWith: undefined, originalSeats: undefined } : t
       ));
     }
     this.placedTables.update(ts => ts.filter(t => t.id !== id));
@@ -911,8 +939,12 @@ export class RestaurantPlanComponent implements OnInit {
     const table  = tables.find(t => t.id === id);
     if (!table) return;
 
+    // Ganze transitiv verbundene Gruppe trennen — sonst bleiben bei mehr als
+    // 2 gemergten Tischen verwaiste mergedWith-Referenzen zurück.
+    const groupIds = this.getMergedGroup(id, tables);
+
     this.placedTables.update(ts => ts.map(t => {
-      if (t.id === id || t.id === table.mergedWith)
+      if (groupIds.includes(t.id))
         return { ...t, mergedWith: undefined, seats: t.originalSeats ?? t.seats, originalSeats: undefined };
       return t;
     }));

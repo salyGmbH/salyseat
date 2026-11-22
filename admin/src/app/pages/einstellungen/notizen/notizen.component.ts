@@ -9,6 +9,7 @@ import {
   NotizenService, Notiz, CreateNotizDto, NotizCreatedBy
 } from '../../../services/notizen.service';
 import { NotizenStateService } from '../../../services/notizen-state.service';
+import { localDateIso } from '../../../shared/local-date.util';
 
 type ColorKey = Notiz['color'];
 
@@ -54,7 +55,7 @@ export class NotizenComponent implements OnInit {
   // ── Haupt-Kalender (linke Spalte) ─────────────────────────────────────────
   calYear   = signal(new Date().getFullYear());
   calMonth  = signal(new Date().getMonth());   // 0-based
-  selected  = signal<string>(new Date().toISOString().slice(0, 10));  // "YYYY-MM-DD"
+  selected  = signal<string>(localDateIso());  // "YYYY-MM-DD"
 
   // ── Date-Picker (Formular-Dropdown) ───────────────────────────────────────
   dpOpen    = signal(false);
@@ -124,7 +125,7 @@ export class NotizenComponent implements OnInit {
       .sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'))
   );
 
-  readonly todayStr = new Date().toISOString().slice(0, 10);
+  readonly todayStr = localDateIso();
 
   notizenHeute = computed<Notiz[]>(() =>
     this.notizen()
@@ -180,7 +181,7 @@ export class NotizenComponent implements OnInit {
   }
 
   isSelected(dateStr: string): boolean { return this.selected() === dateStr; }
-  isToday(dateStr: string): boolean { return dateStr === new Date().toISOString().slice(0, 10); }
+  isToday(dateStr: string): boolean { return dateStr === localDateIso(); }
 
   // ── Date-Picker Navigation ────────────────────────────────────────────────
   openDatePicker(e: MouseEvent): void {
@@ -212,7 +213,7 @@ export class NotizenComponent implements OnInit {
   }
 
   dpIsSelected(dateStr: string): boolean { return this.form.date === dateStr; }
-  dpIsToday(dateStr: string): boolean { return dateStr === new Date().toISOString().slice(0, 10); }
+  dpIsToday(dateStr: string): boolean { return dateStr === localDateIso(); }
 
   get formDateDisplay(): string {
     if (!this.form.date) return 'Datum wählen…';
@@ -330,7 +331,7 @@ export class NotizenComponent implements OnInit {
 
   private emptyForm(date?: string): FormState {
     return {
-      date:   date ?? new Date().toISOString().slice(0, 10),
+      date:   date ?? localDateIso(),
       time:   '',
       allDay: true,
       title:  '',

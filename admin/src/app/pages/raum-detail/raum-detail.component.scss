@@ -206,6 +206,13 @@
       color: $color-text-on-dark;
     }
   }
+
+  &--error {
+    background: rgba(220, 53, 69, 0.10);
+    border-bottom: 1px solid rgba(220, 53, 69, 0.25);
+
+    mat-icon { color: #dc3545; }
+  }
 }
 
 // Reopen .raum-detail block so remaining rules stay nested correctly
@@ -738,6 +745,7 @@
 // Freier-Slot-Eintrag
 .tl-free-slot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 7px;
   padding: 7px 9px;
@@ -747,6 +755,21 @@
   transition: background .12s;
 
   &:hover { background: rgba(var(--color-text-rgb), 0.05); }
+
+  // Mindestens ein freier Tisch hat weniger Zeit als die Standarddauer bis
+  // zur nächsten Reservierung — dezenter oranger Hinweis statt reinem "frei"
+  &--limited {
+    border-color: rgba(249, 115, 22, 0.35);
+    background: rgba(249, 115, 22, 0.05);
+  }
+
+  &__hint {
+    flex-basis: 100%;
+    padding-left: 14px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #f97316;
+  }
 
   &__dot {
     width: 7px; height: 7px;
@@ -1434,6 +1457,13 @@
   &--cancelled,
   &--no-show { opacity: 0.65; }
 
+  // opacity < 1 erzeugt einen eigenen Stacking-Context — das darin verschachtelte
+  // .kebab-menu (position:absolute) kann dann NIE über spätere Geschwister wie den
+  // sticky .time-group__header hinausragen, egal wie hoch sein z-index ist.
+  // Bei geöffnetem Menü daher die Opacity kurzzeitig aufheben, damit das Popup
+  // korrekt im äußeren Stacking-Context landet.
+  &--menu-open { opacity: 1; }
+
   // Farbiger Uhrzeit-Block links — wie bei OpenTable
   &__time {
     display: flex;
@@ -1512,7 +1542,7 @@
     align-items: center;
     justify-content: flex-start;
     gap: 4px;
-    margin-top: -3px;
+    margin-top: 3px;
   }
 
   &__info-badge {
@@ -1540,15 +1570,36 @@
 
     // Frisch eingegangene Online-Buchung (heute für heute) — soll auf den
     // ersten Blick auffallen, daher eigener Akzentton + dezenter Puls.
-    // Niedriger als die anderen Badges, damit er nicht in die Zeile darüber
-    // ragt; Icon dafür horizontal zentriert statt linksbündig.
+    // Gleiche Höhe/Radius wie res-row__status-badge, damit es sich optisch
+    // einreiht statt kleiner als die übrigen Badges zu wirken.
     &--fresh {
-      height: 14px;
+      width: auto;
+      height: 18px;
+      padding: 0 4px;
+      border-radius: 6px;
       justify-content: center;
       background: rgba(245, 158, 11, 0.2);
       animation: freshBookingPulse 2.2s ease-in-out infinite;
 
-      mat-icon { color: #f59e0b; }
+      mat-icon { font-size: 13px; width: 13px; height: 13px; color: #f59e0b; }
+    }
+
+    // Getränke-Erinnerung fällig — wie --fresh, aber als Button (klickbar zum
+    // Bestätigen) und in Blau, um es vom "frisch gebucht"-Badge zu unterscheiden.
+    &--drinks {
+      width: auto;
+      height: 18px;
+      padding: 0 4px;
+      border-radius: 6px;
+      justify-content: center;
+      background: rgba(56, 189, 248, 0.2);
+      animation: drinksBadgePulse 1.6s ease-in-out infinite;
+      border: none;
+      cursor: pointer;
+
+      mat-icon { font-size: 13px; width: 13px; height: 13px; color: #0ea5e9; }
+
+      &:hover { background: rgba(56, 189, 248, 0.32); }
     }
   }
 
@@ -1727,6 +1778,15 @@
   gap: 2px;
   animation: kebabIn 0.12s ease-out;
 
+  // Klappt nach oben statt nach unten auf, wenn unterhalb des Buttons
+  // nicht genug Platz ist (siehe toggleMenu() in raum-detail.component.ts) —
+  // verhindert, dass das Menü vom Scroll-Container abgeschnitten wird.
+  &--up {
+    top: auto;
+    bottom: calc(100% + 4px);
+    animation: kebabInUp 0.12s ease-out;
+  }
+
   &__item {
     display: flex;
     align-items: center;
@@ -1761,6 +1821,11 @@
 
 @keyframes kebabIn {
   from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes kebabInUp {
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -1884,12 +1949,14 @@
 
     // Aufgeklappter Zustand: deutlich abgehoben vom Tischplan, damit die
     // komplette Liste gut lesbar ist statt im Hintergrund zu verschwinden.
+    // Theme-abhängiger Hintergrund (statt fest hinterlegtem Dunkelblau) —
+    // sonst wirkt das Panel im hellen Modus zu dunkel.
     &.is-expanded {
-      background: rgba(15, 23, 42, 0.92);
+      background: rgba(var(--color-surface-rgb), 0.98);
       border: 1px solid rgba(var(--color-primary-rgb), 0.4);
       border-radius: 12px;
       padding: 6px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
       pointer-events: auto;
     }
   }
@@ -1909,9 +1976,11 @@
     transition: border-color 0.15s, background 0.15s;
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 
+    // Blend statt reinem Transparenz-Overlay: sonst schimmert im aufgeklappten
+    // Panel (s.o.) dessen Hintergrund durch und macht den Text unlesbar.
     &:hover {
       border-color: rgba(var(--color-primary-rgb), 0.5);
-      background: rgba(var(--color-primary-rgb), 0.08);
+      background: color-mix(in srgb, $color-surface 80%, $color-primary 20%);
     }
 
     mat-icon { font-size: 12px; width: 12px; height: 12px; color: $color-text-muted; }
@@ -2676,7 +2745,9 @@
       .table-inline__num { color: rgba(220, 162, 0, 0.85); }
     }
   }
-  &--gc   { width: 780px; max-height: 92vh; overflow-y: auto; padding: 0; gap: 0; }
+  // overflow: hidden statt auto — nur .gc-body soll scrollen, damit Header,
+  // Status-Aktionen (oben) und Speichern/Schließen (unten) immer sichtbar bleiben.
+  &--gc   { width: 780px; max-height: 92vh; overflow: hidden; padding: 0; gap: 0; }
   &--table-picker { width: 420px; }
 
   &__title-row {
@@ -3247,12 +3318,22 @@
 
     mat-icon { font-size: 12px; width: 12px; height: 12px; }
   }
+
+  // Tisch/Slot ist frei, aber nur für eine kürzere Dauer als gewünscht verfügbar
+  // (informativ, kein Block — Orange statt Rot signalisiert "weicher" Hinweis)
+  &--limited {
+    color: #f97316;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+  }
 }
 
 // Zeitslot-Karte: voll belegt (orange Markierung)
 .table-inline__card--slot-full {
   border-color: rgba(249, 115, 22, 0.5) !important;
-  background: rgba(249, 115, 22, 0.06);
+  background: rgba(249, 115, 22, 0.1);
 
   .table-inline__num {
     color: #f97316;
@@ -3262,14 +3343,14 @@
 // Tisch-Karte: besetzt (rote Border + Hintergrund)
 .table-inline__card--full {
   border-color: rgba(#e53935, 0.6) !important;
-  background: rgba(#e53935, 0.07);
+  background: rgba(#e53935, 0.11);
   box-shadow: 0 0 0 1px rgba(#e53935, 0.2);
 }
 
 // Zeitslot: gewählter Tisch ist zu dieser Zeit belegt
 .table-inline__card--table-occupied {
   border-color: rgba(#e53935, 0.45) !important;
-  background: rgba(#e53935, 0.06);
+  background: rgba(#e53935, 0.1);
 
   .table-inline__num {
     color: #ef4444;
@@ -3279,7 +3360,18 @@
 // Tisch-Karte: nur noch Clean-up-Zeit, keine aktive Reservierung mehr (orange statt rot)
 .table-inline__card--cleanup {
   border-color: rgba(#f97316, 0.5) !important;
-  background: rgba(#f97316, 0.06);
+  background: rgba(#f97316, 0.1);
+
+  .table-inline__num {
+    color: #f97316;
+  }
+}
+
+// Tisch-Karte/Zeitslot-Karte: frei, aber nur für kürzere Dauer als gewünscht
+// verfügbar (bleibt wählbar — Orange statt Rot signalisiert "weicher" Hinweis)
+.table-inline__card--limited {
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  background: rgba(249, 115, 22, 0.09);
 
   .table-inline__num {
     color: #f97316;
@@ -3429,6 +3521,38 @@
   }
 
   strong { font-weight: 700; }
+
+  // Informativer Hinweis statt Block-Warnung: Tisch ist frei, aber nur für
+  // kürzere Dauer als gewünscht verfügbar (Orange statt Rot)
+  &--limited {
+    background: rgba(249, 115, 22, 0.08);
+    border-color: rgba(249, 115, 22, 0.35);
+    color: #f97316;
+  }
+}
+
+// ── Verfügbarkeits-Hinweis im Konflikt-Dialog ────────────────────────────
+.dialog__conflict-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin-top: -6px;
+  margin-bottom: 16px;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-radius: 8px;
+  color: #f97316;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
 }
 
 // ── Picker-Row (Personen & Uhrzeit als horizontale Karten-Reihe) ────────
@@ -3630,38 +3754,9 @@
   }
 }
 
-.drinks-alert {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  margin-right: 2px;
-  position: relative;
-
-  &__svg {
-    width: 22px;
-    height: 22px;
-    filter: drop-shadow(0 0 5px rgba(56,189,248,.8))
-            drop-shadow(0 0 12px rgba(56,189,248,.5));
-    animation: drinksPulse 1.6s ease-in-out infinite;
-    transition: transform .15s;
-  }
-
-  &:hover &__svg {
-    transform: scale(1.18);
-    animation: none;
-    filter: drop-shadow(0 0 8px rgba(56,189,248,1))
-            drop-shadow(0 0 16px rgba(56,189,248,.7));
-  }
-}
-
-@keyframes drinksPulse {
-  0%, 100% { filter: drop-shadow(0 0 5px rgba(56,189,248,.8)) drop-shadow(0 0 12px rgba(56,189,248,.5)); }
-  50%       { filter: drop-shadow(0 0 9px rgba(56,189,248,1)) drop-shadow(0 0 20px rgba(56,189,248,.75)); }
+@keyframes drinksBadgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45); }
+  50%       { box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18); }
 }
 
 @keyframes freshBookingPulse {
@@ -4073,6 +4168,8 @@
   grid-template-columns: 1fr 1fr;
   gap: 0;
   min-height: 0;
+  flex: 1;
+  overflow-y: auto;
 }
 
 // ── Linke Spalte: Reservierungsdetails ────────────────────────────────────
@@ -4922,6 +5019,9 @@
   gap: 10px;
   align-items: stretch; // beide Spalten auf Kalender-Höhe
 }
+
+// (.rf-date-readonly entfernt — Kalender wird jetzt auch beim Bearbeiten
+// angezeigt, damit das Datum einer Reservierung änderbar ist.)
 
 // Rechte Spalte im Datum-Bereich: Zeit, Personen, Notiz untereinander
 .rf-time-persons {

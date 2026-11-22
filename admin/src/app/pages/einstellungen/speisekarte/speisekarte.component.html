@@ -414,4 +414,45 @@
 
   </div>
 
+  <!-- ── QR-Code ──────────────────────────────────────────────────── -->
+  <div class="settings-block">
+    <div class="section-header">
+      <h2 class="section-title">
+        <mat-icon class="section-icon">qr_code_2</mat-icon>
+        {{ 'speisekarte.qr_title' | translate }}
+      </h2>
+      <button class="info-button" [class.active]="qrInfo" (click)="qrInfo = !qrInfo">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="qrInfo">
+      {{ 'speisekarte.qr_hint' | translate }}
+    </div>
+
+    @if (qrDataUrl()) {
+      <div class="qr-panel">
+        <div class="qr-panel__image">
+          <img [src]="qrDataUrl()" alt="QR-Code zur Speisekarten-PDF">
+        </div>
+        <div class="qr-panel__info">
+          <p class="qr-panel__hint">{{ 'speisekarte.qr_scan_hint' | translate }}</p>
+          <div class="qr-panel__actions">
+            <button class="download-btn" (click)="copyQrUrl()">
+              <mat-icon>{{ qrUrlCopied ? 'check' : 'content_copy' }}</mat-icon>
+              {{ (qrUrlCopied ? 'speisekarte.qr_copied' : 'speisekarte.qr_copy_link') | translate }}
+            </button>
+            <button class="download-btn" (click)="downloadQr()">
+              <mat-icon>download</mat-icon>
+              {{ 'speisekarte.qr_download' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+    } @else if (qrUploading) {
+      <p class="qr-empty">{{ 'speisekarte.qr_uploading' | translate }}</p>
+    } @else {
+      <p class="qr-empty">{{ 'speisekarte.qr_empty' | translate }}</p>
+    }
+  </div>
+
 </div>

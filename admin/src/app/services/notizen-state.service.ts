@@ -1,11 +1,12 @@
 import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
 import { NotizenService, Notiz } from './notizen.service';
+import { localDateIso } from '../shared/local-date.util';
 
 @Injectable({ providedIn: 'root' })
 export class NotizenStateService implements OnDestroy {
   private readonly svc = inject(NotizenService);
 
-  private readonly today = new Date().toISOString().slice(0, 10);
+  private readonly today = localDateIso();
 
   // ── Aktuelle Uhrzeit (alle 30 Sek aktualisiert) ───────────────────────────
   private nowTime = signal(this.currentHHMM());

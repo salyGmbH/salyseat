@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
+import { localDateIso } from '../shared/local-date.util';
 
 export interface Reminder {
   id: string;
@@ -23,7 +24,7 @@ export class ReminderService {
 
   /** Fällige Erinnerungen: dueDate <= heute, nicht dismissed */
   readonly due = computed(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateIso();
     return this._all().filter(r => !r.dismissed && r.dueDate <= today);
   });
 

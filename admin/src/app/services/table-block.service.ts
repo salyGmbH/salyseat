@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, map } from 'rxjs';
+import { localDateIso } from '../shared/local-date.util';
 
 export interface TableBlock {
   id: string;
@@ -65,7 +66,7 @@ export class TableBlockService {
 
   isBlockedNow(roomId: string, tableId: number): boolean {
     const now  = new Date();
-    const date = now.toISOString().slice(0, 10);
+    const date = localDateIso(now);
     const hhmm = now.toTimeString().slice(0, 5);
 
     return this._blocks().some(b => {

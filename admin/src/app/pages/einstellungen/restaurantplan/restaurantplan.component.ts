@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { RoomsService } from '../../../services/rooms.service';
 import { TableBlockService, TableBlock } from '../../../services/table-block.service';
 import { PlacedTable } from '../../../services/room.types';
+import { localDateIso } from '../../../shared/local-date.util';
 
 @Component({
   selector: 'app-restaurantplan',
@@ -57,7 +58,7 @@ export class RestaurantplanComponent implements OnInit {
   }
 
   openAddBlock(roomId: string, table: PlacedTable) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateIso();
     this.formDateFrom = today;
     this.formDateTo   = today;
     this.formFullDay  = true;
@@ -110,7 +111,7 @@ export class RestaurantplanComponent implements OnInit {
 
   isActiveNow(b: TableBlock): boolean {
     const now  = new Date();
-    const date = now.toISOString().slice(0, 10);
+    const date = localDateIso(now);
     const hhmm = now.toTimeString().slice(0, 5);
     if (date < b.dateFrom || date > b.dateTo) return false;
     if (b.fullDay) return true;

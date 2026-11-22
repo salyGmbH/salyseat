@@ -203,6 +203,10 @@ class Guest
     {
         $this->phone = $phone;
     }
+    public function setEmail(string $email): void
+    {
+        $this->email = strtolower(trim($email));
+    }
     public function setInternalNotes(?string $notes): void
     {
         $this->internalNotes = $notes;

@@ -74,13 +74,22 @@ export class ReservierungenComponent {
       this.cleanupMinutes.set(s.cleanupMinutes);
     }, { allowSignalWrites: true });
 
+    // Gleicher Grund/gleicher Fix wie oben: getraenkeOn/getraenkeMinutes werden
+    // unten mit dem aktuellen Stand von GetraenkeReminderService initialisiert,
+    // der bei frischem Reload dieser Seite noch der Default sein kann, weil der
+    // eigene Backend-Load des Service noch nicht angekommen ist.
+    effect(() => {
+      this.getraenkeOn.set(this.getraenke.enabled());
+      this.getraenkeMinutes.set(this.getraenke.minutes());
+    }, { allowSignalWrites: true });
+
     this.tenantSettings.load().subscribe(s => {
       this.noShowThreshold.set(s.noShowAutoBlockThreshold ?? null);
       this.autoCheckout.set(s.autoCheckoutEnabled ?? false);
     });
   }
 
-  readonly getraenkePresets = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+  readonly getraenkePresets = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
 
   toggleGetraenke(): void { this.getraenkeOn.update(v => !v); }
   setGetraenke(min: number): void { this.getraenkeMinutes.set(min); }

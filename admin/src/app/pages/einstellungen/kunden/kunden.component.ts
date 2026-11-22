@@ -7,6 +7,7 @@ import { ActivatedRoute } from '@angular/router';
 import { GuestsService, Guest, GuestReservation, UpdateGuestDto } from '../../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
 import { ReminderService, Reminder } from '../../../services/reminder.service';
+import { localDateIso, localDateTimeSpace } from '../../../shared/local-date.util';
 
 type ModalTab  = 'profil' | 'hinweise' | 'reservierungen' | 'erinnerungen' | 'email';
 
@@ -117,7 +118,7 @@ export class KundenComponent implements OnInit {
   vipThreshold = signal(5);
 
   // ── Geburtstags- & Hochzeitstags-Alert ────────────────────────────────────
-  readonly todayIso = new Date().toISOString().slice(0, 10);
+  readonly todayIso = localDateIso();
 
   private readonly todayMmDd = (() => {
     const d = new Date();
@@ -139,6 +140,9 @@ export class KundenComponent implements OnInit {
 
   // Profil-Felder
   editName    = signal('');
+  editVorname = signal('');
+  editNachname = signal('');
+  editEmail   = signal('');
   editPhone   = signal('');
   editNotes   = signal('');
   editAllergies = signal('');
@@ -160,6 +164,10 @@ export class KundenComponent implements OnInit {
 
   editSaving  = signal(false);
   editError   = signal<string | null>(null);
+  editDeleting = signal(false);
+
+  // ── Löschen-Bestätigung (schönes Modal statt Browser-confirm) ────────────
+  confirmDeleteGuest = signal<Guest | null>(null);
 
   // ── Erinnerungen ──────────────────────────────────────────────────────────
   // Reaktiv: aktualisiert sich sobald reminderSvc._all sich ändert
@@ -196,7 +204,7 @@ export class KundenComponent implements OnInit {
   filteredReservations = computed(() => {
     const list = this.reservations();
     if (this.reservationsUpcomingOnly()) {
-      const now = new Date().toISOString().slice(0, 16);
+      const now = localDateTimeSpace();
       return list.filter(r => r.starts_at >= now);
     }
     return list;
@@ -248,6 +256,11 @@ export class KundenComponent implements OnInit {
   openEdit(guest: Guest): void {
     this.editTarget.set(guest);
     this.editName.set(guest.name);
+    const { vorname, nachname } = this.splitName(guest.name);
+    this.editVorname.set(vorname);
+    this.editNachname.set(nachname);
+    // Backend-Platzhalter (…@noemail.local) nie im editierbaren Feld anzeigen.
+    this.editEmail.set(!guest.email.endsWith('@noemail.local') ? guest.email : '');
     this.editPhone.set(guest.phone ?? '');
     this.editNotes.set(guest.internal_notes ?? '');
     this.editAllergies.set(guest.allergies ?? '');
@@ -270,6 +283,9 @@ export class KundenComponent implements OnInit {
     this.mailSentOk.set(false);
     this.mailError.set(null);
     this.editModal.set(true);
+    // Sidebar-Statistik "Ø Gruppengröße" wird immer angezeigt (nicht nur im Tab
+    // "Reservierungen"), daher hier sofort laden statt erst bei Tab-Wechsel.
+    this.loadGuestReservations();
   }
 
   closeEdit(): void { this.editModal.set(false); }
@@ -333,8 +349,13 @@ export class KundenComponent implements OnInit {
     this.reminderSvc.remove(id);
   }
 
+  /** Öffnet den nativen Datepicker, auch wenn nicht exakt auf das kleine Kalender-Icon geklickt wird. */
+  openDatePicker(input: HTMLInputElement): void {
+    input.showPicker?.();
+  }
+
   reminderIsDue(dueDate: string): boolean {
-    return dueDate <= new Date().toISOString().slice(0, 10);
+    return dueDate <= localDateIso();
   }
 
   formatReminderDate(iso: string): string {
@@ -377,13 +398,16 @@ export class KundenComponent implements OnInit {
 
   saveEdit(): void {
     const target = this.editTarget();
-    if (!target || !this.editName().trim()) return;
+    if (!target || !this.editVorname().trim()) return;
+
+    const fullName = [this.editVorname().trim(), this.editNachname().trim()].filter(Boolean).join(' ');
 
     this.editSaving.set(true);
     this.editError.set(null);
 
     const dto: UpdateGuestDto = {
-      name:           this.editName().trim(),
+      name:           fullName,
+      email:          this.editEmail().trim() || null,
       phone:          this.editPhone().trim() || null,
       internal_notes: this.editNotes().trim() || null,
       allergies:      this.editAllergies().trim() || null,
@@ -408,6 +432,44 @@ export class KundenComponent implements OnInit {
         this.editError.set(err?.error?.error ?? 'Fehler beim Speichern.');
       },
     });
+  }
+
+  askDeleteGuest(): void {
+    const target = this.editTarget();
+    if (!target) return;
+    this.confirmDeleteGuest.set(target);
+  }
+
+  cancelDeleteGuest(): void {
+    this.confirmDeleteGuest.set(null);
+  }
+
+  confirmDeleteGuestAction(): void {
+    const target = this.confirmDeleteGuest();
+    if (!target) return;
+
+    this.editDeleting.set(true);
+    this.editError.set(null);
+
+    this.guestsService.delete(target.id).subscribe({
+      next: () => {
+        this.guests.update(list => list.filter(g => g.id !== target.id));
+        this.total.update(t => Math.max(0, t - 1));
+        this.editDeleting.set(false);
+        this.confirmDeleteGuest.set(null);
+        this.closeEdit();
+      },
+      error: err => {
+        this.editDeleting.set(false);
+        this.confirmDeleteGuest.set(null);
+        this.editError.set(err?.error?.error ?? 'Fehler beim Löschen.');
+      },
+    });
+  }
+
+  private splitName(full: string): { vorname: string; nachname: string } {
+    const parts = full.trim().split(/\s+/);
+    return { vorname: parts[0] ?? '', nachname: parts.slice(1).join(' ') };
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -463,7 +525,7 @@ export class KundenComponent implements OnInit {
   }
 
   isUpcoming(startsAt: string): boolean {
-    return startsAt >= new Date().toISOString().slice(0, 16);
+    return startsAt >= localDateTimeSpace();
   }
 
   isVip(g: Guest): boolean {

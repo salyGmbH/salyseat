@@ -144,8 +144,14 @@ export class GutscheineComponent implements OnInit {
 
   selectGuest(g: Guest): void {
     this.draft.recipientName  = g.name;
-    this.draft.recipientEmail = g.email ?? '';
+    // Backend-Platzhalter (…@noemail.local) nie als Empfänger-E-Mail übernehmen.
+    this.draft.recipientEmail = this.isRealEmail(g.email) ? g.email! : '';
     this.showSuggestions.set(false);
+  }
+
+  /** true wenn eine echte E-Mail hinterlegt ist (kein …@noemail.local-Backend-Platzhalter) */
+  isRealEmail(email: string | null | undefined): boolean {
+    return !!email && !email.endsWith('@noemail.local');
   }
 
   hideSuggestions(): void {

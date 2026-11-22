@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, inject, signal, computed, ElementRef, ViewChild } from '@angular/core';
 import { NgClass, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
@@ -21,13 +21,29 @@ const REFRESH_INTERVAL_MS = 60_000; // 60 Sekunden
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly svc         = inject(DashboardService);
   private readonly resSvc      = inject(ReservationsService);
   private readonly guestsSvc   = inject(GuestsService);
   private readonly reminderSvc = inject(ReminderService);
   private readonly roomsSvc    = inject(RoomsService);
   private refreshSub?: Subscription;
+
+  /**
+   * Referenz auf die linke Spalte, um deren gerenderte Höhe zu messen — die
+   * rechte Spalte ("Heutige Reservierungen") soll exakt so hoch sein wie die
+   * linke (bis "Vorschau" unten), nicht höher. Reines CSS (Grid
+   * align-items: stretch) reicht dafür nicht: die Seite hat keine feste
+   * Viewport-Höhe, daher würde die Auto-Zeilenhöhe des Grids sich einfach
+   * nach dem höheren Inhalt richten (bei vielen Reservierungen also nach der
+   * rechten Spalte) statt die rechte auf die linke zu begrenzen. Per
+   * ResizeObserver wird die linke Höhe gemessen und als max-height an die
+   * rechte Spalte gebunden; überschüssige Reservierungen scrollen dann
+   * intern (siehe .res-compact-list).
+   */
+  @ViewChild('leftCol') private leftColRef?: ElementRef<HTMLElement>;
+  readonly leftColHeight = signal<number | null>(null);
+  private leftColObserver?: ResizeObserver;
 
   /** Fällige Erinnerungen — direkt vom Service (reaktiv) */
   readonly dueReminders = this.reminderSvc.due;
@@ -257,8 +273,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .subscribe();
   }
 
+  ngAfterViewInit(): void {
+    const el = this.leftColRef?.nativeElement;
+    if (!el) return;
+    this.leftColObserver = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect.height;
+      if (h) this.leftColHeight.set(Math.round(h));
+    });
+    this.leftColObserver.observe(el);
+  }
+
   ngOnDestroy(): void {
     this.refreshSub?.unsubscribe();
+    this.leftColObserver?.disconnect();
   }
 
   refresh(): void {

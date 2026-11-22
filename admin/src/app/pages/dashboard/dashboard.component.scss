@@ -673,7 +673,14 @@
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 24px;
-  align-items: stretch; // rechte Spalte wächst auf Höhe der linken
+  // WICHTIG: NICHT "stretch" — das würde die linke Spalte künstlich auf die
+  // (potenziell höhere) rechte Spalte strecken. Da die rechte Spalte ihre
+  // max-height per ResizeObserver von der GERENDERTEN Höhe der linken Spalte
+  // ableitet (siehe dashboard.component.ts, leftColHeight), entstünde damit
+  // ein Zirkelbezug: die Messung der linken Spalte läge dann immer schon
+  // (fälschlich) auf Höhe der rechten. "start" lässt beide Spalten ihre
+  // eigene, echte Inhaltshöhe behalten.
+  align-items: start;
 
   @media (max-width: 1000px) { grid-template-columns: 1fr; }
 }
@@ -688,6 +695,14 @@
   margin-top: 27px;
   display: flex;
   flex-direction: column;
+  // WICHTIG: Grid-Items haben standardmäßig min-height:auto (= min-content),
+  // wodurch die rechte Spalte NICHT auf die Höhe der linken schrumpft, sondern
+  // sich der intrinsischen Höhe ihres Inhalts (z. B. 15 Reservierungszeilen)
+  // anpasst — die Karte wächst dann über die linke Spalte (bis "Vorschau"
+  // unten) hinaus. min-height: 0 erlaubt das Schrumpfen, sodass align-items:
+  // stretch (oben in .main-layout) greift und .res-compact-list stattdessen
+  // intern scrollt.
+  min-height: 0;
 }
 
 // ─── Hero Grid (6 Karten) ─────────────────────────────────────────────────────

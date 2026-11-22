@@ -140,6 +140,22 @@ class GuestController extends AbstractController
         if (array_key_exists('phone', $data)) {
             $guest->setPhone($data['phone'] !== '' ? (string) $data['phone'] : null);
         }
+        if (array_key_exists('email', $data)) {
+            $newEmail = trim((string) ($data['email'] ?? ''));
+            if ($newEmail !== '' && !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+                return $this->json(['error' => 'Ungültige E-Mail-Adresse.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            if ($newEmail === '') {
+                // Kein E-Mail angegeben → eindeutiger Platzhalter, damit Guest-Unique-Constraint nicht feuert
+                $newEmail = sprintf('admin+%s@noemail.local', bin2hex(random_bytes(6)));
+            } else {
+                $existing = $this->repo->findByTenantAndEmail($tenant->getId(), $newEmail);
+                if ($existing !== null && $existing->getId()->toRfc4122() !== $guest->getId()->toRfc4122()) {
+                    return $this->json(['error' => 'Diese E-Mail-Adresse wird bereits von einem anderen Gast verwendet.'], Response::HTTP_CONFLICT);
+                }
+            }
+            $guest->setEmail($newEmail);
+        }
         if (array_key_exists('internal_notes', $data)) {
             $guest->setInternalNotes($data['internal_notes'] !== '' ? (string) $data['internal_notes'] : null);
         }
@@ -172,6 +188,35 @@ class GuestController extends AbstractController
         $this->em->flush();
 
         return $this->json($this->serialize($guest));
+    }
+
+    // ── Löschen ───────────────────────────────────────────────────────────────
+
+    #[Route('/{id}', name: 'admin_guest_delete', methods: ['DELETE'])]
+    public function delete(string $id, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $user->getTenant();
+        if ($tenant === null) {
+            return $this->json(['error' => 'Kein Tenant.'], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $uuid = Uuid::fromString($id);
+        } catch (\Throwable) {
+            return $this->json(['error' => 'Ungültige ID.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $guest = $this->repo->findById($uuid);
+        if ($guest === null || $guest->getTenant()->getId()->toRfc4122() !== $tenant->getId()->toRfc4122()) {
+            return $this->json(['error' => 'Gast nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Reservierungen behalten ihre (denormalisierten) Gast-Daten, die Guest-Referenz
+        // wird per onDelete: SET NULL automatisch entfernt — kein Datenverlust bei Reservierungen.
+        $this->em->remove($guest);
+        $this->em->flush();
+
+        return $this->json(['ok' => true]);
     }
 
     // ── E-Mail erneut versenden ───────────────────────────────────────────────

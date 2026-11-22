@@ -10,6 +10,7 @@ import {
   CreateSpecialClosingDto,
 } from '../../../services/opening-hours.service';
 import { VenueService } from '../../../services/venue.service';
+import { localDateIso } from '../../../shared/local-date.util';
 
 interface BreakRow { from: string; to: string; }
 
@@ -45,6 +46,10 @@ export class OeffnungszeitenComponent implements OnInit {
   private readonly venueService = inject(VenueService);
   private venueId = '';
 
+  // ── Info-Panels ───────────────────────────────────────────────────────────
+  infoOh  = signal(false); // Öffnungszeiten
+  infoSc  = signal(false); // Sonderöffnungen
+
   // ── Opening hours ─────────────────────────────────────────────────────────
   days        = signal<DayRow[]>([]);
   loadingDays = signal(false);
@@ -60,9 +65,9 @@ export class OeffnungszeitenComponent implements OnInit {
   newClosing: NewClosing = this.emptyClosing();
 
   ngOnInit(): void {
-    this.venueService.load().subscribe(res => {
-      if (!res.venues.length) return;
-      this.venueId = res.venues[0].id;
+    this.venueService.load().subscribe(({ venues }) => {
+      this.venueId = venues[0]?.id ?? '';
+      if (!this.venueId) return;
       this.loadHours();
       this.loadClosings();
     });
@@ -184,7 +189,7 @@ export class OeffnungszeitenComponent implements OnInit {
   }
 
   private emptyClosing(): NewClosing {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateIso();
     return { date_from: today, date_to: today, reason: '', full_day: true, open_time: '08:00', close_time: '22:00' };
   }
 

@@ -194,7 +194,7 @@
     <div class="main-layout">
 
       <!-- ── Linke Spalte ───────────────────────────────────────── -->
-      <div class="main-layout__left">
+      <div class="main-layout__left" #leftCol>
 
         <!-- SEKTION: HEUTE STATS -->
         <section class="dash-section">
@@ -421,7 +421,11 @@
       </div><!-- /main-layout__left -->
 
       <!-- ── Rechte Spalte: Kompakte Reservierungsliste ─────────── -->
-      <div class="main-layout__right">
+      <!-- Höhe wird per ResizeObserver an die linke Spalte gekoppelt (siehe
+           ngAfterViewInit) — 27px Korrektur für den eigenen margin-top,
+           damit beide Spalten unten bündig abschließen ("Vorschau"). -->
+      <div class="main-layout__right"
+           [style.max-height.px]="leftColHeight() ? leftColHeight()! - 27 : null">
         <section class="dash-section res-panel">
           <div class="section-label-row">
             <h2 class="section-label">

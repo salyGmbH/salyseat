@@ -178,7 +178,7 @@
                 @if (r.table_number) {
                   <span><mat-icon>table_restaurant</mat-icon>Tisch #{{ r.table_number }}</span>
                 }
-                @if (r.guest_email) {
+                @if (isRealEmail(r.guest_email)) {
                   <span class="print-hide"><mat-icon>mail</mat-icon>{{ r.guest_email }}</span>
                 }
                 @if (r.guest_phone) {

@@ -821,19 +821,40 @@ mat-icon {
 .profile-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
+  font-weight: 700;
+  padding: 4px 10px;
   border-radius: 20px;
+  border: 1px solid transparent;
+  letter-spacing: .02em;
   line-height: 1;
 
-  mat-icon { font-size: 12px; line-height: 1; }
+  mat-icon { font-size: 13px; line-height: 1; }
 
-  &--blocked  { background: #fee2e2; color: #991b1b; }
-  &--vip      { background: #f3e8ff; color: #7c3aed; }
-  &--regular  { background: #fef9c3; color: #854d0e; }
-  &--new      { background: $color-surface-soft; color: $color-text-muted; border: 1px solid $color-border; }
+  // ── Gleiche Optik wie .status-pill in der Übersichtstabelle ──────────────
+  &--blocked {
+    background: rgba(248, 113, 113, .14);
+    border-color: rgba(248, 113, 113, .45);
+    color: #f87171;
+    box-shadow: 0 0 8px rgba(248, 113, 113, .2);
+  }
+
+  &--vip {
+    background: rgba(167, 139, 250, .14);
+    border-color: rgba(167, 139, 250, .45);
+    color: #a78bfa;
+    box-shadow: 0 0 8px rgba(167, 139, 250, .25);
+  }
+
+  &--regular {
+    background: rgba(250, 204, 21, .13);
+    border-color: rgba(250, 204, 21, .4);
+    color: #facc15;
+    box-shadow: 0 0 8px rgba(250, 204, 21, .2);
+  }
+
+  &--new      { background: $color-surface-soft; color: $color-text-muted; border-color: $color-border; }
   &--since    { background: transparent; color: $color-text-muted; }
 }
 
@@ -1108,8 +1129,11 @@ mat-icon {
     border-radius: 10px;
 
     &-danger {
-      background: #fff1f2;
-      border-color: #fca5a5;
+      background: rgba(var(--color-danger-rgb), 0.10);
+      border-color: rgba(var(--color-danger-rgb), 0.4);
+
+      .field__label { color: $color-text; }
+      .field__sub   { color: $color-text-muted; }
     }
   }
 
@@ -1131,6 +1155,11 @@ mat-icon {
       border-color: $color-primary;
       box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), .15);
     }
+
+    &::placeholder {
+      color: $color-text-muted;
+      opacity: .55;
+    }
   }
 }
 
@@ -1145,8 +1174,171 @@ mat-icon {
   }
 
   .toggle-icon--blocked {
-    color: #dc2626;
+    color: $color-danger;
   }
+}
+
+// ── Löschen (links) + Gesperrt-Toggle (rechts), je 50% ─────────────────────────
+.danger-zone-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+
+  .field--toggle,
+  .field--danger-action {
+    height: 100%;
+    box-sizing: border-box;
+  }
+}
+
+.field--danger-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 12px 14px;
+  background: rgba(var(--color-danger-rgb), 0.10);
+  border: 1px solid rgba(var(--color-danger-rgb), 0.4);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background .15s, border-color .15s;
+
+  .field__label { color: $color-text; }
+  .field__sub   { color: $color-text-muted; }
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--color-danger-rgb), 0.18);
+    border-color: rgba(var(--color-danger-rgb), 0.6);
+  }
+
+  &:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+}
+
+// ── Löschen-Bestätigungs-Modal (statt Browser-confirm) ─────────────────────
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  animation: nz-fade-in 0.15s ease;
+}
+
+.confirm-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 301;
+  width: min(360px, calc(100vw - 32px));
+  background: $color-dark;
+  border: 1px solid $color-border;
+  border-radius: 18px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+  padding: 28px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  animation: nz-modal-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &__icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(239, 68, 68, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+
+    mat-icon {
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+      color: #f87171;
+    }
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: 13px;
+    color: $color-text-muted;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  &__cancel {
+    flex: 1;
+    padding: 10px 0;
+    border: 1px solid $color-border;
+    border-radius: 10px;
+    background: none;
+    color: $color-text-muted;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+      border-color: rgba(var(--color-text-rgb), 0.35);
+      color: $color-text-on-dark;
+    }
+  }
+
+  &__confirm {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 0;
+    border: none;
+    border-radius: 10px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; margin-left: -2px; }
+
+    &:hover:not(:disabled) { filter: brightness(1.1); }
+
+    &:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+@keyframes nz-modal-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes nz-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 // ── Toggle-Switch ─────────────────────────────────────────────────────────────
@@ -2088,6 +2280,10 @@ mat-icon {
     border: 1px solid $color-border;
     border-radius: 8px;
     padding: 7px 10px;
+    cursor: pointer;
+    transition: border-color .15s;
+
+    &:hover { border-color: rgba(var(--color-primary-rgb), 0.4); }
 
     mat-icon { font-size: 17px; width: 17px; height: 17px; color: $color-text-muted; }
   }
@@ -2100,6 +2296,7 @@ mat-icon {
     font-size: 13.5px;
     font-family: inherit;
     outline: none;
+    cursor: pointer;
   }
 
   &__save {

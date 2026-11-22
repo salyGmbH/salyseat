@@ -152,6 +152,10 @@ export interface TenantUiSettings {
       fontFamilyKey: string;
     };
     sections: any[];
+    /** Relativer Server-Pfad der zuletzt hochgeladenen Speisekarten-PDF (z.B. /uploads/attachments/…). */
+    pdfPath?: string | null;
+    /** Ursprünglicher Dateiname — für den Download-Dateinamen. */
+    pdfName?: string | null;
   };
 
   /** Gutschein-Widget Design */

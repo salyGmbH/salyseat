@@ -81,6 +81,24 @@
       </div>
     }
 
+    <!-- ── Tisch-Sync-Fehler Banner ─────────────────────────────────────── -->
+    @if (tableSyncError()) {
+      <div class="cross-move-banner cross-move-banner--error">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ tableSyncError() }}</span>
+        <button class="cross-move-banner__cancel" (click)="tableSyncError.set(null)">Ok</button>
+      </div>
+    }
+
+    <!-- ── Status-Sync-Fehler Banner ────────────────────────────────────── -->
+    @if (reservationsService.syncError()) {
+      <div class="cross-move-banner cross-move-banner--error">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ reservationsService.syncError() }}</span>
+        <button class="cross-move-banner__cancel" (click)="reservationsService.syncError.set(null)">Ok</button>
+      </div>
+    }
+
     <!-- ── Hauptbereich: Links Reservierungen / Rechts Plan ────────────── -->
     <div class="raum-detail__body" [class.res-panel-collapsed]="resPanelCollapsed()">
 
@@ -261,6 +279,7 @@
                   @for (res of group.reservations; track res.id) {
                     <div class="res-row"
                          [class]="'res-row--' + res.status + ' res-row--mode-' + viewMode()"
+                         [class.res-row--menu-open]="openMenuId() === res.id"
                          [style.--status-color]="colorFor(res.status)">
                       @if (viewMode() === 'card') {
                         <div class="res-row__time">{{ res.time }}</div>
@@ -285,38 +304,6 @@
                       <div class="res-row__body res-row__body--clickable"
                            (click)="openGuestCard(res)">
                         <div class="res-row__top">
-                          @if (getraenke.activeAlerts().has(res.id)) {
-                            <button class="drinks-alert"
-                                    (click)="acknowledgeGetraenke(res.id, $event)"
-                                    [title]="'raum_detail.drinks_alert' | translate">
-                              <svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" class="drinks-alert__svg">
-                                <ellipse cx="14" cy="25.5" rx="8.5" ry="1.5" fill="rgba(0,0,0,0.18)"/>
-                                <path d="M7 5 L9 23 Q9 24 10 24 L18 24 Q19 24 19 23 L21 5 Z"
-                                      fill="url(#da-glass)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
-                                <path d="M8.5 11 L10 23 Q10 23.5 10.5 23.5 L17.5 23.5 Q18 23.5 18 23 L19.5 11 Z"
-                                      fill="url(#da-liquid)"/>
-                                <rect x="11" y="15" width="3.5" height="3.5" rx="0.8"
-                                      fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"/>
-                                <rect x="16" y="4" width="2" height="16" rx="1"
-                                      fill="url(#da-straw)"/>
-                                <rect x="6.5" y="4" width="15" height="2" rx="1" fill="rgba(255,255,255,0.12)"/>
-                                <defs>
-                                  <linearGradient id="da-glass" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%"   stop-color="rgba(255,255,255,0.12)"/>
-                                    <stop offset="100%" stop-color="rgba(255,255,255,0.14)"/>
-                                  </linearGradient>
-                                  <linearGradient id="da-liquid" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%"   stop-color="#38bdf8"/>
-                                    <stop offset="100%" stop-color="#0369a1"/>
-                                  </linearGradient>
-                                  <linearGradient id="da-straw" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%"   stop-color="#fde68a"/>
-                                    <stop offset="100%" stop-color="#f59e0b"/>
-                                  </linearGradient>
-                                </defs>
-                              </svg>
-                            </button>
-                          }
                           @if (res.source === 'pms') {
                             <span class="res-row__hotel-badge"
                                   [title]="'Hotel Gast' + (res.hotelRoomNumber ? ' · Zimmer ' + res.hotelRoomNumber : '')">
@@ -353,8 +340,15 @@
                             </span>
                           }
                         </div>
-                        @if ((res.notes || res.gasttypen?.length || res.hinweise?.length) || res.packages?.length || isFreshOnlineBooking(res)) {
+                        @if ((res.notes || res.gasttypen?.length || res.hinweise?.length) || res.packages?.length || isFreshOnlineBooking(res) || getraenke.activeAlerts().has(res.id)) {
                           <div class="res-row__badges">
+                            @if (getraenke.activeAlerts().has(res.id)) {
+                              <button type="button" class="res-row__info-badge res-row__info-badge--drinks"
+                                      (click)="acknowledgeGetraenke(res.id, $event)"
+                                      [title]="'raum_detail.drinks_alert' | translate">
+                                <mat-icon>local_bar</mat-icon>
+                              </button>
+                            }
                             @if (isFreshOnlineBooking(res)) {
                               <div class="res-row__info-badge res-row__info-badge--fresh" title="Heute frisch online gebucht">
                                 <mat-icon>bolt</mat-icon>
@@ -385,7 +379,7 @@
                               <mat-icon>more_vert</mat-icon>
                             </button>
                             @if (openMenuId() === res.id) {
-                              <div class="kebab-menu" (click)="$event.stopPropagation()">
+                              <div class="kebab-menu" [class.kebab-menu--up]="openMenuUp()" (click)="$event.stopPropagation()">
                                 <button class="kebab-menu__item" (click)="setWaitlistStatus(waitlistEntryFor(res)!, 'notified'); closeMenu()">
                                   <mat-icon>call</mat-icon> Als kontaktiert markieren
                                 </button>
@@ -438,11 +432,11 @@
                             <mat-icon>more_vert</mat-icon>
                           </button>
                           @if (openMenuId() === res.id) {
-                            <div class="kebab-menu" (click)="$event.stopPropagation()">
+                            <div class="kebab-menu" [class.kebab-menu--up]="openMenuUp()" (click)="$event.stopPropagation()">
                               <button class="kebab-menu__item" (click)="openEditDialog(res); closeMenu()">
                                 <mat-icon>edit</mat-icon> {{ 'common.edit' | translate }}
                               </button>
-                              @if (res.status === 'upcoming' || res.status === 'confirmed' || res.status === 'seated' || res.status === 'expired' || res.status === 'cleanup') {
+                              @if (res.status === 'upcoming' || res.status === 'confirmed' || res.status === 'late' || res.status === 'seated' || res.status === 'expired' || res.status === 'cleanup') {
                                 @if (res.status === 'expired') {
                                   <button class="kebab-menu__item" (click)="extendReservation(res); closeMenu()">
                                     <mat-icon>more_time</mat-icon> {{ 'raum_detail.extend_30' | translate }}
@@ -458,10 +452,6 @@
                                 </button>
                                 <button class="kebab-menu__item kebab-menu__item--danger" (click)="cancel(res); closeMenu()">
                                   <mat-icon>cancel</mat-icon> {{ 'raum_detail.cancel_res' | translate }}
-                                </button>
-                              } @else {
-                                <button class="kebab-menu__item kebab-menu__item--danger" (click)="remove(res); closeMenu()">
-                                  <mat-icon>delete</mat-icon> {{ 'common.delete' | translate }}
                                 </button>
                               }
                             </div>
@@ -581,12 +571,17 @@
             </div>
             <div class="tl-free-panel__list">
               @for (s of freeSlotsToday(); track s.time) {
-                <div class="tl-free-slot">
+                <div class="tl-free-slot" [class.tl-free-slot--limited]="s.limitedCount > 0">
                   <span class="tl-free-slot__dot"></span>
                   <span class="tl-free-slot__time">{{ s.time }}</span>
                   <span class="tl-free-slot__count">{{ s.freeCount }} Tisch{{ s.freeCount !== 1 ? 'e' : '' }}</span>
                   <button class="tl-free-slot__btn"
                           (click)="openNewDialog({time: s.time})">{{ 'raum_detail.book' | translate }}</button>
+                  @if (s.limitedCount > 0) {
+                    <span class="tl-free-slot__hint">
+                      {{ s.limitedCount }}× davon nur {{ formatAvailableDuration(s.minAvailableMinutes!) }} verfügbar
+                    </span>
+                  }
                 </div>
               }
               @if (freeSlotsToday().length === 0) {
@@ -619,11 +614,16 @@
               @if (planFreeSlotsOpen()) {
                 <div class="tl-free-panel__list tl-free-panel__list--dropdown">
                   @for (s of freeSlotsToday(); track s.time) {
-                    <div class="tl-free-slot">
+                    <div class="tl-free-slot" [class.tl-free-slot--limited]="s.limitedCount > 0">
                       <span class="tl-free-slot__dot"></span>
                       <span class="tl-free-slot__time">{{ s.time }}</span>
                       <span class="tl-free-slot__count">{{ s.freeCount }} Tisch{{ s.freeCount !== 1 ? 'e' : '' }}</span>
                       <button class="tl-free-slot__btn" (click)="openNewDialog({time: s.time})">{{ 'raum_detail.book' | translate }}</button>
+                      @if (s.limitedCount > 0) {
+                        <span class="tl-free-slot__hint">
+                          {{ s.limitedCount }}× davon nur {{ formatAvailableDuration(s.minAvailableMinutes!) }} verfügbar
+                        </span>
+                      }
                     </div>
                   }
                   @if (freeSlotsToday().length === 0) {
@@ -1525,39 +1525,38 @@
                 </div>
 
                 <div class="rf-datetime">
-                  <!-- Kalender (nur bei neuer Reservierung) — Step 1 auf Mobile -->
-                  @if (!editDialogOpen()) {
-                    <div class="inline-cal rf-mob-cal">
-                      <div class="inline-cal__header">
-                        <button type="button" class="inline-cal__nav" (click)="prevCalendarMonth()">
-                          <mat-icon>chevron_left</mat-icon>
-                        </button>
-                        <span class="inline-cal__month-label">{{ calendarMonthLabel() }}</span>
-                        <button type="button" class="inline-cal__nav" (click)="nextCalendarMonth()">
-                          <mat-icon>chevron_right</mat-icon>
-                        </button>
-                      </div>
-                      <div class="inline-cal__weekdays">
-                        <span>{{ 'common.days_short.mon' | translate }}</span><span>{{ 'common.days_short.tue' | translate }}</span><span>{{ 'common.days_short.wed' | translate }}</span><span>{{ 'common.days_short.thu' | translate }}</span>
-                        <span>{{ 'common.days_short.fri' | translate }}</span><span>{{ 'common.days_short.sat' | translate }}</span><span>{{ 'common.days_short.sun' | translate }}</span>
-                      </div>
-                      <div class="inline-cal__grid">
-                        @for (cell of calendarDays(); track cell.iso) {
-                          <button type="button" class="inline-cal__day"
-                                  [class.is-other-month]="!cell.cur"
-                                  [class.is-past]="cell.past && !cell.isToday"
-                                  [class.is-today]="cell.isToday"
-                                  [class.is-selected]="cell.sel"
-                                  [class.is-closed]="cell.closed"
-                                  [class.is-open]="cell.open"
-                                  [disabled]="cell.disabled"
-                                  (click)="selectCalendarDay(cell.iso)">
-                            {{ cell.day }}
-                          </button>
-                        }
-                      </div>
+                  <!-- Kalender — auch beim Bearbeiten sichtbar/wählbar, damit man
+                       eine Reservierung auf einen anderen Tag verschieben kann. -->
+                  <div class="inline-cal rf-mob-cal">
+                    <div class="inline-cal__header">
+                      <button type="button" class="inline-cal__nav" (click)="prevCalendarMonth()">
+                        <mat-icon>chevron_left</mat-icon>
+                      </button>
+                      <span class="inline-cal__month-label">{{ calendarMonthLabel() }}</span>
+                      <button type="button" class="inline-cal__nav" (click)="nextCalendarMonth()">
+                        <mat-icon>chevron_right</mat-icon>
+                      </button>
                     </div>
-                  }
+                    <div class="inline-cal__weekdays">
+                      <span>{{ 'common.days_short.mon' | translate }}</span><span>{{ 'common.days_short.tue' | translate }}</span><span>{{ 'common.days_short.wed' | translate }}</span><span>{{ 'common.days_short.thu' | translate }}</span>
+                      <span>{{ 'common.days_short.fri' | translate }}</span><span>{{ 'common.days_short.sat' | translate }}</span><span>{{ 'common.days_short.sun' | translate }}</span>
+                    </div>
+                    <div class="inline-cal__grid">
+                      @for (cell of calendarDays(); track cell.iso) {
+                        <button type="button" class="inline-cal__day"
+                                [class.is-other-month]="!cell.cur"
+                                [class.is-past]="cell.past && !cell.isToday"
+                                [class.is-today]="cell.isToday"
+                                [class.is-selected]="cell.sel"
+                                [class.is-closed]="cell.closed"
+                                [class.is-open]="cell.open"
+                                [disabled]="cell.disabled"
+                                (click)="selectCalendarDay(cell.iso)">
+                          {{ cell.day }}
+                        </button>
+                      }
+                    </div>
+                  </div>
 
                   <!-- Uhrzeit + Personen — Step 2 auf Mobile -->
                   <div class="rf-time-persons rf-mob-time">
@@ -1583,11 +1582,14 @@
                           @let slotFull = occupiedTimeSlots().has(slot);
                           @let tableOccupied = !slotFull && isSelectedTableOccupiedAt(slot);
                           @let tableInCleanup = tableOccupied && isSelectedTableInCleanupAt(slot);
+                          @let slotAvailableMins = (!slotFull && !tableOccupied && form.tableIds.length) ? firstSelectedTableAvailableMinutes(slot) : null;
+                          @let slotLimited = slotAvailableMins !== null && slotAvailableMins < form.durationMinutes;
                           <button type="button" class="table-inline__card"
                                   [class.table-inline__card--selected]="form.time === slot"
                                   [class.table-inline__card--slot-full]="slotFull && form.time !== slot"
                                   [class.table-inline__card--table-occupied]="tableOccupied && !tableInCleanup && form.time !== slot"
                                   [class.table-inline__card--cleanup]="tableInCleanup && form.time !== slot"
+                                  [class.table-inline__card--limited]="slotLimited && form.time !== slot"
                                   (click)="form.time = slot">
                             <span class="table-inline__num">{{ slot }}</span>
                             @if (slotFull) {
@@ -1599,6 +1601,8 @@
                               </span>
                             } @else if (tableOccupied) {
                               <span class="table-inline__badge table-inline__badge--table-occupied">Tisch belegt</span>
+                            } @else if (slotLimited) {
+                              <span class="table-inline__badge table-inline__badge--limited">nur {{ formatAvailableDuration(slotAvailableMins!) }}</span>
                             }
                           </button>
                         }
@@ -1685,6 +1689,11 @@
                       <mat-icon>lock</mat-icon>
                       <span>{{ 'raum_detail.table_occupied' | translate : { id: firstOccupiedSelectedTableId(), time: form.time } }}</span>
                     </div>
+                  } @else if (firstSelectedTableAvailableMinutes() !== null && firstSelectedTableAvailableMinutes()! < form.durationMinutes) {
+                    <div class="table-occupied-warning table-occupied-warning--limited">
+                      <mat-icon>schedule</mat-icon>
+                      <span>Tisch ist frei, aber nur noch {{ formatAvailableDuration(firstSelectedTableAvailableMinutes()!) }} bis zur nächsten Reservierung verfügbar.</span>
+                    </div>
                   }
                   <div class="table-inline">
                     <button type="button" class="table-inline__card"
@@ -1694,10 +1703,12 @@
                       <span class="table-inline__num">{{ 'raum_detail.no_table_opt' | translate }}</span>
                     </button>
                     @for (t of availableTables(); track t.id) {
-                      @let actuallyOccupied = isTableOccupied(t.id, form.time, form.durationMinutes, editingId());
+                      @let actuallyOccupied = isTableStartBlocked(t.id, form.time, editingId());
                       @let occupied         = actuallyOccupied && !isTableSelected(t.id);
                       @let selectedOccupied = actuallyOccupied && isTableSelected(t.id);
                       @let inCleanup        = actuallyOccupied && isTableInCleanup(t.id, form.time, editingId());
+                      @let availableMins    = !actuallyOccupied ? availableMinutesAt(t.id, form.time, editingId()) : null;
+                      @let limitedDuration  = availableMins !== null && availableMins < form.durationMinutes;
                       @let tooSmall         = !actuallyOccupied && isTableTooSmall(t.id, form.partySize) && !isTableSelected(t.id) && selectedSeatsTotal() < form.partySize;
                       @let isSuggested      = bestMergeSuggestion() === t.id && !isTableSelected(t.id);
                       @let mergeIdx         = form.tableIds.indexOf(t.id);
@@ -1709,6 +1720,7 @@
                               [class.table-inline__card--selected-full]="selectedOccupied"
                               [class.table-inline__card--full]="occupied"
                               [class.table-inline__card--cleanup]="inCleanup"
+                              [class.table-inline__card--limited]="limitedDuration && !isTableSelected(t.id)"
                               [class.table-inline__card--blocked]="isBlocked"
                               [class.table-inline__card--small]="tooSmall && !isSuggested && !isBlocked"
                               [class.table-inline__card--suggested]="isSuggested && !isBlocked"
@@ -1727,6 +1739,8 @@
                           </span>
                         } @else if (occupied || selectedOccupied) {
                           <span class="table-inline__badge">{{ 'raum_detail.occupied' | translate }}</span>
+                        } @else if (limitedDuration && !isTableSelected(t.id)) {
+                          <span class="table-inline__badge table-inline__badge--limited">nur {{ formatAvailableDuration(availableMins!) }}</span>
                         } @else if (isSuggested) {
                           <span class="table-inline__badge table-inline__badge--suggested">{{ 'raum_detail.best_combo' | translate }}</span>
                         } @else if (tooSmall) {
@@ -1759,7 +1773,7 @@
           <div class="dialog__actions dialog__actions--bottom-right rf-desktop-actions"
                [hidden]="isMobile()">
             <button type="button" class="dialog__btn dialog__btn--secondary" (click)="closeFormDialog()">{{ 'common.cancel' | translate }}</button>
-            <button type="submit" class="dialog__btn dialog__btn--primary">
+            <button type="submit" class="dialog__btn dialog__btn--primary" [disabled]="formSaving()">
               @if (editDialogOpen()) { {{ 'common.save' | translate }} } @else { Anlegen }
             </button>
           </div>
@@ -1779,13 +1793,13 @@
                   {{ 'common.next' | translate }} <mat-icon>arrow_forward</mat-icon>
                 </button>
               } @else {
-                <button type="submit" class="rf-mob-nav__submit">{{ 'common.create' | translate }}</button>
+                <button type="submit" class="rf-mob-nav__submit" [disabled]="formSaving()">{{ 'common.create' | translate }}</button>
               }
             </div>
           } @else {
             <div class="rf-mob-nav" [hidden]="!isMobile()">
               <button type="button" class="rf-mob-nav__back" (click)="closeFormDialog()">{{ 'common.cancel' | translate }}</button>
-              <button type="submit" class="rf-mob-nav__submit">{{ 'common.save' | translate }}</button>
+              <button type="submit" class="rf-mob-nav__submit" [disabled]="formSaving()">{{ 'common.save' | translate }}</button>
             </div>
           }
         </form>
@@ -1833,6 +1847,12 @@
         <p class="dialog__conflict-text">
           Zu diesem Zeitpunkt besteht bereits eine Reservierung. Wie möchten Sie fortfahren?
         </p>
+        @if (slotConflictAvailableMinutes() !== null) {
+          <p class="dialog__conflict-hint">
+            <mat-icon>schedule</mat-icon>
+            <span>Tisch ist noch {{ formatAvailableDuration(slotConflictAvailableMinutes()!) }} frei, bevor die nächste Reservierung beginnt.</span>
+          </p>
+        }
         <div class="dialog__conflict-actions">
           <button type="button" class="dialog__conflict-btn dialog__conflict-btn--place" (click)="confirmConflictPlace()">
             <mat-icon>add_circle</mat-icon>
@@ -1891,7 +1911,7 @@
           <div class="gc-identity">
             <h3 class="gc-name">{{ guestCardRes()?.guestName }}</h3>
             <div class="gc-contact-row">
-              @if (guestCardRes()?.guestEmail) {
+              @if (isRealEmail(guestCardRes()?.guestEmail ?? '')) {
                 <a class="gc-contact-link" [href]="'mailto:' + guestCardRes()!.guestEmail">
                   <mat-icon>mail_outline</mat-icon>{{ guestCardRes()!.guestEmail }}
                 </a>
@@ -2155,7 +2175,7 @@
                   }
 
                   <!-- ── E-Mail erneut senden ──────────────────────────────── -->
-                  @if (res.guestEmail) {
+                  @if (isRealEmail(res.guestEmail ?? '')) {
                     <div class="gc-mail-section">
                       <div class="gc-mail-header">
                         <mat-icon>send</mat-icon>

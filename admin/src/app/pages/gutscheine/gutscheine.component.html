@@ -202,7 +202,7 @@
             <div class="gc__recipient">
               <mat-icon>person</mat-icon>
               <span>{{ v.recipientName }}</span>
-              @if (v.recipientEmail) { <span class="gc__muted">· {{ v.recipientEmail }}</span> }
+              @if (isRealEmail(v.recipientEmail)) { <span class="gc__muted">· {{ v.recipientEmail }}</span> }
             </div>
             @if (v.buyerName && v.buyerName !== 'Manuell') {
               <div class="gc__buyer">
@@ -340,7 +340,7 @@
                     </div>
                     <div class="gc-modal__suggestion-info">
                       <span class="gc-modal__suggestion-name">{{ g.name }}</span>
-                      @if (g.email) {
+                      @if (isRealEmail(g.email)) {
                         <span class="gc-modal__suggestion-meta">{{ g.email }}</span>
                       }
                     </div>
