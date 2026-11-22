@@ -16,5 +16,7 @@ export interface AuthUser {
 export interface LoginResponse {
   token: string;
   expiresIn: number;
+  /** Inaktivitäts-Timeout in Sekunden (optional, Fallback 3600) */
+  inactivityTtlSeconds?: number;
   user: AuthUser;
 }

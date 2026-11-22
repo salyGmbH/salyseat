@@ -19,7 +19,7 @@
       <label class="wa__field">
         <span class="wa__label">{{ 'whatsapp.phone_number_id_label' | translate }}</span>
         <span class="wa__hint">{{ 'whatsapp.phone_number_id_hint' | translate }}</span>
-        <input class="wa__input" type="text" autocomplete="off"
+        <input class="wa__input" type="text" name="wa-phone-number-id" autocomplete="off"
                [ngModel]="phoneNumberId()" (ngModelChange)="phoneNumberId.set($event)"
                placeholder="1234567890">
       </label>
@@ -27,7 +27,7 @@
       <label class="wa__field">
         <span class="wa__label">{{ 'whatsapp.api_key_label' | translate }}</span>
         <span class="wa__hint">{{ 'whatsapp.api_key_hint' | translate }}</span>
-        <input class="wa__input" type="password" autocomplete="off"
+        <input class="wa__input" type="password" name="wa-api-key" autocomplete="new-password"
                [ngModel]="apiKey()" (ngModelChange)="apiKey.set($event)"
                placeholder="D360-API-KEY">
       </label>
@@ -43,7 +43,7 @@
 
       <label class="wa__field">
         <span class="wa__label">{{ 'whatsapp.channel_id_label' | translate }}</span>
-        <input class="wa__input" type="text"
+        <input class="wa__input" type="text" name="wa-channel-id" autocomplete="off"
                [ngModel]="channelId()" (ngModelChange)="channelId.set($event)"
                placeholder="optional">
       </label>
@@ -51,7 +51,7 @@
       <label class="wa__field">
         <span class="wa__label">{{ 'whatsapp.base_url_label' | translate }}</span>
         <span class="wa__hint">{{ 'whatsapp.base_url_hint' | translate }}</span>
-        <input class="wa__input" type="text"
+        <input class="wa__input" type="text" name="wa-base-url" autocomplete="off"
                [ngModel]="baseUrl()" (ngModelChange)="baseUrl.set($event)"
                placeholder="https://waba-sandbox.360dialog.io">
       </label>

@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { switchMap } from 'rxjs';
 import { of } from 'rxjs';
-import { GutscheineService, Voucher, VoucherStatus, CreateVoucherDto, VoucherImage, PaymentMethod } from '../../services/gutscheine.service';
+import { GutscheineService, Voucher, VoucherStatus, CreateVoucherDto, VoucherImage } from '../../services/gutscheine.service';
 import { GuestsService, Guest } from '../../services/guests.service';
 import { TenantSettingsService } from '../../services/tenant-settings.service';
 
@@ -82,9 +82,6 @@ export class GutscheineComponent implements OnInit {
   readonly images       = signal<VoucherImage[]>([]);
   readonly activeImages = computed(() => this.images().filter(i => i.active));
 
-  // ── Zahlungsmethoden ─────────────────────────────────────────────────────
-  readonly paymentMethods = signal<PaymentMethod[]>([]);
-
   // ── Postversand ───────────────────────────────────────────────────────────
   readonly postalEnabled      = signal(false);
   readonly postalShippingCost = signal<number | null>(null);
@@ -106,7 +103,6 @@ export class GutscheineComponent implements OnInit {
       this.loading.set(false);
     });
     this.svc.listImages().subscribe(imgs => this.images.set(imgs));
-    this.svc.listPaymentMethods().subscribe(pm => this.paymentMethods.set(pm));
     this.svc.getPostalConfig().subscribe(cfg => {
       this.postalEnabled.set(cfg.postalEnabled);
       this.postalShippingCost.set(cfg.postalShippingCost);
@@ -297,12 +293,6 @@ export class GutscheineComponent implements OnInit {
     });
   }
 
-  togglePaymentMethod(pm: PaymentMethod): void {
-    this.svc.togglePaymentMethod(pm.id).subscribe(updated => {
-      this.paymentMethods.update(list => list.map(x => x.id === updated.id ? updated : x));
-    });
-  }
-
   removeImage(img: VoucherImage): void {
     if (!confirm(this.translate.instant('gutscheine.confirm_delete_img'))) return;
     this.svc.deleteImage(img.id).subscribe(() => {
@@ -312,7 +302,7 @@ export class GutscheineComponent implements OnInit {
 
   private emptyDraft() {
     const exp = new Date();
-    exp.setFullYear(exp.getFullYear() + 1);
+    exp.setFullYear(exp.getFullYear() + 3);
     return { amount: 50, recipientName: '', recipientEmail: '', message: '', expiresAt: exp.toISOString().split('T')[0], imageId: null as string | null };
   }
 }

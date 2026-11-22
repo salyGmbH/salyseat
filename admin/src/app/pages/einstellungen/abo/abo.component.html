@@ -16,6 +16,20 @@
     </div>
   </div>
 
+  <div class="abo__billing-switch">
+    <span class="abo__billing-label" [class.active]="billingPeriod() === 'yearly'">
+      {{ 'abo.billing_yearly' | translate }}
+      <em class="abo__tag abo__tag--save">-10%</em>
+    </span>
+    <label class="switch">
+      <input type="checkbox" [checked]="billingPeriod() === 'monthly'" (change)="toggleBillingPeriod()">
+      <span class="slider"></span>
+    </label>
+    <span class="abo__billing-label" [class.active]="billingPeriod() === 'monthly'">
+      {{ 'abo.billing_monthly' | translate }}
+    </span>
+  </div>
+
   <div class="abo__grid">
     @for (plan of plans; track plan.key) {
       <div class="abo__card"
@@ -34,11 +48,16 @@
         <div class="abo__card-header">
           <span class="abo__plan-name">{{ plan.name }}</span>
           <p class="abo__plan-tagline">{{ plan.taglineKey | translate }}</p>
-          @if (planService.prices()?.[plan.key] != null) {
+          @if (displayPrice(plan.key) != null) {
             <p class="abo__plan-price">
-              {{ formatPrice(planService.prices()![plan.key]) }}
+              {{ formatPrice(displayPrice(plan.key)) }}
               <span class="abo__plan-price-period">/ Monat</span>
             </p>
+            @if (billingPeriod() === 'monthly') {
+              <p class="abo__plan-price-hint">
+                {{ 'abo.billing_yearly_hint' | translate:{ price: formatPrice(planService.prices()![plan.key]) } }}
+              </p>
+            }
           }
         </div>
 
@@ -125,17 +144,12 @@
 
     <div class="addon-grid">
       @for (a of planService.addons(); track a.key) {
-        <div class="addon-card"
+        <div class="addon-card addon-card--static"
              [class.addon-card--active]="a.status === 'active' && planService.hasAddon(a.key)"
              [class.addon-card--soon]="a.status === 'soon'"
-             [class.addon-card--locked]="a.status === 'active' && !planService.canPurchaseAddon(a.key)"
-             (click)="a.status === 'active' && planService.canPurchaseAddon(a.key) && toggleAddon(a.key)">
+             [class.addon-card--locked]="a.status === 'active' && !planService.canPurchaseAddon(a.key)">
           <div class="addon-card__icon">
-            @if (addonSaving() === a.key) {
-              <mat-icon class="abo__spin">sync</mat-icon>
-            } @else {
-              <mat-icon>{{ a.icon }}</mat-icon>
-            }
+            <mat-icon>{{ a.icon }}</mat-icon>
           </div>
           <div class="addon-card__content">
             <div class="addon-card__title">
@@ -159,7 +173,7 @@
             </div>
           } @else {
             <div class="addon-card__status" [class.addon-card__status--active]="planService.hasAddon(a.key)">
-              {{ (planService.hasAddon(a.key) ? 'common.active' : 'common.inactive') | translate }}
+              {{ (planService.hasAddon(a.key) ? 'common.active' : 'abo.addon_contact_to_book') | translate }}
             </div>
           }
         </div>

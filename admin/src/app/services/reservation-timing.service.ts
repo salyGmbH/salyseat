@@ -145,13 +145,25 @@ export class ReservationTimingService {
   }
 
   /**
+   * Öffentlicher Trigger, um Status-Übergänge sofort neu zu berechnen —
+   * z. B. direkt nach dem manuellen Bearbeiten einer Reservierung (Uhrzeit
+   * geändert), statt bis zu 60s auf den nächsten Heartbeat-Tick zu warten.
+   */
+  recomputeNow(): void {
+    this.runExpiryCheck();
+  }
+
+  /**
    * Heartbeat-Logik — Status-Übergänge jede Minute:
    *
    *   confirmed / upcoming → 'late':
    *     Reservierungszeit ist erreicht, Gast noch nicht eingecheckt.
    *
-   *   late → bleibt 'late':
-   *     Bleibt so bis Personal manuell eingreift (No-Show / Einchecken).
+   *   confirmed / upcoming / late → 'expired':
+   *     Nicht nur die Startzeit, sondern das komplette Reservierungsfenster
+   *     (Start + Dauer) ist vorbei — Gast wurde nie eingecheckt. Zählt genauso
+   *     als "Überfällig" wie eine eingecheckte RV mit abgelaufener Dauer, statt
+   *     unbegrenzt als "Verspätet" stehen zu bleiben.
    *
    *   seated → 'expired':
    *     Reservierungsdauer abgelaufen (nur wenn autoExpireEnabled).
@@ -167,21 +179,29 @@ export class ReservationTimingService {
     const now = Date.now();
     const list = this.reservations.reservations();
     for (const r of list) {
-      // Bevorstehend → Verspätet: Reservierungszeit ist jetzt überschritten
-      if ((r.status === 'confirmed' || r.status === 'upcoming')
-          && now >= this.startMs(r)) {
-        this.reservations.setStatus(r.id, 'late');
-      }
       // Eingecheckt → Zeit abgelaufen: Dauer überschritten
+      if (this.autoExpireEnabled() && r.status === 'seated' && this.isExpired(r, now)) {
+        this.reservations.setStatus(r.id, 'expired');
+        continue;
+      }
+
+      // Nie eingecheckt, aber komplettes Fenster (Start + Dauer) vorbei →
+      // direkt "Überfällig" statt für immer auf "Verspätet" hängen zu bleiben.
       if (this.autoExpireEnabled()
-          && r.status === 'seated'
+          && (r.status === 'confirmed' || r.status === 'upcoming' || r.status === 'late')
           && this.isExpired(r, now)) {
         this.reservations.setStatus(r.id, 'expired');
+        continue;
       }
+
+      // Bevorstehend → Verspätet: Reservierungszeit ist jetzt überschritten
+      if ((r.status === 'confirmed' || r.status === 'upcoming') && now >= this.startMs(r)) {
+        this.reservations.setStatus(r.id, 'late');
+        continue;
+      }
+
       // Cleanup beendet
-      if (this.cleanupEnabled()
-          && r.status === 'cleanup'
-          && this.isCleanupDone(r, now)) {
+      if (this.cleanupEnabled() && r.status === 'cleanup' && this.isCleanupDone(r, now)) {
         this.reservations.setStatus(r.id, 'completed');
       }
     }

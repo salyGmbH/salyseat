@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,7 @@ import { Router } from '@angular/router';
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })
-export class SidebarComponent implements OnDestroy {
+export class SidebarComponent implements OnInit, OnDestroy {
   layout = inject(LayoutService);
   private auth = inject(AuthService);
   readonly plan = inject(PlanService);
@@ -27,16 +27,26 @@ export class SidebarComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly roomsService = inject(RoomsService);
 
-  /** Bei genau einem Raum direkt in den Raum springen, sonst zur Raumübersicht */
+  /** Direktlink zum einzigen Raum — sonst zur Übersicht */
   readonly raumLink = computed(() => {
     const rooms = this.roomsService.rooms();
     return rooms.length === 1 ? ['/raum', rooms[0].id] : ['/raum'];
   });
 
-  collapsed = signal(false);
+  /** Auf Tablet-Breite (641–1200px) standardmäßig eingeklappt starten —
+   *  auf Desktop (> 1200px) offen, auf Mobile (≤ 640px) irrelevant (dort
+   *  läuft die Sidebar als Overlay über `layout.mobileOpen()`, siehe
+   *  sidebar.component.scss). Grenze einheitlich mit admin-layout- und
+   *  raum-detail-Tablet-Breakpoints halten. */
+  collapsed = signal(
+    typeof window !== 'undefined' && window.innerWidth > 640 && window.innerWidth <= 1200
+  );
 
   restaurants = ['SALY Restaurant', 'Restaurant X', 'Cafe Y'];
   selectedRestaurant = signal('SALY Restaurant');
+
+  /** Untermenü "Gutscheine" (z. B. Link zum Gutschein-Designer) auf-/zuklappen */
+  readonly vouchersExpanded = signal(false);
 
   // Eingeloggten User für die Sidebar zugänglich machen
   currentUserEmail = computed(() => this.auth.user()?.email ?? '');
@@ -55,6 +65,10 @@ export class SidebarComponent implements OnDestroy {
     return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
   });
 
+  ngOnInit(): void {
+    this.roomsService.load().subscribe();
+  }
+
   ngOnDestroy() {
     clearInterval(this._clockInterval);
   }
@@ -65,6 +79,12 @@ export class SidebarComponent implements OnDestroy {
 
   selectRestaurant(name: string) {
     this.selectedRestaurant.set(name);
+  }
+
+  toggleVouchersMenu(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.vouchersExpanded.update(v => !v);
   }
 
   logout() {

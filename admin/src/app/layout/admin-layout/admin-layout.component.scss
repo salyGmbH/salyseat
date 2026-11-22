@@ -92,7 +92,10 @@
 }
 
 // ─── Mobile Breakpoint ───────────────────────────────────────────────────────
-@media (max-width: 768px) {
+// Muss mit sidebar.component.scss synchron bleiben (dort derselbe Wert für
+// den Off-Canvas-Drawer) — sonst zeigen Hamburger-Leiste und Sidebar
+// gleichzeitig an bzw. widersprechen sich.
+@media (max-width: 640px) {
   .admin-layout {
     flex-direction: column;
   }
@@ -109,5 +112,16 @@
 
   .backdrop {
     display: block;
+  }
+}
+
+// ─── Tablet-Breakpoint (641px – 1200px) ───────────────────────────────────
+// Deckt iPads in Hoch- UND Querformat ab (Grenze einheitlich mit der
+// Sidebar-Standard-Einklapplogik und dem Res-Panel-Toggle bei 1200px).
+@media (max-width: 1200px) and (min-width: 641px) {
+  .admin-layout__content {
+    padding: 5px;
+
+    &::after { height: 5px; }
   }
 }

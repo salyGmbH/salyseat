@@ -75,6 +75,7 @@ export class OverviewComponent {
     { label: 'settings.permissions',       route: 'rechte',                 icon: 'admin_panel_settings' },// Berechtigungen
     { label: 'settings.emails',            route: 'emails',                 icon: 'mail',          requiresFeature: 'email-design' }, // E-Mails
     { label: 'settings.voucher_designer',  route: 'gutschein-designer',     icon: 'card_giftcard',  addonKey: 'vouchers' }, // Gutschein Designer
+    { label: 'Kalender-Sync',              route: 'kalender-sync',          icon: 'event' }, // Kalender-Sync (Google/iCal)
     { label: 'settings.customers',         route: 'kunden',                 icon: 'groups' },             // Kunden / Gäste
     { label: 'settings.login',             route: 'login',                  icon: 'login' },              // Login / Registrierung
     { label: 'settings.staff',             route: 'mitarbeiter',            icon: 'group' },              // Mitarbeiterverwaltung
@@ -87,9 +88,9 @@ export class OverviewComponent {
     { label: 'settings.menu',              route: 'speisekarte',            icon: 'menu_book',      addonKey: 'speisekarte' }, // Speisekarte
     { label: 'settings.languages',         route: 'sprachen',               icon: 'translate' },          // Sprachen
     { label: 'settings.status_labels',     route: 'status-kennzeichnungen', icon: 'flag' },               // Status, Hinweise & Gäste-Typen
+    { label: 'WhatsApp-Reservierung',      route: 'whatsapp-anbindung',     icon: 'chat',   addonKey: 'whatsapp' }, // WhatsApp-Reservierung
     { label: 'settings.widget_settings',   route: 'widget-einstellungen',   icon: 'widgets' },            // Widget Einstellungen
     { label: 'settings.widget_designer',   route: 'widget',                 icon: 'palette' },            // Widget-Designer
     { label: 'settings.payments',          route: 'kreditkarte',            icon: 'credit_card' },        // Zahlungen & Stripe
-    { label: 'WhatsApp-Reservierung',      route: 'whatsapp-anbindung',     icon: 'chat',   addonKey: 'whatsapp' }, // WhatsApp-Reservierung
   ];
 }

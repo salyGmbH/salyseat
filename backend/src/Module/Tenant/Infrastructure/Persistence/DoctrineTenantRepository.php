@@ -55,6 +55,11 @@ class DoctrineTenantRepository extends ServiceEntityRepository
         return $this->findOneBy(['whatsappChannelId' => $id]);
     }
 
+    public function findByCalendarFeedToken(string $token): ?Tenant
+    {
+        return $this->findOneBy(['calendarFeedToken' => $token]);
+    }
+
     public function save(Tenant $tenant): void
     {
         $this->getEntityManager()->persist($tenant);

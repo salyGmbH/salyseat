@@ -110,25 +110,9 @@
         <div class="gc__pm-sub">{{ 'gutscheine.pm_sub' | translate }}</div>
       </div>
     </div>
-    <div class="gc__pm-grid">
-      @for (pm of paymentMethods(); track pm.id) {
-        <div class="gc__pm-card" [class.gc__pm-card--inactive]="!pm.active">
-          <div class="gc__pm-card-top">
-            <div class="gc__pm-icon"><mat-icon>{{ pm.icon }}</mat-icon></div>
-            <div class="gc__pm-info">
-              <div class="gc__pm-name">{{ pm.name }}</div>
-              <div class="gc__pm-provider gc__pm-provider--{{ pm.provider }}">{{ pm.provider }}</div>
-            </div>
-            <button class="gc__pm-toggle"
-                    [class.gc__pm-toggle--on]="pm.active"
-                    (click)="togglePaymentMethod(pm)"
-                    [title]="pm.active ? ('gutscheine.img_badge_inactive' | translate) : ('gutscheine.tab_active' | translate)">
-              <mat-icon>{{ pm.active ? 'toggle_on' : 'toggle_off' }}</mat-icon>
-            </button>
-          </div>
-          <div class="gc__pm-desc">{{ pm.description }}</div>
-        </div>
-      }
+    <div class="gc__pm-info-box">
+      <mat-icon>info</mat-icon>
+      <span>{{ 'gutscheine.pm_note' | translate }}</span>
     </div>
   </div>
 

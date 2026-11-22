@@ -59,6 +59,15 @@ export class KundenComponent implements OnInit {
     return p ? p[plan] : null;
   }
 
+  /** Tatsächliche Endsumme pro Monat: bei monatlicher Vertragsdauer +10% Aufpreis, sonst der Grundpreis. */
+  readonly MONTHLY_SURCHARGE = 1.10;
+
+  finalPriceFor(t: Tenant): number | null {
+    const base = this.priceFor(t.plan);
+    if (base == null) return null;
+    return t.contractDuration === 'monthly' ? Math.round(base * this.MONTHLY_SURCHARGE) : base;
+  }
+
   formatPrice(cents: number | null): string {
     if (cents == null) return '';
     return (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';

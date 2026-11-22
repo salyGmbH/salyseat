@@ -680,37 +680,9 @@
 .gc-payment-methods {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.gc-payment-methods__label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--w-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-
-.gc-payment-methods__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.gc-payment-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--w-radius-sm);
+  gap: 6px;
   font-size: 12px;
-  font-weight: 600;
-  background: var(--w-color-surface-soft, #f8f9fa);
-  border: 1px solid var(--w-color-border);
-  color: var(--w-color-text);
-  white-space: nowrap;
+  color: var(--w-color-text-muted);
 
   svg { flex-shrink: 0; opacity: 0.7; }
 }

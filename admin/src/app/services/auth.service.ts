@@ -1,16 +1,19 @@
 import { Injectable, computed, inject, signal, NgZone } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { AuthUser, LoginRequest, LoginResponse, Plan } from './auth.types';
 
-const TOKEN_KEY       = 'salyseat.auth.token.v1';
-const USER_KEY        = 'salyseat.auth.user.v1';
-const LAST_ACTIVE_KEY = 'salyseat.auth.lastActive.v1';
+const TOKEN_KEY          = 'salyseat.auth.token.v1';
+const USER_KEY           = 'salyseat.auth.user.v1';
+const LAST_ACTIVE_KEY    = 'salyseat.auth.lastActive.v1';
+const INACTIVITY_TTL_KEY = 'salyseat.auth.inactivityTtl.v1'; // Inaktivitäts-Timeout in ms
 
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const;
 const CHECK_INTERVAL  = 30_000; // Inaktivitätsprüfung alle 30 Sekunden
-const THROTTLE_MS     = 30_000; // Aktivitätserkennung max. einmal alle 30 Sekunden
+const THROTTLE_MS     = 10_000; // Aktivitätserkennung max. einmal alle 10 Sekunden
+
+const DEFAULT_INACTIVITY_MS = 3_600_000; // 1 Stunde Fallback
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -38,7 +41,13 @@ export class AuthService {
     if (this._token()) {
       this.http.get<AuthUser>(`${this.apiBase}/auth/me`).subscribe({
         next: freshUser => this.applyFreshUser(freshUser),
-        error: () => { /* Token ungültig → Inaktivitätsprüfung übernimmt */ },
+        // Token vom Server explizit abgelehnt (401/403) → alte, im localStorage
+        // zwischengespeicherte Daten dürfen nicht stillschweigend weiter angezeigt
+        // werden. Bei anderen Fehlern (z. B. Netzwerk kurz weg) bleibt der bisherige
+        // Stand bestehen, statt den Nutzer grundlos auszuloggen.
+        error: (err: HttpErrorResponse) => {
+          if (err.status === 401 || err.status === 403) this.logout();
+        },
       });
     }
   }
@@ -46,7 +55,9 @@ export class AuthService {
   refreshUser(): void {
     this.http.get<AuthUser>(`${this.apiBase}/auth/me`).subscribe({
       next: freshUser => this.applyFreshUser(freshUser),
-      error: () => {},
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 401 || err.status === 403) this.logout();
+      },
     });
   }
 
@@ -82,10 +93,12 @@ export class AuthService {
   private setSession(res: LoginResponse): void {
     this._token.set(res.token);
     this._user.set(res.user);
+    const inactivityMs = (res.inactivityTtlSeconds ?? 3600) * 1000;
     try {
       localStorage.setItem(TOKEN_KEY, res.token);
       localStorage.setItem(USER_KEY, JSON.stringify(res.user));
       localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
+      localStorage.setItem(INACTIVITY_TTL_KEY, String(inactivityMs));
     } catch { /* ignore */ }
     this.initInactivityTracking();
   }
@@ -120,6 +133,12 @@ export class AuthService {
       ACTIVITY_EVENTS.forEach(ev =>
         document.addEventListener(ev, this.onActivity, { passive: true })
       );
+      // Plan/Add-ons können von der Superadmin jederzeit geändert werden, während
+      // die Admin-Session bereits offen ist. Statt darauf zu vertrauen, dass ein
+      // Reload zuverlässig frische Daten holt, ziehen wir /me zusätzlich immer
+      // dann nach, wenn der Tab wieder in den Vordergrund kommt.
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+      window.addEventListener('focus', this.onWindowFocus);
     });
   }
 
@@ -132,7 +151,19 @@ export class AuthService {
     ACTIVITY_EVENTS.forEach(ev =>
       document.removeEventListener(ev, this.onActivity)
     );
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    window.removeEventListener('focus', this.onWindowFocus);
   }
+
+  private readonly onVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') {
+      this.zone.run(() => this.refreshUser());
+    }
+  };
+
+  private readonly onWindowFocus = (): void => {
+    this.zone.run(() => this.refreshUser());
+  };
 
   private readonly onActivity = (): void => {
     if (this._throttled) return;
@@ -148,7 +179,7 @@ export class AuthService {
   }
 
   private isInactive(): boolean {
-    const ttlMs = this.getTtlMs();
+    const ttlMs = this.getInactivityTtlMs();
     try {
       const raw = localStorage.getItem(LAST_ACTIVE_KEY);
       if (!raw) return false; // kein Eintrag → als aktiv werten
@@ -164,22 +195,30 @@ export class AuthService {
     if (!token) return true;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      // Nur hartes JWT-Ablaufdatum prüfen (30-Tage-Limit vom Backend)
       return payload.exp ? Date.now() >= payload.exp * 1000 : false;
     } catch {
       return false;
     }
   }
 
-  // TTL aus JWT-Payload ableiten (exp - iat), Fallback 1 Stunde
-  private getTtlMs(): number {
-    const token = this._token();
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp && payload.iat) return (payload.exp - payload.iat) * 1000;
-      } catch { /* ignore */ }
-    }
-    return 3_600_000;
+  // Inaktivitäts-TTL aus localStorage lesen (wird beim Login gespeichert)
+  private getInactivityTtlMs(): number {
+    try {
+      const raw = localStorage.getItem(INACTIVITY_TTL_KEY);
+      if (raw) {
+        const ms = parseInt(raw, 10);
+        if (ms > 0) return ms;
+      }
+    } catch { /* ignore */ }
+    return DEFAULT_INACTIVITY_MS;
+  }
+
+  /** Wird vom TenantSettingsService aufgerufen wenn der Inaktivitäts-Timeout geändert wird */
+  updateInactivityTtl(seconds: number): void {
+    try {
+      localStorage.setItem(INACTIVITY_TTL_KEY, String(seconds * 1000));
+    } catch { /* ignore */ }
   }
 
   // ── Storage-Helpers ───────────────────────────────────────────────────────

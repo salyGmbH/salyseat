@@ -2599,8 +2599,9 @@
             @for (d of venueDecors(); track d.id) {
               @let isWide    = d.type === 'bar' || d.type === 'stage' || d.type === 'sofa';
               @let isWindow  = d.type === 'window';
-              @let baseW     = (isWide || isWindow) ? 140 : 70;
-              @let baseH     = isWindow ? 32 : 70;
+              @let isLabel   = d.type === 'label';
+              @let baseW     = (isWide || isWindow) ? 140 : (isLabel ? 120 : 70);
+              @let baseH     = isWindow ? 32 : (isLabel ? 40 : 70);
               @let dw        = baseW * d.scale;
               @let dh        = baseH * d.scale;
               @let cx        = d.x + dw / 2;
@@ -2685,6 +2686,12 @@
                     <rect x="6" y="28" width="128" height="32" rx="6" class="plan-decor__base"/>
                     <rect x="6" y="24" width="16" height="36" rx="4" class="plan-decor__base"/>
                     <rect x="118" y="24" width="16" height="36" rx="4" class="plan-decor__base"/>
+                  }
+                  @case ('label') {
+                    <rect x="1" y="1" width="118" height="38" rx="4" class="plan-decor__label-bg"/>
+                    <text x="60" y="24" text-anchor="middle" dominant-baseline="middle"
+                          font-family="sans-serif" font-size="11" font-weight="600"
+                          class="plan-decor__label-text">{{ d.text }}</text>
                   }
                 }
               </g>

@@ -60,6 +60,10 @@ class Tenant
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $whatsappConfig = null;
 
+    /** Opakes Secret für die private .ics-Kalender-Abo-URL — lazy generiert bei erster Anfrage. */
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    private ?string $calendarFeedToken = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $contactEmail = null;
 
@@ -181,6 +185,16 @@ class Tenant
     public function setWhatsappConfig(?array $config): void
     {
         $this->whatsappConfig = $config;
+    }
+
+    public function getCalendarFeedToken(): ?string
+    {
+        return $this->calendarFeedToken;
+    }
+
+    public function setCalendarFeedToken(?string $token): void
+    {
+        $this->calendarFeedToken = $token;
     }
 
     public function setName(string $name): void

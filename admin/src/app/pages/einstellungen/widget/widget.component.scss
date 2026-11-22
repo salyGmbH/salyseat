@@ -1,5 +1,47 @@
 @use '../../../../styles/variables' as *;
 
+// ── Info-Button & Info-Box ────────────────────────────────────────────────────
+.info-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-accent;
+  padding: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background .2s, transform .2s;
+
+  mat-icon { font-size: 20px; }
+
+  &:hover { background: rgba(var(--color-accent-rgb), 0.1); transform: scale(1.05); }
+  &.active { background: rgba(var(--color-accent-rgb), 0.15); }
+}
+
+.info-box {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  color: $color-text-muted;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.25s ease;
+  margin-top: 8px;
+
+  &.open {
+    max-height: 200px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  LAYOUT-RAHMEN — gleiche Sprache wie die anderen Einstellungs-Seiten
 // ─────────────────────────────────────────────────────────────────────────
@@ -3431,6 +3473,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    // Gleiche Höhe für alle Labels — auch ohne Inline-Toggle (24px hoch),
+    // damit nebeneinanderliegende Inputs (z. B. Titel / Untertitel) bündig sind.
+    min-height: 24px;
     font-size: 12px;
     font-weight: 600;
     color: $color-text-on-dark;
@@ -3467,37 +3512,47 @@
 
 // ── Toggle-Switch ──────────────────────────────────────────────────────
 .toggle {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   font-weight: 400;
   font-size: 11px;
   color: $color-text-muted;
 
-  input { display: none; }
+  input { position: absolute; opacity: 0; width: 0; height: 0; }
 
   &__track {
+    width: 44px;
+    height: 24px;
+    background: rgba(var(--color-text-rgb), 0.12);
+    border-radius: 99px;
+    transition: background 0.2s;
     position: relative;
-    width: 30px;
-    height: 16px;
-    background: $color-border;
-    border-radius: 999px;
-    transition: 0.15s;
-  }
-  &__thumb {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #fff;
-    transition: 0.15s;
+    flex-shrink: 0;
   }
 
-  input:checked + &__track { background: $color-accent; }
-  input:checked + &__track &__thumb { left: 16px; }
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transition: transform 0.2s;
+  }
+
+  input:checked ~ .toggle__track {
+    background: rgba(var(--color-accent-rgb), 0.35);
+  }
+  input:checked ~ .toggle__track .toggle__thumb {
+    transform: translateX(20px);
+    background: $color-accent;
+    box-shadow: 0 1px 6px rgba(var(--color-accent-rgb), 0.6);
+  }
 
   &__label { user-select: none; }
 }

@@ -7,31 +7,56 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0D0F16;font-family:'Inter','Segoe UI',system-ui,sans-serif;color:#e2e8f0;padding:40px 40px 60px}
 h1{font-size:26px;font-weight:700;text-align:center;margin-bottom:6px;background:linear-gradient(135deg,#60a5fa,#a78bfa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.subtitle{text-align:center;color:#6b7280;font-size:13px;margin-bottom:44px}
-.canvas{position:relative;width:1540px;height:1210px;margin:0 auto}
-.svg-layer{position:absolute;top:0;left:0;width:1540px;height:1210px;pointer-events:none;overflow:visible}
+.subtitle{text-align:center;color:#6b7280;font-size:13px;margin-bottom:8px}
+.note{text-align:center;color:#4b5563;font-size:11.5px;margin-bottom:36px;max-width:720px;margin-left:auto;margin-right:auto;line-height:1.6}
+.wrap{max-width:1780px;margin:0 auto;position:relative}
+#rel-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;z-index:10}
+#rel-svg .rel-path{stroke:#4b5563;stroke-width:1.2;fill:none;opacity:.09;transition:opacity .15s,stroke .15s,stroke-width .15s}
+#rel-svg .rel-path.opt{stroke-dasharray:4,3}
+#rel-svg .rel-hit{stroke:transparent;stroke-width:10;fill:none;pointer-events:stroke;cursor:pointer}
+#rel-svg .rel-label{font-size:9px;font-family:monospace;fill:#93c5fd;opacity:0;transition:opacity .15s;font-weight:700}
+/* Hover direkt auf einer Linie */
+#rel-svg .rel-group:hover .rel-path{opacity:1;stroke:#93c5fd;stroke-width:2}
+#rel-svg .rel-group:hover .rel-label{opacity:1}
+/* Hover auf einer Karte: nur deren Beziehungen aufhellen, Rest bleibt dezent */
+#rel-svg .rel-group.rel-active .rel-path{opacity:1;stroke:#93c5fd;stroke-width:2}
+#rel-svg .rel-group.rel-active .rel-label{opacity:1}
+.ent{transition:box-shadow .15s,border-color .15s}
+.ent.ent-highlight{border-color:#60a5fa;box-shadow:0 0 0 1px #60a5fa,0 4px 28px rgba(0,0,0,.45)}
+.section{position:relative;z-index:2}
+.legend{position:relative;z-index:2}
+
+/* ── Section ─────────────────────────────────────────── */
+.section{margin-bottom:34px}
+.section-title{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #1c1f2b}
+.section-title h2{font-size:15px;font-weight:700;color:#e2e8f0}
+.section-title .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.section-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start}
 
 /* ── Entity card ─────────────────────────────────────── */
-.ent{position:absolute;background:#141720;border:1px solid #252836;border-radius:10px;overflow:hidden;box-shadow:0 4px 28px rgba(0,0,0,.45);width:278px}
+.ent{background:#141720;border:1px solid #252836;border-radius:10px;overflow:hidden;box-shadow:0 4px 28px rgba(0,0,0,.45)}
 .ent-head{padding:9px 13px 7px;border-bottom:1px solid #252836}
 .ent-name{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .ent-icon{font-size:13px}
 .ent-tbl{font-size:9.5px;color:#6b7280;font-family:monospace;letter-spacing:.4px}
-.ent-body{padding:5px 0 4px}
-.f{display:flex;align-items:center;padding:2px 11px;gap:5px}
+.ent-body{padding:5px 0 6px}
+.f{display:flex;align-items:baseline;flex-wrap:wrap;padding:2px 11px;gap:5px;row-gap:0}
 .f:hover{background:rgba(255,255,255,.03)}
 .fm{font-size:9px;width:9px;flex-shrink:0;text-align:center}
 .fm.pk{color:#fbbf24}
 .fm.fk{color:#60a5fa}
 .fm.reg{color:#374151}
 .tb{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8.5px;font-weight:600;min-width:40px;text-align:center;font-family:monospace;flex-shrink:0}
-.fn{font-size:10.5px;color:#cbd5e1;flex:1}
+.fn{font-size:10.5px;color:#cbd5e1}
 .fn.opt{color:#9ca3af}
+.rule{font-size:8.5px;color:#4b5563;font-style:italic;white-space:nowrap}
+.enumvals{font-size:8.5px;color:#4b5563;padding:0 11px 4px 25px;line-height:1.5}
 
 /* type palette */
 .t-uuid{background:#1a3357;color:#60a5fa}
 .t-str{background:#14532d;color:#4ade80}
 .t-int{background:#431407;color:#fb923c}
+.t-dec{background:#431407;color:#fdba74}
 .t-bool{background:#3b2100;color:#fbbf24}
 .t-json{background:#2e1065;color:#c084fc}
 .t-dt{background:#0c2a2a;color:#2dd4bf}
@@ -40,24 +65,26 @@ h1{font-size:26px;font-weight:700;text-align:center;margin-bottom:6px;background
 .t-enum{background:#2a1840;color:#e879f9}
 .t-fk{background:#1a3357;color:#93c5fd}
 
-/* accent borders */
+/* accent borders (eine Farbe pro fachlichem Bereich) */
 .a-blue   .ent-head{background:#1e3a5f18;border-left:3px solid #2563eb}
 .a-purple .ent-head{background:#2e106518;border-left:3px solid #7c3aed}
-.a-indigo .ent-head{background:#1e1b4b18;border-left:3px solid #4f46e5}
-.a-teal   .ent-head{background:#0c2a2a18;border-left:3px solid #0891b2}
 .a-orange .ent-head{background:#43140718;border-left:3px solid #ea580c}
-.a-amber  .ent-head{background:#3b210018;border-left:3px solid #d97706}
-.a-green  .ent-head{background:#14532d18;border-left:3px solid #16a34a}
 .a-rose   .ent-head{background:#4c050518;border-left:3px solid #e11d48}
-.a-emerald .ent-head{background:#06402418;border-left:3px solid #059669}
-.a-red    .ent-head{background:#7f1d1d18;border-left:3px solid #dc2626}
+.a-green  .ent-head{background:#14532d18;border-left:3px solid #16a34a}
+.a-teal   .ent-head{background:#0c2a2a18;border-left:3px solid #0891b2}
 .a-yellow .ent-head{background:#3b210018;border-left:3px solid #ca8a04}
 
+.dot-blue{background:#2563eb}
+.dot-purple{background:#7c3aed}
+.dot-orange{background:#ea580c}
+.dot-rose{background:#e11d48}
+.dot-green{background:#16a34a}
+.dot-teal{background:#0891b2}
+.dot-yellow{background:#ca8a04}
+
 /* ── Legend ───────────────────────────────────────────── */
-.legend{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:32px;padding:14px 24px;background:#141720;border:1px solid #252836;border-radius:10px;width:fit-content;margin-left:auto;margin-right:auto;flex-wrap:wrap}
+.legend{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:20px;padding:14px 24px;background:#141720;border:1px solid #252836;border-radius:10px;width:fit-content;margin-left:auto;margin-right:auto;flex-wrap:wrap}
 .li{display:flex;align-items:center;gap:7px;font-size:11px;color:#9ca3af}
-.ll{width:28px;height:2px;background:#4b5563}
-.ll-dash{width:28px;height:2px;background:repeating-linear-gradient(to right,#4b5563 0,#4b5563 4px,transparent 4px,transparent 8px)}
 .ld{width:9px;height:9px;border-radius:50%}
 .ld-pk{background:#fbbf24}
 .ld-fk{background:#60a5fa}
@@ -66,354 +93,709 @@ h1{font-size:26px;font-weight:700;text-align:center;margin-bottom:6px;background
 <body>
 
 <h1>Salyseat — Entity Relationship Diagram</h1>
-<p class="subtitle">Alle Entitäten, Felder und Kardinalitäten im Überblick</p>
+<p class="subtitle">Alle 24 Tabellen der aktuellen Datenbank, gruppiert nach fachlichem Bereich</p>
+<p class="note">Stand: direkt aus <code>information_schema</code> der laufenden Dev-DB erzeugt (Spalten, Foreign Keys, Delete-Rules, Unique-Constraints). Beziehungen sind an den FK-Feldern (<span style="color:#93c5fd">blaues Badge → Zielentität</span>) inkl. Lösch-Regel ablesbar, statt als handgezeichnete Pfeile — bei 25 Fremdschlüsseln über 24 Tabellen wäre ein Pfeil-Overlay kaum noch überschneidungsfrei zu pflegen.</p>
 
-<div class="canvas">
+<div class="wrap" id="wrap">
+<svg id="rel-svg"></svg>
 
-<!-- ═══════════════════════════════════════════════════
-     SVG ARROWS
-════════════════════════════════════════════════════ -->
-<svg class="svg-layer" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L7,3 z" fill="#4b5563"/>
-    </marker>
-    <marker id="ah-opt" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L7,3 z" fill="#374151"/>
-    </marker>
-  </defs>
+<!-- ═══════════════════════════════════════════════ 1. TENANT & ZUGRIFF ═══ -->
+<div class="section">
+  <div class="section-title"><span class="dot dot-blue"></span><h2>Tenant & Zugriff</h2></div>
+  <div class="section-grid">
 
-  <!-- Tenant → TenantBranding  1:1 -->
-  <path d="M 600 245 C 600 274 149 274 149 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="290" y="268" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">hat Branding</text>
-  <text x="618" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="132" y="294" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">1</text>
+    <div class="ent a-blue" id="ent-tenants">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🏢</span> Tenant</div>
+        <div class="ent-tbl">tenants · UNIQUE(slug) · UNIQUE(public_key) · UNIQUE(whatsapp_phone_number_id) · UNIQUE(whatsapp_channel_id) · UNIQUE(calendar_feed_token)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">slug</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">publicKey</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">plan</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">uiSettings?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">pmsConfig?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">whatsappPhoneNumberId? <span class="rule">(UNIQUE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">whatsappChannelId? <span class="rule">(UNIQUE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">whatsappConfig?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">calendarFeedToken? <span class="rule">(UNIQUE, privater .ics-Abo-Link)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">contactEmail? / contactPhone?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">address? / billingAddress?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">internalNotes?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">contractDuration? / cancellationPeriod?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">contractStart?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+      <div class="enumvals">plan: tisch · menu · maitre</div>
+    </div>
 
-  <!-- Tenant → User  1:N -->
-  <path d="M 648 245 C 648 274 436 274 436 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="542" y="268" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">hat Nutzer</text>
-  <text x="660" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="420" y="294" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+    <div class="ent a-blue" id="ent-users">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">👤</span> User</div>
+        <div class="ent-tbl">users · UNIQUE(email)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1" data-optional="1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn opt">tenant_id? <span class="rule">(SuperAdmin = null, CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">email</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">password</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">firstName? / lastName?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn">roles</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+    </div>
 
-  <!-- Tenant → Venue  1:N -->
-  <path d="M 712 245 L 712 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="720" y="275" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">betreibt</text>
-  <text x="698" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="698" y="296" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+    <div class="ent a-blue" id="ent-tenant_branding">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🎨</span> TenantBranding</div>
+        <div class="ent-tbl">tenant_branding · UNIQUE(tenant_id) · 1:1</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="1:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">primaryColor / primaryColorHover</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">backgroundColor / textColor</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">fontFamily / baseFontSize</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">borderRadius / buttonStyle</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">logoUrl?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">widgetTitle?</span></div>
+      </div>
+    </div>
 
-  <!-- Tenant → OpeningHours  1:N -->
-  <path d="M 795 245 C 795 274 1010 274 1010 300" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="902" y="268" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">Öffnungszeiten</text>
-  <text x="807" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="994" y="294" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+    <div class="ent a-blue" id="ent-staff">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">👥</span> Staff</div>
+        <div class="ent-tbl">staff · UNIQUE(tenant_id, employee_number)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">employeeNumber</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">email?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">role</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+    </div>
 
-  <!-- Tenant → Guest  1:N -->
-  <path d="M 852 128 C 1010 128 1010 248 1180 248" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="1016" y="122" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">kennt Gäste</text>
-  <text x="836" y="123" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="1163" y="242" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+    <div class="ent a-blue" id="ent-plan_prices">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">💶</span> PlanPrice</div>
+        <div class="ent-tbl">plan_prices · global, kein Tenant-Bezug</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-str">str</span><span class="fn">plan <span class="rule">(PK = 'tisch'|'menu'|'maitre')</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">priceCents</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">currency <span class="rule">(default EUR)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">updatedAt</span></div>
+      </div>
+    </div>
 
-  <!-- Tenant → Staff  1:N -->
-  <path d="M 588 245 C 588 395 436 395 436 545" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="490" y="368" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Mitarbeiter</text>
-  <text x="596" y="260" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="420" y="540" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
+    <div class="ent a-blue" id="ent-addons">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🧩</span> AddOn</div>
+        <div class="ent-tbl">addons · UNIQUE(key) · global, kein Tenant-Bezug</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">key <span class="rule">(stabil, referenziert von tenant.uiSettings.addons[])</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">description?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn opt">priceCents?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn opt">minPlan? / includedFromPlan?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">icon</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">status</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">sortOrder</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+      <div class="enumvals">minPlan/includedFromPlan: tisch · menu · maitre &nbsp;·&nbsp; status: active · soon</div>
+    </div>
 
-  <!-- Tenant → SpecialClosing  1:N -->
-  <path d="M 852 168 C 1160 168 1160 515 1018 515" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="1060" y="162" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Sonderschl.</text>
-  <text x="836" y="163" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="1020" y="510" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
-
-  <!-- Tenant → Notiz  1:N -->
-  <path d="M 576 238 C 295 400 292 700 149 785" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="220" y="500" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Notizen</text>
-  <text x="582" y="253" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="133" y="780" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
-
-  <!-- Venue → Resource  1:N -->
-  <path d="M 712 645 L 712 668" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="720" y="660" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">Tische</text>
-  <text x="698" y="658" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="698" y="666" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
-
-  <!-- Venue → Reservation  1:N -->
-  <path d="M 820 645 C 820 706 1010 706 1010 758" stroke="#4b5563" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
-  <text x="915" y="700" fill="#6b7280" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">Reservierungen</text>
-  <text x="826" y="660" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">1</text>
-  <text x="994" y="753" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
-
-  <!-- Guest → Reservation  0..1 : N -->
-  <path d="M 1330 488 C 1330 680 1148 680 1148 758" stroke="#374151" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#ah-opt)"/>
-  <text x="1260" y="630" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">bucht</text>
-  <text x="1316" y="500" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">0..1</text>
-  <text x="1132" y="753" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
-
-  <!-- User → Notiz  optional createdBy -->
-  <path d="M 308 430 C 235 430 235 720 149 785" stroke="#374151" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#ah-opt)"/>
-  <text x="184" y="610" fill="#6b7280" font-size="10" font-family="Inter,sans-serif">erstellt</text>
-  <text x="293" y="426" fill="#fbbf24" font-size="9" font-family="monospace" font-weight="700">0..1</text>
-  <text x="133" y="780" fill="#60a5fa" font-size="9" font-family="monospace" font-weight="700">N</text>
-</svg>
-
-
-<!-- ═══════════════════════════════════════════════════
-     ENTITY CARDS
-════════════════════════════════════════════════════ -->
-
-<!-- TENANT  (center top) -->
-<div class="ent a-blue" style="left:572px;top:20px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">🏢</span> Tenant</div>
-    <div class="ent-tbl">tenants</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">slug</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">publicKey</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">plan</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">uiSettings?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
-  </div>
-</div>
-
-<!-- TENANT BRANDING  (far left) -->
-<div class="ent a-purple" style="left:10px;top:300px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">🎨</span> TenantBranding</div>
-    <div class="ent-tbl">tenant_branding</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">primaryColor</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">primaryColorHover</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">backgroundColor</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">textColor</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">fontFamily</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">baseFontSize</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">borderRadius</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">buttonStyle</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">logoUrl?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">widgetTitle?</span></div>
   </div>
 </div>
 
-<!-- USER  (center-left) -->
-<div class="ent a-indigo" style="left:300px;top:300px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">👤</span> User</div>
-    <div class="ent-tbl">users</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn opt">tenant? (null=SuperAdmin)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">email</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">password</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">firstName?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">lastName?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">arr</span><span class="fn">roles</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+<!-- ═══════════════════════════════════════════════ 2. VENUE & VERFÜGBARKEIT ═══ -->
+<div class="section">
+  <div class="section-title"><span class="dot dot-orange"></span><h2>Venue & Verfügbarkeit</h2></div>
+  <div class="section-grid">
+
+    <div class="ent a-orange" id="ent-venues">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">📍</span> Venue</div>
+        <div class="ent-tbl">venues</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">category</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">description? / address?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">timezone</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">phone? / email?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">defaultDurationMinutes</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">maxAdvanceBookingDays</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">minAdvanceBookingHours</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">layout? <span class="rule">(Tische/Wände/Deko)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-orange" id="ent-resources">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🪑</span> Resource</div>
+        <div class="ent-tbl">resources</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-venues" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">capacity</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-orange" id="ent-opening_hours">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🕐</span> OpeningHours</div>
+        <div class="ent-tbl">opening_hours · UNIQUE(tenant_id, weekday)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">weekday <span class="rule">(0=Mo…6=So)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">open</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">openTime? / closeTime? <span class="rule">(HH:MM)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">breaks?</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-orange" id="ent-special_closings">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🚫</span> SpecialClosing</div>
+        <div class="ent-tbl">special_closings</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">dateFrom / dateTo</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">reason?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">fullDay</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">openTime? / closeTime?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-orange" id="ent-venue_blocks">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">⛔</span> VenueBlock</div>
+        <div class="ent-tbl">venue_blocks · sperrt ganzen Raum</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-venues" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">dateFrom / dateTo</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">reason?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">fullDay</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">timeFrom? / timeTo?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn opt">tableId? <span class="rule">(kein FK, lose Referenz auf Layout)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-orange" id="ent-table_blocks">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🔒</span> TableBlock</div>
+        <div class="ent-tbl">table_blocks · sperrt einzelnen Tisch</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-venues" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">tableNumber <span class="rule">(kein FK, lose Referenz auf Layout)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">dateFrom / dateTo</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">reason?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">fullDay</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">timeFrom? / timeTo?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- STAFF  (below User) -->
-<div class="ent a-teal" style="left:300px;top:545px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">👥</span> Staff</div>
-    <div class="ent-tbl">staff</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">employeeNumber</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">email?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">role</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+<!-- ═══════════════════════════════════════════════ 3. RESERVIERUNGEN & GÄSTE ═══ -->
+<div class="section">
+  <div class="section-title"><span class="dot dot-rose"></span><h2>Reservierungen & Gäste</h2></div>
+  <div class="section-grid">
+
+    <div class="ent a-rose" id="ent-reservations">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">📋</span> Reservation</div>
+        <div class="ent-tbl">reservations · UNIQUE(token)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-venues" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue_id <span class="rule">(NO ACTION)</span></span></div>
+        <div class="f" data-fk="ent-guests" data-card="N:1" data-optional="1"><span class="fm fk">◆</span><span class="tb t-fk">Guest</span><span class="fn opt">guest_id? <span class="rule">(SET NULL)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">token <span class="rule">(unique, Gast-Link)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">guestName / guestEmail</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">guestPhone?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">guestNotes?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">partySize</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn opt">tableNumber?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">tableIds? <span class="rule">(zusammengeführte Tische)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">startsAt / endsAt</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">status</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">adminNotes?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn opt">reminderSentAt?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">paymentIntentId? / paymentStatus? / paymentCaptureMethod?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">source? <span class="rule">('online'|'admin'|'pms'…)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">hotelRoomNumber?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">mewsReservationId? / pmsSyncStatus?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+      <div class="enumvals">status: pending · confirmed · seated · cleanup · completed · cancelled · no_show</div>
+    </div>
+
+    <div class="ent a-rose" id="ent-reservation_packages">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🎁</span> ReservationPackage</div>
+        <div class="ent-tbl">reservation_packages</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-reservations" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Reservation</span><span class="fn">reservation_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">packageId <span class="rule">(referenziert tenant.uiSettings.packages[], kein FK)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">packageName <span class="rule">(Snapshot bei Buchung)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn opt">pricePerPerson? <span class="rule">(Snapshot bei Buchung)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">quantity</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-green" id="ent-guests">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">👋</span> Guest</div>
+        <div class="ent-tbl">guests · UNIQUE(tenant_id, email)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name / email</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">phone?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">internalNotes?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">blocked</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">blockedReason?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">totalReservations / noShowCount / cancellationCount</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">totalRevenueCents</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">birthday? / weddingDate? / lastVisitAt?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">allergies?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">gasttypen? / hinweise? / allergene? / reminders?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-rose" id="ent-waitlist_entries">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">⏳</span> WaitlistEntry</div>
+        <div class="ent-tbl">waitlist_entries</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f" data-fk="ent-venues" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue_id <span class="rule">(NO ACTION)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">requestedAt <span class="rule">(gewünschter Slot)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">partySize</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">guestName / guestEmail</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">guestPhone?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">notes?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">status</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+      <div class="enumvals">status: waiting · notified · converted · cancelled</div>
+    </div>
+
   </div>
 </div>
 
-<!-- VENUE  (center) -->
-<div class="ent a-orange" style="left:572px;top:300px;width:283px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">📍</span> Venue</div>
-    <div class="ent-tbl">venues</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">category</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">description?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">address?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">timezone</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">phone?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">email?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">defaultDurationMinutes</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">maxAdvanceBookingDays</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">minAdvanceBookingHours</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">layout?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+<!-- ═══════════════════════════════════════════════ 4. WHATSAPP-BUCHUNG ═══ -->
+<div class="section">
+  <div class="section-title"><span class="dot dot-green"></span><h2>WhatsApp-Buchung</h2></div>
+  <div class="section-grid">
+
+    <div class="ent a-green" id="ent-whatsapp_conversations">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">💬</span> WhatsappConversation</div>
+        <div class="ent-tbl">whatsapp_conversations</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f" data-fk="ent-venues" data-card="N:1" data-optional="1"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn opt">venue_id?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">guestPhone <span class="rule">(wa_id)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">guestWaName? <span class="rule">(WhatsApp-Profilname)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">state</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn opt">draftPartySize?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">draftDate?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">draftTime? <span class="rule">(HH:MM)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">draftName?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">offeredSlots? <span class="rule">(zuletzt angebotene Uhrzeiten)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-uuid">UUID</span><span class="fn opt">reservationId? <span class="rule">(kein FK — Snapshot nach Abschluss)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">lastInboundMessageId? <span class="rule">(Dedupe gg. Webhook-Retries)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">retryCount</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+      <div class="enumvals">state: awaiting_venue (nur bei &gt;1 aktivem Venue) · awaiting_party_size · awaiting_date · awaiting_time · awaiting_name · awaiting_confirmation · completed · abandoned · cancelled</div>
+    </div>
+
+    <div class="ent a-green" id="ent-whatsapp_message_log">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🗒️</span> WhatsappMessageLog</div>
+        <div class="ent-tbl">whatsapp_message_log · reiner Audit-Trail, keine FKs</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-uuid">UUID</span><span class="fn opt">tenantId? <span class="rule">(kein FK, nur Referenz)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-uuid">UUID</span><span class="fn opt">conversationId? <span class="rule">(kein FK, nur Referenz)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">direction</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">waMessageId?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">phone</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">body?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">payload? <span class="rule">(Rohdaten, für Replay/Debug)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+      <div class="enumvals">direction: inbound · outbound</div>
+    </div>
+
   </div>
 </div>
 
-<!-- OPENING HOURS  (center-right) -->
-<div class="ent a-emerald" style="left:878px;top:300px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">🕐</span> OpeningHours</div>
-    <div class="ent-tbl">opening_hours · UNIQUE(tenant, weekday)</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">weekday (0=Mo…6=So)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">open</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">openTime? (HH:MM)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">closeTime? (HH:MM)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">breaks?</span></div>
+<!-- ═══════════════════════════════════════════════ 5. GUTSCHEINE ═══ -->
+<div class="section">
+  <div class="section-title"><span class="dot dot-purple"></span><h2>Gutscheine</h2></div>
+  <div class="section-grid">
+
+    <div class="ent a-purple" id="ent-vouchers">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🎟️</span> Voucher</div>
+        <div class="ent-tbl">vouchers · UNIQUE(code)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">code <span class="rule">(unique)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dec">dec</span><span class="fn">amount / remainingAmount</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">buyerName</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">buyerEmail?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">recipientName</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">recipientEmail?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">message?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">status</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">expiresAt</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn opt">redeemedAt?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">deliveryMethod <span class="rule">('email'|'postal')</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">postalAddress?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+      <div class="enumvals">status: active · redeemed · … (weitere Werte je nach Ablauf/Stornierung)</div>
+    </div>
+
+    <div class="ent a-purple" id="ent-voucher_configs">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">⚙️</span> VoucherConfig</div>
+        <div class="ent-tbl">voucher_configs · UNIQUE(tenant_id) · 1:1</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="1:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn">activePaymentMethods</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">postalEnabled</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dec">dec</span><span class="fn opt">postalShippingCost?</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-purple" id="ent-voucher_images">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🖼️</span> VoucherImage</div>
+        <div class="ent-tbl">voucher_images</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn">url</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- SPECIAL CLOSING  (below OpeningHours) -->
-<div class="ent a-red" style="left:878px;top:510px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">🚫</span> SpecialClosing</div>
-    <div class="ent-tbl">special_closings</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">dateFrom</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">dateTo</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">reason?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">fullDay</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">openTime?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">closeTime?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+<!-- ═══════════════════════════════════════════════ 6. SCHICHTPLANUNG ═══ -->
+<div class="section">
+  <div class="section-title"><span class="dot dot-teal"></span><h2>Schichtplanung</h2></div>
+  <div class="section-grid">
+
+    <div class="ent a-teal" id="ent-shifts">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🗓️</span> Shift</div>
+        <div class="ent-tbl">shifts · UNIQUE(tenant_id, employee_id, date)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">employeeId <span class="rule">(varchar(36), kein FK — lose Referenz auf Staff.id)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">date</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">type</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">startTime? / endTime? <span class="rule">(HH:MM)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">note?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-teal" id="ent-shift_templates">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">📐</span> ShiftTemplate</div>
+        <div class="ent-tbl">shift_templates</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn">entries <span class="rule">(Wochenraster)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-teal" id="ent-shift_availability">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🚦</span> ShiftAvailability</div>
+        <div class="ent-tbl">shift_availability · UNIQUE(tenant_id, employee_id, weekday)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">employeeId <span class="rule">(kein FK)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">weekday</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">type <span class="rule">(z.B. bevorzugt/gesperrt)</span></span></div>
+      </div>
+    </div>
+
+    <div class="ent a-teal" id="ent-shift_swap_requests">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🔄</span> ShiftSwapRequest</div>
+        <div class="ent-tbl">shift_swap_requests</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">fromEmployeeId / toEmployeeId <span class="rule">(kein FK)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn">date</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">status</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">note?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt</span></div>
+      </div>
+      <div class="enumvals">status: pending · … (Annahme/Ablehnung je nach Workflow)</div>
+    </div>
+
+    <div class="ent a-teal" id="ent-shift_wages">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">💰</span> ShiftWage</div>
+        <div class="ent-tbl">shift_wages · UNIQUE(tenant_id, employee_id)</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">employeeId <span class="rule">(kein FK)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dec">dec</span><span class="fn">hourlyRate</span></div>
+      </div>
+    </div>
+
+    <div class="ent a-teal" id="ent-shift_settings">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">🛠️</span> ShiftSettings</div>
+        <div class="ent-tbl">shift_settings · UNIQUE(tenant_id) · 1:1</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="1:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">overtimeLimit</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn">minStaff <span class="rule">(Mindestbesetzung je Zeitfenster)</span></span></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- RESOURCE  (below Venue) -->
-<div class="ent a-amber" style="left:572px;top:668px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">🪑</span> Resource</div>
-    <div class="ent-tbl">resources</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">capacity</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">active</span></div>
+<!-- ═══════════════════════════════════════════════ 7. SONSTIGES ═══ -->
+<div class="section">
+  <div class="section-title"><span class="dot dot-yellow"></span><h2>Sonstiges</h2></div>
+  <div class="section-grid">
+
+    <div class="ent a-yellow" id="ent-notizen">
+      <div class="ent-head">
+        <div class="ent-name"><span class="ent-icon">📝</span> Notiz</div>
+        <div class="ent-tbl">notizen</div>
+      </div>
+      <div class="ent-body">
+        <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
+        <div class="f" data-fk="ent-tenants" data-card="N:1"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant_id <span class="rule">(CASCADE)</span></span></div>
+        <div class="f" data-fk="ent-users" data-card="N:1" data-optional="1"><span class="fm fk">◆</span><span class="tb t-fk">User</span><span class="fn opt">createdBy_id? <span class="rule">(SET NULL)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">date <span class="rule">(YYYY-MM-DD)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">time? <span class="rule">(HH:MM)</span></span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">title</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">text?</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">color</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">done</span></div>
+        <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- RESERVATION  (bottom center-right) -->
-<div class="ent a-rose" style="left:878px;top:758px;width:285px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">📋</span> Reservation</div>
-    <div class="ent-tbl">reservations</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Venue</span><span class="fn">venue</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Guest</span><span class="fn opt">guest? (SET NULL)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">token (unique)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">guestName</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">guestEmail</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">guestPhone?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">guestNotes?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">partySize</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn opt">tableNumber?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">startsAt</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">endsAt</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-enum">enum</span><span class="fn">status</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">adminNotes?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn opt">reminderSentAt?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
-  </div>
-</div>
-
-<!-- NOTIZ  (bottom left) -->
-<div class="ent a-yellow" style="left:10px;top:785px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">📝</span> Notiz</div>
-    <div class="ent-tbl">notizen</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">User</span><span class="fn opt">createdBy? (SET NULL)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">date (YYYY-MM-DD)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">time? (HH:MM)</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">title</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">text?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">color</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">done</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
-  </div>
-</div>
-
-<!-- GUEST  (far right) -->
-<div class="ent a-green" style="left:1185px;top:20px;width:295px">
-  <div class="ent-head">
-    <div class="ent-name"><span class="ent-icon">👋</span> Guest</div>
-    <div class="ent-tbl">guests · UNIQUE(tenant, email)</div>
-  </div>
-  <div class="ent-body">
-    <div class="f"><span class="fm pk">◆</span><span class="tb t-uuid">UUID</span><span class="fn">id</span></div>
-    <div class="f"><span class="fm fk">◆</span><span class="tb t-fk">Tenant</span><span class="fn">tenant</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">name</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn">email</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">phone?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">internalNotes?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-bool">bool</span><span class="fn">blocked</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-str">str</span><span class="fn opt">blockedReason?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">totalReservations</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">noShowCount</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">totalRevenueCents</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-int">int</span><span class="fn">cancellationCount</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">birthday?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">weddingDate?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-date">date</span><span class="fn opt">lastVisitAt?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-text">text</span><span class="fn opt">allergies?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">gasttypen?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">hinweise?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">allergene?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-json">json</span><span class="fn opt">reminders?</span></div>
-    <div class="f"><span class="fm reg">•</span><span class="tb t-dt">DT</span><span class="fn">createdAt / updatedAt</span></div>
-  </div>
-</div>
-
-<!-- ReservationStatus enum box -->
-<div style="position:absolute;left:878px;top:1140px;background:#14172088;border:1px solid #252836;border-radius:8px;padding:8px 14px;font-size:10px;color:#9ca3af">
-  <span style="color:#e879f9;font-weight:700;font-family:monospace">enum</span>
-  <span style="color:#e2e8f0;margin-left:6px">status:</span>
-  <span style="color:#6b7280;margin-left:6px">pending · confirmed · seated · cleanup · completed · cancelled · no_show</span>
-</div>
-
-</div><!-- /canvas -->
+</div><!-- /wrap -->
 
 <!-- LEGEND -->
 <div class="legend">
   <div class="li"><span class="ld ld-pk"></span> Primary Key (PK)</div>
-  <div class="li"><span class="ld ld-fk"></span> Foreign Key (FK)</div>
-  <div class="li"><div class="ll"></div> Pflicht-Beziehung (1:N / 1:1)</div>
-  <div class="li"><div class="ll-dash"></div> Optionale Beziehung (0..1)</div>
+  <div class="li"><span class="ld ld-fk"></span> Foreign Key (FK) — Ziel + Delete-Rule im Feldtext</div>
   <div class="li"><span style="color:#4ade80;font-size:11px;font-family:monospace">str</span> string</div>
   <div class="li"><span style="color:#fb923c;font-size:11px;font-family:monospace">int</span> integer</div>
-  <div class="li"><span style="color:#fbbf24;font-size:11px;font-family:monospace">bool</span> boolean</div>
+  <div class="li"><span style="color:#fdba74;font-size:11px;font-family:monospace">dec</span> decimal</div>
+  <div class="li"><span style="color:#fbbf24;font-size:11px;font-family:monospace">bool</span> boolean (tinyint)</div>
   <div class="li"><span style="color:#c084fc;font-size:11px;font-family:monospace">json</span> JSON / array</div>
   <div class="li"><span style="color:#2dd4bf;font-size:11px;font-family:monospace">DT</span> DateTime</div>
-  <div class="li"><span style="color:#e879f9;font-size:11px;font-family:monospace">enum</span> Enum</div>
+  <div class="li"><span style="color:#9ca3af;font-size:11px;font-family:monospace">text</span> text/longtext</div>
+  <div class="li"><span style="color:#e879f9;font-size:11px;font-family:monospace">enum</span> String-Enum (siehe Kartenfuß)</div>
   <div class="li"><span style="color:#9ca3af;font-size:11px">field?</span> nullable</div>
+  <div class="li" style="border-left:1px solid #252836;padding-left:20px"><svg width="28" height="10"><line x1="0" y1="5" x2="28" y2="5" stroke="#4b5563" stroke-width="1.4"/></svg> Pflicht-Beziehung (N:1 / 1:1)</div>
+  <div class="li"><svg width="28" height="10"><line x1="0" y1="5" x2="28" y2="5" stroke="#4b5563" stroke-width="1.4" stroke-dasharray="4,3"/></svg> Optionale Beziehung (nullable FK)</div>
 </div>
+<p class="note" style="margin-top:14px"><strong>Verbindungslinien sind bewusst sehr dezent im Ruhezustand</strong> — bei 25 Beziehungen über 24 Karten wäre alles gleichzeitig sichtbar nur ein Gewirr. <strong>Fahr mit der Maus über eine Karte</strong> (z.B. „Venue"), um gezielt nur deren Beziehungen hervorzuheben — alles andere bleibt ausgeblendet. Die Kardinalität steht dabei direkt am jeweiligen Ende: das Zahl/Buchstaben-Label direkt am Feld (z.B. „N" bei Resource.venue_id) gehört zu <em>dieser</em> Seite, das Label direkt an der Ziel-Karte (z.B. „1" bei Venue) zur <em>anderen</em> Seite — also 1 Venue : N Resources. Positionen werden live per <code>getBoundingClientRect()</code> vermessen, daher bleiben die Linien auch bei Fenster-Resize korrekt.</p>
+
+<script>
+(function () {
+  const svg  = document.getElementById('rel-svg');
+  const wrap = document.getElementById('wrap');
+  if (!svg || !wrap) return;
+
+  function draw() {
+    const wrapRect = wrap.getBoundingClientRect();
+    const width  = wrap.scrollWidth;
+    const height = wrap.scrollHeight;
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.innerHTML = '';
+
+    document.querySelectorAll('[data-fk]').forEach(function (fieldEl) {
+      const targetId = fieldEl.getAttribute('data-fk');
+      const targetEl = document.getElementById(targetId);
+      if (!targetEl) return;
+      const head = targetEl.querySelector('.ent-head');
+      const card = fieldEl.getAttribute('data-card') || '';
+      const optional = fieldEl.hasAttribute('data-optional');
+
+      const fRect = fieldEl.getBoundingClientRect();
+      const tRect = head.getBoundingClientRect();
+
+      const x1 = fRect.left - wrapRect.left;
+      const y1 = fRect.top  - wrapRect.top + fRect.height / 2;
+      const x2 = tRect.left + tRect.width / 2 - wrapRect.left;
+      const y2 = tRect.top  - wrapRect.top + tRect.height / 2;
+
+      // Kontrollpunkte: erst nach links aus dem Feld heraus, dann sanfte Kurve zur Zielkarte
+      const bend = Math.max(40, Math.min(160, Math.abs(x2 - x1) * 0.35));
+      const d = `M ${x1} ${y1} C ${x1 - bend} ${y1}, ${x2} ${y2 - bend * 0.6}, ${x2} ${y2}`;
+
+      // Kardinalität wird an BEIDEN Enden separat beschriftet (Standard-ER-Notation) —
+      // "N:1" heißt: Quellseite (Feld/Kind, z.B. Resource) = N, Zielseite (Karte/Eltern, z.B. Venue) = 1.
+      const parts = card.split(':');
+      const srcLabelText = parts[0] || '';
+      const tgtLabelText = parts[1] || parts[0] || '';
+
+      const srcLabelX = x1 - 14;
+      const srcLabelY = y1 - 5;
+      const tgtLabelX = x2;
+      const tgtLabelY = y2 - (tRect.height / 2) - 5;
+
+      const sourceCard = fieldEl.closest('.ent[id]');
+
+      const ns = 'http://www.w3.org/2000/svg';
+      const g = document.createElementNS(ns, 'g');
+      g.setAttribute('class', 'rel-group');
+      if (sourceCard) g.setAttribute('data-source', sourceCard.id);
+      g.setAttribute('data-target', targetId);
+
+      const hit = document.createElementNS(ns, 'path');
+      hit.setAttribute('d', d);
+      hit.setAttribute('class', 'rel-hit');
+      g.appendChild(hit);
+
+      const path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('class', 'rel-path' + (optional ? ' opt' : ''));
+      g.appendChild(path);
+
+      const srcLabel = document.createElementNS(ns, 'text');
+      srcLabel.setAttribute('x', srcLabelX);
+      srcLabel.setAttribute('y', srcLabelY);
+      srcLabel.setAttribute('text-anchor', 'end');
+      srcLabel.setAttribute('class', 'rel-label');
+      srcLabel.textContent = srcLabelText;
+      g.appendChild(srcLabel);
+
+      const tgtLabel = document.createElementNS(ns, 'text');
+      tgtLabel.setAttribute('x', tgtLabelX);
+      tgtLabel.setAttribute('y', tgtLabelY);
+      tgtLabel.setAttribute('text-anchor', 'middle');
+      tgtLabel.setAttribute('class', 'rel-label');
+      tgtLabel.textContent = tgtLabelText;
+      g.appendChild(tgtLabel);
+
+      svg.appendChild(g);
+    });
+  }
+
+  window.addEventListener('load', draw);
+  let resizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(draw, 150);
+  });
+  // Fallback falls 'load' schon gefeuert hat (z.B. bei Wiedereinbindung)
+  if (document.readyState === 'complete') draw();
+
+  // ── Karten-Hover: hebt nur die Beziehungen DIESER Karte hervor,
+  //    Rest bleibt auf dem sehr dezenten Grundwert. Per Event-Delegation,
+  //    damit es auch nach dem Neuzeichnen bei Resize weiter funktioniert
+  //    (die .ent-Karten selbst werden nie neu erzeugt, nur die SVG-Linien).
+  function setActive(cardId, on) {
+    document.querySelectorAll('.rel-group').forEach(function (g) {
+      if (g.getAttribute('data-source') === cardId || g.getAttribute('data-target') === cardId) {
+        g.classList.toggle('rel-active', on);
+      }
+    });
+    const card = document.getElementById(cardId);
+    if (card) card.classList.toggle('ent-highlight', on);
+  }
+
+  document.addEventListener('mouseover', function (e) {
+    const card = e.target.closest('.ent[id]');
+    if (card) setActive(card.id, true);
+  });
+  document.addEventListener('mouseout', function (e) {
+    const card = e.target.closest('.ent[id]');
+    if (card) setActive(card.id, false);
+  });
+})();
+</script>
 
 </body>
 </html>

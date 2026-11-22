@@ -619,6 +619,21 @@
   background: rgba(41, 121, 255, 0.15);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  HELLMODUS — Label-Textfeld: Text schwarz statt weiß, sonst auf dem hellen
+//  Hintergrund praktisch unsichtbar. :host-context scoped auf body ohne
+//  Dim/Dark-Klasse (gleiche Konvention wie raum-detail.component.scss).
+// ═══════════════════════════════════════════════════════════════════════════
+:host-context(body:not(.dim-theme):not(.dark-theme)) {
+  .label-text {
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  .label-edit-input {
+    color: #000;
+  }
+}
+
 // ── Handles ───────────────────────────────────────────────────────────────────
 
 .handle {

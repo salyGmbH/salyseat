@@ -20,6 +20,8 @@ interface ApiTemplate {
 
 interface ApiSettings {
   overtime_limit: number; min_staff: number[];
+  shift_times?: SpSettings['shiftTimes'] | null;
+  user_shifts?: SpSettings['userShifts'] | null;
 }
 
 interface ApiWage {
@@ -59,7 +61,12 @@ export class SchichtplanungService {
   }
 
   private toSettings(a: ApiSettings): SpSettings {
-    return { overtimeLimit: a.overtime_limit, minStaff: a.min_staff };
+    return {
+      overtimeLimit: a.overtime_limit,
+      minStaff:      a.min_staff,
+      shiftTimes:    a.shift_times ?? undefined,
+      userShifts:    a.user_shifts ?? undefined,
+    };
   }
 
   private toWage(a: ApiWage): WageEntry {
@@ -192,7 +199,12 @@ export class SchichtplanungService {
   }
 
   saveSettings(settings: SpSettings): Observable<SpSettings> {
-    const body = { overtime_limit: settings.overtimeLimit, min_staff: settings.minStaff };
+    const body = {
+      overtime_limit: settings.overtimeLimit,
+      min_staff:      settings.minStaff,
+      shift_times:    settings.shiftTimes ?? null,
+      user_shifts:    settings.userShifts ?? null,
+    };
     return new Observable(obs => {
       this.http.put<ApiSettings>(`${this.base}/settings`, body).subscribe({
         next: a => { obs.next(this.toSettings(a)); obs.complete(); },
@@ -251,5 +263,16 @@ export class SchichtplanungService {
 
   deleteSwap(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/swaps/${id}`);
+  }
+
+  // ── PDF per Mail ────────────────────────────────────────────────────────
+
+  sendPdf(employeeIds: string[], pdfBase64: string, weekLabel: string, fileName: string): Observable<{ sent: string[]; skipped: string[] }> {
+    return this.http.post<{ sent: string[]; skipped: string[] }>(`${this.base}/send-pdf`, {
+      employee_ids: employeeIds,
+      pdf_base64:   pdfBase64,
+      week_label:   weekLabel,
+      file_name:    fileName,
+    });
   }
 }

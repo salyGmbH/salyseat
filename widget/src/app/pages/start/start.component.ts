@@ -1205,8 +1205,9 @@ export class StartComponent implements OnInit {
     decors.forEach(d => {
       const isWide = ['bar', 'stage', 'sofa'].includes(d.type);
       const isWindow = d.type === 'window';
-      const baseW = (isWide || isWindow) ? 140 : 70;
-      const baseH = isWindow ? 32 : 70;
+      const isLabel = d.type === 'label';
+      const baseW = (isWide || isWindow) ? 140 : (isLabel ? 120 : 70);
+      const baseH = isWindow ? 32 : (isLabel ? 40 : 70);
       const w = baseW * d.scale;
       const h = baseH * d.scale;
       pts.push({ minX: d.x - pad, minY: d.y - pad, maxX: d.x + w + pad, maxY: d.y + h + pad });
@@ -1266,6 +1267,15 @@ export class StartComponent implements OnInit {
           el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 50);
       }
+      return;
+    }
+    // Von Schritt 3 (Personenzahl) aus: Tischwahl-Zwischenschritt einblenden,
+    // falls der Nutzer bereits eine Personenzahl gewählt hat und direkt über
+    // den "Weiter"-Button springt, statt nochmal auf einen Sitzplatz-Chip zu
+    // klicken (der Klick auf den Chip selbst löst die Prüfung schon über
+    // selectPlannerSeats() aus — hier greift sie zusätzlich für den CTA-Button).
+    if (s === 3 && this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
+      this.tischwahlActive.set(true);
       return;
     }
     if (s < 5) this.plannerAdvanceTo((s + 1) as 1 | 2 | 3 | 4 | 5);
@@ -1481,6 +1491,18 @@ export class StartComponent implements OnInit {
     const fontSize  = sizeMap[design.fontSize];
     const radiusPx  = radiusMap[design.cornerRadius];
 
+    // Kachel-Hintergrund (fällt auf colorBackground zurück wenn nicht gesetzt).
+    // Das ist die tatsächliche, im Designer editierbare Oberfläche des
+    // Widgets ("Widget-Kachel") – im Gegensatz zum älteren `colorBackground`,
+    // das im Designer kein eigenes Eingabefeld mehr hat und daher als reine
+    // Kontrast-Referenz veraltet/falsch sein kann.
+    const cardBg = design.cardBackground ?? design.colorBackground ?? '#ffffff';
+
+    // Frei wählbare Textfarbe gegen die tatsächliche Kachel-Oberfläche
+    // absichern, damit Text/Icons/Rahmen (z. B. im Tischwahl-Dialog) nicht
+    // unsichtbar werden, wenn Textfarbe und Kachel-Hintergrund zu ähnlich sind.
+    const safeCardText = this.ensureReadableText(cardBg, design.colorText ?? '#1f2937');
+
     // Legacy --w-* variables (keep for backward compat)
     if (design.colorPrimary) {
       root.style.setProperty('--w-color-primary', design.colorPrimary);
@@ -1488,11 +1510,9 @@ export class StartComponent implements OnInit {
       if (rgb) root.style.setProperty('--w-color-primary-rgb', rgb);
       root.style.setProperty('--w-color-primary-dark', this.darkenHex(design.colorPrimary, 20));
     }
-    if (design.colorText)       root.style.setProperty('--w-color-text', design.colorText);
-    if (design.colorBackground) {
-      root.style.setProperty('--w-color-bg', design.colorBackground);
-      root.style.setProperty('--w-color-surface', design.colorBackground);
-    }
+    root.style.setProperty('--w-color-text', safeCardText);
+    root.style.setProperty('--w-color-bg', cardBg);
+    root.style.setProperty('--w-color-surface', cardBg);
     if (fontStack) root.style.setProperty('--w-font', fontStack);
     if (fontSize)  root.style.setProperty('font-size', fontSize);
     if (radiusPx !== undefined) {
@@ -1500,13 +1520,16 @@ export class StartComponent implements OnInit {
       root.style.setProperty('--w-radius-sm', `${Math.max(4, Math.round(radiusPx * 0.7))}px`);
     }
 
-    // --preview-* variables for the layout components
-    if (design.colorPrimary)    root.style.setProperty('--preview-primary', design.colorPrimary);
-    if (design.colorText)       root.style.setProperty('--preview-text', design.colorText);
-    if (design.colorBackground) root.style.setProperty('--preview-bg', design.colorBackground);
-
-    // Kachel-Hintergrund (fällt auf colorBackground zurück wenn nicht gesetzt)
-    const cardBg = design.cardBackground ?? design.colorBackground ?? '#ffffff';
+    // --preview-* variables for the layout components.
+    // --preview-bg wurde früher direkt aus dem veralteten `colorBackground`-
+    // Feld gesetzt (kein eigenes Eingabefeld im Designer mehr, blieb also oft
+    // auf Weiß eingefroren). Dutzende Komponenten (Buttons, Karten, Dialoge –
+    // inkl. Tischwahl-Dialog) verwenden --preview-bg aber als "die" Oberfläche
+    // des Widgets. Deshalb hier konsequent an cardBg koppeln, damit Hinter-
+    // grund und die dagegen berechneten Text-/Rahmenfarben immer zusammenpassen.
+    if (design.colorPrimary) root.style.setProperty('--preview-primary', design.colorPrimary);
+    root.style.setProperty('--preview-text', safeCardText);
+    root.style.setProperty('--preview-bg', cardBg);
     root.style.setProperty('--preview-card-bg', cardBg);
 
     // Seiten-Hintergrund auf body anwenden
@@ -1536,12 +1559,18 @@ export class StartComponent implements OnInit {
       }
     }
 
-    const isDark = this.isDarkBackground(design.colorBackground ?? '#ffffff');
+    // isDark bewusst gegen cardBg (die tatsächliche Oberfläche, auf der Text,
+    // Rahmen und Buttons liegen) bestimmen, nicht gegen das veraltete
+    // `colorBackground` – sonst werden --preview-muted/-border/-soft falsch
+    // berechnet, sobald die Kachel dunkel, das alte Feld aber (mangels
+    // eigenem Eingabefeld im Designer) noch hell eingefroren ist.
+    const isDark = this.isDarkBackground(cardBg);
     root.style.setProperty('--preview-muted',  isDark
       ? 'rgba(255,255,255,0.6)'
       : 'color-mix(in srgb, var(--preview-text) 52%, transparent)');
     root.style.setProperty('--preview-border', isDark ? 'rgba(255,255,255,0.14)' : 'color-mix(in srgb, var(--preview-text) 14%, transparent)');
     root.style.setProperty('--preview-soft',   isDark ? 'rgba(255,255,255,0.06)' : 'color-mix(in srgb, var(--preview-text) 4%, transparent)');
+
     if (fontStack) root.style.setProperty('--preview-font', fontStack);
     if (fontSize)  root.style.setProperty('--preview-base', fontSize);
     const capped = Math.min(radiusPx ?? 10, 14);
@@ -1622,6 +1651,43 @@ export class StartComponent implements OnInit {
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
     return (r * 0.299 + g * 0.587 + b * 0.114) / 255 < 0.5;
+  }
+
+  /** WCAG relative luminance (0 = schwarz, 1 = weiß). */
+  private relativeLuminance(hex: string): number {
+    const h = hex.replace('#', '');
+    if (h.length !== 6) return 1;
+    const chan = (v: number) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+    const r = chan(parseInt(h.slice(0, 2), 16));
+    const g = chan(parseInt(h.slice(2, 4), 16));
+    const b = chan(parseInt(h.slice(4, 6), 16));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  /** WCAG-Kontrastverhältnis zweier Hex-Farben (1 = kein Kontrast, 21 = max). */
+  private contrastRatio(hexA: string, hexB: string): number {
+    const lA = this.relativeLuminance(hexA);
+    const lB = this.relativeLuminance(hexB);
+    const lighter = Math.max(lA, lB);
+    const darker = Math.min(lA, lB);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  /**
+   * Liefert `fgHex`, sofern es ausreichend Kontrast zu `bgHex` hat – sonst
+   * Schwarz/Weiß (je nachdem was besser lesbar ist). Verhindert, dass Text
+   * oder Grafik-Elemente unsichtbar werden, wenn im Widget-Designer Text-
+   * und Hintergrundfarbe versehentlich zu ähnlich gewählt werden.
+   */
+  private ensureReadableText(bgHex: string, fgHex: string, minRatio = 3): string {
+    if (!/^#[0-9a-fA-F]{6}$/.test(bgHex) || !/^#[0-9a-fA-F]{6}$/.test(fgHex)) return fgHex;
+    if (this.contrastRatio(bgHex, fgHex) >= minRatio) return fgHex;
+    const contrastWithBlack = this.contrastRatio(bgHex, '#111827');
+    const contrastWithWhite = this.contrastRatio(bgHex, '#ffffff');
+    return contrastWithBlack >= contrastWithWhite ? '#111827' : '#ffffff';
   }
 
   private hexToRgbString(hex: string): string | null {

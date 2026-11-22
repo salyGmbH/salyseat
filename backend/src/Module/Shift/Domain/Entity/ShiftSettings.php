@@ -30,6 +30,14 @@ class ShiftSettings
     #[ORM\Column(type: 'json')]
     private array $minStaff = [2, 2, 2, 2, 2, 1, 1];
 
+    /** Konfigurierbare Zeiten für die built-in Schichten (early/late/night) */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $shiftTimes = null;
+
+    /** Selbst angelegte, zusätzliche Schichttypen */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $userShifts = null;
+
     public function __construct(Tenant $tenant)
     {
         $this->id     = Uuid::v7();
@@ -40,7 +48,11 @@ class ShiftSettings
     public function getTenant(): Tenant { return $this->tenant; }
     public function getOvertimeLimit(): int { return $this->overtimeLimit; }
     public function getMinStaff(): array    { return $this->minStaff; }
+    public function getShiftTimes(): ?array { return $this->shiftTimes; }
+    public function getUserShifts(): ?array { return $this->userShifts; }
 
     public function setOvertimeLimit(int $limit): void { $this->overtimeLimit = max(1, $limit); }
     public function setMinStaff(array $minStaff): void { $this->minStaff = $minStaff; }
+    public function setShiftTimes(?array $shiftTimes): void { $this->shiftTimes = $shiftTimes; }
+    public function setUserShifts(?array $userShifts): void { $this->userShifts = $userShifts; }
 }

@@ -3,7 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import Chart from 'chart.js/auto';
-import { StatistikenService, StatsTotals, StatsTimeslot, StatsMonthly, StatsTopGuest, StatsGuestTypes, StatsSources } from '../../services/statistiken.service';
+import { StatistikenService, StatsTotals, StatsTimeslot, StatsMonthly, StatsTopGuest, StatsGuestTypes, StatsSources, StatsLeadTime, StatsGroupHeatmap, StatsInsights } from '../../services/statistiken.service';
 
 // Inline-Plugin: Werte über den Balken rendern
 const topLabelsPlugin = {
@@ -134,10 +134,14 @@ export class StatistikenComponent implements AfterViewInit {
       this.topGuests = data.topGuests;
       this.processTimeslots(data.timeslots);
       this.processMonthly(data.monthly);
+      this.leadTime.set(data.leadTime);
+      this.groupHeatmap.set(data.groupHeatmap);
+      this.insights.set(data.insights);
       this.kpiLoading.set(false);
       this.createLineChart();
       this.createGuestTypesChart();
       this.createQuellenChart();
+      this.createLeadTimeChart();
       this.buildAuslastungChart();
     });
   }
@@ -145,14 +149,13 @@ export class StatistikenComponent implements AfterViewInit {
   // ─── KPI (real data) ────────────────────────────────────────────────────────
   totals = signal<StatsTotals>({ reservations: 0, guests: 0, noShows: 0, auslastung: 0 });
 
-  // ─── KPI (static / not available from DB yet) ────────────────────────────────
-  metrics = [
-    { name: 'Reservierungsrate',    value: 90 },
-    { name: 'Auslastung',           value: 75 },
-    { name: 'Kundenzufriedenheit',  value: 65 },
-    { name: 'Pünktlichkeit',        value: 80 },
-    { name: 'Wiederkehrende Gäste', value: 70 }
-  ];
+  // ─── Business-Insights (real data) ───────────────────────────────────────────
+  insights = signal<StatsInsights>({
+    waitlist: { total: 0, converted: 0, missed: 0, missedGuests: 0, conversionRate: null },
+    topPackage: null,
+    mismatch: null,
+    growth: null,
+  });
 
   topGuests: StatsTopGuest[] = [];
 
@@ -173,11 +176,19 @@ export class StatistikenComponent implements AfterViewInit {
     { label: 'Manuell',       value: this.sources().admin,   pct: this.sources().adminPercent,   color: '#22c55e' },
   ]);
 
-  geraeteData = [
-    { label: 'Desktop', value: 55, color: '#2979ff' },
-    { label: 'Mobile',  value: 35, color: '#ffb700' },
-    { label: 'Tablet',  value: 10, color: '#22c55e' },
-  ];
+  // ─── Buchungsvorlauf (real data) ─────────────────────────────────────────────
+  leadTime = signal<StatsLeadTime>({ lastMinute: 0, lastMinutePercent: 0, shortTerm: 0, shortTermPercent: 0, planned: 0, plannedPercent: 0, longTerm: 0, longTermPercent: 0 });
+
+  readonly leadTimeData = computed(() => [
+    { label: 'statistiken.lead_time_last_minute', value: this.leadTime().lastMinute, pct: this.leadTime().lastMinutePercent, color: '#ef4444' },
+    { label: 'statistiken.lead_time_short_term',  value: this.leadTime().shortTerm,  pct: this.leadTime().shortTermPercent,  color: '#ffb700' },
+    { label: 'statistiken.lead_time_planned',     value: this.leadTime().planned,    pct: this.leadTime().plannedPercent,    color: '#2979ff' },
+    { label: 'statistiken.lead_time_long_term',   value: this.leadTime().longTerm,   pct: this.leadTime().longTermPercent,   color: '#22c55e' },
+  ]);
+
+  readonly leadTimeTotal = computed(() =>
+    this.leadTime().lastMinute + this.leadTime().shortTerm + this.leadTime().planned + this.leadTime().longTerm
+  );
 
   readonly guestTypesTotal = computed(() => this.guestTypes().new + this.guestTypes().returning);
   readonly quellenTotal    = computed(() => this.sources().online + this.sources().walkIn + this.sources().admin);
@@ -198,12 +209,21 @@ export class StatistikenComponent implements AfterViewInit {
 
   private lineChartInst?: Chart;
   private auslastungChart?: Chart;
+  private guestTypesChartInst?: Chart;
+  private quellenChartInst?: Chart;
+  private leadTimeChartInst?: Chart;
 
   private destroyCharts(): void {
     this.lineChartInst?.destroy();
     this.auslastungChart?.destroy();
+    this.guestTypesChartInst?.destroy();
+    this.quellenChartInst?.destroy();
+    this.leadTimeChartInst?.destroy();
     this.lineChartInst = undefined;
     this.auslastungChart = undefined;
+    this.guestTypesChartInst = undefined;
+    this.quellenChartInst = undefined;
+    this.leadTimeChartInst = undefined;
   }
 
   // ─── Monatliche Reservierungen (real data) ───────────────────────────────────
@@ -211,18 +231,41 @@ export class StatistikenComponent implements AfterViewInit {
   private monthlyCounts: number[] = [];
   monthlyBadge = '';
 
-  // ─── Gruppen-Heatmap (static) ────────────────────────────────────────────────
-  gruppenFilter = 'ganzerTag';
+  // ─── Stoßzeiten-Ranking (real data) — stärkster Moment je Wochentag ─────────
+  private groupHeatmap = signal<StatsGroupHeatmap>({ labels: [], rows: [] });
 
-  gruppenLabels = ['17:00',':15',':30',':45','18:00',':15',':30',':45','19:00',':15',':30',':45','20:00',':15',':30',':45','21:00'];
+  /** Backend liefert deutsche Kürzel (Mo/Di/…) — Mapping auf Übersetzungs-Keys statt fest verdrahteter Namen. */
+  private readonly weekdayTranslationKeys: Record<string, string> = {
+    Mo: 'statistiken.weekday_mo', Di: 'statistiken.weekday_di', Mi: 'statistiken.weekday_mi',
+    Do: 'statistiken.weekday_do', Fr: 'statistiken.weekday_fr', Sa: 'statistiken.weekday_sa',
+    So: 'statistiken.weekday_so',
+  };
 
-  gruppenRows: number[][] = [
-    [20, 0,  2,  0, 20,  0, 20,  0,  2,  2,  2,  0,  0,  4,  0,  0, 14],
-    [ 9, 0,  2,  0,  0,  2,  2,  2,  2,  2,  2,  4,  4,  4,  2,  2,  0],
-    [ 0, 6,  3,  3,  0,  3,  3,  2,  4,  4,  4,  5,  4,  3,  4,  5,  2],
-    [ 2, 3,  2,  2,  3,  3,  3,  4,  5,  6,  7,  8,  4,  3,  5,  6,  4],
-    [ 3, 4,  5, 18,  4,  4,  5,  6,  7,  8,  4,  4,  4,  4,  4,  4,  2],
-  ];
+  /** Pro Wochentag der stärkste 15-Min-Slot (Ø Gäste), absteigend sortiert — max. 5 Einträge. */
+  readonly topBusyTimes = computed(() => {
+    const hm = this.groupHeatmap();
+    return hm.rows
+      .map(row => {
+        let maxIdx = -1;
+        let maxVal = 0;
+        row.values.forEach((v, i) => {
+          if (v > maxVal) { maxVal = v; maxIdx = i; }
+        });
+        if (maxIdx === -1) return null;
+        return {
+          weekdayKey: this.weekdayTranslationKeys[row.weekday] ?? row.weekday,
+          time:       hm.labels[maxIdx],
+          value:      maxVal,
+        };
+      })
+      .filter((p): p is { weekdayKey: string; time: string; value: number } => p !== null)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  });
+
+  medalFor(index: number): string {
+    return ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.`;
+  }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
   ngAfterViewInit(): void {
@@ -233,11 +276,14 @@ export class StatistikenComponent implements AfterViewInit {
       this.topGuests = data.topGuests;
       this.processTimeslots(data.timeslots);
       this.processMonthly(data.monthly);
+      this.leadTime.set(data.leadTime);
+      this.groupHeatmap.set(data.groupHeatmap);
+      this.insights.set(data.insights);
 
       this.createLineChart();
-      this.createDoughnutChart();
       this.createGuestTypesChart();
       this.createQuellenChart();
+      this.createLeadTimeChart();
       this.buildAuslastungChart();
     });
   }
@@ -271,19 +317,6 @@ export class StatistikenComponent implements AfterViewInit {
     const months = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
     const [year, month] = ym.split('-');
     return `${months[parseInt(month, 10) - 1]} ${year.slice(2)}`;
-  }
-
-  // ─── Heatmap helpers ─────────────────────────────────────────────────────────
-  heatBg(v: number): string {
-    if (!v) return 'transparent';
-    const t = Math.min(v / 20, 1);
-    const a = 0.18 + t * 0.77;
-    return `rgba(41,121,255,${a.toFixed(2)})`;
-  }
-
-  heatFg(v: number): string {
-    if (!v) return 'transparent';
-    return Math.min(v / 20, 1) > 0.45 ? 'rgba(255,255,255,0.95)' : 'rgba(41,121,255,1)';
   }
 
   // ─── Auslastung Filter ───────────────────────────────────────────────────────
@@ -332,12 +365,13 @@ export class StatistikenComponent implements AfterViewInit {
     });
   }
 
-  private createDoughnutChart(): void {
-    new Chart('doughnutChart', {
+  private createLeadTimeChart(): void {
+    const data = this.leadTimeData();
+    this.leadTimeChartInst = new Chart('doughnutChart', {
       type: 'doughnut',
       data: {
-        labels: ['Desktop', 'Mobile', 'Tablet'],
-        datasets: [{ data: [55, 35, 10], backgroundColor: ['#2979ff', '#ffb700', '#22c55e'], borderWidth: 0, hoverOffset: 8 }]
+        labels: data.map(d => d.label),
+        datasets: [{ data: data.map(d => d.value), backgroundColor: data.map(d => d.color), borderWidth: 0, hoverOffset: 8 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '74%',
@@ -348,7 +382,7 @@ export class StatistikenComponent implements AfterViewInit {
 
   private createGuestTypesChart(): void {
     const data = this.guestTypesData();
-    new Chart('guestTypesChart', {
+    this.guestTypesChartInst = new Chart('guestTypesChart', {
       type: 'doughnut',
       data: {
         labels: data.map(d => d.label),
@@ -363,7 +397,7 @@ export class StatistikenComponent implements AfterViewInit {
 
   private createQuellenChart(): void {
     const data = this.quellenData();
-    new Chart('quellenChart', {
+    this.quellenChartInst = new Chart('quellenChart', {
       type: 'doughnut',
       data: {
         labels: data.map(d => d.label),

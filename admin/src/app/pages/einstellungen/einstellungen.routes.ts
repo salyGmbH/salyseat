@@ -35,6 +35,7 @@ import { GutscheinDesignerComponent } from './gutschein-designer/gutschein-desig
 import { AboComponent } from './abo/abo.component';
 import { PmsAnbindungComponent } from './pms-anbindung/pms-anbindung.component';
 import { WhatsappAnbindungComponent } from './whatsapp-anbindung/whatsapp-anbindung.component';
+import { KalenderSyncComponent } from './kalender-sync/kalender-sync.component';
 
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
@@ -77,6 +78,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'abo',                component: AboComponent },
       { path: 'pms-anbindung',      component: PmsAnbindungComponent },
       { path: 'whatsapp-anbindung', component: WhatsappAnbindungComponent, canActivate: [addonGuard('whatsapp')] },
+      { path: 'kalender-sync',      component: KalenderSyncComponent },
     ]
   }
 ];

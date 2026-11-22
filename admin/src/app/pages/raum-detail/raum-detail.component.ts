@@ -1,4 +1,4 @@
-import { Component, computed, effect, ElementRef, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule, MatDatepickerInputEvent } from '@angular/material/datepicker';
@@ -18,7 +18,7 @@ import { TenantSettingsService, ConfigItem } from '../../services/tenant-setting
 import { OpeningHoursService, DayHours, SpecialClosing } from '../../services/opening-hours.service';
 import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
 import { TableBlockService, TableBlock } from '../../services/table-block.service';
-import { PlacedTable, TableType, DecorType, SavedRoom } from '../../services/room.types';
+import { PlacedTable, PlacedWall, PlacedDecor, TableType, DecorType, SavedRoom } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
 import { StatusIconComponent } from '../../shared/status-icon/status-icon.component';
@@ -27,6 +27,7 @@ import { WaitlistService, WaitlistEntry, WaitlistEntryStatus } from '../../servi
 import { VerifiedStaff } from '../../services/staff.service';
 import { StaffIdPromptComponent } from '../../shared/staff-id-prompt/staff-id-prompt.component';
 import { TranslateModule } from '@ngx-translate/core';
+import { LayoutService } from '../../layout/layout.service';
 
 type StatusFilter = 'all' | 'active' | FloorReservationStatus;
 
@@ -49,7 +50,8 @@ type StatusFilter = 'all' | 'active' | FloorReservationStatus;
   templateUrl: './raum-detail.component.html',
   styleUrl: './raum-detail.component.scss'
 })
-export class RaumDetailComponent implements OnInit {
+export class RaumDetailComponent implements OnInit, OnDestroy {
+  readonly layout                      = inject(LayoutService);
   private readonly roomsService        = inject(RoomsService);
   private readonly reservationsService = inject(FloorReservationsService);
   private readonly apiReservations     = inject(ReservationsService);
@@ -397,17 +399,34 @@ export class RaumDetailComponent implements OnInit {
   readonly freeSlotsToday = computed(() => {
     const tables = this.room()?.tables ?? [];
     if (!tables.length) return [];
+    // Bereits vergangene Slots ausblenden — aber nur, wenn der ausgewählte
+    // Tag "heute" ist. Ein Slot gilt erst als vorbei, wenn auch sein Ende
+    // in der Vergangenheit liegt — der gerade laufende Slot (z.B. 12:00
+    // bei 12:09 Uhr) bleibt also weiterhin buchbar.
+    const nowMin = this.selectedDate() === this.todayIso()
+      ? (() => { const n = new Date(this.now()); return n.getHours() * 60 + n.getMinutes(); })()
+      : -1;
     const result: Array<{time: string; freeCount: number}> = [];
     for (const slot of this.tlSlots) {
       const [sh, sm] = slot.split(':').map(Number);
       const sStart = sh * 60 + sm;
       const sEnd   = sStart + 30;
+      if (sEnd <= nowMin) continue;
       const free = tables.filter(t => {
-        return !this.activeResForTable(t.id).some(r => {
-          const [rh, rm] = r.time.split(':').map(Number);
-          const rStart = rh * 60 + rm;
-          return rStart < sEnd && (rStart + r.durationMinutes) > sStart;
-        });
+        // activeResForTable() liefert bewusst ALLE Status (auch cancelled/
+        // no-show/completed) für die Timeline-Darstellung — für die reine
+        // Verfügbarkeits-Zählung dürfen die aber keinen Tisch blockieren.
+        return !this.activeResForTable(t.id)
+          .filter(r => !['cancelled', 'completed', 'no-show'].includes(r.status))
+          .some(r => {
+            const [rh, rm] = r.time.split(':').map(Number);
+            const rStart = rh * 60 + rm;
+            // Fallback auf Standard-Dauer, falls die RV keine eigene Dauer
+            // gesetzt hat — sonst wird sie hier fälschlich als 0 Min. lang
+            // behandelt und blockiert dadurch gar keinen Slot mehr.
+            const dur = r.durationMinutes > 0 ? r.durationMinutes : this.timing.defaultDurationMinutes();
+            return rStart < sEnd && (rStart + dur) > sStart;
+          });
       }).length;
       if (free > 0) result.push({ time: slot, freeCount: free });
     }
@@ -515,12 +534,72 @@ export class RaumDetailComponent implements OnInit {
       const room = this.room();
       if (room) this.syncFromBackend(room.id, date);
     }, { allowSignalWrites: true });
+
+    // Beim Öffnen eines Raums (bzw. Wechsel auf einen anderen Raum, oder wenn
+    // sich das Layout seit dem letzten Besuch geändert hat — z.B. Element im
+    // restaurant-plan verschoben) die Ansicht automatisch so verschieben,
+    // dass das oberste Element ganz oben und das linkeste Element ganz links
+    // anliegt — man muss also nicht erst manuell dorthin scrollen. Reagiert
+    // bewusst auf eine LAYOUT-SIGNATUR (Positionen aller Elemente) statt nur
+    // auf die Raum-ID, sonst würde beim erneuten Öffnen desselben (in dieser
+    // Session bereits besuchten) Raums die alte, evtl. veraltete Pan-Position
+    // stehen bleiben. Bei unverändertem Layout (z.B. nur eine Reservierung
+    // aktualisiert) ändert sich die Signatur nicht → kein Spring-Effekt
+    // während der normalen Nutzung.
+    effect(() => {
+      const room = this.room();
+      if (!room) return;
+      const sig = this.planLayoutSignature(room);
+      if (sig === this.autoFitSignature) return;
+      this.autoFitSignature = sig;
+      this.autoFitPlanView(room);
+    }, { allowSignalWrites: true });
+  }
+
+  /** Zuletzt für Auto-Fit verarbeitete Layout-Signatur (siehe Effect im Constructor). */
+  private autoFitSignature: string | null = null;
+
+  /** Fingerprint aus Raum-ID + Positionen aller Elemente — ändert sich nur, wenn sich das Layout wirklich verändert hat. */
+  private planLayoutSignature(room: { id: string; tables: PlacedTable[]; walls: PlacedWall[]; decors: PlacedDecor[] }): string {
+    const t = room.tables.map(x => `${x.id}:${x.x},${x.y}`).join('|');
+    const w = room.walls.map(x => `${x.id}:${x.x},${x.y},${x.length}`).join('|');
+    const d = room.decors.map(x => `${x.id}:${x.x},${x.y}`).join('|');
+    return `${room.id}#${t}#${w}#${d}`;
+  }
+
+  /**
+   * Verschiebt planPanX/planPanY so, dass das oberste/linkeste Element des
+   * Raums direkt (mit etwas Abstand) an der oberen linken Ecke des sichtbaren
+   * Tischplan-Bereichs anliegt, statt bei der rohen Canvas-Koordinate (0,0)
+   * zu starten — Elemente können mittlerweile auch negative x/y haben.
+   */
+  private autoFitPlanView(room: { tables: PlacedTable[]; walls: PlacedWall[]; decors: PlacedDecor[] }): void {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    room.tables.forEach(t => { xs.push(t.x); ys.push(t.y); });
+    room.walls.forEach(w => { xs.push(w.x - w.length / 2); ys.push(w.y - 8); });
+    room.decors.forEach(d => { xs.push(d.x); ys.push(d.y); });
+
+    if (!xs.length) { this.planPanX.set(0); this.planPanY.set(0); return; }
+
+    const PAD = 24;
+    this.planPanX.set(-Math.min(...xs) + PAD);
+    this.planPanY.set(-Math.min(...ys) + PAD);
   }
 
   /** True, sobald die Venue-Liste vom Backend bestätigt wurde. */
   readonly venuesLoaded = this.roomsService.loaded;
 
+  ngOnDestroy(): void {
+    // Toggle-Button wieder aus der Sidebar-Fußzeile entfernen, sobald die
+    // Seite verlassen wird.
+    this.layout.resPanelToggleVisible.set(false);
+  }
+
   ngOnInit(): void {
+    // Res-Panel-Toggle in der Sidebar-Fußzeile nur zeigen, während diese
+    // Seite aktiv ist.
+    this.layout.resPanelToggleVisible.set(true);
     this.tenantSettings.load().subscribe(s => {
       if (s.gasttypen?.length) this.availableGasttypen.set(s.gasttypen);
       if (s.hinweise?.length)  this.availableHinweise.set(s.hinweise);
@@ -832,13 +911,16 @@ export class RaumDetailComponent implements OnInit {
 
   /**
    * Zeitslots für den Reservierungsdialog.
-   * - Vergangene Uhrzeiten werden heute ausgeblendet.
+   * - Vergangene Uhrzeiten werden heute ausgeblendet (außer beim Bearbeiten einer
+   *   bestehenden Reservierung — dort sollen auch frühere Uhrzeiten wählbar bleiben,
+   *   damit man eine Reservierung auf einen früheren Zeitpunkt verschieben kann).
    * - Slots wo alle Tische des Raums bereits belegt sind werden ausgeblendet.
    */
   readonly filteredTimeSlots = computed<string[]>(() => {
     const step     = this.tenantSettings.snapshot.widgetFunctional?.intervall ?? 30;
     const duration = this.formDurationMinutes();
     const formDateVal = this.formDate();
+    const isEditing = this.editingId() !== null;
 
     const all: string[] = [];
     for (let h = 8; h < 24; h++) {
@@ -908,8 +990,9 @@ export class RaumDetailComponent implements OnInit {
       }
     }
 
-    // Vergangene Slots heute ausblenden
-    if (formDateVal === this.todayIso()) {
+    // Vergangene Slots heute ausblenden — beim Bearbeiten einer bestehenden
+    // Reservierung nicht, damit auch auf eine frühere Uhrzeit verschoben werden kann.
+    if (!isEditing && formDateVal === this.todayIso()) {
       const now = new Date();
       const cur = now.getHours() * 60 + now.getMinutes();
       slots = slots.filter(slot => {
@@ -980,6 +1063,14 @@ export class RaumDetailComponent implements OnInit {
 
   @HostListener('window:resize')
   onResize(): void { this.isMobile.set(window.innerWidth <= 640); }
+
+  /** Reservierungs-Panel (linke Spalte) auf Tablet ein-/ausklappbar machen,
+   *  damit auf dem iPad mehr Platz für den Tischplan bleibt. Auf Desktop
+   *  und Mobile ohne Wirkung (dort per CSS ausgeblendet/ignoriert). State
+   *  liegt im LayoutService, damit der Toggle-Button in der Sidebar-Fußzeile
+   *  denselben Stand anzeigen/steuern kann. */
+  resPanelCollapsed = this.layout.resPanelCollapsed;
+
   tablePickerFor      = signal<string | null>(null);
   editingId           = signal<string | null>(null);
   editingReservation  = signal<FloorReservation | null>(null);
@@ -1504,14 +1595,18 @@ export class RaumDetailComponent implements OnInit {
   });
 
   // ── Sortiergewicht pro Status ─────────────────────────────────────────
-  // Innerhalb einer Stunde: confirmed/upcoming zuerst, dann aktiv, dann done
+  // Reihenfolge: Warteliste immer ganz oben (muss erst bestätigt werden,
+  // unabhängig von der Uhrzeit), dann Abgelaufen, dann Verspätet, dann
+  // Bevorstehend, dann Aktiv — der Rest (Reinigung/Beendet/Storniert/
+  // No-Show) ist untereinander egal. Gilt nur für die Standard-Sortierung —
+  // im Tab "Alle" mit aktivem Filter greift stattdessen die Filterung.
   private statusSortWeight(status: FloorReservationStatus): number {
     switch (status) {
-      case 'late':       return 0; // Verspätet ganz oben — braucht Aufmerksamkeit
-      case 'confirmed':  return 1;
-      case 'upcoming':   return 2;
-      case 'expired':    return 3;
-      case 'seated':     return 4;
+      case 'upcoming':   return 0; // Warteliste ganz oben
+      case 'expired':    return 1; // Abgelaufen
+      case 'late':        return 2; // Verspätet
+      case 'confirmed':  return 3; // Bevorstehend
+      case 'seated':     return 4; // Aktiv
       case 'cleanup':    return 5;
       case 'completed':  return 6;
       case 'cancelled':  return 7;
@@ -1538,20 +1633,42 @@ export class RaumDetailComponent implements OnInit {
       return dir === 'asc' ? timeCmp : -timeCmp;
     });
 
-    // 2. In Stunden-Gruppen zusammenfassen — Reihenfolge der Gruppen folgt
-    //    dem ersten Auftreten der Stunde in der sortierten Liste.
+    // 2. In Stunden-Gruppen zusammenfassen.
+    //
+    // Wichtig: Warteliste (Gewicht 0) und Abgelaufen (Gewicht 1) müssen laut
+    // Vorgabe IMMER unabhängig von der Uhrzeit ganz oben stehen — auch wenn
+    // ihre Stunde sonst nur "normale" Reservierungen (Bevorstehend/Aktiv/...)
+    // enthält. Würde man sie einfach in ihre normale Stunden-Gruppe mischen,
+    // würde diese GANZE Gruppe (samt niedriger priorisierten Geschwistern)
+    // nach oben gezogen — z. B. eine 11-Uhr-Gruppe mit nur einem einzigen
+    // Warteliste-Eintrag würde eine 08-Uhr-Gruppe mit einem dringenden
+    // "Abgelaufen"-Eintrag nach unten verdrängen, obwohl Abgelaufen dringlicher
+    // ist als der Rest der 11-Uhr-Gruppe.
+    //
+    // Lösung: Warteliste/Abgelaufen-Einträge bekommen jeweils eine eigene
+    // Stunden-Gruppe, getrennt von den "normalen" Einträgen derselben Stunde,
+    // damit sie keine niedriger priorisierten Geschwister mit nach oben
+    // ziehen. Nur im Default-Sortiermodus relevant — bei explizitem
+    // Zeit-Sort (asc/desc) zählt ohnehin nur die Uhrzeit.
+    const isPromoted = (r: FloorReservation) =>
+      dir === 'default' && (r.status === 'upcoming' || r.status === 'expired');
+
     const groupOrder: string[] = [];
     const groupMap = new Map<string, FloorReservation[]>();
     for (const r of sorted) {
       const hourKey = r.time.split(':')[0] + ':00';
-      if (!groupMap.has(hourKey)) {
-        groupOrder.push(hourKey);
-        groupMap.set(hourKey, []);
+      const key = isPromoted(r) ? `${r.status}|${hourKey}` : hourKey;
+      if (!groupMap.has(key)) {
+        groupOrder.push(key);
+        groupMap.set(key, []);
       }
-      groupMap.get(hourKey)!.push(r);
+      groupMap.get(key)!.push(r);
     }
 
-    return groupOrder.map(hour => ({ hour, reservations: groupMap.get(hour)! }));
+    return groupOrder.map(key => ({
+      hour: key.includes('|') ? key.split('|')[1] : key,
+      reservations: groupMap.get(key)!,
+    }));
   });
 
   // ── Kebab-Menü ────────────────────────────────────────────────────────
@@ -1573,6 +1690,21 @@ export class RaumDetailComponent implements OnInit {
   }
 
   todayIsoPublic(): string { return this.todayIso(); }
+
+  /**
+   * True, wenn die Reservierung HEUTE über das Buchungs-Widget für HEUTE
+   * angelegt wurde (spontaner Online-Gast). Dient nur der visuellen
+   * Hervorhebung in der Liste (kleines Blitz-Icon) — keine Business-Logik.
+   */
+  isFreshOnlineBooking(res: FloorReservation): boolean {
+    if (res.source !== 'online') return false;
+    if (res.date !== this.todayIso()) return false;
+    const created = new Date(res.createdAt);
+    const mm = String(created.getMonth() + 1).padStart(2, '0');
+    const dd = String(created.getDate()).padStart(2, '0');
+    const createdIso = `${created.getFullYear()}-${mm}-${dd}`;
+    return createdIso === this.todayIso();
+  }
 
   shiftDate(days: number) {
     const [y, m, d] = this.selectedDate().split('-').map(Number);
@@ -2343,6 +2475,11 @@ export class RaumDetailComponent implements OnInit {
         ...(newStatus ? { status: newStatus } : {}),
       });
 
+      // Status sofort neu bewerten (z. B. Uhrzeit auf früher gesetzt →
+      // eingecheckte RV kann jetzt schon "überfällig" sein) — nicht erst
+      // beim nächsten 60s-Heartbeat.
+      this.timing.recomputeNow();
+
       // Backend synchronisieren, falls eine Backend-ID verknüpft ist
       if (editing.backendId) {
         const startsAt = `${editing.date}T${this.form.time}:00`;
@@ -2385,7 +2522,10 @@ export class RaumDetailComponent implements OnInit {
         .filter(r => !['cancelled', 'completed', 'no-show'].includes(r.status) && !!r.backendId);
       const conflicting = localActive.filter(r => {
         const rIds = r.tableIds?.length ? r.tableIds : (r.tableId ? [r.tableId] : []);
-        if (rIds.length > 0 && !rIds.some(id => selectedTableIds.includes(id))) return false;
+        // Keine Tischzuweisung (z. B. Warteliste ohne Tisch) → kein Konflikt für
+        // einen konkreten Tisch, da diese RV noch keinem Tisch zugeordnet ist.
+        if (rIds.length === 0) return false;
+        if (!rIds.some(id => selectedTableIds.includes(id))) return false;
         const dur = r.durationMinutes > 0 ? r.durationMinutes : this.form.durationMinutes;
         const s   = new Date(`${formDateVal}T${r.time}:00`).getTime();
         const e   = s + dur * 60_000;

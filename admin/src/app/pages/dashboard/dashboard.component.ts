@@ -124,11 +124,50 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return Math.max(0, cap - this.occupiedSeats());
   });
 
-  /** Auslastung in % (abgeschlossene + aktive / gesamt) */
+  /**
+   * Auslastung in % = aktuell besetzte Plätze / Gesamtkapazität.
+   * (Nicht "abgeschlossene + aktive Reservierungen / gesamt" — das wäre
+   * eine Tages-Erledigungsquote und würde gegen Ende des Tages Richtung
+   * 100% wandern, selbst wenn gerade niemand mehr im Restaurant sitzt.)
+   */
   readonly utilizationRate = computed(() => {
-    const t = this.todayStats();
-    if (t.total === 0) return 0;
-    return Math.round(((t.seated + t.completed) / t.total) * 100);
+    const cap = this.totalCapacity();
+    if (cap === 0) return 0;
+    return Math.round((this.occupiedSeats() / cap) * 100);
+  });
+
+  /**
+   * Höchste gleichzeitige Gästezahl heute (Sweep-Line über die Zeiträume
+   * starts_at → ends_at aller aktiven Reservierungen). Wichtig, weil ein
+   * Restaurant mit z. B. 50 Plätzen und 3 Turns pro Tag locker 150 Gäste
+   * insgesamt bedient — das ist aber niemals "150 gleichzeitig". Nur die
+   * größte Überschneidung zählt für die Kapazitätsauslastung.
+   */
+  readonly peakConcurrentGuests = computed(() => {
+    const active = this.todayRes().filter(r => !['cancelled', 'no_show'].includes(r.status));
+    if (active.length === 0) return 0;
+
+    const events: { time: number; delta: number }[] = [];
+    for (const r of active) {
+      const size  = r.party_size ?? 0;
+      const start = new Date(r.starts_at).getTime();
+      const end   = new Date(r.ends_at).getTime();
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || size <= 0) continue;
+      events.push({ time: start, delta: size });
+      events.push({ time: end, delta: -size });
+    }
+
+    // Bei identischem Zeitpunkt zuerst Abgänge, dann Zugänge verrechnen —
+    // sonst zählt ein nahtloser Tischwechsel fälschlich als Überschneidung.
+    events.sort((a, b) => a.time - b.time || a.delta - b.delta);
+
+    let current = 0;
+    let peak = 0;
+    for (const ev of events) {
+      current += ev.delta;
+      if (current > peak) peak = current;
+    }
+    return peak;
   });
 
   /** Insight-Chips: stärkster Tag, Stoßzeit, Walk-ins, Auslastung, Pending, Ø-Gruppe */
@@ -158,10 +197,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-    // ── 2. Kapazitäts-Auslastung (Gäste heute / Gesamtsitzplätze) ────────────
-    const cap = this.totalCapacity();
-    if (cap > 0 && ts.guests > 0) {
-      const capUtil = Math.round((ts.guests / cap) * 100);
+    // ── 2. Kapazitäts-Auslastung (max. gleichzeitige Gäste / Gesamtsitzplätze) ──
+    // Nicht die Summe aller Gäste des Tages verwenden — bei mehreren Turns
+    // pro Tag würde das künstlich über 100% "ausgebucht" anzeigen, obwohl
+    // nie alle Plätze gleichzeitig belegt waren.
+    const cap  = this.totalCapacity();
+    const peak = this.peakConcurrentGuests();
+    if (cap > 0 && peak > 0) {
+      const capUtil = Math.round((peak / cap) * 100);
       if (capUtil >= 75) {
         result.push({
           icon: 'local_fire_department',

@@ -23,16 +23,6 @@ use Symfony\Component\Uid\Uuid;
 #[Route('/vouchers')]
 class VoucherController extends AbstractController
 {
-    /** Statische Zahlungsmethoden-Definitionen (nur active-Status ist per Tenant dynamisch). */
-    private const PAYMENT_METHODS = [
-        ['id' => 'card',       'name' => 'Kreditkarte',       'provider' => 'stripe',  'icon' => 'credit_card',           'description' => 'Visa, Mastercard, American Express — sicher via Stripe.'],
-        ['id' => 'apple_pay',  'name' => 'Apple Pay',          'provider' => 'stripe',  'icon' => 'phone_iphone',          'description' => 'Für iPhone & Mac — One-Touch-Zahlung via Stripe.'],
-        ['id' => 'google_pay', 'name' => 'Google Pay',         'provider' => 'stripe',  'icon' => 'smartphone',            'description' => 'Für Android-Geräte — schnelle Zahlung via Stripe.'],
-        ['id' => 'paypal',     'name' => 'PayPal',             'provider' => 'paypal',  'icon' => 'account_balance_wallet','description' => 'Meistgenutzter Online-Bezahldienst in Deutschland.'],
-        ['id' => 'sofort',     'name' => 'SOFORT / Klarna',    'provider' => 'sofort',  'icon' => 'account_balance',       'description' => 'Direkte Banküberweisung in Echtzeit — sehr beliebt im DACH-Raum.'],
-        ['id' => 'invoice',    'name' => 'Auf Rechnung',       'provider' => 'manual',  'icon' => 'receipt_long',          'description' => 'Zahlung per SEPA-Überweisung nach Rechnungserhalt.'],
-    ];
-
     public function __construct(
         private readonly DoctrineVoucherRepository       $repo,
         private readonly DoctrineVoucherImageRepository  $imageRepo,
@@ -283,50 +273,6 @@ class VoucherController extends AbstractController
             'postalEnabled'      => $config->isPostalEnabled(),
             'postalShippingCost' => $config->getPostalShippingCost(),
         ]);
-    }
-
-    // ── Zahlungsmethoden ───────────────────────────────────────────────────────
-
-    #[Route('/payment-methods', name: 'admin_vouchers_payment_methods_list', methods: ['GET'])]
-    public function listPaymentMethods(#[CurrentUser] User $user): JsonResponse
-    {
-        $tenant = $user->getTenant();
-        if ($tenant === null) {
-            return $this->json(['error' => 'Kein Tenant'], Response::HTTP_FORBIDDEN);
-        }
-
-        $config  = $this->configRepo->findOrCreateByTenant($tenant);
-        $active  = $config->getActivePaymentMethods();
-
-        $methods = array_map(
-            fn(array $m) => [...$m, 'active' => in_array($m['id'], $active, true)],
-            self::PAYMENT_METHODS,
-        );
-
-        return $this->json($methods);
-    }
-
-    #[Route('/payment-methods/{id}/toggle', name: 'admin_vouchers_payment_methods_toggle', methods: ['PATCH'])]
-    public function togglePaymentMethod(string $id, #[CurrentUser] User $user): JsonResponse
-    {
-        $tenant = $user->getTenant();
-        if ($tenant === null) {
-            return $this->json(['error' => 'Kein Tenant'], Response::HTTP_FORBIDDEN);
-        }
-
-        $validIds = array_column(self::PAYMENT_METHODS, 'id');
-        if (!in_array($id, $validIds, true)) {
-            return $this->json(['error' => 'Unbekannte Zahlungsmethode.'], Response::HTTP_NOT_FOUND);
-        }
-
-        $config = $this->configRepo->findOrCreateByTenant($tenant);
-        $config->togglePaymentMethod($id);
-        $this->configRepo->save($config);
-
-        $active = $config->getActivePaymentMethods();
-        $method = array_values(array_filter(self::PAYMENT_METHODS, fn($m) => $m['id'] === $id))[0];
-
-        return $this->json([...$method, 'active' => in_array($id, $active, true)]);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

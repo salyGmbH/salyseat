@@ -22,8 +22,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/vouchers')]
 class VoucherController extends AbstractController
 {
-    private const STRIPE_METHODS = ['card', 'apple_pay', 'google_pay'];
-    private const CURRENCY       = 'eur';
+    private const CURRENCY = 'eur';
 
     public function __construct(
         private readonly DoctrineTenantRepository        $tenants,
@@ -50,16 +49,11 @@ class VoucherController extends AbstractController
 
         $uiSettings    = $tenant->getUiSettings() ?? [];
         $voucherConfig = $this->configRepo->findOrCreateByTenant($tenant);
-        $activeMethods = array_values(array_filter(
-            $voucherConfig->getActivePaymentMethods(),
-            fn ($m) => in_array($m, self::STRIPE_METHODS, true),
-        ));
 
         return $this->json([
             'restaurantName'       => $tenant->getName(),
             'gutscheinDesign'      => $uiSettings['gutscheinDesign'] ?? null,
             'stripePublishableKey' => $uiSettings['stripeSettings']['publishableKey'] ?? null,
-            'activePaymentMethods' => $activeMethods,
             'postalEnabled'        => $voucherConfig->isPostalEnabled(),
             'postalShippingCost'   => $voucherConfig->getPostalShippingCost(),
         ]);
@@ -116,7 +110,7 @@ class VoucherController extends AbstractController
             return $this->json(['error' => 'Pflichtfelder fehlen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $expiresAt = new \DateTimeImmutable('+1 year');
+        $expiresAt = new \DateTimeImmutable('+3 years');
         $code      = $this->generateUniqueCode();
 
         $deliveryMethod = in_array($data['deliveryMethod'] ?? '', ['email', 'post'], true)

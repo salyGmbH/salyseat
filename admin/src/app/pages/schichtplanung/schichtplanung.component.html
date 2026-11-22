@@ -13,6 +13,9 @@
       <button class="sp__btn sp__btn--ghost" (click)="downloadPdf()">
         <mat-icon>picture_as_pdf</mat-icon> {{ 'shift.print' | translate }}
       </button>
+      <button class="sp__btn sp__btn--ghost" (click)="openSendPdf()">
+        <mat-icon>forward_to_inbox</mat-icon> {{ 'shift.send_pdf' | translate }}
+      </button>
       <button class="sp__btn sp__btn--ghost" (click)="sidebarOpen.set(!sidebarOpen())">
         <mat-icon>{{ sidebarOpen() ? 'menu_open' : 'menu' }}</mat-icon>
       </button>
@@ -555,6 +558,76 @@
         </div>
       </div>
 
+    }
+
+  </div>
+}
+
+<!-- ══════ Schichtplan per Mail senden ══════ -->
+@if (sendPdfOpen()) {
+  <div class="sp-popup-overlay" (click)="closeSendPdf()"></div>
+  <div class="sp-popup">
+
+    <div class="sp-popup__head">
+      <div class="sp-popup__who">
+        <div class="sp-popup__avatar"><mat-icon>forward_to_inbox</mat-icon></div>
+        <div>
+          <div class="sp-popup__name">{{ 'shift.send_pdf_title' | translate }}</div>
+          <div class="sp-popup__date">{{ weekLabel() }}</div>
+        </div>
+      </div>
+      <button class="sp-popup__close" (click)="closeSendPdf()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    @if (sendPdfResult()) {
+      <div class="sp-popup__note-wrap">
+        <p>
+          @if (sendPdfResult()!.sent.length) {
+            {{ 'shift.send_pdf_sent' | translate:{ names: sendPdfResult()!.sent.join(', ') } }}
+          }
+          @if (sendPdfResult()!.skipped.length) {
+            <br>{{ 'shift.send_pdf_skipped' | translate:{ names: sendPdfResult()!.skipped.join(', ') } }}
+          }
+        </p>
+      </div>
+      <div class="sp-popup__actions">
+        <button class="sp-popup__btn sp-popup__btn--save" (click)="closeSendPdf()">
+          <mat-icon>check</mat-icon> {{ 'common.close' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="sp-popup__note-wrap">
+        <p>{{ 'shift.send_pdf_hint' | translate }}</p>
+      </div>
+
+      <div class="sp-popup__types">
+        @for (emp of activeEmployees(); track emp.id) {
+          <button class="sp-popup__type-btn"
+                  [class.sp-popup__type-btn--active]="sendPdfSelected().has(emp.id)"
+                  [disabled]="!emp.email"
+                  [title]="!emp.email ? ('shift.send_pdf_no_email' | translate) : ''"
+                  (click)="toggleSendPdfRecipient(emp.id)">
+            <mat-icon>{{ emp.email ? 'mail' : 'mail_outline' }}</mat-icon>
+            <span>{{ emp.name }}</span>
+          </button>
+        }
+      </div>
+
+      <div class="sp-popup__actions">
+        <button class="sp-popup__btn sp-popup__btn--ghost" (click)="closeSendPdf()">
+          {{ 'shift.back' | translate }}
+        </button>
+        <button class="sp-popup__btn sp-popup__btn--save"
+                [disabled]="sendPdfSelected().size === 0 || sendPdfSaving()"
+                (click)="sendPdf()">
+          @if (sendPdfSaving()) {
+            <mat-icon>hourglass_empty</mat-icon>
+          } @else {
+            <mat-icon>send</mat-icon>
+          }
+          {{ 'shift.send_pdf_confirm' | translate }}
+        </button>
+      </div>
     }
 
   </div>

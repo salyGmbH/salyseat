@@ -44,8 +44,16 @@ class DoctrineGuestRepository extends ServiceEntityRepository implements GuestRe
             ->setFirstResult($offset);
 
         if ($search !== null && $search !== '') {
-            $qb->andWhere('g.name LIKE :search OR g.email LIKE :search')
-               ->setParameter('search', '%' . $search . '%');
+            // Name UND E-Mail nur matchen, wenn der Suchbegriff am ANFANG
+            // steht — nicht irgendwo mittendrin. "g.name" enthält "Vorname
+            // Nachname" als ein Feld, daher zwei Varianten: Treffer ganz am
+            // Anfang des Felds ODER direkt nach einem Leerzeichen (z.B.
+            // Nachname). Bei der E-Mail reicht der Anfang der Adresse, sonst
+            // matchen kurze Buchstabenfolgen wie "la" auch mitten in
+            // "lila@lila.wee" oder "angela@linse-beck.de".
+            $qb->andWhere('g.name LIKE :searchStart OR g.name LIKE :searchWord OR g.email LIKE :searchStart')
+               ->setParameter('searchStart', $search . '%')
+               ->setParameter('searchWord', '% ' . $search . '%');
         }
 
         return $qb->getQuery()->getResult();
@@ -59,8 +67,11 @@ class DoctrineGuestRepository extends ServiceEntityRepository implements GuestRe
             ->setParameter('tenantId', $tenantId->toBinary());
 
         if ($search !== null && $search !== '') {
-            $qb->andWhere('g.name LIKE :search OR g.email LIKE :search')
-               ->setParameter('search', '%' . $search . '%');
+            // Gleiche Logik wie in listByTenant() — muss synchron bleiben,
+            // sonst weicht die Trefferzahl (Pagination) vom Ergebnis ab.
+            $qb->andWhere('g.name LIKE :searchStart OR g.name LIKE :searchWord OR g.email LIKE :searchStart')
+               ->setParameter('searchStart', $search . '%')
+               ->setParameter('searchWord', '% ' . $search . '%');
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();

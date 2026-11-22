@@ -25,7 +25,7 @@ export interface WidgetVenueWall {
 
 export type WidgetDecorType =
   | 'plant' | 'pillar' | 'door' | 'window' | 'stairs' | 'wc'
-  | 'entrance' | 'bar' | 'stage' | 'coatrack' | 'sofa' | 'cashier';
+  | 'entrance' | 'bar' | 'stage' | 'coatrack' | 'sofa' | 'cashier' | 'label';
 
 export interface WidgetVenueDecor {
   id: number;
@@ -34,6 +34,7 @@ export interface WidgetVenueDecor {
   y: number;
   rotation: number;
   scale: number;
+  text?: string; // nur für type === 'label'
 }
 
 export interface VenueBlockedRange {

@@ -26,7 +26,7 @@ class MeController extends AbstractController
         $tenant = $user->getTenant();
         $addons = array_values($tenant?->getUiSettings()['addons'] ?? []);
 
-        return $this->json([
+        $response = $this->json([
             'id'       => $user->getId()->toRfc4122(),
             'email'    => $user->getEmail(),
             'roles'    => $user->getRoles(),
@@ -34,5 +34,11 @@ class MeController extends AbstractController
             'plan'     => $tenant?->getPlan() ?? 'tisch',
             'addons'   => $addons,
         ]);
+        // Plan/Add-ons können sich jederzeit von außen (Superadmin) ändern —
+        // diese Antwort darf der Browser unter keinen Umständen zwischenspeichern.
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        $response->headers->set('Pragma', 'no-cache');
+
+        return $response;
     }
 }

@@ -1,0 +1,12 @@
+{% include 'email/_layout.html.twig' with {
+    heading_title: 'Schichtplan',
+    fixed_lines: [
+        'im Anhang findest du deinen Schichtplan für ' ~ week_label ~ ' bei ' ~ venue_name ~ '.',
+    ],
+    show_details: false,
+    mail_content: null,
+    design:    design,
+    social:    social,
+    logoLight: logoLight,
+    logoDark:  logoDark,
+} %}

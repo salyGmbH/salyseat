@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { FloorReservationStatus } from './floor-reservation.types';
 import { STATUS_ICON_IDS, SUGGESTED_ICONS_BY_STATUS } from '../shared/status-icon/status-icon.component';
@@ -29,12 +29,12 @@ export type StatusViewMode = 'card' | 'text' | 'svg';
 
 export const DEFAULT_STATUSES: StatusColor[] = [
   { key: 'waiting',   label: 'Warteliste',      shortLabel: 'Warte',      color: '#f59e0b', icon: 'circle' },
-  { key: 'confirmed', label: 'Bevorstehend',    shortLabel: 'Geplant',    color: '#94a3b8', icon: 'circle-dot' },
+  { key: 'confirmed', label: 'Geplant',         shortLabel: 'Geplant',    color: '#94a3b8', icon: 'circle-dot' },
   { key: 'active',    label: 'Aktiv',           shortLabel: 'Aktiv',      color: '#22c55e', icon: 'check' },
   { key: 'late',      label: 'Verspätet',       shortLabel: 'Verspätet',  color: '#eab308', icon: 'clock' },
   // 'expired' = Standard-Reservierungsdauer ist abgelaufen, der Tisch ist
   // aber operativ noch belegt. Nutzer kann manuell beenden oder verlängern.
-  { key: 'expired',   label: 'Zeit abgelaufen', shortLabel: 'Abgelaufen', color: '#fb923c', icon: 'clock-alert' },
+  { key: 'expired',   label: 'Überfällig',      shortLabel: 'Überfällig', color: '#fb923c', icon: 'clock-alert' },
   // 'cleanup' = Gäste sind weg, Tisch wird gerade gereinigt / vorbereitet.
   // Tisch ist visuell belegt, aber nicht mehr durch Gäste.
   { key: 'cleanup',   label: 'Wird gereinigt',  shortLabel: 'Reinigung',  color: '#06b6d4', icon: 'hourglass' },
@@ -72,7 +72,37 @@ export class StatusColorsService {
   readonly statuses  = computed(() => this._statuses());
   readonly viewMode  = computed(() => this._viewMode());
 
+  /** StatusKey → CSS-Variable auf :root */
+  private static readonly CSS_VAR_MAP: Partial<Record<StatusKey, string>> = {
+    waiting:   '--t-upcoming-rgb',
+    confirmed: '--t-confirmed-rgb',
+    active:    '--t-seated-rgb',
+    late:      '--t-late-rgb',
+    expired:   '--t-expired-rgb',
+    cleanup:   '--t-cleanup-rgb',
+  };
+
+  private static hexToRgb(hex: string): string {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `${r}, ${g}, ${b}`;
+  }
+
   constructor() {
+    // CSS-Variablen für den Tischplan live halten
+    effect(() => {
+      const statuses = this._statuses();
+      const root = document.documentElement;
+      for (const s of statuses) {
+        const cssVar = StatusColorsService.CSS_VAR_MAP[s.key];
+        if (cssVar && s.color?.startsWith('#')) {
+          root.style.setProperty(cssVar, StatusColorsService.hexToRgb(s.color));
+        }
+      }
+    });
+
     this.tenantSettings.load().subscribe(settings => {
       if (settings.statuses?.length) {
         this._statuses.set(

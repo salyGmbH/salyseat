@@ -376,19 +376,14 @@
             </label>
           </fieldset>
 
-          <!-- Zahlungsmethoden -->
+          <!-- Zahlungsmethoden: keine feste Icon-Liste mehr — Stripes Payment Element
+               im nächsten Schritt zeigt ohnehin automatisch alle im Konto aktivierten
+               Methoden mit eigenen Icons an, eine vorgeschaltete Liste wäre nur eine
+               weitere Stelle, die veralten kann. -->
           @if (hasStripePayment()) {
             <div class="gc-payment-methods">
-              <span class="gc-payment-methods__label">Zahlung per</span>
-              <div class="gc-payment-methods__badges">
-                @for (m of activePaymentMethods(); track m) {
-                  <span class="gc-payment-badge">
-                    @if (m === 'card') { <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><rect x=".5" y=".5" width="13" height="9" rx="1.5" stroke="currentColor"/><rect x=".5" y="2.5" width="13" height="2" fill="currentColor"/></svg> Karte }
-                    @if (m === 'apple_pay') {  Apple Pay }
-                    @if (m === 'google_pay') { G Pay }
-                  </span>
-                }
-              </div>
+              <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><rect x=".5" y="6.5" width="11" height="7" rx="1.5" stroke="currentColor"/><path d="M3 6.5V4a3 3 0 0 1 6 0v2.5" stroke="currentColor"/></svg>
+              <span>Sichere Online-Zahlung im nächsten Schritt</span>
             </div>
           }
 

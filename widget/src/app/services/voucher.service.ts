@@ -24,7 +24,6 @@ export interface VoucherWidgetConfig {
   colorPrimary?:        string;
   logoUrl?:             string;
   stripePublishableKey?: string;
-  activePaymentMethods?: string[];
   postalEnabled?:        boolean;
   postalShippingCost?:   number | null;
 }

@@ -82,6 +82,8 @@ export class WidgetComponent {
   private readonly http            = inject(HttpClient);
   private readonly translate       = inject(TranslateService);
 
+  readonly infoOpen = signal(false);
+
   /** Public Key des aktuellen Tenants — für den Embed-Code. */
   readonly publicKey = this.tenantSettings.publicKey;
 
@@ -123,7 +125,7 @@ export class WidgetComponent {
         this.cardBgImageUrl.set(s.cardBackgroundImage ?? null);
         this.stackedBgImageUrl.set(s.stackedBackgroundImage ?? null);
         this.plannerBgImageUrl.set(s.plannerBackgroundImage ?? null);
-        const pb = s.pageBackground ?? { type: 'color', value: '#f4f5f7' };
+        const pb = this.sanitizePageBackground(s.pageBackground ?? { type: 'color', value: '#f4f5f7' });
         this.pageBackground.set(pb);
         this.pageGradientEnabled.set(pb.gradient ?? false);
         this.pageGradientColor2.set(pb.gradientColor2 ?? '#ffffff');
@@ -177,7 +179,7 @@ export class WidgetComponent {
   readonly plannerSelectedSeats = signal<number>(2);
   /** DSGVO-Einwilligung für Layout-4-Daten-Step. Pflichtfeld vor Submit. */
   readonly plannerConsent       = signal<boolean>(false);
-  readonly plannerCalendarMonth = signal<number>(4); 
+  readonly plannerCalendarMonth = signal<number>(4);  
   readonly plannerCalendarYear  = signal<number>(2026);
   readonly plannerCalendarMonthLabel = computed(() => {
     const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -913,9 +915,23 @@ export class WidgetComponent {
   readonly pageGradientEnabled  = signal<boolean>(false);
   readonly pageGradientColor2   = signal<string>('#ffffff');
 
+  /**
+   * Repariert bereits gespeicherte, kaputte Zustände: type "color" mit einer
+   * Bild-URL als value (Altlast aus einem früheren Bug beim Bild→Farbe-Wechsel).
+   */
+  private sanitizePageBackground(pb: PageBackground): PageBackground {
+    const looksLikeUrl = /^(https?:)?\/|\.(png|jpe?g|gif|webp|svg)$/i.test(pb.value ?? '');
+    if (pb.type === 'color' && looksLikeUrl) {
+      return { ...pb, value: '#f4f5f7' };
+    }
+    return pb;
+  }
+
   setPageBgType(t: PageBackgroundType): void {
-    const currentValue = this.pageBackground().value;
-    const newValue = t === 'image' ? '' : (currentValue || '#f4f5f7');
+    const pb = this.pageBackground();
+    // Beim Wechsel von "Bild" zu "Farbe" darf die alte Bild-URL nicht als
+    // Farbwert übernommen werden — nur einen echten Farbwert wiederverwenden.
+    const newValue = t === 'image' ? '' : (pb.type === 'color' ? (pb.value || '#f4f5f7') : '#f4f5f7');
     this.pageBackground.set({
       type: t, value: newValue,
       gradient: this.pageGradientEnabled(),

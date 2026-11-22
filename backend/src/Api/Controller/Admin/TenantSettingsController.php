@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Api\Controller\Admin;
 
 use App\Module\Staff\Infrastructure\Persistence\DoctrineStaffRepository;
-use App\Module\Tenant\Domain\Repository\AddOnRepositoryInterface;
 use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
 use App\Module\User\Domain\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,7 +20,6 @@ class TenantSettingsController extends AbstractController
     public function __construct(
         private readonly DoctrineTenantRepository $tenants,
         private readonly DoctrineStaffRepository  $staff,
-        private readonly AddOnRepositoryInterface $addons,
     ) {}
 
     #[Route('', name: 'admin_tenant_settings_get', methods: ['GET'])]
@@ -95,39 +93,8 @@ class TenantSettingsController extends AbstractController
 
     private const PLAN_RANK = ['tisch' => 1, 'menu' => 2, 'maitre' => 3];
 
-    #[Route('/addon/{key}', name: 'admin_tenant_addon_patch', methods: ['PATCH'])]
-    public function updateAddon(#[CurrentUser] User $user, string $key, Request $request): JsonResponse
-    {
-        $addOn = $this->addons->findByKey($key);
-        if ($addOn === null) {
-            return $this->json(['error' => 'Unknown addon'], 400);
-        }
-
-        $tenant = $user->getTenant();
-        if ($tenant === null) {
-            return $this->json(['error' => 'No tenant'], 400);
-        }
-
-        $data   = json_decode($request->getContent(), true);
-        $active = (bool) ($data['active'] ?? false);
-
-        $minPlan = $addOn->getMinPlan();
-        if ($active && $minPlan !== null && self::PLAN_RANK[$tenant->getPlan()] < self::PLAN_RANK[$minPlan]) {
-            return $this->json(['error' => sprintf('Dieses Add-on ist erst ab dem Plan "%s" buchbar.', $minPlan)], 400);
-        }
-
-        $settings          = $tenant->getUiSettings() ?? [];
-        $addons            = $settings['addons'] ?? [];
-        $addons            = $active
-            ? array_unique(array_merge($addons, [$key]))
-            : array_values(array_filter($addons, fn($a) => $a !== $key));
-        $settings['addons'] = $addons;
-
-        $tenant->setUiSettings($settings);
-        $this->tenants->save($tenant);
-
-        return $this->json(['addons' => $addons]);
-    }
+    // Add-ons werden ausschließlich von der Superadmin zugewiesen
+    // (siehe SuperAdmin\TenantsController::updateAddon) — kein Tenant-Self-Service mehr.
 
     #[Route('/plan', name: 'admin_tenant_plan_patch', methods: ['PATCH'])]
     public function updatePlan(#[CurrentUser] User $user, Request $request): JsonResponse

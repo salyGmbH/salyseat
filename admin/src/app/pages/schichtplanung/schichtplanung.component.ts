@@ -198,6 +198,12 @@ export class SchichtplanungComponent implements OnInit {
   templateNameInput = '';
   showTemplateSave  = false;
 
+  // PDF per Mail
+  readonly sendPdfOpen    = signal(false);
+  readonly sendPdfSaving  = signal(false);
+  readonly sendPdfResult  = signal<{ sent: string[]; skipped: string[] } | null>(null);
+  readonly sendPdfSelected = signal<Set<string>>(new Set());
+
   // ── Computed ──────────────────────────────────────────────────────────────
   readonly weekDays = computed(() => getWeekDays(this.weekStart()));
 
@@ -662,7 +668,8 @@ export class SchichtplanungComponent implements OnInit {
   }
 
   // ── PDF-Export ────────────────────────────────────────────────────────────
-  downloadPdf(): void {
+  /** Baut das Schichtplan-PDF für die aktuelle Woche — von downloadPdf() und sendPdf() geteilt. */
+  private buildPdfDoc(): jsPDF {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const days = this.weekDays();
     const employees = this.activeEmployees();
@@ -684,8 +691,16 @@ export class SchichtplanungComponent implements OnInit {
       for (const day of days) {
         const shift = this.getShift(emp.id, isoDate(day));
         if (!shift) { cells.push('–'); continue; }
-        const def = SHIFT_MAP[shift.type];
-        const label = def?.label ? shift.type.charAt(0).toUpperCase() + shift.type.slice(1) : shift.type;
+        // shiftMap() statt der statischen SHIFT_MAP nutzen — die kennt auch eigene
+        // Schichten (Key = UUID). Für built-in Schichten bleibt die bisherige
+        // Kurzform (Key groß geschrieben); eigene Schichten zeigen ihren echten Namen
+        // statt der UUID.
+        const def   = this.shiftMap()[shift.type];
+        const label = !def
+          ? shift.type
+          : SHIFT_MAP[shift.type]
+            ? shift.type.charAt(0).toUpperCase() + shift.type.slice(1)
+            : def.label;
         const time = shift.startTime && shift.endTime ? `\n${shift.startTime}–${shift.endTime}` : '';
         cells.push(`${label}${time}`);
       }
@@ -702,9 +717,59 @@ export class SchichtplanungComponent implements OnInit {
       columnStyles: { 0: { fontStyle: 'bold', cellWidth: 38 } },
     });
 
+    return doc;
+  }
+
+  private pdfFileName(): string {
+    const days = this.weekDays();
     const kw = weekNumber(days[0]);
     const y  = days[0].getFullYear();
-    doc.save(`Schichtplan_KW${kw}_${y}.pdf`);
+    return `Schichtplan_KW${kw}_${y}.pdf`;
+  }
+
+  downloadPdf(): void {
+    this.buildPdfDoc().save(this.pdfFileName());
+  }
+
+  // ── PDF per Mail ──────────────────────────────────────────────────────────
+  openSendPdf(): void {
+    const preselected = new Set(
+      this.activeEmployees().filter(e => !!e.email).map(e => e.id),
+    );
+    this.sendPdfSelected.set(preselected);
+    this.sendPdfResult.set(null);
+    this.sendPdfOpen.set(true);
+  }
+
+  closeSendPdf(): void {
+    this.sendPdfOpen.set(false);
+  }
+
+  toggleSendPdfRecipient(employeeId: string): void {
+    const next = new Set(this.sendPdfSelected());
+    if (next.has(employeeId)) next.delete(employeeId);
+    else next.add(employeeId);
+    this.sendPdfSelected.set(next);
+  }
+
+  sendPdf(): void {
+    const ids = Array.from(this.sendPdfSelected());
+    if (ids.length === 0 || this.sendPdfSaving()) return;
+
+    this.sendPdfSaving.set(true);
+    this.sendPdfResult.set(null);
+
+    const doc = this.buildPdfDoc();
+    const dataUri = doc.output('datauristring');
+    const base64  = dataUri.split(',')[1] ?? '';
+
+    this.spService.sendPdf(ids, base64, this.weekLabel(), this.pdfFileName()).subscribe({
+      next: result => {
+        this.sendPdfSaving.set(false);
+        this.sendPdfResult.set(result);
+      },
+      error: () => this.sendPdfSaving.set(false),
+    });
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

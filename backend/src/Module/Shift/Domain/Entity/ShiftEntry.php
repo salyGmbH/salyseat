@@ -29,7 +29,7 @@ class ShiftEntry
     #[ORM\Column(type: 'date_immutable')]
     private \DateTimeImmutable $date;
 
-    #[ORM\Column(length: 20)]
+    #[ORM\Column(length: 36)]
     private string $type;
 
     #[ORM\Column(length: 5, nullable: true)]

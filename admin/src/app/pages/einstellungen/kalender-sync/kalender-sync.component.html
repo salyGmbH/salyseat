@@ -1,0 +1,61 @@
+<div class="cal">
+
+  <div class="cal__header">
+    <div class="cal__header-icon"><mat-icon>event</mat-icon></div>
+    <div>
+      <h2 class="cal__title">{{ 'kalender_sync.title' | translate }}</h2>
+      <p class="cal__subtitle">{{ 'kalender_sync.subtitle' | translate }}</p>
+    </div>
+  </div>
+
+  <div class="cal__section">
+    <div class="cal__section-title">{{ 'kalender_sync.section_url' | translate }}</div>
+
+    @if (loading()) {
+      <div class="cal__loading">{{ 'common.loading' | translate }}</div>
+    } @else {
+      <div class="cal__url-row">
+        <input class="cal__url-input" type="text" readonly [value]="url()" (click)="$any($event.target).select()">
+        <button class="cal__btn cal__btn--secondary" (click)="copyUrl()">
+          <mat-icon>{{ copied() ? 'check' : 'content_copy' }}</mat-icon>
+          {{ (copied() ? 'kalender_sync.btn_copied' : 'kalender_sync.btn_copy') | translate }}
+        </button>
+      </div>
+      <p class="cal__hint">{{ 'kalender_sync.url_hint' | translate }}</p>
+    }
+
+    @if (error()) {
+      <div class="cal__error"><mat-icon>error_outline</mat-icon> {{ error() }}</div>
+    }
+  </div>
+
+  <div class="cal__section">
+    <div class="cal__section-title">{{ 'kalender_sync.section_howto' | translate }}</div>
+    <ol class="cal__steps">
+      <li>{{ 'kalender_sync.step_google' | translate }}</li>
+      <li>{{ 'kalender_sync.step_apple' | translate }}</li>
+      <li>{{ 'kalender_sync.step_outlook' | translate }}</li>
+    </ol>
+    <p class="cal__hint">{{ 'kalender_sync.sync_delay_hint' | translate }}</p>
+  </div>
+
+  @if (!loading() && url()) {
+    <div class="cal__section">
+      <div class="cal__section-title">{{ 'kalender_sync.section_download' | translate }}</div>
+      <a class="cal__btn cal__btn--secondary" [href]="url()" download="reservierungen.ics">
+        <mat-icon>download</mat-icon>
+        {{ 'kalender_sync.btn_download' | translate }}
+      </a>
+      <p class="cal__hint">{{ 'kalender_sync.download_hint' | translate }}</p>
+    </div>
+  }
+
+  <div class="cal__actions">
+    <button class="cal__btn cal__btn--danger" (click)="regenerate()" [disabled]="regenerating()">
+      @if (regenerating()) { <span class="cal__spinner"></span> } @else { <mat-icon>autorenew</mat-icon> }
+      {{ 'kalender_sync.btn_regenerate' | translate }}
+    </button>
+    <p class="cal__hint">{{ 'kalender_sync.regenerate_hint' | translate }}</p>
+  </div>
+
+</div>

@@ -10,7 +10,7 @@ import { LoginComponent } from './pages/login/login.component';
 import { SchichtplanungComponent } from './pages/schichtplanung/schichtplanung.component';
 import { GutscheineComponent } from './pages/gutscheine/gutscheine.component';
 import { HotelgaesteComponent } from './pages/hotelgaeste/hotelgaeste.component';
-import { authGuard, guestGuard, planGuard } from './services/auth.guard';
+import { authGuard, guestGuard, planGuard, addonGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   // Öffentliche Login-Seite — für bereits eingeloggte User auf /dashboard umleiten
@@ -32,9 +32,9 @@ export const routes: Routes = [
       { path: 'restaurant-plan', component: RestaurantPlanComponent },
       { path: 'restaurant-plan/:id', component: RestaurantPlanComponent },
       { path: 'statistiken', component: StatistikenComponent, canActivate: [planGuard('statistiken')] },
-      { path: 'schichtplanung', component: SchichtplanungComponent, canActivate: [planGuard('schichtplan')] },
-      { path: 'gutscheine', component: GutscheineComponent },
-      { path: 'hotelgaeste', component: HotelgaesteComponent },
+      { path: 'schichtplanung', component: SchichtplanungComponent, canActivate: [addonGuard('schichtplan')] },
+      { path: 'gutscheine', component: GutscheineComponent, canActivate: [addonGuard('vouchers')] },
+      { path: 'hotelgaeste', component: HotelgaesteComponent, canActivate: [addonGuard('pms')] },
      {
   path: 'einstellungen',
   loadChildren: () =>

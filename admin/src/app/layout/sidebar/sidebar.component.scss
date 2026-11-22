@@ -26,7 +26,12 @@
 }
 
 // ─── Mobile ──────────────────────────────────────────────────────────────────
-@media (max-width: 768px) {
+// Wichtig: 768px war zu hoch angesetzt — viele iPads (z.B. iPad mini,
+// klassisches 9.7"-iPad) sind im Hochformat genau 768px breit und fielen
+// dadurch fälschlich in den Mobile-Drawer (komplett ausgeblendet statt nur
+// eingeklappt). Echte Telefone sind ≤640px breit — ab da (und nur da) soll
+// die Sidebar als Off-Canvas-Drawer verschwinden.
+@media (max-width: 640px) {
   .sidebar {
     position: fixed;
     top: 0;
@@ -68,6 +73,7 @@
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -100,14 +106,91 @@
 }
 
 // ─── Gesperrtes Nav-Item (Plan zu niedrig) ────────────────────────────────────
+// Hinweis: Dimmung liegt auf Icon + Label (nicht auf dem ganzen Item), damit
+// das Add-on-Badge nicht mit "opacity" mitverblasst und klar lesbar bleibt.
 .nav-item--locked {
-  opacity: 0.5;
   cursor: default;
   pointer-events: none;
+
+  mat-icon,
+  > span:not(.nav-item__plan-badge) {
+    opacity: 0.5;
+  }
 
   &:hover {
     background: none;
     color: inherit;
+  }
+}
+
+// ─── Gutscheine: aufklappbares Untermenü (Gutschein-Designer) ────────────────
+.nav-item-group {
+  position: relative;
+}
+
+.nav-item__expand-btn {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  width: 32px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: $color-text-muted;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s;
+  }
+
+  &:hover {
+    color: $color-text-on-dark;
+  }
+
+  &--open mat-icon {
+    transform: rotate(180deg);
+  }
+}
+
+.nav-submenu {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 4px;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px 9px 52px;
+    color: $color-text-muted;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background-color: $color-dark-soft;
+      color: $color-text-on-dark;
+    }
+
+    &.active {
+      color: $color-accent;
+    }
   }
 }
 
@@ -303,6 +386,13 @@
   }
 }
 
+// Zusätzlicher Toggle für das Reservierungs-Panel (nur auf raum-detail
+// sichtbar, siehe [layout.resPanelToggleVisible] in sidebar.component.html) —
+// direkt über dem normalen Sidebar-Toggle, per dünner Trennlinie abgesetzt.
+.sidebar__toggle--respanel {
+  border-bottom: 1px solid $color-border;
+}
+
 .sidebar__restaurant {
   display: flex;
   align-items: center;
@@ -423,5 +513,35 @@
     width: 18px;
     height: 18px;
     color: inherit;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  HELLMODUS — Add-on-Badge kräftiger, Nav-Text echtes Schwarz statt Grau
+// ═══════════════════════════════════════════════════════════════════════════
+:host-context(body:not(.dim-theme):not(.dark-theme)) {
+  .nav-item__plan-badge--addon {
+    background: rgba(217, 119, 6, 0.22);
+    color: #92400e;
+    font-weight: 800;
+
+    // Badge soll auch bei gesperrten Nav-Items klar lesbar bleiben,
+    // statt durch die 0.5-Opacity des Locked-States zu verblassen.
+    opacity: 1;
+  }
+
+  // Nav-Item-Labels (Dashboard, Restaurantplan, ...): echtes Schwarz statt
+  // dem transparenten $color-text-muted, das im Hellmodus verwaschen/grau wirkt.
+  .nav-item:not(.active) {
+    color: #000;
+
+    &:hover { color: #000; }
+  }
+
+  .nav-item--locked {
+    mat-icon,
+    > span:not(.nav-item__plan-badge) {
+      color: #000;
+    }
   }
 }

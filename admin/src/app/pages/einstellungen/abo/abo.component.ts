@@ -39,6 +39,21 @@ export class AboComponent {
   readonly infoOpen    = signal(false);
   readonly infoAddons  = signal(false);
 
+  /** Anzeige-Umschalter Preise: jährliche Zahlung (Basispreis) vs. monatliche Zahlung (+10%). */
+  readonly MONTHLY_SURCHARGE = 1.10;
+  readonly billingPeriod = signal<'yearly' | 'monthly'>('yearly');
+
+  toggleBillingPeriod(): void {
+    this.billingPeriod.set(this.billingPeriod() === 'yearly' ? 'monthly' : 'yearly');
+  }
+
+  /** Preis in Cent für die aktuell gewählte Zahlweise (jährlich = Basispreis, monatlich = Basispreis +10%). */
+  displayPrice(plan: Plan): number | null {
+    const base = this.planService.prices()?.[plan];
+    if (base == null) return null;
+    return this.billingPeriod() === 'monthly' ? Math.round(base * this.MONTHLY_SURCHARGE) : base;
+  }
+
   constructor() {
     this.planService.loadPrices();
     this.planService.loadAddons();
@@ -69,6 +84,12 @@ export class AboComponent {
         'abo.features.widget_sub_preview',
         'abo.features.widget_sub_branding',
         'abo.features.widget_sub_embed',
+      ] },
+    { labelKey: 'abo.features.calendar_sync',    tisch: true,    menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.calendar_sync_sub_providers',
+        'abo.features.calendar_sync_sub_live',
+        'abo.features.calendar_sync_sub_export',
       ] },
     { labelKey: 'abo.features.guests',           tisch: true,    menu: true,    maitre: true,
       subKeys: [
@@ -113,7 +134,7 @@ export class AboComponent {
         'abo.features.email_design_sub_branding',
         'abo.features.email_design_sub_types',
       ] },
-    { labelKey: 'abo.features.shift_plan',       tisch: false,   menu: false,   maitre: true,
+    { labelKey: 'abo.features.shift_plan',       tisch: 'addon', menu: 'addon', maitre: true,
       subKeys: [
         'abo.features.shift_plan_sub_templates',
         'abo.features.shift_plan_sub_swap',
@@ -140,6 +161,12 @@ export class AboComponent {
         'abo.features.packages_sub_categories',
         'abo.features.packages_sub_media',
         'abo.features.packages_sub_widget',
+      ] },
+    { labelKey: 'abo.features.whatsapp',         tisch: 'addon', menu: 'addon', maitre: 'addon',
+      subKeys: [
+        'abo.features.whatsapp_sub_dialog',
+        'abo.features.whatsapp_sub_capacity',
+        'abo.features.whatsapp_sub_autoconfirm',
       ] },
   ];
 
@@ -171,25 +198,6 @@ export class AboComponent {
   isUpgrade(plan: Plan): boolean {
     const rank: Record<Plan, number> = { tisch: 1, menu: 2, maitre: 3 };
     return rank[plan] > rank[this.planService.currentPlan()];
-  }
-
-  readonly addonSaving = signal<string | null>(null);
-
-  toggleAddon(key: string): void {
-    if (this.addonSaving()) return;
-    const current = this.planService.hasAddon(key);
-    this.addonSaving.set(key);
-
-    this.http.patch<{ addons: string[] }>(
-      `/api/v1/admin/tenant/settings/addon/${key}`,
-      { active: !current },
-    ).subscribe({
-      next: () => {
-        this.auth.refreshUser();
-        this.addonSaving.set(null);
-      },
-      error: () => this.addonSaving.set(null),
-    });
   }
 
   selectPlan(plan: Plan): void {

@@ -6,6 +6,8 @@ namespace App\Module\WhatsApp\Domain\Entity;
 
 final class WhatsappConversationState
 {
+    /** Nur durchlaufen, wenn der Tenant mehr als ein aktives Venue hat — siehe ConversationStateMachine. */
+    public const AWAITING_VENUE        = 'awaiting_venue';
     public const AWAITING_PARTY_SIZE   = 'awaiting_party_size';
     public const AWAITING_DATE         = 'awaiting_date';
     public const AWAITING_TIME         = 'awaiting_time';
@@ -16,6 +18,7 @@ final class WhatsappConversationState
     public const CANCELLED             = 'cancelled';
 
     public const ALL = [
+        self::AWAITING_VENUE,
         self::AWAITING_PARTY_SIZE,
         self::AWAITING_DATE,
         self::AWAITING_TIME,

@@ -177,23 +177,24 @@
         </div>
       </div>
 
-      <!-- Geräte-Verteilung -->
+      <!-- Buchungsvorlauf -->
       <div class="donut-card">
-        <h3 class="donut-card__title">{{ 'statistiken.devices' | translate }}</h3>
+        <h3 class="donut-card__title">{{ 'statistiken.lead_time_title' | translate }}</h3>
         <div class="donut-card__visual">
           <div class="donut-wrap">
             <canvas id="doughnutChart"></canvas>
             <div class="donut-center">
-              <span class="donut-center__num">100</span>
+              <span class="donut-center__num">{{ leadTimeTotal() }}</span>
               <span class="donut-center__lbl">{{ 'statistiken.total' | translate }}</span>
             </div>
           </div>
           <div class="donut-legend">
-            @for (item of geraeteData; track item.label) {
+            @for (item of leadTimeData(); track item.label) {
               <div class="donut-legend__row">
                 <span class="donut-legend__dot" [style.background]="item.color"></span>
-                <span class="donut-legend__name">{{ item.label }}</span>
-                <span class="donut-legend__val">{{ item.value }} %</span>
+                <span class="donut-legend__name">{{ item.label | translate }}</span>
+                <span class="donut-legend__val">{{ item.value }}</span>
+                <span class="donut-legend__pct">{{ item.pct }} %</span>
               </div>
             }
           </div>
@@ -228,67 +229,32 @@
     </div>
   </div>
 
-  <!-- ─── Gruppen-Heatmap ──────────────────────────────────────────────────── -->
+  <!-- ─── Stoßzeiten-Ranking ───────────────────────────────────────────────── -->
   <div class="stats-section">
     <div class="chart-card">
       <div class="chart-card__header">
         <div>
-          <h3 class="chart-card__title">{{ 'statistiken.groups_per_interval' | translate }}
-            <span class="chart-card__badge chart-card__badge--inline">{{ 'statistiken.minutes_15' | translate }}</span>
-          </h3>
-          <p class="chart-card__hint">{{ 'statistiken.simultaneous_groups' | translate }}</p>
-        </div>
-        <div class="filter-pill-group">
-          @for (opt of timeOptions; track opt.value) {
-            <button
-              class="filter-pill"
-              [class.filter-pill--active]="gruppenFilter === opt.value"
-              (click)="gruppenFilter = opt.value">
-              {{ opt.label }}
-            </button>
-          }
+          <h3 class="chart-card__title">{{ 'statistiken.peak_times_title' | translate }}</h3>
+          <p class="chart-card__hint">{{ 'statistiken.peak_times_hint' | translate }}</p>
         </div>
       </div>
 
-      <div class="heatmap-scroll">
-        <div class="heatmap">
-          <!-- Zeitachse -->
-          <div class="heatmap__time-row">
-            @for (lbl of gruppenLabels; track $index) {
-              <div class="heatmap__time-cell" [class.heatmap__time-cell--major]="!lbl.startsWith(':')">
-                {{ lbl }}
-              </div>
-            }
-          </div>
-          <!-- Daten-Zeilen -->
-          @for (row of gruppenRows; track $index) {
-            <div class="heatmap__row">
-              @for (val of row; track $index) {
-                <div
-                  class="heatmap__cell"
-                  [class.heatmap__cell--empty]="val === 0"
-                  [style.background]="heatBg(val)"
-                  [style.color]="heatFg(val)"
-                  [title]="val ? val + ' Gruppen' : ''">
-                  {{ val || '' }}
-                </div>
-              }
+      @if (topBusyTimes().length === 0) {
+        <p class="peak-times__empty">{{ 'statistiken.peak_times_empty' | translate }}</p>
+      } @else {
+        <div class="peak-times">
+          @for (p of topBusyTimes(); track p.weekdayKey + p.time) {
+            <div class="peak-times__row">
+              <span class="peak-times__rank">{{ medalFor($index) }}</span>
+              <span class="peak-times__label">{{ p.weekdayKey | translate }}, {{ p.time }}{{ 'statistiken.oclock' | translate }}</span>
+              <span class="peak-times__bar-track">
+                <span class="peak-times__bar-fill" [style.width.%]="(p.value / topBusyTimes()[0].value) * 100"></span>
+              </span>
+              <span class="peak-times__value">Ø {{ p.value }} {{ 'statistiken.guests_short' | translate }}</span>
             </div>
           }
         </div>
-      </div>
-
-      <!-- Legende -->
-      <div class="heatmap-legend">
-        <span class="heatmap-legend__label">{{ 'statistiken.few' | translate }}</span>
-        <div class="heatmap-legend__scale">
-          @for (step of [0.18, 0.35, 0.52, 0.68, 0.85, 0.95]; track $index) {
-            <div class="heatmap-legend__swatch" [style.background]="'rgba(41,121,255,' + step + ')'"></div>
-          }
-        </div>
-        <span class="heatmap-legend__label">{{ 'statistiken.many' | translate }}</span>
-      </div>
-
+      }
     </div>
   </div>
 
@@ -296,19 +262,78 @@
   <div class="bottom-section">
 
     <div class="metrics-card">
-      <h2 class="section-label">{{ 'statistiken.performance' | translate }}</h2>
-      <div class="metrics-list">
-        @for (m of metrics; track m.name) {
-          <div class="metric-row">
-            <div class="metric-row__top">
-              <span class="metric-row__name">{{ m.name }}</span>
-              <span class="metric-row__value">{{ m.value }} %</span>
-            </div>
-            <div class="metric-row__bar">
-              <div class="metric-row__fill" [style.width.%]="m.value"></div>
-            </div>
+      <h2 class="section-label">{{ 'statistiken.insights' | translate }}</h2>
+      <div class="insight-grid">
+
+        <!-- Verpasste Nachfrage / Warteliste -->
+        <div class="insight-card">
+          <div class="insight-card__icon"><mat-icon>event_busy</mat-icon></div>
+          <div class="insight-card__body">
+            <div class="insight-card__title">{{ 'statistiken.insight_waitlist_title' | translate }}</div>
+            @if (insights().waitlist.total === 0) {
+              <p class="insight-card__empty">{{ 'statistiken.insight_waitlist_empty' | translate }}</p>
+            } @else {
+              <p class="insight-card__text">
+                {{ 'statistiken.insight_waitlist_text' | translate:{
+                  converted: insights().waitlist.converted,
+                  total: insights().waitlist.total
+                } }}
+              </p>
+              @if (insights().waitlist.missedGuests > 0) {
+                <p class="insight-card__sub">{{ 'statistiken.insight_waitlist_missed' | translate:{ guests: insights().waitlist.missedGuests } }}</p>
+              }
+            }
           </div>
-        }
+        </div>
+
+        <!-- Top-Package -->
+        <div class="insight-card">
+          <div class="insight-card__icon"><mat-icon>inventory_2</mat-icon></div>
+          <div class="insight-card__body">
+            <div class="insight-card__title">{{ 'statistiken.insight_package_title' | translate }}</div>
+            @if (insights().topPackage; as pkg) {
+              <p class="insight-card__text">{{ 'statistiken.insight_package_text' | translate:{ name: pkg.name, quantity: pkg.quantity } }}</p>
+            } @else {
+              <p class="insight-card__empty">{{ 'statistiken.insight_package_empty' | translate }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Tisch-Bedarf vs. Angebot -->
+        <div class="insight-card">
+          <div class="insight-card__icon"><mat-icon>table_restaurant</mat-icon></div>
+          <div class="insight-card__body">
+            <div class="insight-card__title">{{ 'statistiken.insight_mismatch_title' | translate }}</div>
+            @if (insights().mismatch; as m) {
+              <p class="insight-card__text">
+                {{ 'statistiken.insight_mismatch_text' | translate:{ bucket: m.bucket, demand: m.demand, tableCount: m.tableCount } }}
+              </p>
+            } @else {
+              <p class="insight-card__empty">{{ 'statistiken.insight_mismatch_empty' | translate }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Wachstum ggü. Vorperiode -->
+        <div class="insight-card">
+          <div class="insight-card__icon"><mat-icon>trending_up</mat-icon></div>
+          <div class="insight-card__body">
+            <div class="insight-card__title">{{ 'statistiken.insight_growth_title' | translate }}</div>
+            @if (insights().growth?.growthPercent !== null && insights().growth?.growthPercent !== undefined) {
+              <p class="insight-card__text"
+                 [class.insight-card__text--positive]="insights().growth!.growthPercent! >= 0"
+                 [class.insight-card__text--negative]="insights().growth!.growthPercent! < 0">
+                {{ insights().growth!.growthPercent! >= 0 ? '+' : '' }}{{ insights().growth!.growthPercent! }} %
+                <span class="insight-card__sub-inline">
+                  {{ 'statistiken.insight_growth_text' | translate:{ previous: insights().growth!.previous, current: insights().growth!.current } }}
+                </span>
+              </p>
+            } @else {
+              <p class="insight-card__empty">{{ 'statistiken.insight_growth_empty' | translate }}</p>
+            }
+          </div>
+        </div>
+
       </div>
     </div>
 

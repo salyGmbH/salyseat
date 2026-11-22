@@ -46,17 +46,6 @@ class VoucherConfig
         $this->tenant = $tenant;
     }
 
-    public function togglePaymentMethod(string $id): void
-    {
-        if (in_array($id, $this->activePaymentMethods, true)) {
-            $this->activePaymentMethods = array_values(
-                array_filter($this->activePaymentMethods, fn($m) => $m !== $id)
-            );
-        } else {
-            $this->activePaymentMethods[] = $id;
-        }
-    }
-
     public function getId(): Uuid                         { return $this->id; }
     public function getTenant(): Tenant                   { return $this->tenant; }
     public function getActivePaymentMethods(): array      { return $this->activePaymentMethods; }

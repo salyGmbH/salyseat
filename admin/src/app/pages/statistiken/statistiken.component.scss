@@ -535,96 +535,62 @@
   }
 }
 
-// ─── Heatmap ──────────────────────────────────────────────────────────────────
-.heatmap-scroll {
-  overflow-x: auto;
-  padding-bottom: 8px;
-
-  // Scrollbar styling
-  &::-webkit-scrollbar { height: 5px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(var(--color-text-rgb), 0.15); border-radius: 99px; }
-}
-
-.heatmap {
+// ─── Stoßzeiten-Ranking ─────────────────────────────────────────────────────
+.peak-times {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: 680px;
+  gap: 4px;
 }
 
-.heatmap__time-row {
+.peak-times__row {
   display: grid;
-  grid-template-columns: repeat(17, 1fr);
-  gap: 3px;
+  grid-template-columns: 28px 1fr 2fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-radius: 8px;
+  transition: background-color .15s;
+
+  &:hover { background: rgba(var(--color-text-rgb), 0.03); }
+  &:not(:last-child) { border-bottom: 1px solid rgba(var(--color-text-rgb), 0.06); }
 }
 
-.heatmap__time-cell {
-  font-size: 10px;
-  color: $color-text-muted;
+.peak-times__rank {
+  font-size: 15px;
   text-align: center;
-  padding: 0 2px 4px;
-
-  &--major {
-    font-weight: 600;
-    color: $color-text-on-dark;
-  }
 }
 
-.heatmap__row {
-  display: grid;
-  grid-template-columns: repeat(17, 1fr);
-  gap: 3px;
+.peak-times__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text-on-dark;
 }
 
-.heatmap__cell {
-  height: 36px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
+.peak-times__bar-track {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(var(--color-text-rgb), 0.06);
+  overflow: hidden;
+}
+
+.peak-times__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(41,121,255,0.55), rgba(41,121,255,0.95));
+}
+
+.peak-times__value {
+  font-size: 12.5px;
   font-weight: 700;
-  transition: transform 0.12s, box-shadow 0.12s;
-  cursor: default;
-
-  &:not(.heatmap__cell--empty):hover {
-    transform: scale(1.12);
-    box-shadow: 0 2px 12px rgba(41,121,255,0.40);
-    z-index: 1;
-    position: relative;
-  }
-
-  &--empty {
-    background: rgba(var(--color-text-rgb), 0.03) !important;
-    border: 1px dashed rgba(var(--color-text-rgb), 0.06);
-  }
+  color: $color-text-muted;
+  white-space: nowrap;
 }
 
-.heatmap-legend {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-
-  &__label {
-    font-size: 11px;
-    color: $color-text-muted;
-    white-space: nowrap;
-  }
-
-  &__scale {
-    display: flex;
-    gap: 3px;
-    flex: 1;
-    max-width: 160px;
-  }
-
-  &__swatch {
-    flex: 1;
-    height: 10px;
-    border-radius: 3px;
-  }
+.peak-times__empty {
+  font-size: 13px;
+  color: $color-text-muted;
+  padding: 12px 4px;
 }
 
 // ─── Bottom Section ───────────────────────────────────────────────────────────
@@ -644,30 +610,75 @@
   padding: 24px;
 }
 
-.metrics-list { display: flex; flex-direction: column; gap: 18px; }
-
-.metric-row {
+// ─── Business-Insight-Karten ────────────────────────────────────────────────
+.insight-grid {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 14px;
+}
 
-  &__top { display: flex; justify-content: space-between; align-items: center; }
-  &__name  { font-size: 13px; font-weight: 500; color: $color-text-on-dark; }
-  &__value { font-size: 13px; font-weight: 700; color: $color-primary; }
+.insight-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(var(--color-text-rgb), 0.02);
+  border: 1px solid $color-border;
+}
 
-  &__bar {
-    height: 6px;
-    background: rgba(var(--color-text-rgb), 0.07);
-    border-radius: 99px;
-    overflow: hidden;
-  }
+.insight-card__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: rgba(var(--color-primary-rgb), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: $color-primary; }
+}
 
-  &__fill {
-    height: 100%;
-    background: linear-gradient(90deg, $color-primary 0%, rgba(var(--color-primary-rgb), 0.60) 100%);
-    border-radius: 99px;
-    transition: width 0.6s cubic-bezier(.4,0,.2,1);
-  }
+.insight-card__body { flex: 1; min-width: 0; }
+
+.insight-card__title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $color-text-muted;
+  margin-bottom: 4px;
+}
+
+.insight-card__text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: $color-text-on-dark;
+  line-height: 1.4;
+  margin: 0;
+
+  &--positive { color: #22c55e; }
+  &--negative { color: #ef5350; }
+}
+
+.insight-card__sub-inline {
+  font-size: 12px;
+  font-weight: 500;
+  color: $color-text-muted;
+  margin-left: 4px;
+}
+
+.insight-card__sub {
+  font-size: 11.5px;
+  color: $color-text-muted;
+  margin: 4px 0 0;
+}
+
+.insight-card__empty {
+  font-size: 12.5px;
+  color: $color-text-muted;
+  font-style: italic;
+  margin: 0;
 }
 
 // ─── Table Card ───────────────────────────────────────────────────────────────

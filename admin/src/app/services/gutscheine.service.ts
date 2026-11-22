@@ -4,15 +4,6 @@ import { Observable, catchError, map, of } from 'rxjs';
 
 export type VoucherStatus = 'active' | 'redeemed' | 'expired';
 
-export interface PaymentMethod {
-  id:          string;
-  name:        string;
-  description: string;
-  icon:        string;
-  provider:    'stripe' | 'paypal' | 'sofort' | 'manual';
-  active:      boolean;
-}
-
 export interface VoucherImage {
   id:     string;
   name:   string;
@@ -109,16 +100,6 @@ export class GutscheineService {
 
   deleteImage(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/images/${id}`);
-  }
-
-  // ── Zahlungsmethoden ──────────────────────────────────────────────────────
-
-  listPaymentMethods(): Observable<PaymentMethod[]> {
-    return this.http.get<PaymentMethod[]>(`${this.base}/payment-methods`);
-  }
-
-  togglePaymentMethod(id: string): Observable<PaymentMethod> {
-    return this.http.patch<PaymentMethod>(`${this.base}/payment-methods/${id}/toggle`, {});
   }
 
   // ── Postversand ───────────────────────────────────────────────────────────

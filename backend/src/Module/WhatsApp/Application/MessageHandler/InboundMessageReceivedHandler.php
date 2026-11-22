@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Module\WhatsApp\Application\MessageHandler;
 
+use App\Module\Tenant\Domain\Entity\Tenant;
 use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
 use App\Module\Venue\Domain\Entity\Venue;
 use App\Module\WhatsApp\Application\Message\InboundMessageReceived;
 use App\Module\WhatsApp\Application\Message\SendWhatsAppMessage;
 use App\Module\WhatsApp\Application\Service\ConversationStateMachine;
 use App\Module\WhatsApp\Domain\Entity\WhatsappConversation;
+use App\Module\WhatsApp\Domain\Entity\WhatsappConversationState;
 use App\Module\WhatsApp\Domain\Entity\WhatsappMessageDirection;
 use App\Module\WhatsApp\Domain\Entity\WhatsappMessageLog;
 use App\Module\WhatsApp\Domain\Repository\WhatsappConversationRepositoryInterface;
@@ -61,15 +63,11 @@ final class InboundMessageReceivedHandler
             body:         $message->textBody,
         ));
 
-        $venues = $this->em->getRepository(Venue::class)->findBy(['tenant' => $tenant, 'active' => true]);
+        $venues = $this->resolveActiveVenues($tenant);
 
-        if (count($venues) !== 1) {
-            // v1 unterstützt bewusst nur Tenants mit genau einem aktiven Venue
-            // automatisch (siehe Plan, offene Frage "Multi-Venue"). Andernfalls
-            // lieber ein klarer Hinweis als eine falsche Zuordnung.
-            $this->logger->warning('WhatsApp-Bot: Tenant hat nicht genau ein aktives Venue, überspringe', [
-                'tenant_id'    => $message->tenantId,
-                'venue_count'  => count($venues),
+        if (count($venues) === 0) {
+            $this->logger->warning('WhatsApp-Bot: Tenant hat kein aktives Venue, überspringe', [
+                'tenant_id' => $message->tenantId,
             ]);
             $this->bus->dispatch(new SendWhatsAppMessage(
                 tenantId: $message->tenantId,
@@ -79,15 +77,19 @@ final class InboundMessageReceivedHandler
             return;
         }
 
-        $venue = $venues[0];
-
         $conversation = $this->conversations->findOpenByTenantAndPhone($tenant, $message->fromPhone);
         if ($conversation === null) {
             $conversation = new WhatsappConversation($tenant, $message->fromPhone, $message->waProfileName);
-            $conversation->setVenue($venue);
+            if (count($venues) === 1) {
+                // Eindeutig — Raumauswahl-Schritt entfällt, direkt zur Personenzahl.
+                $conversation->setVenue($venues[0]);
+            } else {
+                // Mehrere aktive Räume — Bot fragt zuerst, welcher gemeint ist.
+                $conversation->setState(WhatsappConversationState::AWAITING_VENUE);
+            }
         }
 
-        $reply = $this->stateMachine->handle($conversation, $message->textBody, $venue);
+        $reply = $this->stateMachine->handle($conversation, $message->textBody, $venues);
 
         $this->conversations->save($conversation);
 
@@ -97,5 +99,50 @@ final class InboundMessageReceivedHandler
             body:           $reply,
             conversationId: $conversation->getId()->toRfc4122(),
         ));
+    }
+
+    /**
+     * Die "aktiven Räume" für den WhatsApp-Bot sind dieselben, die der Tenant
+     * unter Einstellungen → Widget-Einstellungen → Raumauswahl für die Online-
+     * Buchung freigegeben hat (tenant.uiSettings.widgetFunctional.raumauswahlAktiveIds)
+     * — NICHT das separate venues.active-Flag (das steuert nur, ob ein Venue
+     * grundsätzlich existiert/betrieben wird, nicht ob es online buchbar ist).
+     * Ist die Liste leer (Tenant hat die Widget-Einstellungen nie geöffnet),
+     * gilt derselbe Default wie im Widget-Frontend: alle aktiven Venues zählen.
+     *
+     * @return Venue[] stabil sortiert nach Name, damit die im awaiting_venue-
+     *                  Schritt gezeigte nummerierte Liste bei jeder Nachricht
+     *                  dieselbe Zuordnung ergibt.
+     */
+    private function resolveActiveVenues(Tenant $tenant): array
+    {
+        $activeIds = $tenant->getUiSettings()['widgetFunctional']['raumauswahlAktiveIds'] ?? [];
+
+        if (empty($activeIds)) {
+            return $this->em->getRepository(Venue::class)->findBy(
+                ['tenant' => $tenant, 'active' => true],
+                ['name' => 'ASC'],
+            );
+        }
+
+        $uuids = array_values(array_filter(array_map(
+            static function (string $id): ?Uuid {
+                try {
+                    return Uuid::fromString($id);
+                } catch (\InvalidArgumentException) {
+                    return null;
+                }
+            },
+            $activeIds,
+        )));
+
+        if (empty($uuids)) {
+            return [];
+        }
+
+        return $this->em->getRepository(Venue::class)->findBy(
+            ['id' => $uuids, 'tenant' => $tenant, 'active' => true],
+            ['name' => 'ASC'],
+        );
     }
 }

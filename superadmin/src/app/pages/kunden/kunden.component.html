@@ -99,8 +99,13 @@
               </td>
               <td class="td-vertrag">
                 <span class="badge" [class]="planClass(t.plan)">{{ planLabel(t.plan) }}</span>
-                @if (priceFor(t.plan) != null) {
-                  <span class="td-vertrag__price">{{ formatPrice(priceFor(t.plan)) }} / Monat</span>
+                @if (finalPriceFor(t) != null) {
+                  <span class="td-vertrag__price">
+                    {{ formatPrice(finalPriceFor(t)) }} / Monat
+                    @if (t.contractDuration === 'monthly') {
+                      <em class="td-vertrag__tag">monatlich +10%</em>
+                    }
+                  </span>
                 }
                 <span class="td-vertrag__since">seit {{ t.createdAt }}</span>
               </td>

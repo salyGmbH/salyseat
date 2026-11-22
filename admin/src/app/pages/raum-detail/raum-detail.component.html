@@ -82,10 +82,10 @@
     }
 
     <!-- ── Hauptbereich: Links Reservierungen / Rechts Plan ────────────── -->
-    <div class="raum-detail__body">
+    <div class="raum-detail__body" [class.res-panel-collapsed]="resPanelCollapsed()">
 
       <!-- ─── Linkes Panel ─── -->
-      <aside class="res-panel" (click)="closeMenu()">
+      <aside class="res-panel" [class.res-panel--collapsed]="resPanelCollapsed()" (click)="closeMenu()">
 
         <!-- Datum-Karte -->
         <div class="date-card">
@@ -342,7 +342,6 @@
                           @if (res.status === 'completed' || res.status === 'cancelled' || res.status === 'no-show') {
                             <span class="muted">· {{ statusLabel(res.status) }}@if (res.status === 'no-show' && (res.guestNoShowCount ?? 0) > 1) { <span class="no-show-count">({{ res.guestNoShowCount }})</span>}</span>
                           }
-                          @if (res.phone) { <span class="muted">· <mat-icon>call</mat-icon>{{ res.phone }}</span> }
                           @if (res.status === 'late') {
                             <span class="res-row__overdue-chip res-row__overdue-chip--late">
                               <mat-icon>schedule</mat-icon>+{{ lateMinutes(res) }} min
@@ -354,8 +353,13 @@
                             </span>
                           }
                         </div>
-                        @if ((res.notes || res.gasttypen?.length || res.hinweise?.length) || res.packages?.length) {
+                        @if ((res.notes || res.gasttypen?.length || res.hinweise?.length) || res.packages?.length || isFreshOnlineBooking(res)) {
                           <div class="res-row__badges">
+                            @if (isFreshOnlineBooking(res)) {
+                              <div class="res-row__info-badge res-row__info-badge--fresh" title="Heute frisch online gebucht">
+                                <mat-icon>bolt</mat-icon>
+                              </div>
+                            }
                             @if (res.notes || res.gasttypen?.length || res.hinweise?.length) {
                               <div class="res-row__info-badge">
                                 <mat-icon>sticky_note_2</mat-icon>
@@ -2016,7 +2020,14 @@
                   <span class="gc-res-hero__date">{{ res.date | date:'EEEE, dd. MMMM yyyy' }}</span>
                   <span class="gc-res-hero__dur">{{ res.durationMinutes }} min</span>
                 </div>
-                <span class="gc-res-hero__pill">{{ labelFor(res.status) }}</span>
+                <div class="gc-res-hero__badges">
+                  <span class="gc-res-hero__pill">{{ labelFor(res.status) }}</span>
+                  @if (isFreshOnlineBooking(res)) {
+                    <span class="gc-res-hero__fresh" title="Heute frisch online gebucht">
+                      <mat-icon>bolt</mat-icon>Heute reserviert
+                    </span>
+                  }
+                </div>
               </div>
 
               <!-- Detail-Rows -->

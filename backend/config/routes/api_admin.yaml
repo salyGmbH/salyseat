@@ -16,3 +16,7 @@ api_auth:
 webhook:
     resource: '../../src/Api/Controller/Webhook/'
     type: attribute
+
+calendar_feed:
+    resource: '../../src/Api/Controller/Calendar/'
+    type: attribute

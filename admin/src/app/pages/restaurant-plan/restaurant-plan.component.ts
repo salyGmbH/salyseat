@@ -489,8 +489,8 @@ export class RestaurantPlanComponent implements OnInit {
         if (t.id !== selectedTable) return t;
         const { w, h } = this.getTableSize(t.type);
         return { ...t,
-          x: Math.max(0, cx - (w * t.scale) / 2),
-          y: Math.max(0, cy - (h * t.scale) / 2) };
+          x: cx - (w * t.scale) / 2,
+          y: cy - (h * t.scale) / 2 };
       }));
       this.checkMerge(selectedTable);
       this.selectedTableId.set(null);
@@ -775,6 +775,7 @@ export class RestaurantPlanComponent implements OnInit {
     }
     this.placedTables.update(ts => ts.filter(t => t.id !== id));
     this.selectedTableId.set(null);
+    this.normalizeLayoutOrigin();
   }
 
   openSeatsEdit(event: Event, id: number) {
@@ -1003,6 +1004,7 @@ export class RestaurantPlanComponent implements OnInit {
     event.stopPropagation();
     this.placedWalls.update(ws => ws.filter(w => w.id !== id));
     this.selectedWallId.set(null);
+    this.normalizeLayoutOrigin();
   }
 
   onRotateWallMouseDown(event: PointerEvent, id: number) {
@@ -1028,6 +1030,7 @@ export class RestaurantPlanComponent implements OnInit {
     event.stopPropagation();
     this.placedDecors.update(ds => ds.filter(d => d.id !== id));
     this.selectedDecorId.set(null);
+    this.normalizeLayoutOrigin();
   }
 
   // ── Label-Text bearbeiten ─────────────────────────────────────────────────
@@ -1132,7 +1135,7 @@ export class RestaurantPlanComponent implements OnInit {
     switch (drag.mode) {
       case 'move-table':
         this.placedTables.update(ts => ts.map(t => t.id === drag.id
-          ? { ...t, x: Math.max(0, wx - drag.offsetX), y: Math.max(0, wy - drag.offsetY) } : t));
+          ? { ...t, x: wx - drag.offsetX, y: wy - drag.offsetY } : t));
         break;
 
       case 'rotate': {
@@ -1194,7 +1197,7 @@ export class RestaurantPlanComponent implements OnInit {
 
       case 'move-decor':
         this.placedDecors.update(ds => ds.map(d => d.id === drag.id
-          ? { ...d, x: Math.max(0, wx - drag.offsetX), y: Math.max(0, wy - drag.offsetY) } : d));
+          ? { ...d, x: wx - drag.offsetX, y: wy - drag.offsetY } : d));
         break;
     }
   }
@@ -1207,5 +1210,40 @@ export class RestaurantPlanComponent implements OnInit {
     this.activeDrag = null;
     this.palettePointerType = null;
     this.stopAutoPan();
+    this.normalizeLayoutOrigin();
+  }
+
+  /**
+   * Elemente dürfen beim Verschieben mittlerweile auch über die obere/linke
+   * Kante hinaus (ins Negative) gezogen werden. Andere Ansichten wie die
+   * Raumübersicht verlassen sich aber standardmäßig auf natives Scrollen,
+   * das keine negativen Positionen anzeigen kann — dort wäre so ein Element
+   * unerreichbar. Deshalb wird der GESAMTE Raum nach jedem Drag so
+   * verschoben, dass das oberste/linkeste Element wieder bei (0,0) beginnt;
+   * die relative Anordnung aller Elemente zueinander bleibt dabei exakt
+   * gleich, es verschiebt sich nur der gemeinsame Ursprung.
+   *
+   * Der Ursprung wird IMMER exakt auf (0,0) gesetzt (nicht nur bei negativen
+   * Koordinaten korrigiert). Das ist wichtig, weil sonst nach dem Löschen
+   * des bisher obersten/linkesten Elements ein Rest-Abstand oben/links
+   * stehen bleiben würde, den niemand mehr "weggeschoben" hat.
+   */
+  private normalizeLayoutOrigin(): void {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    this.placedTables().forEach(t  => { xs.push(t.x); ys.push(t.y); });
+    this.placedWalls().forEach(w   => { xs.push(w.x - w.length / 2); ys.push(w.y - 8); });
+    this.placedDecors().forEach(d  => { xs.push(d.x); ys.push(d.y); });
+    if (!xs.length) return;
+
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const dx = -minX;
+    const dy = -minY;
+    if (!dx && !dy) return;
+
+    this.placedTables.update(ts => ts.map(t => ({ ...t, x: t.x + dx, y: t.y + dy })));
+    this.placedWalls.update(ws  => ws.map(w => ({ ...w, x: w.x + dx, y: w.y + dy })));
+    this.placedDecors.update(ds => ds.map(d => ({ ...d, x: d.x + dx, y: d.y + dy })));
   }
 }

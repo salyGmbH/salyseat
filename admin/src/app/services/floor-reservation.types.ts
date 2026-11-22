@@ -50,10 +50,10 @@ export interface FloorReservationPackage {
 
 export const STATUS_LABELS: Record<FloorReservationStatus, string> = {
   upcoming:  'Warteliste',
-  confirmed: 'Bevorstehend',
+  confirmed: 'Geplant',
   late:      'Verspätet',
   seated:    'Eingecheckt',
-  expired:   'Abgelaufen',
+  expired:   'Überfällig',
   cleanup:   'Wird gereinigt',
   completed: 'Beendet',
   cancelled: 'Storniert',

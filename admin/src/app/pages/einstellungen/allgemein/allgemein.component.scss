@@ -93,12 +93,17 @@
   margin-bottom: 10px;
 
   button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     padding: 6px 12px;
     border-radius: 8px;
     border: 1px solid $color-border;
     background: $color-surface;
     color: $color-text-muted;
     cursor: pointer;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; flex-shrink: 0; }
     font-size: 12px;
     transition: 0.2s;
 
@@ -155,30 +160,34 @@
 
 /* ===================== BUTTON ===================== */
 .save-button {
+  display: inline-flex;
+  align-items: center;
   width: 100%;
-  padding: 10px 14px;
+  padding: 8px 22px;
   border-radius: 10px;
-  border: none;
-  cursor: pointer;
-
-  background: $color-accent;
-  color: white;
-  font-weight: 500;
+  border: 1px solid rgba(var(--color-primary-rgb), 0.55);
+  background: rgba(var(--color-primary-rgb), 0.10);
+  color: var(--color-primary);
+  font-weight: 600;
   font-size: 13px;
-
-  transition: all 0.25s ease;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.18),
+              inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.08);
+  transition: all 0.2s ease;
 
   &:hover {
-    background: color-mix(in srgb, $color-accent 92%, white);
+    border-color: var(--color-primary);
+    background: rgba(var(--color-primary-rgb), 0.16);
+    box-shadow: 0 0 16px rgba(var(--color-primary-rgb), 0.30),
+                inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.12);
   }
 
   &.saved {
-    background: #22c55e;
-    transform: scale(1.03);
-
-    &:hover {
-      background: color-mix(in srgb, #22c55e 92%, white);
-    }
+    border-color: rgba(var(--color-success-rgb), 0.55);
+    background: rgba(var(--color-success-rgb), 0.10);
+    color: var(--color-success);
+    box-shadow: 0 0 10px rgba(var(--color-success-rgb), 0.18),
+                inset 0 0 0 1px rgba(var(--color-success-rgb), 0.08);
   }
 }
 
@@ -270,7 +279,7 @@
     font-weight: 600;
     color: $color-text-on-dark;
 
-    mat-icon { font-size: 17px; width: 17px; height: 17px; color: $color-primary; }
+    mat-icon { font-size: 17px; width: 17px; height: 17px; color: $color-accent; }
 
     small {
       margin-left: auto;
@@ -307,6 +316,16 @@
 
     &.logo-preview-area--has-logo {
       border-color: rgba(129, 140, 248, .5);
+    }
+
+    // Der Hintergrund dieser Box ist immer dunkel, unabhängig vom
+    // App-Theme. Platzhalter-Text/-Icon dürfen daher nicht die
+    // theme-abhängige $color-text-muted-Farbe verwenden (die im
+    // hellen Modus fast schwarz ist und hier unsichtbar wird).
+    .logo-placeholder {
+      color: rgba(255, 255, 255, .65);
+
+      mat-icon { opacity: .55; }
     }
   }
 }

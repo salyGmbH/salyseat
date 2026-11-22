@@ -26,8 +26,27 @@ final class ConversationStateMachine
         private readonly ReservationCreatorInterface $reservationCreator,
     ) {}
 
-    public function handle(WhatsappConversation $conversation, string $text, Venue $venue): string
+    /**
+     * @param Venue[] $activeVenues Alle aktiven Venues des Tenants — nur für den
+     *                              awaiting_venue-Schritt relevant (Auswahlliste).
+     *                              Bei genau einem aktiven Venue durchläuft die
+     *                              Konversation diesen Schritt nie (siehe
+     *                              InboundMessageReceivedHandler), $activeVenues
+     *                              wird dann trotzdem mitgegeben, aber ignoriert.
+     */
+    public function handle(WhatsappConversation $conversation, string $text, array $activeVenues): string
     {
+        if ($conversation->getState() === WhatsappConversationState::AWAITING_VENUE) {
+            return $this->handleVenue($conversation, $text, $activeVenues);
+        }
+
+        $venue = $conversation->getVenue();
+        if ($venue === null) {
+            // Sollte nach dem awaiting_venue-Schritt nie passieren — defensiver Fallback.
+            $conversation->setState(WhatsappConversationState::ABANDONED);
+            return 'Da ist leider etwas schiefgelaufen. Bitte schreib uns erneut, um zu reservieren.';
+        }
+
         return match ($conversation->getState()) {
             WhatsappConversationState::AWAITING_PARTY_SIZE   => $this->handlePartySize($conversation, $text),
             WhatsappConversationState::AWAITING_DATE         => $this->handleDate($conversation, $text, $venue),
@@ -36,6 +55,51 @@ final class ConversationStateMachine
             WhatsappConversationState::AWAITING_CONFIRMATION => $this->handleConfirmation($conversation, $text, $venue),
             default => 'Diese Unterhaltung ist bereits abgeschlossen. Schreib uns gerne erneut, wenn du einen Tisch reservieren möchtest.',
         };
+    }
+
+    /** @param Venue[] $activeVenues */
+    private function handleVenue(WhatsappConversation $c, string $text, array $activeVenues): string
+    {
+        $selected = $this->matchVenue($text, $activeVenues);
+
+        if ($selected === null) {
+            return $this->retryOrAbandon($c, $this->venueListPrompt($activeVenues));
+        }
+
+        $c->setVenue($selected);
+        $c->setState(WhatsappConversationState::AWAITING_PARTY_SIZE);
+
+        return 'Für wie viele Personen möchtest du reservieren? (z. B. "4")';
+    }
+
+    /** @param Venue[] $activeVenues */
+    private function matchVenue(string $text, array $activeVenues): ?Venue
+    {
+        $trimmed = trim($text);
+
+        if (preg_match('/^(\d{1,2})$/', $trimmed, $m) === 1) {
+            $index = ((int) $m[1]) - 1;
+            return $activeVenues[$index] ?? null;
+        }
+
+        $normalized = mb_strtolower($trimmed);
+        foreach ($activeVenues as $v) {
+            if (mb_strtolower($v->getName()) === $normalized || str_contains(mb_strtolower($v->getName()), $normalized)) {
+                return $v;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param Venue[] $activeVenues */
+    private function venueListPrompt(array $activeVenues): string
+    {
+        $lines = ['In welchem Raum möchtest du reservieren?'];
+        foreach ($activeVenues as $i => $v) {
+            $lines[] = ($i + 1) . ') ' . $v->getName();
+        }
+        return implode("\n", $lines);
     }
 
     private function handlePartySize(WhatsappConversation $c, string $text): string

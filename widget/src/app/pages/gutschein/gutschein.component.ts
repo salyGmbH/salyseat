@@ -37,12 +37,11 @@ export class GutscheinComponent implements OnInit {
 
   // ─── Zahlungsmethoden / Stripe ────────────────────────────────────────────
   stripePublishableKey = signal<string | null>(null);
-  activePaymentMethods = signal<string[]>([]);
   paymentError         = signal('');
 
-  readonly hasStripePayment = computed(() =>
-    !!this.stripePublishableKey() && this.activePaymentMethods().length > 0
-  );
+  // Stripe-Zahlung ist immer aktiv, sobald ein Stripe-Konto verbunden ist —
+  // kein Admin-Schalter mehr, der den kompletten Zahlungsschritt überspringen kann.
+  readonly hasStripePayment = computed(() => !!this.stripePublishableKey());
 
   // ─── Design-Auswahl ───────────────────────────────────────────────────────
   images          = signal<VoucherDesignImage[]>([]);
@@ -185,7 +184,6 @@ export class GutscheinComponent implements OnInit {
     this.svc.loadConfig(this.publicKey).subscribe(cfg => {
       this.restaurantName.set(cfg.restaurantName);
       this.stripePublishableKey.set(cfg.stripePublishableKey ?? null);
-      this.activePaymentMethods.set(cfg.activePaymentMethods ?? []);
       this.postalEnabled.set(cfg.postalEnabled ?? false);
       this.postalShippingCost.set(cfg.postalShippingCost ?? null);
       const d = cfg.gutscheinDesign;

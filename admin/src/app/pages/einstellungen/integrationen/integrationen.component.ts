@@ -14,7 +14,6 @@ import { TranslateModule } from '@ngx-translate/core';
 export class IntegrationenComponent {
   features = [
     { icon: 'payments',        label: 'Stripe / PayPal für Anzahlungen' },
-    { icon: 'event',           label: 'Google Calendar Sync' },
     { icon: 'language',        label: 'Website-Widget-Einbettung' },
     { icon: 'api',             label: 'Eigene Webhooks & REST-API' },
     // Hotel-PMS hat jetzt eine eigene Seite — siehe pms-anbindung

@@ -67,6 +67,13 @@ export interface PlatformStats {
   byPlan:        Record<string, number>;
 }
 
+export interface WhatsAppConfig {
+  phoneNumberId?: string;
+  channelId?:     string;
+  apiKey?:        string;
+  baseUrl?:       string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TenantsService {
   private readonly http = inject(HttpClient);
@@ -108,5 +115,13 @@ export class TenantsService {
 
   createTenant(dto: CreateTenantDto) {
     return this.http.post<Tenant>(`${this.base}/tenants`, dto);
+  }
+
+  getWhatsappConfig(id: string) {
+    return this.http.get<WhatsAppConfig>(`${this.base}/tenants/${id}/whatsapp`);
+  }
+
+  saveWhatsappConfig(id: string, dto: WhatsAppConfig) {
+    return this.http.put<{ saved: boolean }>(`${this.base}/tenants/${id}/whatsapp`, dto);
   }
 }

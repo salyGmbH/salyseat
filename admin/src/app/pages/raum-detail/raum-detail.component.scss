@@ -15,8 +15,8 @@
   }
 
   *::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 1px;
+    height: 1px;
   }
 
   *::-webkit-scrollbar-track {
@@ -110,7 +110,7 @@
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: $color-text-muted;
+  color: $color-text-on-dark;
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
@@ -125,7 +125,7 @@
   &--active {
     background: rgba(var(--color-accent-rgb, 255, 183, 0), 0.12);
     border-color: rgba(var(--color-accent-rgb, 255, 183, 0), 0.4);
-    color: $color-accent;
+    color: $color-text-on-dark;
     font-weight: 600;
     pointer-events: none;
   }
@@ -133,7 +133,7 @@
   // Pulsing ring when cross-move mode is active and this tab is a target
   &--target {
     border-color: rgba(var(--color-accent-rgb, 255, 183, 0), 0.5);
-    color: $color-accent;
+    color: $color-text-on-dark;
     animation: room-tab-pulse 1.6s ease-in-out infinite;
 
     mat-icon.room-tab__move-icon {
@@ -156,6 +156,7 @@
     display: block;
     font-size: 10px;
     font-weight: 400;
+    color: $color-text-on-dark;
     opacity: 0.55;
     letter-spacing: 0.02em;
     white-space: nowrap;
@@ -844,6 +845,7 @@
 
 // ── Left Panel: Reservierungen ────────────────────────────────────────────
 .res-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: $color-dark;
@@ -919,7 +921,7 @@
   &__summary {
     margin-top: 2px;
     font-size: 12px;
-    color: $color-text-muted;
+    color: $color-text-on-dark;
   }
 
   // Versteckter MatDatepicker-Trigger — nur für die Programmatik sichtbar,
@@ -1067,10 +1069,6 @@
 
     &:hover, &.is-active {
       background: rgba(255,255,255, 0.04);
-    }
-
-    &.is-active {
-      outline: 1.5px solid rgba(var(--color-primary-rgb), 0.5);
     }
 
   }
@@ -1256,12 +1254,13 @@
   &--walkin {
     background: rgba(var(--color-accent-rgb), 0.12);
     border-color: rgba(var(--color-accent-rgb), 0.55);
-    color: $color-accent;
+    color: $color-text-on-dark;
     box-shadow: 0 1px 3px rgba(var(--color-accent-rgb), 0.10);
 
     &:hover {
       background: rgba(var(--color-accent-rgb), 0.20);
       border-color: $color-accent;
+      color: $color-text-on-dark;
       box-shadow: 0 2px 8px rgba(var(--color-accent-rgb), 0.18);
     }
   }
@@ -1510,6 +1509,7 @@
   &__badges {
     display: flex;
     flex-direction: row;
+    align-items: center;
     justify-content: flex-start;
     gap: 4px;
     margin-top: -3px;
@@ -1536,6 +1536,19 @@
       background: rgba(139, 92, 246, 0.18);
 
       mat-icon { color: #8b5cf6; }
+    }
+
+    // Frisch eingegangene Online-Buchung (heute für heute) — soll auf den
+    // ersten Blick auffallen, daher eigener Akzentton + dezenter Puls.
+    // Niedriger als die anderen Badges, damit er nicht in die Zeile darüber
+    // ragt; Icon dafür horizontal zentriert statt linksbündig.
+    &--fresh {
+      height: 14px;
+      justify-content: center;
+      background: rgba(245, 158, 11, 0.2);
+      animation: freshBookingPulse 2.2s ease-in-out infinite;
+
+      mat-icon { color: #f59e0b; }
     }
   }
 
@@ -3651,6 +3664,11 @@
   50%       { filter: drop-shadow(0 0 9px rgba(56,189,248,1)) drop-shadow(0 0 20px rgba(56,189,248,.75)); }
 }
 
+@keyframes freshBookingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45); }
+  50%       { box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); }
+}
+
 // ── res-row__body klickbar ────────────────────────────────────────────────────
 .res-row__body--clickable {
   cursor: pointer;
@@ -4135,6 +4153,37 @@
     background: color-mix(in srgb, var(--res-color) 20%, transparent);
     color: var(--res-color);
     border: 1px solid color-mix(in srgb, var(--res-color) 35%, transparent);
+  }
+
+  &__badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  // Spontane Online-Buchung für heute — gleiche Akzentfarbe wie der
+  // Blitz-Badge in der Reservierungs-Liste (res-row__info-badge--fresh).
+  &__fresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    padding: 3px 10px 3px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    background: rgba(245, 158, 11, 0.18);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+
+    mat-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+    }
   }
 }
 
@@ -4647,6 +4696,14 @@
   }
 }
 
+// Hellmodus: Label-Text schwarz statt weiß, sonst auf dem hellen Hintergrund
+// praktisch unsichtbar (gleiche Konvention wie restaurant-plan.component.scss).
+:host-context(body:not(.dim-theme):not(.dark-theme)) {
+  .placed-decor--label .label-text {
+    color: rgba(0, 0, 0, 0.75);
+  }
+}
+
 // ─── Split-Picker ──────────────────────────────────────────────────────────────
 .split-picker-backdrop {
   position: fixed;
@@ -5003,8 +5060,10 @@
 .rf-mob-nav { display: none !important; }
 .rf-desktop-actions { display: flex !important; }
 
-// ── Tablet-Layout (641px – 1024px) ───────────────────────────────────────
-@media (max-width: 1024px) and (min-width: 641px) {
+// ── Tablet-Layout (641px – 1200px) ───────────────────────────────────────
+// Obergrenze einheitlich mit Sidebar-Standard-Einklapplogik halten (siehe
+// sidebar.component.ts) — ab 1200px ist alles wie auf Desktop aufgeklappt.
+@media (max-width: 1200px) and (min-width: 641px) {
   .dialog--form {
     width: 94vw;
     max-height: 94vh;
@@ -5027,6 +5086,65 @@
   .table-inline {
     grid-template-columns: repeat(4, 1fr);
   }
+}
+
+// ── Reservierungs-Panel aufklappbar machen ─────────────────────────────────
+// Ab 641px (Tablet UND Desktop) nutzbar — auf Mobile (≤640px) ist die Spalte
+// eh ausgeblendet bzw. erzwungen einspaltig (siehe ≤640px-Block), da macht
+// Ein-/Ausklappen keinen Sinn. Der Toggle-Button selbst sitzt fest in der
+// Sidebar-Fußzeile, siehe sidebar.component.html/.scss.
+@media (min-width: 641px) {
+  .raum-detail__body {
+    transition: grid-template-columns 0.2s ease;
+
+    &.res-panel-collapsed {
+      grid-template-columns: 44px 1fr;
+    }
+  }
+
+  .res-panel--collapsed {
+    overflow: hidden;
+
+    > * {
+      display: none;
+    }
+  }
+}
+
+// ── Header: horizontal scrollbar statt Überlappen (Tablet & Mobile) ──────
+// Raum-Tabs + Übersicht-/Einstellungen-Button (+ auf Tablet zusätzlich
+// "Plan bearbeiten") passen bei schmaler Breite nicht mehr nebeneinander.
+// Statt dass die Buttons sich gegenseitig überlappen, lässt sich der
+// gesamte Header jetzt seitlich wegscrollen. Die Raum-Tabs bekommen dafür
+// ihre eigene Scrollbar (die sie sonst separat hatten) hier abgeschaltet —
+// der Header scrollt jetzt als Ganzes. Scrollbar bewusst SICHTBAR (erbt die
+// globale dünne Primärfarb-Scrollbar von :host oben) statt versteckt, damit
+// erkennbar ist, dass noch mehr Inhalt da ist.
+@media (max-width: 1200px) {
+  .raum-detail__header {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px; // Platz für die Scrollbar, damit sie nichts verdeckt
+  }
+
+  .room-tabs {
+    flex: 0 0 auto;
+    overflow-x: visible;
+  }
+
+  .btn-view-toggle,
+  .plan-settings-btn,
+  .raum-detail__header a.btn-secondary {
+    flex-shrink: 0;
+  }
+}
+
+// ── Tagesverlauf-Leiste: auf Mobile & Tablet komplett ausblenden ─────────
+// (Balkendiagramm + "Freie Slots heute"-Dropdown darüber — zu wenig Platz,
+// die Infos gibt's auch in der Reservierungsliste.)
+@media (max-width: 1200px) {
+  .day-load-bar { display: none; }
 }
 
 // ── Mobile-Layout (≤ 640px) — Step-Wizard ────────────────────────────────
@@ -5459,18 +5577,24 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   }
 
-  // ── Room-Tabs: deutlichere Farben im Hellmodus ───────────────────────────
+  // ── Room-Tabs: deutlichere, knalligere Farben im Hellmodus ───────────────
+  // Name-Text ist echtes Schwarz statt transparentem Grau, damit er nicht
+  // "verwaschen" wirkt.
   .room-tab {
-    color: rgba(0, 0, 0, 0.50);
-    &:hover { background: rgba(0, 0, 0, 0.05); color: rgba(0, 0, 0, 0.80); }
+    color: #000;
+    &:hover { background: rgba(0, 0, 0, 0.05); color: #000; }
     &--active {
-      background: rgba(var(--color-accent-rgb), 0.10);
-      border-color: rgba(var(--color-accent-rgb), 0.40);
-      color: #7a5a00;
+      background: rgba(217, 119, 6, 0.16);
+      border-color: rgba(217, 119, 6, 0.55);
+      color: #000;
+      font-weight: 700;
     }
   }
   .room-tab__name  { }
-  .room-tab__meta  { color: rgba(0, 0, 0, 0.40); }
+  // Basis-Regel setzt opacity: 0.55 (theme-übergreifend) — die multipliziert
+  // sich sonst mit der Farb-Opacity hier und macht den Text kaum lesbar.
+  // Deshalb hier auf volle Deckkraft zurücksetzen + echtes Schwarz.
+  .room-tab__meta  { color: #000; opacity: 1; }
 
   // Header-Buttons (Übersicht / Einstellungen / Plan bearbeiten)
   .raum-detail__header-btn,
@@ -5620,12 +5744,15 @@
     }
 
     &--walkin {
-      background: rgba(var(--color-accent-rgb), 0.07);
-      border-color: rgba(var(--color-accent-rgb), 0.30);
+      background: rgba(217, 119, 6, 0.14);
+      border-color: rgba(217, 119, 6, 0.55);
+      color: #000;
+      font-weight: 700;
 
       &:hover {
-        background: rgba(var(--color-accent-rgb), 0.13);
-        border-color: rgba(var(--color-accent-rgb), 0.50);
+        background: rgba(217, 119, 6, 0.22);
+        border-color: #d97706;
+        color: #000;
       }
     }
   }
@@ -5849,6 +5976,56 @@
       color: var(--color-primary);
       &:hover { background: rgba(var(--color-primary-rgb), 0.18); border-color: rgba(var(--color-primary-rgb), 0.65); }
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HELLMODUS — Gästekarte (dialog--gc): Labels/Werte satter schwarz statt
+  //  des gedämpften Muted-Grautons, damit der Dialog im Hellmodus klar
+  //  lesbar ist (analog zur .dialog--form-Behandlung oben).
+  // ═══════════════════════════════════════════════════════════════════════════
+  .dialog--gc {
+    .gc-name       { color: #111111; }
+    .gc-contact-link { color: rgba(0, 0, 0, 0.65); }
+
+    .gc-detail__label { color: rgba(0, 0, 0, 0.55); }
+    .gc-detail__val    { color: #111111; }
+    .gc-detail--notes .gc-detail__val { color: rgba(0, 0, 0, 0.70); }
+
+    .gc-section-title { color: rgba(0, 0, 0, 0.55); }
+    .gc-mail-header    { color: rgba(0, 0, 0, 0.55); }
+
+    .field__label {
+      color: rgba(0, 0, 0, 0.55);
+    }
+    .field__input,
+    .field__textarea {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.18);
+      color: #111111;
+      &::placeholder { color: rgba(0, 0, 0, 0.35); }
+      &:focus { border-color: rgba(var(--color-primary-rgb), 0.55); }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DUNKEL- & GEDIMMTER MODUS — aktiver Room-Tab & Walk-In-Button:
+//  Text in knalligem Gelb (Akzentfarbe) statt Weiß, passend zur Border.
+// ═══════════════════════════════════════════════════════════════════════════
+:host-context(body.dark-theme),
+:host-context(body.dim-theme) {
+
+  .room-tab--active {
+    color: $color-accent;
+
+    .room-tab__meta {
+      color: $color-accent;
+    }
+  }
+
+  .btn-new--walkin {
+    color: $color-accent;
+    &:hover { color: $color-accent; }
   }
 }
 

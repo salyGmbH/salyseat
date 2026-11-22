@@ -27,6 +27,15 @@
       <span class="feature__badge feature__badge--live">Verfügbar</span>
       <mat-icon class="feature__arrow">chevron_right</mat-icon>
     </a>
+    <a class="feature feature--link" routerLink="/einstellungen/kalender-sync">
+      <div class="feature__icon feature__icon--active"><mat-icon>event</mat-icon></div>
+      <div class="feature__body">
+        <span class="feature__label">Kalender-Sync (Google, iCal)</span>
+        <span class="feature__desc">Reservierungen als Kalender-Abo in Google/Apple/Outlook</span>
+      </div>
+      <span class="feature__badge feature__badge--live">Verfügbar</span>
+      <mat-icon class="feature__arrow">chevron_right</mat-icon>
+    </a>
     @for (f of features; track f.label) {
       <div class="feature">
         <div class="feature__icon"><mat-icon>{{ f.icon }}</mat-icon></div>

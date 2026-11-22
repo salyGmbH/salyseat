@@ -65,8 +65,8 @@ body.dark-theme {
   --color-text-rgb:          17, 17, 17;
   --color-text-muted:        rgba(17, 17, 17, 0.60);
   --color-text-muted-rgb:    17, 17, 17;
-  --color-text-on-dark:      #111111;
-  --color-text-on-dark-rgb:  17, 17, 17;
+  --color-text-on-dark:      #000000;
+  --color-text-on-dark-rgb:  0, 0, 0;
 
   // Borders
   --color-border:            rgba(17, 17, 17, 0.10);
@@ -88,57 +88,34 @@ body.dark-theme {
 //  off-white Text. Passt zur Abendstimmung eines Restaurants.
 // ─────────────────────────────────────────────────────────────────────────
 body.dim-theme {
-  // Brand — gedämpfte, nicht-neon Varianten für den Dim-Modus
-  --color-primary:           #6d9fd8;      // weiches Stahlblau statt Electric Blue
-  --color-primary-rgb:       109, 159, 216;
-  --color-primary-dark:      #4f7eb5;
-  --color-primary-dark-rgb:  79, 126, 181;
-  --color-accent:             #c49a2a;      // warmes Messing statt Neon-Gelb
-  --color-accent-rgb:        196, 154, 42;
-  --color-accent-dark:       #a97f1e;
-  --color-accent-dark-rgb:   169, 127, 30;
+  // Brand + Semantics — IDENTISCH zum Dark-Mode (knallige Farben bleiben)
+  // Kein Override nötig — :root-Werte gelten weiter
 
-  // Surfaces (gedimmt — weicher Blaugrau-Ton, minimal wärmer als dunkel)
-  --color-bg:                #232732;
-  --color-bg-rgb:            35, 39, 50;
-  --color-surface:           #2d3240;
-  --color-surface-rgb:       45, 50, 64;
-  --color-surface-soft:      #363c4d;
-  --color-surface-soft-rgb:  54, 60, 77;
+  // Surfaces — wie Dark-Mode, nur ~18% heller
+  --color-bg:                #181d28;      // dark: #0f1117
+  --color-bg-rgb:            24, 29, 40;
+  --color-surface:           #222840;      // dark: #1a1f2e
+  --color-surface-rgb:       34, 40, 64;
+  --color-surface-soft:      #2a3050;      // dark: #222840
+  --color-surface-soft-rgb:  42, 48, 80;
 
-  // Navigation — etwas dunkler als die Surface, damit Sidebar sich absetzt
-  --color-dark:              #1d2029;
-  --color-dark-rgb:          29, 32, 41;
-  --color-dark-soft:         #2a2f3c;
-  --color-dark-soft-rgb:     42, 47, 60;
+  // Navigation
+  --color-dark:              #14171f;      // dark: #111111
+  --color-dark-rgb:          20, 23, 31;
+  --color-dark-soft:         #1d2438;      // dark: #1e2535
+  --color-dark-soft-rgb:     29, 36, 56;
 
-  // Text — off-white mit warmem Unterton (kein grelles Pure-White)
-  --color-text:              #ebe6dc;
-  --color-text-rgb:          235, 230, 220;
-  --color-text-muted:        rgba(235, 230, 220, 0.62);
-  --color-text-muted-rgb:    235, 230, 220;
-  --color-text-on-dark:      #ebe6dc;
-  --color-text-on-dark-rgb:  235, 230, 220;
+  // Text — reines Weiß wie Dark-Mode, Muted etwas heller als Dark
+  --color-text:              #ffffff;
+  --color-text-rgb:          255, 255, 255;
+  --color-text-muted:        rgba(255, 255, 255, 0.72);
+  --color-text-muted-rgb:    255, 255, 255;
+  --color-text-on-dark:      #ffffff;
+  --color-text-on-dark-rgb:  255, 255, 255;
 
-  // Semantic — gedämpft, kein Neon
-  --color-success:           #4d9168;
-  --color-success-rgb:       77, 145, 104;
-  --color-danger:            #b85c5c;
-  --color-danger-rgb:        184, 92, 92;
-  --color-warn:              #b87830;
-  --color-warn-rgb:          184, 120, 48;
-
-  // Tischplan — gedämpfte, nicht-neon Statusfarben
-  --t-upcoming-rgb:   80, 130, 200;   // softes Blau
-  --t-confirmed-rgb:  110, 125, 145;  // dunkles Stahlgrau
-  --t-seated-rgb:     60, 130, 70;    // dunkles Waldgrün
-  --t-expired-rgb:    180, 100, 45;   // gedämpftes Terrakotta-Orange
-  --t-cleanup-rgb:    35, 145, 160;   // weiches Petrol
-  --t-late-rgb:       175, 140, 25;   // dunkles Bernstein
-
-  // Borders — sanft, nicht hart abgegrenzt
-  --color-border:            rgba(235, 230, 220, 0.10);
-  --color-border-rgb:        235, 230, 220;
+  // Borders
+  --color-border:            rgba(255, 255, 255, 0.13);
+  --color-border-rgb:        255, 255, 255;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -186,6 +163,90 @@ body.dim-theme {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+//  DIM-THEME — Glow-Killer
+//  Farben bleiben voll knallig. Nur die leuchtenden Halos (box-shadow: 0 0 Xpx)
+//  werden entfernt. Focus-Ringe (0 0 0 Xpx = kein Spread) bleiben erhalten.
+// ─────────────────────────────────────────────────────────────────────────
+body.dim-theme {
+  // ── Notiz-Float ───────────────────────────────────────────────────────
+  .notiz-float__wrap { box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important; }
+
+  // ── Toggle-Buttons (widget-einstellungen, emails) ─────────────────────
+  .toggle-option,
+  .toggle-option.active,
+  .toggle-option.success { box-shadow: none !important; }
+
+  // ── Speichern-Buttons (alle Settings-Seiten) ──────────────────────────
+  .save-button,
+  .save-button:hover,
+  .save-button.saved,
+  .save-btn,
+  .save-btn:hover,
+  .save-btn--saved,
+  .btn-save,
+  .btn-save:hover,
+  .btn--add { box-shadow: none !important; }
+
+  // ── Kunden: Status-Tags & Pills ───────────────────────────────────────
+  .guest-tag,
+  .guest-card__tag,
+  .num-badge,
+  .num-badge--warn,
+  .status-pill--blocked,
+  .status-pill--ok,
+  .status-pill--vip,
+  .preset-chip--vip.active { box-shadow: none !important; }
+
+  // ── Kunden: Score-Bar + Text ──────────────────────────────────────────
+  .score--green,
+  .score--yellow,
+  .score--red { box-shadow: none !important; text-shadow: none !important; }
+
+  // ── Kunden: Action-Buttons ────────────────────────────────────────────
+  .icon-button,
+  .icon-button:hover,
+  .btn-vip-save,
+  .btn-vip-save:hover { box-shadow: none !important; }
+
+  // ── Kunden: Alert-Karten & Stat-Icons ────────────────────────────────
+  .birthday-alert,
+  .birthday-alert--wedding,
+  .stat-card__icon--orange,
+  .stat-card__icon--purple,
+  .stat-card__icon--teal { box-shadow: none !important; }
+
+  // ── Dashboard: Birthday-Banner & Status-Dots ──────────────────────────
+  .birthday-banner { box-shadow: none !important; }
+  .rcr__status-dot  { box-shadow: none !important; }
+
+  // ── Raum-Detail: Mobile Nav Button ────────────────────────────────────
+  .rf-mob-nav__next,
+  .rf-mob-nav__next:hover { box-shadow: none !important; }
+
+  // ── Restaurant-Plan: Tisch & Dekor SVG drop-shadows ──────────────────
+  // Ruhezustand: neutraler Schatten statt blauem Neon-Halo
+  .placed-table .table-svg {
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)) !important;
+  }
+  // Hover / Auswahl: gedämpfter Primary-Halo statt 0.55-Intensität
+  .placed-table:hover .table-svg,
+  .placed-table.is-selected .table-svg {
+    filter: drop-shadow(0 0 6px rgba(var(--color-primary-rgb), 0.28)) !important;
+  }
+  // Merged-Tische: Accent-Halo stark reduziert
+  .placed-table.is-merged .table-svg {
+    filter: drop-shadow(0 0 5px rgba(var(--color-accent-rgb), 0.22)) !important;
+  }
+
+  // ── Restaurant-Plan: Freie Tisch-Körper heller + Rand deutlicher ─────
+  // Nur Tische OHNE Status-Klasse (= frei): fill heller, stroke sichtbarer
+  .placed-table:not([class*="is-"]) .table-svg__body {
+    fill: #273350 !important;
+    stroke: rgba(255, 255, 255, 0.52) !important;
+  }
+}
+
 body.dim-theme {
   // Grüne Status-Elemente (Aktiv-Badges, Eingecheckt-Pills, etc.)
   .badge--active,
@@ -218,20 +279,43 @@ body.dim-theme {
 
 // ─────────────────────────────────────────────────────────────────────────
 //  DIM-THEME — Dekor-Elemente (Pflanze, Säule, Wand, Tür, Fenster, WC…)
-//  CSS filter auf das SVG-Element wirkt auf alle inline fill/stroke-Attribute
-//  ohne dass das HTML-Template angefasst werden muss.
+//  Die SVGs haben fill="#1a1f2e" hard-coded → im Dim-Modus auf einen
+//  helleren Blauton überschreiben, damit sie nicht zu schwarz wirken.
 // ─────────────────────────────────────────────────────────────────────────
 body.dim-theme {
 
-  // Alle SVG-Dekor-Elemente: Sättigung runter, Helligkeit dämpfen
+  // Dunkle Fill-Flächen (#1a1f2e) → sichtbares Dunkelblau
   .placed-decor .decor-svg {
-    filter: saturate(0.45) brightness(0.78) !important;
+    path[fill="#1a1f2e"],
+    circle[fill="#1a1f2e"],
+    rect[fill="#1a1f2e"] {
+      fill: #273350 !important;
+    }
   }
 
   // Wände: etwas transparenter im Dim-Modus
   .placed-wall .wall-body {
     background: rgba(var(--color-text-rgb), 0.22) !important;
     border-color: rgba(var(--color-text-rgb), 0.14) !important;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  DIM-THEME — Reservierungsliste: Texte + Action-Icons heller
+// ─────────────────────────────────────────────────────────────────────────
+body.dim-theme {
+  // "Tote" Status-Rows (No-Show, Cancelled, Completed) weniger transparent
+  .res-row--no-show,
+  .res-row--cancelled,
+  .res-row--completed { opacity: 0.85 !important; }
+
+  // Sehr schwacher Muted-Text (0.4) → lesbarer
+  .res-row__sub .muted { color: rgba(255, 255, 255, 0.62) !important; }
+
+  // Action-Icons: Rand + Icon etwas heller
+  .res-row__actions .action {
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.75) !important;
   }
 }
 
@@ -274,6 +358,65 @@ body.dim-theme {
   // Reliability-Bar fill
   .reliability-bar__fill {
     filter: saturate(0.68) brightness(0.92);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  DIM-THEME — Einstellungs-Seiten: Chip- & Button-Kontrast verbessern
+//  Betrifft: widget-einstellungen, reservierungen, status-farben, etc.
+// ─────────────────────────────────────────────────────────────────────────
+body.dim-theme {
+  // Intervall- & View-Toggle-Buttons (inaktiv): sichtbarer Rand + heller Text
+  .view-toggle button:not(.active) {
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  // Preset-Chips (inaktiv): Reservierungen, Öffnungszeiten, etc.
+  .preset-chip:not(.active) {
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
+
+  // Pflicht-Chips (widget-einstellungen): sichtbarer Rand
+  .pflicht-chip:not(.pflicht-chip--active) {
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
+
+  // Scope-Chips / Tages-Chips in Bestätigungs-Section
+  .scope-chip:not(.active),
+  .day-chip:not(.active) {
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
+
+  // Toggle-Row Trennlinien etwas heller
+  .toggle-row {
+    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  // Sub-Label-Text (PFLICHTFELDER etc.) lesbarer
+  .sub-field__label,
+  .pflicht-grid + .field-label,
+  .scope-section__label {
+    color: rgba(255, 255, 255, 0.60) !important;
+  }
+
+  // Eingabefelder: etwas hellerer Rand
+  .we-input,
+  .we-textarea {
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    &::placeholder { color: rgba(255, 255, 255, 0.38) !important; }
+  }
+
+  // Number-Stepper: innere Trennlinien sichtbarer
+  .we-number span {
+    border-left-color: rgba(255, 255, 255, 0.14) !important;
+    border-right-color: rgba(255, 255, 255, 0.14) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
   }
 }
 

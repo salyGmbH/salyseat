@@ -24,6 +24,7 @@
     <button [class.active]="activeTab() === 'adresse'"   (click)="activeTab.set('adresse')">Adresse</button>
     <button [class.active]="activeTab() === 'rechnung'"  (click)="activeTab.set('rechnung')">Rechnungsadresse</button>
     <button [class.active]="activeTab() === 'notizen'"   (click)="activeTab.set('notizen')">Notizen</button>
+    <button [class.active]="activeTab() === 'whatsapp'"  (click)="activeTab.set('whatsapp')">WhatsApp</button>
   </div>
 
   <!-- Body -->
@@ -78,13 +79,25 @@
           </div>
         </div>
 
-        <div class="field field--readonly">
+        <div class="field field--full">
           <span>Add-ons</span>
-          <div class="field__value field__value--chips">
-            @if (tenant.addons.length === 0) { <span class="no-val">Keine</span> }
-            @for (a of tenant.addons; track a) {
-              <span class="chip">{{ a }}</span>
+          <div class="addon-selector">
+            @for (a of addonCatalog(); track a.key) {
+              <button type="button" class="addon-btn" [class.addon-btn--active]="hasAddon(a.key)"
+                      [disabled]="addonSaving() === a.key"
+                      (click)="toggleAddon(a.key)">
+                @if (addonSaving() === a.key) {
+                  <span class="spinner-sm"></span>
+                } @else {
+                  <mat-icon>{{ a.icon }}</mat-icon>
+                }
+                <span>{{ a.label }}</span>
+                @if (hasAddon(a.key)) {
+                  <mat-icon class="addon-btn__check">check_circle</mat-icon>
+                }
+              </button>
             }
+            @if (addonCatalog().length === 0) { <span class="no-val">Kein Add-on-Katalog vorhanden.</span> }
           </div>
         </div>
       </div>
@@ -93,12 +106,25 @@
     @if (activeTab() === 'vertrag') {
       <div class="form-grid">
 
-        <!-- Preis (read-only, aus Superadmin-Preisverwaltung) -->
+        <!-- Grundpreis (read-only, aus Superadmin-Preisverwaltung) -->
         <div class="field field--readonly">
-          <span>Preis ({{ planLabel() }})</span>
+          <span>Grundpreis ({{ planLabel() }})</span>
           <div class="field__value">
             @if (planPrice()) { {{ planPrice() }} }
             @else { <span class="no-val">—</span> }
+          </div>
+        </div>
+
+        <!-- Endsumme (abhängig von der gewählten Vertragsdauer) -->
+        <div class="field field--readonly">
+          <span>Endsumme, die der Kunde zahlt</span>
+          <div class="field__value">
+            @if (endsumme()) {
+              {{ endsumme() }}
+              @if (contractDuration === 'monthly') {
+                <span class="field__hint">+10% Aufpreis bei monatlicher Zahlweise</span>
+              }
+            } @else { <span class="no-val">—</span> }
           </div>
         </div>
 
@@ -153,6 +179,7 @@
                 <strong>{{ durationLabel() }}</strong> mit
                 <strong>{{ periodLabel() }}</strong> Kündigungsfrist
                 @if (contractStart) { , beginnend am <strong>{{ contractStart }}</strong> }
+                @if (endsumme()) { — Kunde zahlt <strong>{{ endsumme() }}</strong> }
               </span>
             </div>
           </div>
@@ -218,6 +245,60 @@
           <textarea [(ngModel)]="internalNotes" rows="8"
                     placeholder="Notizen nur für dich sichtbar…"></textarea>
         </label>
+      </div>
+    }
+
+    @if (activeTab() === 'whatsapp') {
+      <div class="form-grid">
+        <div class="field field--full">
+          <div class="wa-info-note">
+            <mat-icon>info</mat-icon>
+            <span>
+              <strong>Noch nicht live.</strong> Diese Felder sind vorbereitet für die zentrale
+              Verwaltung über einen 360dialog-Partner-Account — den gibt es aktuell noch nicht.
+              Restaurants können ihre WhatsApp-Zugangsdaten aktuell weiterhin auch selbst in ihren
+              eigenen Einstellungen eintragen; das läuft unverändert parallel weiter.
+            </span>
+          </div>
+        </div>
+
+        @if (!waLoaded()) {
+          <div class="field field--full"><span class="no-val">Lädt…</span></div>
+        } @else {
+          <label class="field">
+            <span>Phone Number ID</span>
+            <input type="text" name="wa-phone-number-id-{{ tenant.id }}" [(ngModel)]="waPhoneNumberId" placeholder="1234567890" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Channel ID (optional)</span>
+            <input type="text" name="wa-channel-id-{{ tenant.id }}" [(ngModel)]="waChannelId" placeholder="optional" autocomplete="off">
+          </label>
+          <label class="field field--full">
+            <span>D360 API Key</span>
+            <input type="password" name="wa-api-key-{{ tenant.id }}" [(ngModel)]="waApiKey" placeholder="D360-API-KEY" autocomplete="new-password">
+          </label>
+          <label class="field field--full">
+            <span>API Base URL</span>
+            <input type="text" name="wa-base-url-{{ tenant.id }}" [(ngModel)]="waBaseUrl" placeholder="https://waba-sandbox.360dialog.io" autocomplete="off">
+          </label>
+
+          <div class="field field--full wa-actions">
+            <button class="btn btn--primary" (click)="saveWhatsapp()" [disabled]="waSaving()">
+              @if (waSaving()) {
+                <span class="spinner"></span>
+              } @else if (waSaved()) {
+                <mat-icon>check</mat-icon>
+              } @else {
+                <mat-icon>save</mat-icon>
+              }
+              {{ waSaving() ? 'Speichert…' : waSaved() ? 'Gespeichert' : 'WhatsApp-Zugangsdaten speichern' }}
+            </button>
+            <button class="btn btn--danger" (click)="disconnectWhatsapp()" [disabled]="waSaving()">
+              <mat-icon>link_off</mat-icon>
+              Verbindung vollständig trennen
+            </button>
+          </div>
+        }
       </div>
     }
 

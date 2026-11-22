@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Module\Availability\Domain\Entity;
 
-use App\Module\Availability\Infrastructure\Persistence\DoctrineVenueBlockRepository;
 use App\Module\Venue\Domain\Entity\Venue;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -14,7 +13,7 @@ use Symfony\Component\Uid\Uuid;
  * Raumspezifische Sperrzeit.
  * Blockiert Buchungen für einen bestimmten Raum (Venue) in einem Zeitraum.
  */
-#[ORM\Entity(repositoryClass: DoctrineVenueBlockRepository::class)]
+#[ORM\Entity]
 #[ORM\Table(name: 'venue_blocks')]
 class VenueBlock
 {
