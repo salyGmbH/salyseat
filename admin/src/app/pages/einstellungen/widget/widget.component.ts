@@ -283,7 +283,24 @@ export class WidgetComponent {
     { label: '20:30' }, { label: '21:00' }, { label: '21:30' },
   ];
 
+  /**
+   * Watch-Face-Dial (Layout 4 — Uhrzeit-Stufe) — 24h-Zifferblatt.
+   *
+   * Konzept: Anstelle nur die verfügbaren Slots auf dem Kreis zu verteilen,
+   * zeigt das Dial jetzt ein echtes 24-Stunden-Zifferblatt (0 oben, 6 rechts,
+   * 12 unten, 18 links). Die Öffnungszeiten heben sich farblich ab:
+   *
+   *   – Stunden-Labels innerhalb der Öffnungszeiten: kräftig + Primary-Tint
+   *   – Stunden außerhalb: stark abgedimmt
+   *   – Ein heller Arc entlang des Außenrings markiert das Öffnungsfenster
+   *   – Verfügbare Slots sind kleine farbige Punkte (klickbar)
+   *
+   * Das visuelle Konzept ist klar anders als RESERVISON's verschachtelte
+   * 24h-Doppelringe — wir bleiben bei einem einzigen Zifferblatt mit
+   * subtilen Hervorhebungen. Eine Stunde = 15° (360 / 24).
+   */
 
+  /** Öffnungszeitenspanne in Minuten — abgeleitet aus den verfügbaren Slots. */
   readonly plannerOpenRange = computed(() => {
     const minutes = this.plannerTimes.map(s => {
       const [h, m] = s.label.split(':').map(Number);
@@ -1094,7 +1111,7 @@ export class WidgetComponent {
       },
       error: (err) => {
         this.isSaving.set(false);
-        const msg = err?.error?.detail ?? err?.message ?? this.translate.instant('widget.save_error');
+        const msg = err?.error?.detail ?? err?.message ?? 'Einstellungen konnten nicht gespeichert werden.';
         this.saveError.set(msg);
         setTimeout(() => this.saveError.set(null), 5000);
       },
@@ -1126,22 +1143,12 @@ export class WidgetComponent {
     this.selectedRadius.set(d.cornerRadius);
     this.widgetDesign.reset();
 
-    // Upload-Fehlermeldungen zurücksetzen (sonst bleibt eine alte Meldung
-    // sichtbar, obwohl das zugehörige Bild bereits gelöscht wurde)
-    this.imageUploadError.set(null);
-    this.cardBgImageUploadError.set(null);
-    this.stackedBgImageUploadError.set(null);
-    this.plannerBgImageUploadError.set(null);
-    this.pageBgUploadError.set(null);
-
     // Ephemerer UI-State (Preview-Interaktion, nicht persistiert)
     this.plannerStep.set(1);
     this.plannerSelectedDay.set(2);
     this.plannerSelectedTime.set('19:00');
     this.plannerSelectedSeats.set(2);
     this.plannerConsent.set(false);
-    this.plannerCalendarMonth.set(4);
-    this.plannerCalendarYear.set(2026);
     this.cardStep.set(1);
     this.cardOpenPicker.set(null);
     this.cardConsent.set(false);

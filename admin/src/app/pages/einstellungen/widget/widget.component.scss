@@ -983,32 +983,19 @@
       max-width: none;
       width: auto;
 
-      // color: #fff hier erneut explizit setzen: &__cta (Basisklasse, s.o.)
-      // hat eine eigene &:hover-Regel mit color: var(--preview-primary), die
-      // wegen der :hover-Pseudoklasse eine höhere Spezifität hat als die
-      // einfache &--submit-Regel (color: #fff) oben und diese sonst beim
-      // Hovern überschreiben würde — der Button-Text würde dann in der
-      // Primärfarbe erscheinen und auf dem (ebenfalls primärfarbenen)
-      // Button-Hintergrund unsichtbar werden.
       &:hover {
         background: color-mix(in srgb, var(--preview-primary) 88%, black);
-        color: #fff;
       }
 
-      // Solange die DSGVO-Einwilligung fehlt, sieht der Button „disabled" aus.
-      // Wichtig: die Füllung bleibt die volle Markenfarbe (var(--preview-primary))
-      // und wird nur per opacity/saturate gedämpft — KEIN color-mix() Richtung
-      // --preview-bg mehr. Je nach eingestellter Hintergrundfarbe konnte der
-      // Button sonst fast weiß werden, während der Button-Text fest weiß
-      // (color: #fff) bleibt — der Text wurde dadurch praktisch unsichtbar.
+      // Solange die DSGVO-Einwilligung fehlt, sieht der Button „disabled" aus
       &.is-disabled {
+        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
         border-color: color-mix(in srgb, var(--preview-primary) 25%, transparent);
         box-shadow: none;
         cursor: not-allowed;
-        opacity: 0.5;
-        filter: saturate(0.6);
+        opacity: 0.85;
 
-        &:hover { background: var(--preview-primary); }
+        &:hover { background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg)); }
       }
     }
   }
@@ -1825,18 +1812,15 @@
 
     &:hover { background: color-mix(in srgb, var(--preview-primary) 88%, black); }
 
-    // Solange die DSGVO-Einwilligung fehlt, sieht der Submit „disabled" aus.
-    // Wie bei .preview-card: Füllung bleibt var(--preview-primary), nur per
-    // opacity/saturate gedämpft — sonst wird der Button je nach eingestellter
-    // Hintergrundfarbe zu hell und der fest weiße Button-Text unlesbar.
+    // Solange die DSGVO-Einwilligung fehlt, sieht der Submit „disabled" aus
     &.is-disabled {
+      background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
       box-shadow: none;
       cursor: not-allowed;
-      opacity: 0.5;
-      filter: saturate(0.6);
+      opacity: 0.85;
 
       &:hover {
-        background: var(--preview-primary);
+        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
       }
     }
   }
@@ -3117,6 +3101,19 @@
     min-width: 0;
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  //  Watch-Face-Dial (Uhrzeit-Picker im Planer-Stil)
+  //
+  //  Bewusst anders als RESERVISON's verschachtelte 24h-Doppelringe:
+  //   • Eine einzige Tick-Spur am Außenring — keine konzentrischen Ringe
+  //   • Animierte Nadel rotiert vom Zentrum auf die ausgewählte Uhrzeit
+  //   • Großes digitales Hub-Display in der Mitte (luxus-Uhren-Stil)
+  //   • Subtiler innerer Akzentring + Tick-Striche pro Halb-/Vollstunde
+  //
+  //  Layout: SVG füllt das quadratische Container-Element, klickbare
+  //  Tick-Buttons werden absolut positioniert (mit Top/Left aus der
+  //  Geometrie-Computed in TS), das Readout sitzt mittig per Position.
+  // ─────────────────────────────────────────────────────────────────────
   &__dial {
     position: relative;
     width: 100%;
@@ -4165,7 +4162,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 .settings-actions {
   position: sticky;
-  bottom: 0;
+  bottom: 32px;
   z-index: 10;
 
   display: flex;
