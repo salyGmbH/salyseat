@@ -19,7 +19,7 @@ import { OpeningHoursService, DayHours, SpecialClosing } from '../../services/op
 import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
 import { TableBlockService, TableBlock } from '../../services/table-block.service';
 import { localDateIso } from '../../shared/local-date.util';
-import { PlacedTable, PlacedWall, PlacedDecor, TableType, DecorType, SavedRoom } from '../../services/room.types';
+import { PlacedTable, PlacedWall, PlacedDecor, TableType, DecorType, SavedRoom, getLabelWidth } from '../../services/room.types';
 import { FloorReservation, FloorReservationStatus, STATUS_LABELS } from '../../services/floor-reservation.types';
 import { Reservation } from '../../services/reservation.types';
 import { StatusIconComponent } from '../../shared/status-icon/status-icon.component';
@@ -29,6 +29,7 @@ import { VerifiedStaff } from '../../services/staff.service';
 import { StaffIdPromptComponent } from '../../shared/staff-id-prompt/staff-id-prompt.component';
 import { TranslateModule } from '@ngx-translate/core';
 import { LayoutService } from '../../layout/layout.service';
+import { OpenDatePickerDirective } from '../../shared/directives/open-date-picker.directive';
 
 type StatusFilter = 'all' | 'active' | FloorReservationStatus;
 
@@ -47,6 +48,7 @@ type StatusFilter = 'all' | 'active' | FloorReservationStatus;
     DecimalPipe,
     TranslateModule,
     StaffIdPromptComponent,
+    OpenDatePickerDirective,
   ],
   templateUrl: './raum-detail.component.html',
   styleUrl: './raum-detail.component.scss'
@@ -109,14 +111,21 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
   private readonly PLAN_PAN_KEY  = 'salyseat_plan_pan_enabled';
   private readonly PLAN_ZOOM_KEY = 'salyseat_plan_zoom_enabled';
 
-  /** Plan verschiebbar (persönliche Einstellung, localStorage). */
+  /**
+   * Plan verschiebbar (persönliche Einstellung, localStorage).
+   * Standardmäßig aktiv (auch für neu angelegte Kunden ohne gespeicherten
+   * Wert) — nur ein explizites Deaktivieren (Wert 'false') schaltet es ab.
+   */
   planPanEnabled = signal<boolean>(
-    localStorage.getItem(this.PLAN_PAN_KEY) === 'true'
+    localStorage.getItem(this.PLAN_PAN_KEY) !== 'false'
   );
 
-  /** Zoom-Buttons (+/−) sichtbar (persönliche Einstellung, localStorage). */
+  /**
+   * Zoom-Buttons (+/−) sichtbar (persönliche Einstellung, localStorage).
+   * Standardmäßig aktiv, siehe planPanEnabled.
+   */
   planZoomBtnEnabled = signal<boolean>(
-    localStorage.getItem(this.PLAN_ZOOM_KEY) === 'true'
+    localStorage.getItem(this.PLAN_ZOOM_KEY) !== 'false'
   );
 
   /** Ist irgendeine Transform-Funktion aktiv? (für canvas-inner + overflow) */
@@ -553,6 +562,14 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
       if (room) this.syncFromBackend(room.id, date);
     }, { allowSignalWrites: true });
 
+    // Hinweis: loadWaitlistEntries() liefert IMMER alle offenen Warteliste-
+    // Einträge des Venues (kein date-Filter im Request — das Datum wird erst
+    // clientseitig in waitlistAsReservations() angewendet). Ein Reload bei
+    // reinem Datumswechsel würde also nichts anderes liefern und nur
+    // unnötige, potenziell überlappende Requests erzeugen. Aktualisiert wird
+    // die Warteliste stattdessen beim initialen Öffnen des Raums (ngOnInit),
+    // per Live-Polling und beim Zurückkehren zum Tab (siehe livePollTimer).
+
     // statusFilter beim Raum- oder Datumswechsel zurücksetzen — sonst bleibt
     // z. B. "nur Storniert" aktiv und im neuen Raum/Tag erscheinen scheinbar
     // gar keine Reservierungen, obwohl welche vorhanden sind.
@@ -653,6 +670,8 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
     if (this.tlLongPressTimer) { clearTimeout(this.tlLongPressTimer); this.tlLongPressTimer = null; }
     if (this.longPressTimer)   { clearTimeout(this.longPressTimer);   this.longPressTimer = null; }
     if (this.searchTimeout)    { clearTimeout(this.searchTimeout);    this.searchTimeout = null; }
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.stopLivePoll();
   }
 
   ngOnInit(): void {
@@ -664,7 +683,6 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
       if (s.hinweise?.length)  this.availableHinweise.set(s.hinweise);
       this.staffIdCheckEnabled.set(!!s.staffIdCheck?.enabled);
     });
-
     // xmove-Parameter nur beim ersten Aufruf auslesen (snapshot reicht hier)
     const xmove     = this.route.snapshot.queryParamMap.get('xmove');
     const xbackend  = this.route.snapshot.queryParamMap.get('xbackend') ?? '';
@@ -744,6 +762,13 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
       },
       error: () => this.layoutLoading.set(false),
     });
+
+    // Alle 20s Reservierungen + Warteliste neu laden, solange der Raum offen
+    // ist und der Tab sichtbar ist — deckt u. a. neue Warteliste-Einträge ab,
+    // die Gäste selbst im Widget anlegen (kommt sonst ohne Reload/Raumwechsel
+    // nie in die Liste).
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    if (!document.hidden) this.startLivePoll();
   }
 
   private syncFromBackend(venueId: string, date: string): void {
@@ -814,7 +839,12 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
         notes:           e.notes ?? undefined,
         partySize:       e.party_size,
         date,
-        time:            new Date(e.requested_at).toTimeString().slice(0, 5),
+        // Wie bei normalen Reservierungen (floor-reservations.service.ts):
+        // Uhrzeit direkt aus dem ISO-String schneiden statt über new Date()
+        // in die Browser-Zeitzone zu konvertieren — sonst verschiebt sich
+        // die angezeigte Uhrzeit, sobald der Offset im String nicht exakt
+        // der lokalen Zeitzone des Browsers entspricht.
+        time:            e.requested_at.substring(11, 16),
         durationMinutes: this.timing.defaultDurationMinutes(),
         tableId:         undefined,
         tableIds:        [],
@@ -832,11 +862,29 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
     return this.waitlistEntries().find(e => e.id === id);
   }
 
+  // Läuft hochgezählt bei jedem loadWaitlistEntries()-Aufruf. Da jetzt
+  // mehrere Trigger existieren (initialer Load, Live-Polling, Tab-Rückkehr),
+  // können theoretisch zwei Requests gleichzeitig unterwegs sein. Bei
+  // schwankender Netzwerk-/Backend-Latenz (z. B. unter Last mit vielen
+  // gleichzeitigen Nutzern) kann die ÄLTERE Anfrage später antworten als die
+  // NEUERE — ohne diese Prüfung würde die veraltete Antwort den bereits
+  // aktuelleren Stand überschreiben ("Lost Update"). Es zählt daher nur die
+  // Antwort auf die zuletzt gestartete Anfrage.
+  private waitlistRequestSeq = 0;
+
   private loadWaitlistEntries(venueId: string): void {
+    const seq = ++this.waitlistRequestSeq;
     this.waitlistLoading.set(true);
     this.waitlistService.list(undefined, venueId).subscribe({
-      next: res => { this.waitlistEntries.set(res.entries); this.waitlistLoading.set(false); },
-      error: () => { this.waitlistLoading.set(false); },
+      next: res => {
+        if (seq !== this.waitlistRequestSeq) return; // veraltete Antwort verwerfen
+        this.waitlistEntries.set(res.entries);
+        this.waitlistLoading.set(false);
+      },
+      error: () => {
+        if (seq !== this.waitlistRequestSeq) return;
+        this.waitlistLoading.set(false);
+      },
     });
   }
 
@@ -853,9 +901,12 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
 
   /** Öffnet den bestehenden Neue-Reservierung-Dialog, vorausgefüllt mit den Warteliste-Daten. */
   convertWaitlistToReservation(entry: WaitlistEntry): void {
-    const requested = new Date(entry.requested_at);
-    const iso  = `${requested.getFullYear()}-${String(requested.getMonth() + 1).padStart(2, '0')}-${String(requested.getDate()).padStart(2, '0')}`;
-    const time = `${String(requested.getHours()).padStart(2, '0')}:${String(requested.getMinutes()).padStart(2, '0')}`;
+    // Datum/Uhrzeit direkt aus dem ISO-String schneiden statt über new Date()
+    // in die Browser-Zeitzone zu konvertieren (gleiche Begründung wie in
+    // waitlistAsReservations oben) — sonst passt die vorbelegte Uhrzeit im
+    // Neue-Reservierung-Dialog zu keinem der buchbaren Zeit-Slots.
+    const iso  = entry.requested_at.substring(0, 10);
+    const time = entry.requested_at.substring(11, 16);
     this.selectedDate.set(iso);
     this.waitlistConversionEntryId = entry.id;
     this.openNewDialog({
@@ -2035,21 +2086,18 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
   /**
    * Walk-In-Dialog: Variante des Neue-Reservierung-Dialogs für Gäste, die
    * spontan ohne Reservierung kommen. Vorbelegung:
-   *   • Uhrzeit = aktuelle Uhrzeit (nicht das nächste 30-Min-Slot)
+   *   • Uhrzeit = aktueller/letzter passender Zeit-Slot (wie bei "Neue Reservierung" —
+   *     filteredTimeSlots()[0] behält für heute genau den zuletzt verstrichenen Slot,
+   *     s. Kommentar dort). Die rohe Systemzeit (z. B. 14:37) darf hier NICHT verwendet
+   *     werden, da sie mit keinem der gerasterten Slot-Buttons übereinstimmt und im
+   *     Picker dadurch kein Slot als ausgewählt erscheint.
    *   • isWalkIn = true → beim Speichern wird Status sofort "seated" gesetzt
    * Tisch und Gästezahl werden vom Mitarbeiter im Dialog gewählt.
    */
   openWalkInDialog() {
     this.openNewDialog({
-      time: this.currentTime(),
       isWalkIn: true,
     });
-  }
-
-  /** Aktuelle Uhrzeit als "HH:MM" — für Walk-Ins, die jetzt sofort sitzen. */
-  private currentTime(): string {
-    const d = new Date();
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
   // ── Alle Räume für Tab-Leiste ─────────────────────────────────────────
@@ -2115,6 +2163,42 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
   reassignChoice = signal<{ targetTableId: number } | null>(null);
   private longPressTimer: any = null;
   private suppressNextClick = false;
+
+  // ── Live-Aktualisierung ────────────────────────────────────────────────
+  // Reservierungen/Warteliste werden bisher nur bei Raum- oder Datumswechsel
+  // neu vom Backend geladen. Damit z. B. ein Widget-Warteliste-Eintrag eines
+  // Gasts (der ja ohne jede Aktion des Admins entsteht) auch ohne kompletten
+  // Seiten-Reload auftaucht, wird zusätzlich periodisch nachgeladen, solange
+  // dieser Raum geöffnet ist. Pausiert, wenn der Tab im Hintergrund liegt —
+  // spart unnötige Requests — und lädt beim Zurückkommen sofort einmal nach,
+  // statt bis zu 20s auf den nächsten Tick zu warten.
+  private livePollTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly onVisibilityChange = (): void => {
+    if (document.hidden) {
+      this.stopLivePoll();
+      return;
+    }
+    this.startLivePoll();
+    const room = this.room();
+    if (room) {
+      this.syncFromBackend(room.id, this.selectedDate());
+      this.loadWaitlistEntries(room.id);
+    }
+  };
+
+  private startLivePoll(): void {
+    if (this.livePollTimer) return; // läuft bereits
+    this.livePollTimer = setInterval(() => {
+      const room = this.room();
+      if (!room) return;
+      this.syncFromBackend(room.id, this.selectedDate());
+      this.loadWaitlistEntries(room.id);
+    }, 20000);
+  }
+
+  private stopLivePoll(): void {
+    if (this.livePollTimer) { clearInterval(this.livePollTimer); this.livePollTimer = null; }
+  }
 
   /** Pointer runter: ggf. Long-Press-Timer starten (nur wenn Tisch eine Reservierung hat). */
   onTablePointerDown(tableId: number, event: PointerEvent): void {
@@ -2685,6 +2769,21 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
   }
 
+  /**
+   * Verhindert, dass ein Enter-Tastendruck in einem beliebigen Formularfeld
+   * (z. B. dem "7+"-Personenanzahl-Feld) das Formular vorzeitig via nativem
+   * Submit absendet. Die Notiz-Textarea ist ausgenommen, damit dort weiterhin
+   * Zeilenumbrüche per Enter möglich sind. Das Anlegen der Reservierung soll
+   * ausschließlich über den expliziten "Anlegen"-Button möglich sein.
+   */
+  onReservationFormEnter(event: Event): void {
+    const keyEvent = event as KeyboardEvent;
+    if (keyEvent.key !== 'Enter') return;
+    const target = event.target as HTMLElement | null;
+    if (target && target.tagName === 'TEXTAREA') return;
+    event.preventDefault();
+  }
+
   saveForm() {
     // Doppel-Buchungs-Schutz: solange ein Speichern-Request läuft, keinen
     // weiteren Aufruf zulassen (z. B. durch mehrfaches schnelles Klicken).
@@ -3131,10 +3230,10 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
     return type === 'long' ? { w: 140, h: 70 } : { w: 70, h: 70 };
   }
 
-  getDecorSize(type: DecorType): { w: number; h: number } {
+  getDecorSize(type: DecorType, text?: string): { w: number; h: number } {
     if (type === 'bar' || type === 'stage' || type === 'sofa') return { w: 140, h: 70 };
     if (type === 'window') return { w: 140, h: 32 };
-    if (type === 'label') return { w: 120, h: 40 };
+    if (type === 'label') return { w: getLabelWidth(text), h: 40 };
     return { w: 70, h: 70 };
   }
 

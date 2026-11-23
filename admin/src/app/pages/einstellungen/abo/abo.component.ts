@@ -98,12 +98,6 @@ export class AboComponent {
         'abo.features.guests_sub_birthday',
         'abo.features.guests_sub_noshow',
       ] },
-    { labelKey: 'abo.features.opening_hours',    tisch: true,    menu: true,    maitre: true,
-      subKeys: [
-        'abo.features.opening_hours_sub_breaks',
-        'abo.features.opening_hours_sub_special',
-        'abo.features.opening_hours_sub_holidays',
-      ] },
     { labelKey: 'abo.features.staff',            tisch: true,    menu: true,    maitre: true,
       subKeys: [
         'abo.features.staff_sub_roles',
@@ -127,6 +121,12 @@ export class AboComponent {
         'abo.features.notes_sub_calendar',
         'abo.features.notes_sub_colors',
         'abo.features.notes_sub_float',
+      ] },
+    { labelKey: 'abo.features.reviews',          tisch: false,   menu: true,    maitre: true,
+      subKeys: [
+        'abo.features.reviews_sub_auto',
+        'abo.features.reviews_sub_categories',
+        'abo.features.reviews_sub_private',
       ] },
     { labelKey: 'abo.features.email_design',     tisch: false,   menu: false,   maitre: true,
       subKeys: [
@@ -153,6 +153,7 @@ export class AboComponent {
         'abo.features.menu_card_sub_allergens',
         'abo.features.menu_card_sub_pdf',
         'abo.features.menu_card_sub_design',
+        'abo.features.menu_card_sub_qr',
       ] },
     { labelKey: 'abo.features.pos',              tisch: 'addon', menu: 'addon', maitre: 'addon' },
     { labelKey: 'abo.features.packages',         tisch: 'addon', menu: true,    maitre: true,

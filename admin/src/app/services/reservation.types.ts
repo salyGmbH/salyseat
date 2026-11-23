@@ -7,9 +7,11 @@ export interface Reservation {
   venue_id: string;
   venue_name: string;
   guest_name: string;
+  guest_first_name: string | null;
   guest_email: string;
   guest_phone: string | null;
   guest_notes: string | null;
+  occasion: string | null;
   party_size: number;
   table_number: number | null;
   starts_at: string;

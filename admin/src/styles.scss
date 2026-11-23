@@ -505,15 +505,10 @@ body.dark-theme {
 // ─────────────────────────────────────────────────────────────────────────
 html, body { height: 100%; margin: 0; padding: 0; }
 
-// ── Raum-Detail: kein Scroll-Puffer, kein overflow-y ─────────────────────────
-// Das raum-detail-Layout verwaltet seine eigene Höhe (100vh-basiert).
-// Der ::after-Puffer und overflow-y:auto des Content-Wrappers würden
-// einen leeren Bereich am Ende erzeugen.
-.admin-layout__content:has(app-raum-detail) {
-  overflow: hidden;
-  padding: 0;
-  &::after { display: none; }
-}
+// Hinweis: Die Raum-Detail-Sonderregel für .admin-layout__content
+// (kein Scroll-Puffer, kein overflow) steht jetzt in
+// admin-layout.component.scss, da sie dort dieselbe Angular-Scoping-
+// Spezifität wie die Basisregel hat und sie zuverlässig überschreibt.
 body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;

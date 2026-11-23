@@ -8,12 +8,13 @@ import { filter, take, forkJoin, of } from 'rxjs';
 import { VenueService } from '../../../services/venue.service';
 import { RoomsService } from '../../../services/rooms.service';
 import { WidgetFunctionalService } from '../../../services/widget-functional.service';
-import { PlacedTable, PlacedWall, PlacedDecor, TableType } from '../../../services/room.types';
+import { PlacedTable, PlacedWall, PlacedDecor, TableType, getLabelWidth } from '../../../services/room.types';
+import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
 
 @Component({
   selector: 'app-widget-einstellungen',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule, OpenDatePickerDirective],
   templateUrl: './widget-einstellungen.component.html',
   styleUrl: './widget-einstellungen.component.scss'
 })
@@ -198,6 +199,12 @@ export class WidgetEinstellungenComponent implements OnInit {
     return this.settings.raumauswahlAktiveIds.includes(id);
   }
 
+  /** true, wenn der Raum in "Reihenfolge & Verfügbarkeit" NICHT offline geschaltet wurde. */
+  isRaumOnlineVerfuegbar(id: string): boolean {
+    const entry = this.settings.venueReihenfolge.find(r => r.venueId === id);
+    return entry ? entry.onlineVerfuegbar : true;
+  }
+
   toggleRaum(id: string): void {
     this.settings.raumauswahlAktiveIds = this.isRaumAktiv(id)
       ? this.settings.raumauswahlAktiveIds.filter(x => x !== id)
@@ -206,6 +213,22 @@ export class WidgetEinstellungenComponent implements OnInit {
 
   get aktiveRaumCount(): number {
     return this.settings.raumauswahlAktiveIds.length;
+  }
+
+  /**
+   * Räume, die in "Reihenfolge & Verfügbarkeit" als online verfügbar markiert
+   * sind, hier in der Raumauswahl aber nicht aktiviert wurden. Nur relevant,
+   * solange die Raumauswahl selbst eingeschaltet ist — ist sie aus, wendet
+   * das Widget raumauswahlAktiveIds gar nicht erst an (siehe filteredVenues()
+   * im Widget: Schritt 1 greift nur bei aktivem raumauswahl-Toggle).
+   * Diese Räume verschwinden dadurch für den Gast komplett aus dem Widget,
+   * obwohl sie laut "Reihenfolge & Verfügbarkeit" eigentlich buchbar wären.
+   */
+  get raumauswahlMismatchRooms(): { id: string; name: string }[] {
+    if (!this.settings.raumauswahl) return [];
+    return this.venues()
+      .filter(v => this.isRaumOnlineVerfuegbar(v.id) && !this.isRaumAktiv(v.id))
+      .map(v => ({ id: v.id, name: v.name }));
   }
 
   // ─── Venue-Reihenfolge ───────────────────────────────────────────────────────
@@ -295,8 +318,8 @@ export class WidgetEinstellungenComponent implements OnInit {
         };
       });
       this._layouts.set(map);
-      // Ersten aktiven Raum (aus Block 5) als Vorschau auswählen.
-      const first = venues.find(v => this.isRaumAktiv(v.id)) ?? venues[0];
+      // Ersten aktiven & online-verfügbaren Raum (Block 5 + Block 0) als Vorschau auswählen.
+      const first = venues.find(v => this.isRaumAktiv(v.id) && this.isRaumOnlineVerfuegbar(v.id)) ?? venues[0];
       if (first && !this.previewSelectedRoomId()) this.previewSelectedRoomId.set(first.id);
     });
   }
@@ -325,8 +348,11 @@ export class WidgetEinstellungenComponent implements OnInit {
    * zentralen Raumauswahl-Setting (Block 5). So gibt es nur eine einzige
    * Quelle der Wahrheit, welche Räume online buchbar sind.
    */
+  // Spiegelt filteredVenues() im Widget: nur Räume, die sowohl in der
+  // Raumauswahl aktiv sind als auch in "Reihenfolge & Verfügbarkeit" nicht
+  // offline geschaltet wurden, tauchen für den Gast wirklich auf.
   readonly aktivePlanRaeume = computed(() =>
-    this.venues().filter(v => this.isRaumAktiv(v.id))
+    this.venues().filter(v => this.isRaumAktiv(v.id) && this.isRaumOnlineVerfuegbar(v.id))
   );
 
   // ─── Tisch-Geometrie (für die Mini-Vorschau des Restaurantplans) ────────────
@@ -334,9 +360,10 @@ export class WidgetEinstellungenComponent implements OnInit {
     return type === 'long' ? { w: 140, h: 70 } : { w: 70, h: 70 };
   }
 
-  getDecorSize(type: string): { w: number; h: number } {
+  getDecorSize(type: string, text?: string): { w: number; h: number } {
     if (type === 'bar' || type === 'stage' || type === 'sofa') return { w: 140, h: 70 };
     if (type === 'window') return { w: 140, h: 32 };
+    if (type === 'label') return { w: getLabelWidth(text), h: 40 };
     return { w: 70, h: 70 };
   }
 
@@ -372,7 +399,7 @@ export class WidgetEinstellungenComponent implements OnInit {
       points.push({ x: w.x - w.length / 2, y: w.y - 8, w: w.length, h: 16 });
     });
     room.decors.forEach(d => {
-      const sz = this.getDecorSize(d.type);
+      const sz = this.getDecorSize(d.type, d.text);
       points.push({ x: d.x, y: d.y, w: sz.w * d.scale, h: sz.h * d.scale });
     });
     if (!points.length) return { x: 0, y: 0, w: 800, h: 500 };
@@ -442,11 +469,25 @@ export class WidgetEinstellungenComponent implements OnInit {
     { key: 'anlass',    label: 'widget_einstellungen.field_anlass',    icon: 'celebration' },
   ];
 
+  /**
+   * Name, E-Mail und Personenzahl sind im Widget technisch immer Pflicht — die
+   * Reservierung (Backend-Entity) verlangt diese drei Werte zwingend (nicht
+   * nullable), unabhängig davon, was hier eingestellt wird. Damit die Anzeige
+   * hier nicht etwas verspricht, das das Widget gar nicht einhalten kann,
+   * sind diese Chips gesperrt und immer aktiv.
+   */
+  readonly immerPflichtfelder = ['name', 'email', 'partySize'];
+
+  isFeldGesperrt(key: string): boolean {
+    return this.immerPflichtfelder.includes(key);
+  }
+
   isPflichtfeld(key: string): boolean {
-    return this.settings.pflichtfelder.includes(key);
+    return this.isFeldGesperrt(key) || this.settings.pflichtfelder.includes(key);
   }
 
   togglePflichtfeld(key: string): void {
+    if (this.isFeldGesperrt(key)) return;
     this.settings.pflichtfelder = this.isPflichtfeld(key)
       ? this.settings.pflichtfelder.filter(k => k !== key)
       : [...this.settings.pflichtfelder, key];
@@ -488,5 +529,55 @@ export class WidgetEinstellungenComponent implements OnInit {
     const h = Math.floor(min / 60);
     const m = min % 60;
     return m === 0 ? `${h} ${stdLabel}` : `${h} ${stdLabel} ${m} ${minLabel}`;
+  }
+
+  // ─── Dropdown-Optionen (statt +/- Stepper) ────────────────────────────────────
+  // Kuratierte Presets für Zeitspannen-Felder. Falls der aktuell gespeicherte
+  // Wert nicht in der Preset-Liste enthalten ist (z. B. noch über den alten
+  // +/- Stepper gesetzt), wird er automatisch ergänzt, damit beim Öffnen der
+  // Seite kein Wert stillschweigend verändert wird.
+  private readonly minutenPresets = [0, 15, 30, 45, 60, 90, 120, 180, 240, 360, 720, 1440];
+  private readonly vorausTagePresets   = [1, 3, 5, 7, 14, 21, 30, 45, 60, 90];
+  private readonly vorausMonatePresets = [1, 2, 3, 6, 9, 12, 18, 24];
+  private readonly anzahlPresets       = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20];
+  private readonly stundenPresets      = [1, 2, 3, 4, 6, 8, 12, 24, 48];
+
+  private withCurrent(base: number[], current: number): number[] {
+    return base.includes(current) ? base : [...base, current].sort((a, b) => a - b);
+  }
+
+  get mindestvorlaufOptions(): number[] {
+    return this.withCurrent(this.minutenPresets, this.settings.mindestvorlaufMinuten);
+  }
+
+  get onlineAenderungenOptions(): number[] {
+    return this.withCurrent(this.minutenPresets, this.settings.onlineAenderungenMinuten);
+  }
+
+  get onlineStornierungOptions(): number[] {
+    return this.withCurrent(this.minutenPresets, this.settings.onlineStornierungMinuten);
+  }
+
+  get vorausbuchungOptions(): number[] {
+    const base = this.settings.vorausbuchungEinheit === 'tage'
+      ? this.vorausTagePresets
+      : this.vorausMonatePresets;
+    return this.withCurrent(base, this.settings.vorausbuchungWert);
+  }
+
+  get kinderStuehleGesamtOptions(): number[] {
+    return this.withCurrent(this.anzahlPresets, this.settings.kinderStuehleGesamt);
+  }
+
+  get kinderStuehleOnlineOptions(): number[] {
+    return this.withCurrent(this.anzahlPresets, this.settings.kinderStuehleOnline);
+  }
+
+  get wartelisteMaxPlaetzeOptions(): number[] {
+    return this.withCurrent(this.anzahlPresets, this.settings.wartelisteMaxPlaetze);
+  }
+
+  get wartelisteAntwortStundenOptions(): number[] {
+    return this.withCurrent(this.stundenPresets, this.settings.wartelisteAntwortStunden);
   }
 }

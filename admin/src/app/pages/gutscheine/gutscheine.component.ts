@@ -8,13 +8,14 @@ import { of } from 'rxjs';
 import { GutscheineService, Voucher, VoucherStatus, CreateVoucherDto, VoucherImage } from '../../services/gutscheine.service';
 import { GuestsService, Guest } from '../../services/guests.service';
 import { TenantSettingsService } from '../../services/tenant-settings.service';
+import { OpenDatePickerDirective } from '../../shared/directives/open-date-picker.directive';
 
 type FilterTab = 'all' | 'active' | 'redeemed' | 'expired';
 
 @Component({
   selector: 'app-gutscheine',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, MatIconModule, TranslateModule],
+  imports: [FormsModule, DecimalPipe, MatIconModule, TranslateModule, OpenDatePickerDirective],
   templateUrl: './gutscheine.component.html',
   styleUrl: './gutscheine.component.scss',
 })

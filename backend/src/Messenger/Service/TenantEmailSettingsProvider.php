@@ -70,6 +70,10 @@ final class TenantEmailSettingsProvider
                     ['footerText' => '', 'infoText' => 'Wir freuen uns jederzeit auf eine neue Reservierung.', 'signature' => "Mit freundlichen Grüßen,\nIhr Restaurantteam"],
                     $content['no_show'] ?? [],
                 ),
+                'guest_review' => array_merge(
+                    ['footerText' => 'Vielen Dank für Ihre Zeit!', 'infoText' => '', 'signature' => "Mit freundlichen Grüßen,\nIhr Restaurantteam"],
+                    $content['guest_review'] ?? [],
+                ),
             ],
             'social' => [
                 'instagram' => $social['instagram'] ?? '',

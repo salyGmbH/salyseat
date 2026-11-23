@@ -116,8 +116,13 @@
 .room-editor {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
-  margin: -32px;
+  // Volle Höhe des Viewports: Parent (.admin-layout__content) hat für diese
+  // Route jetzt padding: 0 (siehe admin-layout.component.scss,
+  // &:has(app-restaurant-plan)), daher kein Margin-Ausgleich mehr nötig.
+  // Der alte "margin: -32px" war auf ein festes 32px-Padding kalibriert, das
+  // längst durch responsive Werte (10px/5px/80px) ersetzt wurde — dieser
+  // Mismatch hat Header und Zoom-Controls oben/rechts abgeschnitten.
+  height: 100vh;
 }
 
 .room-editor__header {
@@ -128,6 +133,13 @@
   background-color: $color-dark;
   border-bottom: 1px solid $color-border;
   flex-shrink: 0;
+  // Verhindert, dass ein zu langer Button-Text (z. B. fehlende Übersetzung,
+  // sehr kleines Fenster) die Zeile umbricht und dadurch höher wird als der
+  // reservierte Platz — das führte zu einer oben "abgeschnitten" wirkenden
+  // Kopfzeile. Bei echtem Platzmangel wird stattdessen horizontal gescrollt.
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .room-editor__title {
@@ -723,6 +735,26 @@
   &:hover { background-color: #e6a500; }
 }
 
+// Kombinierbar markieren — links oben, blau/violett (bewusst anders als
+// merge/split, damit die zwei unabhängigen Konzepte optisch klar getrennt
+// bleiben: "zusammenstellen" fusioniert zwei Tische zu einem, "kombinierbar"
+// erlaubt nur, sie bei Bedarf gemeinsam einer Reservierung zuzuweisen).
+.handle--combine {
+  bottom: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #7c4dff;
+  cursor: pointer;
+
+  &:hover { background-color: #6a3dee; }
+
+  &.is-active {
+    background-color: #ff5252;
+
+    &:hover { background-color: #e64949; }
+  }
+}
+
 // ── Sitzplatz-Popup ───────────────────────────────────────────────────────────
 
 .seats-popup {
@@ -871,6 +903,98 @@
   }
 }
 
+// ── Kombinierbare Tische (für große Reservierungen) ────────────────────────────
+// Eigenständige Verbindungslinie, klar unterscheidbar von .merge-line (die
+// beiden Konzepte — visuell verschmelzen vs. bei Bedarf gemeinsam zuweisen —
+// dürfen im Editor nicht verwechselt werden können.
+
+.combine-line {
+  position: absolute;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #7c4dff 0px, #7c4dff 6px,
+    transparent 6px, transparent 11px
+  );
+  pointer-events: none;
+  z-index: 2;
+  top: 0; left: 0;
+  opacity: 0.75;
+}
+
+.combine-badge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #7c4dff;
+  color: $color-white;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: background 0.15s, transform 0.15s;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+  &:hover {
+    background-color: #ff5252;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+// Während des Kombinieren-Modus: Quelle hervorheben, mögliche Ziele
+// dezent einladend markieren.
+.placed-table.is-combine-source .table-svg {
+  filter: drop-shadow(0 0 8px rgba(124, 77, 255, 0.9));
+}
+
+.placed-table.is-combine-target {
+  cursor: pointer;
+
+  .table-svg { filter: drop-shadow(0 0 6px rgba(124, 77, 255, 0.45)); }
+}
+
+.combine-hint-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 14px;
+  background-color: #7c4dff;
+  color: $color-white;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  white-space: nowrap;
+
+  mat-icon:first-child { font-size: 18px; width: 18px; height: 18px; }
+
+  &__cancel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    cursor: pointer;
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; color: $color-white; }
+
+    &:hover { background: rgba(255,255,255,0.35); }
+  }
+}
+
 // ── Dialog ────────────────────────────────────────────────────────────────────
 
 .dialog-backdrop {
@@ -913,6 +1037,7 @@
     &--split  { background: rgba(229, 57, 53, 0.15);  mat-icon { color: #e53935; } }
     &--danger { background: rgba(229, 57, 53, 0.15);  mat-icon { color: #e53935; } }
     &--block  { background: rgba(255, 183, 0, 0.12);  mat-icon { color: rgba(255,183,0,0.9); } }
+    &--combine { background: rgba(124, 77, 255, 0.15); mat-icon { color: #7c4dff; } }
   }
 
   &__title {
@@ -1051,6 +1176,8 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
 
   mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
@@ -1094,6 +1221,19 @@
     border-color: rgba(76, 175, 80, 0.3);
     &:hover { background: rgba(76, 175, 80, 0.22); }
   }
+
+  // Übersicht "Welche Tische sind kombiniert?" — selbe Farbe wie das
+  // Kombinieren-Handle/-Badge im Plan (#7c4dff), damit der Zusammenhang
+  // sofort erkennbar ist und nicht mit der orangen "Verschmelzen"-Farbe
+  // (--active oben) verwechselt wird.
+  &--combine {
+    background: rgba(124, 77, 255, 0.12);
+    color: #b39dff;
+    border-color: rgba(124, 77, 255, 0.35);
+    &:hover { background: rgba(124, 77, 255, 0.22); }
+
+    .btn-header__badge { background: rgba(124, 77, 255, 0.3); color: #fff; }
+  }
 }
 
 .room-blocked-indicator {
@@ -1126,6 +1266,75 @@
   .dialog__text { align-self: center; text-align: center; }
 
   .dialog__actions { margin-top: 0; }
+}
+
+// ── Kombinationen-Übersicht ────────────────────────────────────────────────
+
+.dialog--combine-overview {
+  width: 400px;
+  max-height: 82vh;
+  overflow-y: auto;
+  gap: 14px;
+
+  .dialog__icon,
+  .dialog__title,
+  .dialog__text { align-self: center; text-align: center; }
+}
+
+.combine-overview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(124, 77, 255, 0.08);
+    border: 1px solid rgba(124, 77, 255, 0.25);
+    border-radius: 8px;
+  }
+
+  &__tables {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  &__table-chip {
+    font-size: 13px;
+    font-weight: 700;
+    color: $color-text-on-dark;
+    background: rgba(124, 77, 255, 0.2);
+    border-radius: 6px;
+    padding: 2px 7px;
+  }
+
+  &__plus {
+    font-size: 14px !important;
+    width: 14px !important;
+    height: 14px !important;
+    color: rgba(var(--color-text-rgb), 0.4);
+  }
+
+  &__seats {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(var(--color-text-rgb), 0.6);
+    white-space: nowrap;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  }
 }
 
 .block-form {

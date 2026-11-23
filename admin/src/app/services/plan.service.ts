@@ -10,7 +10,8 @@ export type PlanFeature =
   | 'schichtplan'
   | 'widget-tischauswahl'
   | 'telefonassistent'
-  | 'statistiken';
+  | 'statistiken'
+  | 'bewertungen';
 
 const PLAN_RANK: Record<Plan, number> = {
   tisch:  1,
@@ -26,6 +27,7 @@ const FEATURE_MIN_PLAN: Record<PlanFeature, Plan> = {
   'widget-tischauswahl':'maitre',
   'telefonassistent':   'maitre',
   'statistiken':        'menu',
+  'bewertungen':        'menu',
 };
 
 /** Vom Superadmin gepflegter Add-on-Katalog — siehe /api/v1/admin/addons. */

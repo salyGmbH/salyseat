@@ -59,11 +59,20 @@ final class IcsFeedGenerator
             $descriptionParts[] = 'Tisch ' . $reservation->getTableNumber();
         }
         $descriptionParts[] = $reservation->getPartySize() . ' Personen';
+        if ($reservation->getOccasion() !== null && $reservation->getOccasion() !== '') {
+            $descriptionParts[] = 'Anlass: ' . $reservation->getOccasion();
+        }
         if ($reservation->getGuestPhone() !== null && $reservation->getGuestPhone() !== '') {
             $descriptionParts[] = 'Tel: ' . $reservation->getGuestPhone();
         }
         if ($reservation->getGuestNotes() !== null && $reservation->getGuestNotes() !== '') {
             $descriptionParts[] = 'Notiz: ' . $reservation->getGuestNotes();
+        }
+
+        $guestDisplayName = trim(($reservation->getGuestFirstName() ?? '') . ' ' . $reservation->getGuestName());
+        $summary = $guestDisplayName . ' (' . $reservation->getPartySize() . ' Pers.)';
+        if ($reservation->getOccasion() !== null && $reservation->getOccasion() !== '') {
+            $summary .= ' — ' . $reservation->getOccasion();
         }
 
         return [
@@ -72,7 +81,7 @@ final class IcsFeedGenerator
             'DTSTAMP:' . $now,
             'DTSTART;TZID=' . $tzid . ':' . $reservation->getStartsAt()->format('Ymd\THis'),
             'DTEND;TZID=' . $tzid . ':' . $reservation->getEndsAt()->format('Ymd\THis'),
-            'SUMMARY:' . $this->escape($reservation->getGuestName() . ' (' . $reservation->getPartySize() . ' Pers.)'),
+            'SUMMARY:' . $this->escape($summary),
             'DESCRIPTION:' . $this->escape(implode("\n", $descriptionParts)),
             'LOCATION:' . $this->escape($venue->getName()),
             'STATUS:' . $this->icsStatus($reservation->getStatus()),

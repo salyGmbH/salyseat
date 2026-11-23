@@ -30,7 +30,9 @@ final class SendConfirmationEmailHandler
         $policy = $s['policy'];
 
         $html = $this->twig->render('email/reservation_confirmed.html.twig', [
-            'guest_name'  => $message->guestName,
+            'guest_name'       => $message->guestName,
+            'guest_first_name' => $message->guestFirstName,
+            'occasion'         => $message->occasion,
             'venue_name'  => $message->venueName,
             'starts_at'   => $message->startsAt,
             'party_size'  => $message->partySize,

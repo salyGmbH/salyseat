@@ -296,6 +296,8 @@ class GuestController extends AbstractController
                 partySize:        $reservation->getPartySize(),
                 venueName:        $venueName,
                 tenantId:         $tenantId,
+                guestFirstName:   $reservation->getGuestFirstName(),
+                occasion:         $reservation->getOccasion(),
             )),
             'reminder' => $this->bus->dispatch(new SendReminderEmail(
                 reservationId: $reservation->getId()->toRfc4122(),
@@ -305,6 +307,8 @@ class GuestController extends AbstractController
                 venueName:     $venueName,
                 partySize:     $reservation->getPartySize(),
                 tenantId:      $tenantId,
+                guestFirstName: $reservation->getGuestFirstName(),
+                occasion:       $reservation->getOccasion(),
             )),
             'cancel' => $this->bus->dispatch(new SendCancellationEmail(
                 reservationId: $reservation->getId()->toRfc4122(),
@@ -313,6 +317,8 @@ class GuestController extends AbstractController
                 startsAt:      $startsAt,
                 venueName:     $venueName,
                 tenantId:      $tenantId,
+                guestFirstName: $reservation->getGuestFirstName(),
+                occasion:       $reservation->getOccasion(),
             )),
             'no_show' => $this->bus->dispatch(new SendNoShowEmail(
                 reservationId: $reservation->getId()->toRfc4122(),
@@ -321,6 +327,8 @@ class GuestController extends AbstractController
                 startsAt:      $startsAt,
                 venueName:     $venueName,
                 tenantId:      $tenantId,
+                guestFirstName: $reservation->getGuestFirstName(),
+                occasion:       $reservation->getOccasion(),
             )),
         };
 

@@ -310,6 +310,120 @@
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+//  Tischwahl-Präferenz — inline (shared across layouts), analog zu den
+//  Venue-Chips oben: keine Modal-Overlay mehr, sondern direkt im Widget-Flow
+//  NACH Datum/Uhrzeit/Personenzahl dargestellt (siehe needsTischwahlPick()).
+// ─────────────────────────────────────────────────────────────────────────
+.tischwahl-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+
+.tischwahl-inline__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-bottom: 6px;
+  padding: 4px 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: var(--preview-muted, #6b7280);
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--preview-text);
+  }
+}
+
+.tischwahl-inline__btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--preview-radius, 10px);
+  border: 1.5px solid var(--preview-border, #e5e7eb);
+  background: var(--preview-soft, #f9fafb);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  width: 100%;
+
+  &:hover {
+    background: var(--preview-bg, #fff);
+    border-color: var(--preview-primary);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  }
+
+  &-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    flex-shrink: 0;
+    color: var(--preview-muted, #6b7280);
+    background: color-mix(in srgb, var(--preview-primary) 10%, transparent);
+  }
+
+  &-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &-title {
+    font-size: 0.92em;
+    font-weight: 600;
+    color: var(--preview-text);
+  }
+
+  &-sub {
+    font-size: 0.8em;
+    color: var(--preview-muted, #6b7280);
+    line-height: 1.4;
+  }
+
+  &-arrow {
+    font-size: 1.2em;
+    color: var(--preview-muted, #6b7280);
+    flex-shrink: 0;
+  }
+
+  &--self {
+    border-color: var(--preview-primary);
+    background: color-mix(in srgb, var(--preview-primary) 6%, var(--preview-bg, #fff));
+
+    &:hover {
+      background: color-mix(in srgb, var(--preview-primary) 10%, var(--preview-bg, #fff));
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--preview-primary) 20%, transparent);
+    }
+
+    .tischwahl-inline__btn-icon {
+      color: var(--preview-primary);
+    }
+
+    .tischwahl-inline__btn-title {
+      color: var(--preview-primary);
+    }
+
+    .tischwahl-inline__btn-arrow {
+      color: var(--preview-primary);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  CARD LAYOUT
 // ─────────────────────────────────────────────────────────────────────────
 .preview-card {
@@ -470,6 +584,48 @@
   &__subtitle {
     margin: 0;
     font-size: 0.9em;
+    color: var(--preview-muted);
+  }
+
+  // Raum-Auswahl zuerst (siehe needsVenuePick())
+  &__venue-grid {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  &__venue-card {
+    appearance: none;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--preview-soft);
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    cursor: pointer;
+    text-align: left;
+    transition: 0.15s ease;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      background: color-mix(in srgb, var(--preview-primary) 8%, var(--preview-soft));
+    }
+  }
+
+  &__venue-card-name {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--preview-text);
+  }
+
+  &__venue-card-category {
+    font-size: 0.82em;
     color: var(--preview-muted);
   }
 
@@ -701,16 +857,28 @@
       max-width: none;
       width: auto;
 
+      // color: #fff hier erneut explizit setzen: &__cta (Basisklasse, s.o.)
+      // hat eine eigene &:hover-Regel mit color: var(--preview-primary), die
+      // wegen der :hover-Pseudoklasse eine höhere Spezifität hat als die
+      // einfache &--submit-Regel (color: #fff) oben und diese sonst beim
+      // Hovern überschreiben würde — der Button-Text würde dann in der
+      // Primärfarbe erscheinen und auf dem (ebenfalls primärfarbenen)
+      // Button-Hintergrund unsichtbar werden.
       &:hover:not(:disabled) {
         background: color-mix(in srgb, var(--preview-primary) 88%, black);
+        color: #fff;
       }
 
+      // Füllung bleibt var(--preview-primary), nur per opacity/saturate
+      // gedämpft — kein color-mix() Richtung --preview-bg mehr, sonst wird
+      // der Button je nach eingestellter Hintergrundfarbe fast weiß und der
+      // fest weiße Button-Text (color: #fff) dadurch unlesbar.
       &.is-disabled, &:disabled {
-        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
         border-color: color-mix(in srgb, var(--preview-primary) 25%, transparent);
         box-shadow: none;
         cursor: not-allowed;
-        opacity: 0.85;
+        opacity: 0.5;
+        filter: saturate(0.6);
       }
     }
   }
@@ -1011,6 +1179,48 @@
     letter-spacing: 0.6px;
   }
 
+  // Raum-Auswahl zuerst (siehe needsVenuePick())
+  &__venue-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  &__venue-card {
+    appearance: none;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--preview-soft);
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    cursor: pointer;
+    text-align: left;
+    transition: 0.15s ease;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      background: color-mix(in srgb, var(--preview-primary) 8%, var(--preview-soft));
+    }
+  }
+
+  &__venue-card-name {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--preview-text);
+  }
+
+  &__venue-card-category {
+    font-size: 0.82em;
+    color: var(--preview-muted);
+  }
+
   &__topbar {
     width: 100%;
     display: flex;
@@ -1163,11 +1373,14 @@
       margin-top: 0;
       box-shadow: 0 4px 14px color-mix(in srgb, var(--preview-primary) 35%, transparent);
 
+      // Siehe Card-Layout weiter oben: opacity/saturate statt color-mix()
+      // Richtung --preview-bg, sonst wird der fest weiße Button-Text
+      // je nach Hintergrundfarbe unlesbar.
       &.is-disabled, &:disabled {
-        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
         box-shadow: none;
         cursor: not-allowed;
-        opacity: 0.85;
+        opacity: 0.5;
+        filter: saturate(0.6);
       }
     }
   }
@@ -1655,7 +1868,11 @@
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--preview-text);
+    // Sitzt immer auf dem Farbverlauf-Header (--preview-primary), nicht auf
+    // der Kachel-Oberfläche — deshalb fest Weiß statt der kachel-kontrast-
+    // korrigierten --preview-text (die z. B. bei weißer Textfarbe + weißer
+    // Kachel auf Dunkel umschlägt und hier sonst unsichtbar würde).
+    color: #fff;
   }
 
   &__steps {
@@ -1673,7 +1890,9 @@
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.16);
     border: 1.5px solid rgba(255, 255, 255, 0.32);
-    color: var(--preview-text);
+    // Sitzt auf dem Farbverlauf-Header, nicht auf der Kachel — fest Weiß
+    // (siehe Kommentar bei &__live-label).
+    color: #fff;
     font-size: 0.72em;
     font-weight: 700;
     transition: 0.2s ease;
@@ -1688,7 +1907,7 @@
     &.is-done {
       background: rgba(255, 255, 255, 0.35);
       border-color: rgba(255, 255, 255, 0.6);
-      color: var(--preview-text);
+      color: #fff;
     }
   }
 
@@ -1761,14 +1980,16 @@
     font-size: 1.45em;
     font-weight: 700;
     line-height: 1.15;
-    color: var(--preview-text);
+    // Sitzt auf dem Farbverlauf-Header, nicht auf der Kachel — fest Weiß
+    // (siehe Kommentar bei &__live-label).
+    color: #fff;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
   }
 
   &__subtitle {
     margin: 5px 0 0;
     font-size: 0.88em;
-    color: color-mix(in srgb, var(--preview-text) 75%, transparent);
+    color: rgba(255, 255, 255, 0.8);
   }
 
   &__tiles {
@@ -2110,7 +2331,10 @@
     margin: 0 20px 20px;
     padding: 14px 18px;
     background: var(--preview-primary);
-    color: var(--preview-text);
+    // Button-Hintergrund ist die Markenfarbe, nicht die Kachel — fest Weiß
+    // (siehe Kommentar bei &__live-label), analog zu allen anderen
+    // primärfarbenen CTA-Buttons in diesem File (card/sidebar/planner).
+    color: #fff;
     border: none;
     border-radius: var(--preview-radius-cta);
     font-family: inherit;
@@ -2132,11 +2356,14 @@
       flex: 1 1 0;
       margin: 0;
 
+      // Siehe Card-Layout weiter oben: opacity/saturate statt color-mix()
+      // Richtung --preview-bg, sonst wird der fest weiße Button-Text
+      // je nach Hintergrundfarbe unlesbar.
       &.is-disabled, &:disabled {
-        background: color-mix(in srgb, var(--preview-primary) 35%, var(--preview-bg));
         box-shadow: none;
         cursor: not-allowed;
-        opacity: 0.85;
+        opacity: 0.5;
+        filter: saturate(0.6);
       }
     }
   }
@@ -2153,6 +2380,47 @@
     letter-spacing: 0.2px;
     color: var(--preview-primary);
     text-align: center;
+  }
+
+  // Raum-Auswahl zuerst (siehe needsVenuePick())
+  &__venue-grid {
+    margin: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__venue-card {
+    appearance: none;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--preview-soft);
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    cursor: pointer;
+    text-align: left;
+    transition: 0.15s ease;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      background: color-mix(in srgb, var(--preview-primary) 8%, var(--preview-soft));
+    }
+  }
+
+  &__venue-card-name {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--preview-text);
+  }
+
+  &__venue-card-category {
+    font-size: 0.82em;
+    color: var(--preview-muted);
   }
 
   &__form {
@@ -2637,6 +2905,53 @@
     white-space: nowrap;
   }
 
+  // Raum-Auswahl zuerst (siehe needsVenuePick())
+  &__panel-hint {
+    margin: 8px 0 0;
+    font-size: 0.85em;
+    color: var(--preview-muted);
+  }
+
+  &__venue-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  &__venue-card {
+    appearance: none;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--preview-soft);
+    border: 1px solid var(--preview-border);
+    border-radius: var(--preview-radius);
+    cursor: pointer;
+    text-align: left;
+    transition: 0.15s ease;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--preview-primary) 50%, transparent);
+      background: color-mix(in srgb, var(--preview-primary) 8%, var(--preview-soft));
+    }
+  }
+
+  &__venue-card-name {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--preview-text);
+  }
+
+  &__venue-card-category {
+    font-size: 0.82em;
+    color: var(--preview-muted);
+  }
+
   &__nav {
     display: flex;
     align-items: center;
@@ -2754,6 +3069,10 @@
 
     &--3col {
       grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    &--4col {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
     }
   }
 
@@ -3247,6 +3566,7 @@
     }
     &__form-row { grid-template-columns: 1fr; }
     &__form-row--3col { grid-template-columns: 1fr; }
+    &__form-row--4col { grid-template-columns: 1fr; }
     &__form-extras-row { grid-template-columns: 1fr; }
     &__form-input--stretch { resize: vertical; flex: unset; }
     &__nav {
@@ -3269,6 +3589,14 @@
     // Einwilligungstext auf Desktop nicht zu breit
     &__consent {
       max-width: 560px;
+    }
+
+    // Raum-/Tischwahl-Einstieg (einzelnes Panel ohne Grid) nicht über die
+    // volle 1200px-Wrapperbreite ziehen — sonst wirken die Buttons auf
+    // breiten Bildschirmen unproportional in die Breite gezogen.
+    &__panel--intro {
+      max-width: 480px;
+      margin: 0 auto;
     }
   }
 }
@@ -3546,6 +3874,17 @@
     margin: 0 0 4px;
     font-weight: 700;
     color: var(--preview-text, #1f2937);
+  }
+
+  &__hinweis {
+    margin: 0 0 4px;
+    padding: 10px 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--preview-text, #1f2937);
+    background: var(--preview-bg-muted, #f3f4f6);
+    border-radius: var(--preview-radius, 10px);
   }
 
   &__field {
@@ -4277,174 +4616,6 @@
 
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Tisch-Wahl Zwischenschritt Overlay
-// ─────────────────────────────────────────────────────────────────────────
-.tischwahl-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 900;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  backdrop-filter: blur(4px);
-
-  &__box {
-    position: relative;
-    background: var(--preview-card-bg, #fff);
-    border-radius: var(--preview-radius, 12px);
-    padding: 36px 32px 32px;
-    width: 100%;
-    max-width: 480px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
-    text-align: center;
-  }
-
-  &__close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    appearance: none;
-    border: none;
-    background: transparent;
-    color: var(--preview-muted, #6b7280);
-    font-size: 18px;
-    line-height: 1;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.08);
-      color: var(--preview-text, #111);
-    }
-  }
-
-  &__icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 20px;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--preview-primary, #2563eb) 12%, transparent);
-    color: var(--preview-primary, #2563eb);
-  }
-
-  &__title {
-    margin: 0 0 10px;
-    font-size: 1.2em;
-    font-weight: 700;
-    color: var(--preview-text, #111827);
-    line-height: 1.3;
-  }
-
-  &__subtitle {
-    margin: 0 0 28px;
-    font-size: 0.88em;
-    color: var(--preview-muted, #6b7280);
-    line-height: 1.6;
-  }
-
-  &__actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  &__btn {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 18px;
-    border-radius: var(--preview-radius, 10px);
-    border: 1.5px solid var(--preview-border, #e5e7eb);
-    background: var(--preview-soft, #f9fafb);
-    cursor: pointer;
-    text-align: left;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-    width: 100%;
-
-    &:hover {
-      background: var(--preview-bg, #fff);
-      border-color: var(--preview-primary, #2563eb);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
-    }
-
-    &-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      flex-shrink: 0;
-      color: var(--preview-muted, #6b7280);
-    }
-
-    &-body {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex: 1;
-    }
-
-    &-title {
-      font-size: 0.93em;
-      font-weight: 600;
-      color: var(--preview-text, #111827);
-    }
-
-    &-sub {
-      font-size: 0.8em;
-      color: var(--preview-muted, #6b7280);
-      line-height: 1.4;
-    }
-
-    &-arrow {
-      font-size: 1.2em;
-      color: var(--preview-muted, #6b7280);
-      flex-shrink: 0;
-    }
-
-    &--auto &-icon {
-      background: color-mix(in srgb, var(--preview-primary, #2563eb) 10%, transparent);
-      color: var(--preview-primary, #2563eb);
-    }
-
-    &--self {
-      border-color: var(--preview-primary, #2563eb);
-      background: color-mix(in srgb, var(--preview-primary, #2563eb) 6%, var(--preview-bg, #fff));
-
-      &:hover {
-        background: color-mix(in srgb, var(--preview-primary, #2563eb) 10%, var(--preview-bg, #fff));
-        box-shadow: 0 4px 16px color-mix(in srgb, var(--preview-primary, #2563eb) 20%, transparent);
-      }
-    }
-
-    &--self &-icon {
-      background: color-mix(in srgb, var(--preview-primary, #2563eb) 10%, transparent);
-      color: var(--preview-primary, #2563eb);
-    }
-
-    &--self &-title {
-      color: var(--preview-primary, #2563eb);
-    }
-
-    &--self &-arrow {
-      color: var(--preview-primary, #2563eb);
-    }
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
 //  Tischplan Vollbild-Overlay
 // ─────────────────────────────────────────────────────────────────────────
 .tischplan-overlay {
@@ -4524,44 +4695,121 @@
     font-size: 0.83em;
     font-weight: 600;
     cursor: not-allowed;
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
     white-space: nowrap;
+
+    // Desktop: analog zum "Zurück"-Button absolut positionieren, damit die
+    // zentrierte Titel-Gruppe (Titel + Filter-Badge) nicht durch ein
+    // auto-margin aus der Mitte gedrängt wird und mit "Zurück" überlappt.
+    @media (min-width: 768px) {
+      position: absolute;
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 10px 22px;
+      font-size: 0.9em;
+    }
 
     &.is-active {
       background: var(--preview-primary, #2563eb);
       color: #fff;
       cursor: pointer;
-      box-shadow: 0 2px 10px color-mix(in srgb, var(--preview-primary, #2563eb) 35%, transparent);
+      box-shadow: 0 2px 14px color-mix(in srgb, var(--preview-primary, #2563eb) 45%, transparent);
+      animation: tischplan-confirm-pop 0.22s ease;
 
-      &:hover { filter: brightness(1.07); }
+      &:hover {
+        filter: brightness(1.07);
+        box-shadow: 0 4px 18px color-mix(in srgb, var(--preview-primary, #2563eb) 55%, transparent);
+        transform: translateY(-1px);
+
+        @media (min-width: 768px) {
+          // Basis-Zentrierung (top:50% + translateY(-50%)) beibehalten,
+          // nur minimal anheben statt sie durch translateY(-1px) zu ersetzen.
+          transform: translateY(calc(-50% - 1px));
+        }
+      }
     }
   }
 
+  // ── Hinweis: Verfügbarkeit bezieht sich auf Default-Datum ─────────────
+  &__date-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--preview-border, #e5e7eb);
+    background: color-mix(in srgb, var(--preview-primary, #2563eb) 6%, transparent);
+    color: var(--preview-muted, #6b7280);
+    font-size: 0.78em;
+    font-weight: 500;
+    flex-shrink: 0;
+
+    svg { flex-shrink: 0; color: var(--preview-primary, #2563eb); }
+  }
+
   // ── Raumauswahl im Overlay ────────────────────────────────────────────
+  &__venue-section {
+    padding: 10px 20px 12px;
+    border-bottom: 1px solid var(--preview-border, #e5e7eb);
+    flex-shrink: 0;
+
+    @media (min-width: 768px) {
+      padding: 14px 24px 16px;
+    }
+  }
+
+  &__venue-label {
+    display: block;
+    margin: 0 0 8px;
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--preview-muted, #6b7280);
+
+    @media (min-width: 768px) {
+      font-size: 0.8em;
+      margin-bottom: 10px;
+    }
+  }
+
   &__venue-bar {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 20px;
-    border-bottom: 1px solid var(--preview-border, #e5e7eb);
-    flex-shrink: 0;
     overflow-x: auto;
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
+
+    @media (min-width: 768px) {
+      gap: 12px;
+    }
   }
 
   &__venue-chip {
     appearance: none;
     cursor: pointer;
     border: 1.5px solid var(--preview-border, #e5e7eb);
-    border-radius: 20px;
+    border-radius: 24px;
     background: transparent;
     color: var(--preview-muted, #6b7280);
     font-size: 0.82em;
     font-weight: 500;
     padding: 4px 14px;
     white-space: nowrap;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+
+    @media (min-width: 768px) {
+      font-size: 0.95em;
+      font-weight: 600;
+      padding: 9px 22px;
+      border-width: 2px;
+    }
+
+    @media (min-width: 1200px) {
+      font-size: 1.05em;
+      padding: 11px 26px;
+    }
 
     &:hover {
       border-color: var(--preview-primary, #2563eb);
@@ -4595,6 +4843,14 @@
       transition: fill 0.15s, stroke 0.15s;
     }
   }
+}
+
+// Kleiner "Pop", wenn der Bestätigen-Button beim Auswählen eines Tisches
+// aktiv wird — soll den Blick auf die neue primäre Aktion lenken.
+@keyframes tischplan-confirm-pop {
+  0%   { transform: scale(0.92); }
+  60%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────

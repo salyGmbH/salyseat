@@ -60,6 +60,8 @@ final class AdminCancelReservationHandler
             startsAt:      $reservation->getStartsAt()->format('d.m.Y H:i'),
             venueName:     $reservation->getVenue()->getName(),
             tenantId:      $reservation->getVenue()->getTenant()->getId()->toRfc4122(),
+            guestFirstName: $reservation->getGuestFirstName(),
+            occasion:       $reservation->getOccasion(),
         ));
 
         if ($reservation->getMewsReservationId() !== null) {

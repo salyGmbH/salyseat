@@ -3291,7 +3291,7 @@
   }
 
   &--slot-full {
-    color: #f97316;
+    color: #ef4444;
     font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
@@ -3330,13 +3330,13 @@
   }
 }
 
-// Zeitslot-Karte: voll belegt (orange Markierung)
+// Zeitslot-Karte: voll belegt (rote Markierung, gleiche Farbe wie besetzte Tische)
 .table-inline__card--slot-full {
-  border-color: rgba(249, 115, 22, 0.5) !important;
-  background: rgba(249, 115, 22, 0.1);
+  border-color: rgba(#e53935, 0.45) !important;
+  background: rgba(#e53935, 0.1);
 
   .table-inline__num {
-    color: #f97316;
+    color: #ef4444;
   }
 }
 
@@ -3368,14 +3368,9 @@
 }
 
 // Tisch-Karte/Zeitslot-Karte: frei, aber nur für kürzere Dauer als gewünscht
-// verfügbar (bleibt wählbar — Orange statt Rot signalisiert "weicher" Hinweis)
+// verfügbar (bleibt wählbar — sieht aus wie ein normaler freier Slot, nur der
+// Badge-Text "nur X Min." ist orange eingefärbt, siehe .table-inline__badge--limited)
 .table-inline__card--limited {
-  border-color: rgba(249, 115, 22, 0.4) !important;
-  background: rgba(249, 115, 22, 0.09);
-
-  .table-inline__num {
-    color: #f97316;
-  }
 }
 
 // ── Konflikt-Dialog ──────────────────────────────────────────────────────────
@@ -6137,6 +6132,13 @@
   left: 0;
   width: 100%;
   height: 100%;
+  // Kein overflow: hidden hier! Dieses Element trägt den Zoom-Transform
+  // (transform: scale(...)). Ein overflow:hidden auf der transformierten
+  // Ebene selbst würde beim Reinzoomen/Rauszoomen mitskaliert und dabei
+  // Tische/Wände außerhalb der 100%-Box abschneiden, statt beim Rauszoomen
+  // mehr vom Plan sichtbar zu machen. Das Clipping des sichtbaren Bereichs
+  // übernimmt stattdessen der unskalierte äußere Wrapper
+  // (.raum-detail__canvas, overflow: auto / hidden im Pan-Modus).
   transform-origin: 0 0;
   will-change: transform;
 }

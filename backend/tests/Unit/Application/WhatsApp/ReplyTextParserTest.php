@@ -90,7 +90,7 @@ final class ReplyTextParserTest extends TestCase
         $result = $this->parser->parseDate('montag', $now);
 
         self::assertNotNull($result);
-        self::assertSame('2026-11-20', $result->format('Y-m-d'));
+        self::assertSame('2026-11-23', $result->format('Y-m-d'));
         self::assertSame('1', $result->format('N'));
     }
 

@@ -171,7 +171,7 @@
             <!-- Mitte: Name + Meta (füllt den Platz) -->
             <div class="rc__body">
               <div class="rc__top">
-                <span class="rc__name">{{ r.guest_name }}</span>
+                <span class="rc__name">{{ r.guest_first_name ? r.guest_first_name + ' ' + r.guest_name : r.guest_name }}</span>
                 <span class="rc__party">· {{ r.party_size }} Pers.</span>
               </div>
               <div class="rc__sub">
@@ -183,6 +183,9 @@
                 }
                 @if (r.guest_phone) {
                   <span><mat-icon>call</mat-icon>{{ r.guest_phone }}</span>
+                }
+                @if (r.occasion) {
+                  <span><mat-icon>celebration</mat-icon>{{ r.occasion }}</span>
                 }
                 @if (r.guest_notes) {
                   <span><mat-icon>notes</mat-icon>{{ r.guest_notes }}</span>

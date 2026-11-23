@@ -12,7 +12,7 @@
 .admin-layout__content {
   flex: 1;
   background-color: $color-bg;
-  padding: 32px;
+  padding: 10px;
   overflow-y: auto;
   min-width: 0;
   // Eigene volle Höhe innerhalb des flex-Parents, damit Inhalt
@@ -25,6 +25,41 @@
     content: '';
     display: block;
     height: 80px;
+  }
+
+  // Raum-Detail: kein Scroll-Puffer, kein overflow-y ─────────────────────
+  // Das raum-detail-Layout verwaltet seine eigene Höhe (100vh-basiert) und
+  // scrollt selbst nur so weit wie nötig. Diese Regel MUSS hier im
+  // komponenten-scoped Stylesheet stehen (statt in styles.scss): Angulars
+  // Emulated Encapsulation hängt an ".admin-layout__content" oben ein
+  // [_ngcontent-xxx]-Attribut an, was dessen "overflow-y: auto" eine höhere
+  // Spezifität gibt als eine gleichlautende globale Regel mit :has(). Nur
+  // hier, wo dieselbe Attribut-Klasse automatisch mitkommt, gewinnt die
+  // :has()-Regel zuverlässig gegen die Basis-Regel oben.
+  &:has(app-raum-detail) {
+    overflow: hidden;
+    padding: 0;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  // Restaurantplan-Editor: verwaltet ebenfalls seine eigene volle Höhe/Breite
+  // (100vh-basiert) und wollte das bisher über ein "margin: -32px" auf
+  // .room-editor selbst erzwingen — das war aber auf ein Padding von 32px
+  // hier abgestimmt, während dieses Padding längst responsive ist (10px auf
+  // Desktop, 5px Tablet, 80px/16px mobil). Der Mismatch ließ Header und
+  // Zoom-Controls oben/rechts abgeschnitten wirken. Gleiches Muster wie bei
+  // app-raum-detail oben: Padding hier auf 0 setzen, Editor braucht dann
+  // keinen negativen Margin-Ausgleich mehr.
+  &:has(app-restaurant-plan) {
+    overflow: hidden;
+    padding: 0;
+
+    &::after {
+      display: none;
+    }
   }
 }
 
@@ -104,6 +139,16 @@
     padding: 80px 16px 0;
 
     &::after { height: 60px; }
+
+    // app-restaurant-plan hat oben padding: 0 (Full-Bleed, siehe
+    // &:has(app-restaurant-plan) weiter oben) — auf Mobile blendet aber
+    // .mobile-header fest über allem ein (position: fixed, height: 60px).
+    // Ohne eigenes Top-Padding würde der room-editor__header darunter
+    // verdeckt. Höhere Selektor-Spezifität (:has()) gewinnt hier zuverlässig
+    // gegen die 0-Padding-Regel oben.
+    &:has(app-restaurant-plan) {
+      padding-top: 60px;
+    }
   }
 
   .mobile-header {

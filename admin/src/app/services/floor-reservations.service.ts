@@ -30,13 +30,31 @@ export class FloorReservationsService {
   private readonly _hiddenBackendIds = new Set<string>();
 
   /**
+   * Schutz gegen "Lost Update": loadForVenue() wird inzwischen aus mehreren
+   * Quellen parallel angestoßen (Datumswechsel-Effect, Live-Polling,
+   * Tab-Rückkehr). Bei schwankender Latenz (z. B. Backend unter Last mit
+   * vielen gleichzeitigen Nutzern) kann eine ältere Anfrage später antworten
+   * als eine neuere für dieselbe Raum/Datum-Kombination — ohne diese Prüfung
+   * würde die veraltete Antwort den bereits aktuelleren Stand überschreiben.
+   * Key = "venueId|date", damit unabhängige Anfragen für andere Räume/Tage
+   * (z. B. Hauptkalender vs. Dialog-Datum) sich nicht gegenseitig blockieren.
+   */
+  private readonly _loadSeq = new Map<string, number>();
+
+  /**
    * Lädt alle Reservierungen für ein Venue an einem Datum vom Backend.
    * Bestehende transiente Zustände (late, expired) werden beibehalten.
    */
   loadForVenue(venueId: string, date: string): Observable<void> {
+    const key = `${venueId}|${date}`;
+    const seq = (this._loadSeq.get(key) ?? 0) + 1;
+    this._loadSeq.set(key, seq);
+
     const params = new HttpParams().set('date', date).set('limit', '200');
     return this.http.get<ReservationListResponse>(this.BASE, { params }).pipe(
       map(res => {
+        if (this._loadSeq.get(key) !== seq) return; // veraltete Antwort verwerfen
+
         const incoming = res.reservations
           .filter(r => r.venue_id === venueId)
           .filter(r => !this._hiddenBackendIds.has(r.id))
@@ -183,6 +201,8 @@ export class FloorReservationsService {
       backendId:          br.id,
       roomId:             venueId,
       guestName:          br.guest_name,
+      guestFirstName:     br.guest_first_name    ?? undefined,
+      occasion:           br.occasion            ?? undefined,
       partySize:          br.party_size,
       date,
       time,

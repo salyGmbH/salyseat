@@ -36,6 +36,7 @@ import { AboComponent } from './abo/abo.component';
 import { PmsAnbindungComponent } from './pms-anbindung/pms-anbindung.component';
 import { WhatsappAnbindungComponent } from './whatsapp-anbindung/whatsapp-anbindung.component';
 import { KalenderSyncComponent } from './kalender-sync/kalender-sync.component';
+import { BewertungenComponent } from './bewertungen/bewertungen.component';
 
 export const EINSTELLUNGEN_ROUTES: Routes = [
   {
@@ -79,6 +80,7 @@ export const EINSTELLUNGEN_ROUTES: Routes = [
       { path: 'pms-anbindung',      component: PmsAnbindungComponent },
       { path: 'whatsapp-anbindung', component: WhatsappAnbindungComponent, canActivate: [addonGuard('whatsapp')] },
       { path: 'kalender-sync',      component: KalenderSyncComponent },
+      { path: 'bewertungen',        component: BewertungenComponent, canActivate: [planGuard('bewertungen')] },
     ]
   }
 ];

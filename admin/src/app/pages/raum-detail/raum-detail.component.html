@@ -310,7 +310,7 @@
                               <mat-icon>hotel</mat-icon>
                             </span>
                           }
-                          <span class="res-row__name">{{ res.guestName }}</span>
+                          <span class="res-row__name">{{ res.guestFirstName ? res.guestFirstName + ' ' + res.guestName : res.guestName }}</span>
                           <span class="res-row__party">· {{ res.partySize }} Pers.</span>
                         </div>
                         <div class="res-row__sub">
@@ -804,8 +804,8 @@
                [class.placed-decor--label]="decor.type === 'label'"
                [style.left.px]="decor.x"
                [style.top.px]="decor.y"
-               [style.width.px]="getDecorSize(decor.type).w * decor.scale"
-               [style.height.px]="getDecorSize(decor.type).h * decor.scale"
+               [style.width.px]="getDecorSize(decor.type, decor.text).w * decor.scale"
+               [style.height.px]="getDecorSize(decor.type, decor.text).h * decor.scale"
                [style.transform]="'rotate(' + decor.rotation + 'deg)'">
             @switch (decor.type) {
               @case ('plant') {
@@ -1360,7 +1360,7 @@
           </div>
         }
 
-        <form class="reservation-form" (ngSubmit)="saveForm()" #resForm="ngForm">
+        <form class="reservation-form" (ngSubmit)="saveForm()" (keydown)="onReservationFormEnter($event)" #resForm="ngForm">
           <div class="rf-layout" [attr.data-mob-step]="mobileStep()">
 
             <!-- ── Linkes Panel: Reservierungsdetails (Step 3 auf Mobile) -->
@@ -1909,7 +1909,7 @@
             }
           </div>
           <div class="gc-identity">
-            <h3 class="gc-name">{{ guestCardRes()?.guestName }}</h3>
+            <h3 class="gc-name">{{ guestCardRes()?.guestFirstName ? guestCardRes()!.guestFirstName + ' ' + guestCardRes()!.guestName : guestCardRes()?.guestName }}</h3>
             <div class="gc-contact-row">
               @if (isRealEmail(guestCardRes()?.guestEmail ?? '')) {
                 <a class="gc-contact-link" [href]="'mailto:' + guestCardRes()!.guestEmail">
@@ -1920,6 +1920,11 @@
                 <a class="gc-contact-link" [href]="'tel:' + guestCardRes()!.phone">
                   <mat-icon>call</mat-icon>{{ guestCardRes()!.phone }}
                 </a>
+              }
+              @if (guestCardRes()?.occasion) {
+                <span class="gc-contact-link">
+                  <mat-icon>celebration</mat-icon>{{ guestCardRes()!.occasion }}
+                </span>
               }
             </div>
             @if (guestCardRes()?.source === 'pms') {

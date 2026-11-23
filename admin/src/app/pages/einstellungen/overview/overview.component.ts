@@ -71,6 +71,7 @@ export class OverviewComponent {
   items: SettingsItem[] = [
     { label: 'settings.abo',               route: 'abo',                    icon: 'workspace_premium' },  // Abo & Pakete
     { label: 'settings.general',           route: 'allgemein',              icon: 'tune' },               // Allgemeine Einstellungen
+    { label: 'settings.reviews',           route: 'bewertungen',            icon: 'rate_review', requiresFeature: 'bewertungen' }, // Gäste-Bewertungen
     { label: 'settings.notifications',     route: 'notifications',          icon: 'notifications_active' },// Benachrichtigungen
     { label: 'settings.permissions',       route: 'rechte',                 icon: 'admin_panel_settings' },// Berechtigungen
     { label: 'settings.emails',            route: 'emails',                 icon: 'mail',          requiresFeature: 'email-design' }, // E-Mails
@@ -79,7 +80,6 @@ export class OverviewComponent {
     { label: 'settings.customers',         route: 'kunden',                 icon: 'groups' },             // Kunden / Gäste
     { label: 'settings.login',             route: 'login',                  icon: 'login' },              // Login / Registrierung
     { label: 'settings.staff',             route: 'mitarbeiter',            icon: 'group' },              // Mitarbeiterverwaltung
-    { label: 'settings.notes',             route: 'notizen',                icon: 'sticky_note_2',  requiresFeature: 'notizen' }, // Notizen
     { label: 'settings.opening_hours',     route: 'oeffnungszeiten',        icon: 'schedule' },           // Öffnungszeiten
     { label: 'settings.packages',          route: 'packages',               icon: 'inventory_2',    addonKey: 'packages' }, // Packages
     { label: 'PMS Integration',            route: 'pms-anbindung',          icon: 'hotel',  addonKey: 'pms' }, // PMS Integration

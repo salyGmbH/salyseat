@@ -29,7 +29,9 @@ final class SendCancellationEmailHandler
         $s = $message->tenantId !== '' ? $this->settings->getForTenant($message->tenantId) : $this->settings->defaults();
 
         $html = $this->twig->render('email/reservation_cancelled.html.twig', [
-            'guest_name'   => $message->guestName,
+            'guest_name'       => $message->guestName,
+            'guest_first_name' => $message->guestFirstName,
+            'occasion'         => $message->occasion,
             'venue_name'   => $message->venueName,
             'starts_at'    => $message->startsAt,
             'mail_content' => $s['content']['cancel'],

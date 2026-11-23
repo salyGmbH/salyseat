@@ -1,0 +1,16 @@
+{% include 'email/_layout.html.twig' with {
+    heading_title: 'Wie war Ihr Besuch?',
+    fixed_lines: [
+        'Vielen Dank für Ihren Besuch bei ' ~ venue_name ~ '.',
+        'Wir würden uns sehr über Ihre Bewertung freuen —',
+        'es dauert nur eine Minute.',
+    ],
+    show_details: false,
+    action_url:   action_url,
+    action_label: 'Jetzt bewerten',
+    mail_content: mail_content,
+    design:    design,
+    social:    social,
+    logoLight: logoLight,
+    logoDark:  logoDark,
+} %}

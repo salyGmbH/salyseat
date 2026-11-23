@@ -458,7 +458,7 @@
                   <div class="rcr__avatar">{{ initials(r.guest_name) }}</div>
                   <!-- Info -->
                   <div class="rcr__info">
-                    <span class="rcr__name">{{ r.guest_name }}</span>
+                    <span class="rcr__name">{{ r.guest_first_name ? r.guest_first_name + ' ' + r.guest_name : r.guest_name }}</span>
                     <span class="rcr__meta">
                       {{ formatTime(r.starts_at) }}
                       <span class="rcr__dot">·</span>

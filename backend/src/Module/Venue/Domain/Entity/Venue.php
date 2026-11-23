@@ -128,6 +128,30 @@ class Venue
         return $this->defaultDurationMinutes;
     }
 
+    /**
+     * Tatsächlich zu verwendende Standarddauer, wenn beim Buchen keine
+     * explizite duration_minutes mitgeschickt wird.
+     *
+     * Nutzt den Tenant-weiten Wert (uiSettings.reservationTiming.
+     * defaultDurationMinutes, Default 120) statt des per-Venue-Feldes
+     * $defaultDurationMinutes (Default 90) — dieselbe Tenant-Einstellung
+     * ist bereits an allen anderen Stellen im System die einzige Quelle für
+     * die Standarddauer: das Widget zeigt sie an und rechnet damit (siehe
+     * ReservationController::config(), start.component.ts), und auch die
+     * Admin-Tischplan-Ansicht (ReservationTimingService.defaultDurationMinutes
+     * im Admin-Frontend) nutzt ausschließlich diesen Wert. Das per-Venue-Feld
+     * war dadurch faktisch bereits toter Code — er wich vom überall sonst
+     * verwendeten Wert ab (90 vs. 120 im Default-Fall) und führte dazu, dass
+     * das Widget Slots/Endzeiten anders berechnete als das Backend beim
+     * tatsächlichen Buchen.
+     */
+    public function getEffectiveDefaultDurationMinutes(): int
+    {
+        $tenantValue = $this->tenant->getUiSettings()['reservationTiming']['defaultDurationMinutes'] ?? null;
+
+        return (is_int($tenantValue) || is_numeric($tenantValue)) ? (int) $tenantValue : 120;
+    }
+
     public function getMaxAdvanceBookingDays(): int
     {
         return $this->maxAdvanceBookingDays;

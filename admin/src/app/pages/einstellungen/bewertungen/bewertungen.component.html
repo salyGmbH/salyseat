@@ -1,0 +1,142 @@
+<div class="bewertungen">
+
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">{{ 'bewertungen.title' | translate }}</h1>
+      @if (!reviewSvc.loading()) {
+        <span class="total-badge">{{ reviewSvc.reviews().length }} {{ 'bewertungen.total' | translate }}</span>
+      }
+    </div>
+    <button class="info-button" [class.active]="infoOpen" (click)="infoOpen = !infoOpen">
+      <mat-icon>info</mat-icon>
+    </button>
+  </div>
+  <div class="info-box" [class.open]="infoOpen">
+    {{ 'bewertungen.info' | translate }}
+  </div>
+
+  <!-- ── Übersicht ────────────────────────────────────────────────────── -->
+  @if (totalCount() > 0) {
+    <div class="overview-card">
+
+      <div class="overview-hero">
+        <div class="overview-hero__value">{{ overallAverage().toFixed(1) }}</div>
+        <div class="overview-hero__stars">
+          @for (s of stars(overallAverage()); track s) {
+            <mat-icon>star</mat-icon>
+          }
+        </div>
+        <div class="overview-hero__sub">{{ totalCount() }} {{ 'bewertungen.total' | translate }}</div>
+      </div>
+
+      <div class="overview-bars">
+        @for (c of categoryStats(); track c.key) {
+          <div class="overview-bar-row">
+            <span class="overview-bar-row__label">{{ c.label | translate }}</span>
+            <div class="overview-bar-row__track">
+              <div class="overview-bar-row__fill" [style.width.%]="c.avg / 5 * 100"></div>
+            </div>
+            <span class="overview-bar-row__value">{{ c.avg.toFixed(1) }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="overview-distribution">
+        @for (d of ratingDistribution(); track d.stars) {
+          <div class="overview-bar-row">
+            <span class="overview-bar-row__label">{{ d.stars }} ★</span>
+            <div class="overview-bar-row__track">
+              <div class="overview-bar-row__fill" [style.width.%]="d.pct"></div>
+            </div>
+            <span class="overview-bar-row__value">{{ d.count }}</span>
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Einstellungen ────────────────────────────────────────────────── -->
+  <div class="settings-card">
+    <div class="settings-card__row">
+      <div class="settings-card__label">
+        <span>{{ 'bewertungen.enable_label' | translate }}</span>
+        <span class="settings-card__sub">{{ 'bewertungen.enable_sub' | translate }}</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" [(ngModel)]="reviewEnabled">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    @if (reviewEnabled) {
+      <div class="settings-card__row">
+        <div class="settings-card__label">
+          <span>{{ 'bewertungen.delay_label' | translate }}</span>
+        </div>
+        <select class="delay-select" [(ngModel)]="reviewDelay">
+          <option value="2min">{{ 'bewertungen.delay_2min' | translate }}</option>
+          <option value="1h">{{ 'bewertungen.delay_1h' | translate }}</option>
+          <option value="4h">{{ 'bewertungen.delay_4h' | translate }}</option>
+          <option value="24h">{{ 'bewertungen.delay_24h' | translate }}</option>
+          <option value="3d">{{ 'bewertungen.delay_3d' | translate }}</option>
+        </select>
+      </div>
+    }
+
+    <div class="settings-card__footer">
+      <button class="save-btn" [disabled]="saving" (click)="save()">
+        @if (saving) {
+          <mat-icon class="spin">sync</mat-icon>
+        } @else if (saved) {
+          <mat-icon>check</mat-icon>
+        }
+        {{ 'bewertungen.save' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Liste ────────────────────────────────────────────────────────── -->
+  @if (reviewSvc.loading()) {
+    <div class="state-box">
+      <div class="spinner"></div>
+      <span>{{ 'bewertungen.loading' | translate }}</span>
+    </div>
+  } @else if (reviewSvc.reviews().length === 0) {
+    <div class="state-box">
+      <mat-icon class="state-box__icon">rate_review</mat-icon>
+      <span>{{ 'bewertungen.empty' | translate }}</span>
+    </div>
+  } @else {
+    <div class="review-list">
+      @for (r of reviewSvc.reviews(); track r.id) {
+        <div class="review-card">
+          <div class="review-card__top">
+            <span class="review-card__name">{{ r.guestName }}</span>
+            <div class="review-card__stars">
+              @for (s of stars(averageFor(r)); track s) {
+                <mat-icon>star</mat-icon>
+              }
+              <span class="review-card__avg">{{ averageFor(r).toFixed(1) }}</span>
+            </div>
+          </div>
+
+          <div class="review-card__categories">
+            @for (c of categories; track c.key) {
+              <span class="review-card__category">
+                {{ c.label | translate }}: <strong>{{ r[c.key] }}/5</strong>
+              </span>
+            }
+          </div>
+
+          @if (r.comment) {
+            <p class="review-card__comment">„{{ r.comment }}"</p>
+          }
+
+          <span class="review-card__date">{{ r.submittedAt | date:'dd.MM.yyyy HH:mm' }}</span>
+        </div>
+      }
+    </div>
+  }
+
+</div>

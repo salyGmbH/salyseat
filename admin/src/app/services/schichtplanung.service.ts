@@ -33,6 +33,40 @@ interface ApiSwap {
   date: string; status: string; note: string; created_at: number;
 }
 
+interface ApiTimeClockEntry {
+  id: string; employee_id: string; employee_name: string;
+  clock_in_at: string; clock_out_at: string | null;
+  note: string; duration_minutes: number; open: boolean;
+}
+
+interface ApiTimeClockReport {
+  entries: ApiTimeClockEntry[];
+  summary: { employee_id: string; employee_name: string; minutes: number; entry_count: number }[];
+}
+
+export interface TimeClockEntry {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  clockInAt: string;
+  clockOutAt: string | null;
+  note: string;
+  durationMinutes: number;
+  open: boolean;
+}
+
+export interface TimeClockSummaryRow {
+  employeeId: string;
+  employeeName: string;
+  minutes: number;
+  entryCount: number;
+}
+
+export interface TimeClockReport {
+  entries: TimeClockEntry[];
+  summary: TimeClockSummaryRow[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class SchichtplanungService {
   private readonly http = inject(HttpClient);
@@ -71,6 +105,19 @@ export class SchichtplanungService {
 
   private toWage(a: ApiWage): WageEntry {
     return { employeeId: a.employee_id, hourlyRate: a.hourly_rate };
+  }
+
+  private toTimeClockEntry(a: ApiTimeClockEntry): TimeClockEntry {
+    return {
+      id:              a.id,
+      employeeId:      a.employee_id,
+      employeeName:    a.employee_name,
+      clockInAt:       a.clock_in_at,
+      clockOutAt:      a.clock_out_at,
+      note:            a.note,
+      durationMinutes: a.duration_minutes,
+      open:            a.open,
+    };
   }
 
   private toSwap(a: ApiSwap): SwapRequest {
@@ -263,6 +310,53 @@ export class SchichtplanungService {
 
   deleteSwap(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/swaps/${id}`);
+  }
+
+  // ── Zeiterfassung (Stempeluhr) ─────────────────────────────────────────
+
+  checkIn(employeeId: string): Observable<TimeClockEntry> {
+    return new Observable(obs => {
+      this.http.post<ApiTimeClockEntry>(`${this.base}/time-clock/check-in`, { employee_id: employeeId }).subscribe({
+        next: a => { obs.next(this.toTimeClockEntry(a)); obs.complete(); },
+        error: err => obs.error(err),
+      });
+    });
+  }
+
+  checkOut(employeeId: string, note?: string): Observable<TimeClockEntry> {
+    return new Observable(obs => {
+      this.http.post<ApiTimeClockEntry>(`${this.base}/time-clock/check-out`, { employee_id: employeeId, note: note || null }).subscribe({
+        next: a => { obs.next(this.toTimeClockEntry(a)); obs.complete(); },
+        error: err => obs.error(err),
+      });
+    });
+  }
+
+  loadTimeClockLive(): Observable<TimeClockEntry[]> {
+    return new Observable(obs => {
+      this.http.get<ApiTimeClockEntry[]>(`${this.base}/time-clock/live`).subscribe({
+        next: list => { obs.next(list.map(a => this.toTimeClockEntry(a))); obs.complete(); },
+        error: err => obs.error(err),
+      });
+    });
+  }
+
+  loadTimeClockReport(from: string, to: string): Observable<TimeClockReport> {
+    return new Observable(obs => {
+      this.http.get<ApiTimeClockReport>(`${this.base}/time-clock/report?from=${from}&to=${to}`).subscribe({
+        next: r => {
+          obs.next({
+            entries: r.entries.map(a => this.toTimeClockEntry(a)),
+            summary: r.summary.map(s => ({
+              employeeId: s.employee_id, employeeName: s.employee_name,
+              minutes: s.minutes, entryCount: s.entry_count,
+            })),
+          });
+          obs.complete();
+        },
+        error: err => obs.error(err),
+      });
+    });
   }
 
   // ── PDF per Mail ────────────────────────────────────────────────────────

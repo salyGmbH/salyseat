@@ -4,13 +4,14 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RoomsService } from '../../../services/rooms.service';
 import { TableBlockService, TableBlock } from '../../../services/table-block.service';
+import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
 import { PlacedTable } from '../../../services/room.types';
 import { localDateIso } from '../../../shared/local-date.util';
 
 @Component({
   selector: 'app-restaurantplan',
   standalone: true,
-  imports: [MatIconModule, DatePipe, RouterLink],
+  imports: [MatIconModule, DatePipe, RouterLink, OpenDatePickerDirective],
   templateUrl: './restaurantplan.component.html',
   styleUrl: './restaurantplan.component.scss'
 })

@@ -15,6 +15,8 @@ final readonly class UpdateReservationCommand
         public ?int $durationMinutes = null,
         public ?string $guestPhone = null,
         public ?string $guestNotes = null,
+        public ?string $guestFirstName = null,
+        public ?string $occasion = null,
         /** false = not provided (no change); null = unassign; int = assign this table number */
         public int|false|null $tableNumber = false,
         /** false = not provided (no change); null = clear; array = set multi-table IDs */

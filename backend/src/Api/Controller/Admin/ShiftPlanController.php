@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\Admin;
 
+use App\Messenger\Message\SendShiftPlanPdf;
 use App\Module\Shift\Domain\Entity\ShiftAvailability;
 use App\Module\Shift\Domain\Entity\ShiftEntry;
 use App\Module\Shift\Domain\Entity\ShiftSettings;
 use App\Module\Shift\Domain\Entity\ShiftSwapRequest;
 use App\Module\Shift\Domain\Entity\ShiftTemplate;
+use App\Module\Shift\Domain\Entity\TimeClockEntry;
 use Doctrine\DBAL\Types\Types;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use App\Module\Shift\Domain\Entity\ShiftWage;
+use App\Module\Staff\Domain\Entity\Staff;
 use App\Module\Tenant\Domain\Entity\Tenant;
 use App\Module\User\Domain\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -19,6 +22,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Uid\Uuid;
@@ -26,7 +30,10 @@ use Symfony\Component\Uid\Uuid;
 #[Route('/shift-plan')]
 class ShiftPlanController extends AbstractController
 {
-    public function __construct(private readonly EntityManagerInterface $em) {}
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly MessageBusInterface    $bus,
+    ) {}
 
     // ═══════════════════════════════════════════════════════════════════════
     // SHIFTS
@@ -354,6 +361,12 @@ class ShiftPlanController extends AbstractController
         if (isset($data['min_staff']) && is_array($data['min_staff'])) {
             $s->setMinStaff(array_map('intval', $data['min_staff']));
         }
+        if (array_key_exists('shift_times', $data)) {
+            $s->setShiftTimes(is_array($data['shift_times']) ? $data['shift_times'] : null);
+        }
+        if (array_key_exists('user_shifts', $data)) {
+            $s->setUserShifts(is_array($data['user_shifts']) ? $data['user_shifts'] : null);
+        }
 
         $this->em->flush();
         return $this->json($this->serializeSettings($s));
@@ -406,6 +419,150 @@ class ShiftPlanController extends AbstractController
 
         $this->em->flush();
         return $this->json($this->serializeWage($wage));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TIME CLOCK (Stempeluhr)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** POST /api/v1/admin/shift-plan/time-clock/check-in — { employee_id } */
+    #[Route('/time-clock/check-in', name: 'admin_time_clock_check_in', methods: ['POST'])]
+    public function checkIn(Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $this->requireTenant($user);
+        if ($tenant === null) return $this->noTenant();
+
+        $data       = json_decode($request->getContent(), true) ?? [];
+        $employeeId = trim((string) ($data['employee_id'] ?? ''));
+
+        $staff = $this->resolveStaff($employeeId, $tenant);
+        if ($staff === null) {
+            return $this->json(['error' => 'Mitarbeiter nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+        if (!$staff->isActive()) {
+            return $this->json(['error' => 'Mitarbeiter ist nicht aktiv.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $open = $this->em->getRepository(TimeClockEntry::class)->findOneBy([
+            'tenant' => $tenant, 'employeeId' => $employeeId, 'clockOutAt' => null,
+        ]);
+        if ($open !== null) {
+            return $this->json(['error' => 'Bereits eingecheckt.'], Response::HTTP_CONFLICT);
+        }
+
+        $entry = new TimeClockEntry($tenant, $employeeId, new \DateTimeImmutable());
+        $this->em->persist($entry);
+        $this->em->flush();
+
+        return $this->json($this->serializeTimeClockEntry($entry, $staff->getName()), Response::HTTP_CREATED);
+    }
+
+    /** POST /api/v1/admin/shift-plan/time-clock/check-out — { employee_id, note? } */
+    #[Route('/time-clock/check-out', name: 'admin_time_clock_check_out', methods: ['POST'])]
+    public function checkOut(Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $this->requireTenant($user);
+        if ($tenant === null) return $this->noTenant();
+
+        $data       = json_decode($request->getContent(), true) ?? [];
+        $employeeId = trim((string) ($data['employee_id'] ?? ''));
+        $note       = trim((string) ($data['note'] ?? ''));
+
+        $staff = $this->resolveStaff($employeeId, $tenant);
+        if ($staff === null) {
+            return $this->json(['error' => 'Mitarbeiter nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $open = $this->em->getRepository(TimeClockEntry::class)->findOneBy([
+            'tenant' => $tenant, 'employeeId' => $employeeId, 'clockOutAt' => null,
+        ]);
+        if ($open === null) {
+            return $this->json(['error' => 'Nicht eingecheckt.'], Response::HTTP_CONFLICT);
+        }
+
+        $open->clockOut(new \DateTimeImmutable(), $note !== '' ? $note : null);
+        $this->em->flush();
+
+        return $this->json($this->serializeTimeClockEntry($open, $staff->getName()));
+    }
+
+    /** GET /api/v1/admin/shift-plan/time-clock/live — aktuell eingecheckte Mitarbeiter */
+    #[Route('/time-clock/live', name: 'admin_time_clock_live', methods: ['GET'])]
+    public function timeClockLive(#[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $this->requireTenant($user);
+        if ($tenant === null) return $this->noTenant();
+
+        $entries = $this->em->getRepository(TimeClockEntry::class)->findBy(
+            ['tenant' => $tenant, 'clockOutAt' => null],
+            ['clockInAt' => 'ASC'],
+        );
+
+        $names = $this->staffNameMap($tenant);
+
+        return $this->json(array_map(
+            fn(TimeClockEntry $e) => $this->serializeTimeClockEntry($e, $names[$e->getEmployeeId()] ?? '—'),
+            $entries,
+        ));
+    }
+
+    /** GET /api/v1/admin/shift-plan/time-clock/report?from=YYYY-MM-DD&to=YYYY-MM-DD */
+    #[Route('/time-clock/report', name: 'admin_time_clock_report', methods: ['GET'])]
+    public function timeClockReport(Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $this->requireTenant($user);
+        if ($tenant === null) return $this->noTenant();
+
+        $from = $request->query->getString('from');
+        $to   = $request->query->getString('to');
+
+        $qb = $this->em->createQueryBuilder()
+            ->select('e')->from(TimeClockEntry::class, 'e')
+            ->where('e.tenant = :tenant')
+            ->setParameter('tenant', $tenant->getId(), UuidType::NAME)
+            ->orderBy('e.clockInAt', 'ASC');
+
+        if ($from !== '') {
+            try {
+                $qb->andWhere('e.clockInAt >= :from')
+                   ->setParameter('from', new \DateTimeImmutable($from . ' 00:00:00'), Types::DATETIME_IMMUTABLE);
+            } catch (\Exception) {}
+        }
+        if ($to !== '') {
+            try {
+                $qb->andWhere('e.clockInAt <= :to')
+                   ->setParameter('to', new \DateTimeImmutable($to . ' 23:59:59'), Types::DATETIME_IMMUTABLE);
+            } catch (\Exception) {}
+        }
+
+        $entries = $qb->getQuery()->getResult();
+        $names   = $this->staffNameMap($tenant);
+
+        $summary = []; // employee_id => ['minutes' => int, 'count' => int]
+        foreach ($entries as $e) {
+            $sum = $summary[$e->getEmployeeId()] ??= ['minutes' => 0, 'count' => 0];
+            $summary[$e->getEmployeeId()] = [
+                'minutes' => $sum['minutes'] + $this->durationMinutes($e),
+                'count'   => $sum['count'] + 1,
+            ];
+        }
+
+        return $this->json([
+            'entries' => array_map(
+                fn(TimeClockEntry $e) => $this->serializeTimeClockEntry($e, $names[$e->getEmployeeId()] ?? '—'),
+                $entries,
+            ),
+            'summary' => array_map(
+                fn(string $employeeId, array $s) => [
+                    'employee_id'   => $employeeId,
+                    'employee_name' => $names[$employeeId] ?? '—',
+                    'minutes'       => $s['minutes'],
+                    'entry_count'   => $s['count'],
+                ],
+                array_keys($summary),
+                array_values($summary),
+            ),
+        ]);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -495,6 +652,63 @@ class ShiftPlanController extends AbstractController
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // PDF PER MAIL
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** POST /api/v1/admin/shift-plan/send-pdf — im Browser erzeugtes PDF an Mitarbeiter mailen */
+    #[Route('/send-pdf', name: 'admin_shift_plan_send_pdf', methods: ['POST'])]
+    public function sendPdf(Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $tenant = $this->requireTenant($user);
+        if ($tenant === null) return $this->noTenant();
+
+        $data        = json_decode($request->getContent(), true) ?? [];
+        $employeeIds = is_array($data['employee_ids'] ?? null) ? $data['employee_ids'] : [];
+        $pdfBase64   = trim((string) ($data['pdf_base64'] ?? ''));
+        $weekLabel   = trim((string) ($data['week_label'] ?? ''));
+        $fileName    = trim((string) ($data['file_name']  ?? '')) ?: 'Schichtplan.pdf';
+
+        if ($employeeIds === [] || $pdfBase64 === '') {
+            return $this->json(['error' => 'employee_ids und pdf_base64 sind erforderlich.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $sent    = [];
+        $skipped = [];
+
+        foreach ($employeeIds as $id) {
+            try {
+                $uuid = Uuid::fromString((string) $id);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $staff = $this->em->getRepository(Staff::class)->find($uuid);
+            if ($staff === null || $staff->getTenant()->getId()->toRfc4122() !== $tenant->getId()->toRfc4122()) {
+                continue;
+            }
+
+            $email = $staff->getEmail();
+            if ($email === null || $email === '') {
+                $skipped[] = $staff->getName();
+                continue;
+            }
+
+            $this->bus->dispatch(new SendShiftPlanPdf(
+                tenantId:       $tenant->getId()->toRfc4122(),
+                recipientEmail: $email,
+                recipientName:  $staff->getName(),
+                venueName:      $tenant->getName(),
+                weekLabel:      $weekLabel,
+                pdfBase64:      $pdfBase64,
+                fileName:       $fileName,
+            ));
+            $sent[] = $staff->getName();
+        }
+
+        return $this->json(['sent' => $sent, 'skipped' => $skipped]);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // Helpers
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -534,6 +748,30 @@ class ShiftPlanController extends AbstractController
         return $s;
     }
 
+    private function resolveStaff(string $employeeId, Tenant $tenant): ?Staff
+    {
+        try { $uuid = Uuid::fromString($employeeId); } catch (\Throwable) { return null; }
+        $s = $this->em->getRepository(Staff::class)->find($uuid);
+        if ($s === null || $s->getTenant()->getId()->toRfc4122() !== $tenant->getId()->toRfc4122()) return null;
+        return $s;
+    }
+
+    /** @return array<string, string> employeeId (RFC4122) => Name */
+    private function staffNameMap(Tenant $tenant): array
+    {
+        $map = [];
+        foreach ($this->em->getRepository(Staff::class)->findBy(['tenant' => $tenant]) as $s) {
+            $map[$s->getId()->toRfc4122()] = $s->getName();
+        }
+        return $map;
+    }
+
+    private function durationMinutes(TimeClockEntry $e): int
+    {
+        $end = $e->getClockOutAt() ?? new \DateTimeImmutable();
+        return (int) round(($end->getTimestamp() - $e->getClockInAt()->getTimestamp()) / 60);
+    }
+
     private function serializeShift(ShiftEntry $s): array
     {
         return [
@@ -571,6 +809,8 @@ class ShiftPlanController extends AbstractController
         return [
             'overtime_limit' => $s->getOvertimeLimit(),
             'min_staff'      => $s->getMinStaff(),
+            'shift_times'    => $s->getShiftTimes(),
+            'user_shifts'    => $s->getUserShifts(),
         ];
     }
 
@@ -580,6 +820,20 @@ class ShiftPlanController extends AbstractController
             'id'          => $w->getId()->toRfc4122(),
             'employee_id' => $w->getEmployeeId(),
             'hourly_rate' => $w->getHourlyRate(),
+        ];
+    }
+
+    private function serializeTimeClockEntry(TimeClockEntry $e, string $employeeName): array
+    {
+        return [
+            'id'             => $e->getId()->toRfc4122(),
+            'employee_id'    => $e->getEmployeeId(),
+            'employee_name'  => $employeeName,
+            'clock_in_at'    => $e->getClockInAt()->format(\DateTimeInterface::ATOM),
+            'clock_out_at'   => $e->getClockOutAt()?->format(\DateTimeInterface::ATOM),
+            'note'           => $e->getNote() ?? '',
+            'duration_minutes' => $this->durationMinutes($e),
+            'open'           => $e->isOpen(),
         ];
     }
 

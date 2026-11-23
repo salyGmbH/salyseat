@@ -8,6 +8,7 @@ import { RaumComponent } from './pages/raum/raum.component';
 import { RaumDetailComponent } from './pages/raum-detail/raum-detail.component';
 import { LoginComponent } from './pages/login/login.component';
 import { SchichtplanungComponent } from './pages/schichtplanung/schichtplanung.component';
+import { ZeiterfassungComponent } from './pages/zeiterfassung/zeiterfassung.component';
 import { GutscheineComponent } from './pages/gutscheine/gutscheine.component';
 import { HotelgaesteComponent } from './pages/hotelgaeste/hotelgaeste.component';
 import { authGuard, guestGuard, planGuard, addonGuard } from './services/auth.guard';
@@ -33,6 +34,7 @@ export const routes: Routes = [
       { path: 'restaurant-plan/:id', component: RestaurantPlanComponent },
       { path: 'statistiken', component: StatistikenComponent, canActivate: [planGuard('statistiken')] },
       { path: 'schichtplanung', component: SchichtplanungComponent, canActivate: [addonGuard('schichtplan')] },
+      { path: 'zeiterfassung', component: ZeiterfassungComponent, canActivate: [addonGuard('schichtplan')] },
       { path: 'gutscheine', component: GutscheineComponent, canActivate: [addonGuard('vouchers')] },
       { path: 'hotelgaeste', component: HotelgaesteComponent, canActivate: [addonGuard('pms')] },
      {

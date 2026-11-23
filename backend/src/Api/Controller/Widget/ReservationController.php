@@ -14,6 +14,7 @@ use App\Module\Reservation\Application\Query\GetReservationByToken\GetReservatio
 use App\Module\Availability\Infrastructure\Persistence\DoctrineOpeningHoursRepository;
 use App\Module\Availability\Infrastructure\Persistence\DoctrineSpecialClosingRepository;
 use App\Module\Tenant\Infrastructure\Persistence\DoctrineTenantRepository;
+use App\Module\Venue\Domain\Entity\Venue;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -154,7 +155,21 @@ class ReservationController extends AbstractController
             'widgetDesign'         => $uiSettings['widgetDesign'] ?? null,
             'widgetFunctional'     => array_merge(
                 $uiSettings['widgetFunctional'] ?? [],
-                ['defaultDurationMinutes' => $uiSettings['reservationTiming']['defaultDurationMinutes'] ?? 120],
+                [
+                    'defaultDurationMinutes' => $uiSettings['reservationTiming']['defaultDurationMinutes'] ?? 120,
+                    // Clean-up-Puffer (Minuten vor/nach einer Reservierung, in denen der
+                    // Tisch für andere Buchungen gesperrt bleibt) — muss dem Widget bekannt
+                    // sein, damit die Zeitslot-Verfügbarkeitsprüfung (timeSlots() in
+                    // start.component.ts) denselben Puffer anwendet wie die tatsächliche
+                    // Tischzuweisung beim Absenden (findBestTable() in
+                    // CreateReservationHandler.php). Ohne diesen Wert könnte das Widget
+                    // einen Slot als buchbar anzeigen, den das Backend beim echten Absenden
+                    // wegen des Puffers ablehnt — die Reservierung landet dann unbemerkt auf
+                    // der Warteliste, obwohl die Auswahl im Widget frei aussah.
+                    'cleanupMinutes' => !empty($uiSettings['reservationTiming']['cleanupEnabled'])
+                        ? (int) ($uiSettings['reservationTiming']['cleanupMinutes'] ?? 0)
+                        : 0,
+                ],
             ),
             'widgetLanguage'       => $uiSettings['widgetLanguage'] ?? 'de',
             'allergene'            => $uiSettings['allergene'] ?? [],
@@ -178,11 +193,13 @@ class ReservationController extends AbstractController
         $constraints = new Assert\Collection([
             'venue_id'    => [new Assert\NotBlank(), new Assert\Uuid()],
             'guest_name'  => [new Assert\NotBlank(), new Assert\Length(min: 2, max: 255)],
+            'guest_first_name' => new Assert\Optional([new Assert\Length(max: 255)]),
             'guest_email' => [new Assert\NotBlank(), new Assert\Email()],
             'guest_phone' => new Assert\Optional([new Assert\Length(max: 20)]),
             'party_size'  => [new Assert\NotBlank(), new Assert\Range(min: 1, max: 50)],
             'starts_at'   => [new Assert\NotBlank(), new Assert\DateTime(\DateTimeInterface::ATOM)],
             'notes'       => new Assert\Optional([new Assert\Length(max: 1000)]),
+            'occasion'    => new Assert\Optional([new Assert\Length(max: 255)]),
             'table_id'         => new Assert\Optional([new Assert\Type('integer'), new Assert\Positive()]),
             'duration_minutes' => new Assert\Optional([new Assert\Type('integer'), new Assert\Positive()]),
             'packages'         => new Assert\Optional([new Assert\Type('array')]),
@@ -204,9 +221,11 @@ class ReservationController extends AbstractController
                 guestName:   $data['guest_name'],
                 guestEmail:  $data['guest_email'],
                 partySize:   (int) $data['party_size'],
-                startsAt:    new \DateTimeImmutable($data['starts_at']),
+                startsAt:    $this->parseStartsAtInVenueTimezone($data['venue_id'], $data['starts_at']),
                 guestPhone:  $data['guest_phone'] ?? null,
                 guestNotes:  $data['notes'] ?? null,
+                guestFirstName:  ($data['guest_first_name'] ?? '') !== '' ? (string) $data['guest_first_name'] : null,
+                occasion:        ($data['occasion'] ?? '') !== '' ? (string) $data['occasion'] : null,
                 tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
                 source:          'online',
@@ -223,6 +242,39 @@ class ReservationController extends AbstractController
             ],
             Response::HTTP_CREATED,
         );
+    }
+
+    /**
+     * Baut $startsAt aus dem vom Widget gesendeten ATOM-String, ABER mit der
+     * echten Zeitzone des Venues statt des vom String mitgelieferten Offsets.
+     *
+     * Grund: reservations.service.ts (toAtomDateTime()) hängt an die vom Gast
+     * gewählte Uhrzeit den Zeitzonen-Offset des GASTE-GERÄTS an, nicht den
+     * des Venues — die Uhrzeit selbst ("19:00") ist zwar korrekt, der Offset
+     * kann aber falsch sein, wenn das Gerät des Gasts in einer anderen
+     * Zeitzone steht als das Restaurant. Im Backend selbst fällt das i. d. R.
+     * nicht auf, da überall nur die Uhrzeit-Komponenten (format('H:i') etc.)
+     * gelesen werden, nie eine echte Offset-Umrechnung stattfindet — außer in
+     * MewsConnector::createReservation(), das ->setTimezone(UTC) aufruft und
+     * damit den (ggf. falschen) Offset tatsächlich verrechnet. Ein Gast, der
+     * z. B. aus den USA einen Tisch für 19:00 in einem Berliner Restaurant
+     * bucht, würde sonst mit falscher Uhrzeit ins angebundene PMS gepusht.
+     *
+     * Wir verwerfen daher den mitgelieferten Offset komplett und übernehmen
+     * nur Datum+Uhrzeit (erste 19 Zeichen, "Y-m-dTH:i:s"), getaggt mit der
+     * tatsächlichen Venue-Zeitzone.
+     */
+    private function parseStartsAtInVenueTimezone(string $venueId, string $rawStartsAt): \DateTimeImmutable
+    {
+        $venue    = $this->em->getRepository(Venue::class)->find($venueId);
+        $timezone = new \DateTimeZone($venue?->getTimezone() ?? 'Europe/Berlin');
+
+        // Nur die naiven Datum/Uhrzeit-Komponenten übernehmen — der im String
+        // enthaltene Offset (letzte 6 Zeichen bei ATOM-Format) wird bewusst
+        // ignoriert, s. Docblock oben.
+        $naive = substr($rawStartsAt, 0, 19);
+
+        return new \DateTimeImmutable($naive, $timezone);
     }
 
     /**

@@ -130,6 +130,8 @@ class ReservationController extends AbstractController
                 startsAt:   $startsAt,
                 guestPhone: ($data['guest_phone'] ?? '') !== '' ? (string) $data['guest_phone'] : null,
                 guestNotes:      ($data['notes'] ?? '') !== '' ? (string) $data['notes'] : null,
+                guestFirstName:  ($data['guest_first_name'] ?? '') !== '' ? (string) $data['guest_first_name'] : null,
+                occasion:        ($data['occasion'] ?? '') !== '' ? (string) $data['occasion'] : null,
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
                 tableNumber:     isset($data['table_id'])         ? (int) $data['table_id']         : null,
                 tableIds:        isset($data['table_ids']) && is_array($data['table_ids']) ? $data['table_ids'] : null,
@@ -145,8 +147,6 @@ class ReservationController extends AbstractController
 
         return $this->json(ReservationDto::fromEntity($reservation)->toArray(), Response::HTTP_CREATED);
     }
-
- 
     #[Route('', name: 'admin_reservation_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] User $user): JsonResponse
     {
@@ -244,6 +244,8 @@ class ReservationController extends AbstractController
                 durationMinutes: isset($data['duration_minutes']) ? (int) $data['duration_minutes'] : null,
                 guestPhone:      isset($data['guest_phone']) ? trim((string) $data['guest_phone']) : null,
                 guestNotes:      isset($data['notes']) ? trim((string) $data['notes']) : null,
+                guestFirstName:  isset($data['guest_first_name']) ? trim((string) $data['guest_first_name']) : null,
+                occasion:        isset($data['occasion']) ? trim((string) $data['occasion']) : null,
                 tableNumber:     $tableNumber,
                 tableIds:        $tableIds,
                 venueId:         $venueId,

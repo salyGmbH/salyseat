@@ -362,6 +362,12 @@
         {{ saved0() ? ('common.saved' | translate) : ('common.save' | translate) }}
       </button>
     </div>
+    @if (saved0()) {
+      <p class="save-note save-note--danger">
+        <mat-icon>error_outline</mat-icon>
+        {{ 'widget_einstellungen.venue_order_saved_note' | translate }}
+      </p>
+    }
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
@@ -423,6 +429,20 @@
 
         @if (!settings.raumauswahl) {
           <p class="datum-empty">{{ 'widget_einstellungen.rooms_disabled' | translate }}</p>
+        }
+
+        @if (raumauswahlMismatchRooms.length > 0) {
+          <p class="save-note save-note--danger">
+            <mat-icon>error_outline</mat-icon>
+            <span>
+              {{ 'widget_einstellungen.rooms_online_mismatch' | translate }}
+              <strong>
+                @for (r of raumauswahlMismatchRooms; track r.id; let last = $last) {
+                  {{ r.name }}{{ last ? '' : ', ' }}
+                }
+              </strong>
+            </span>
+          </p>
         }
       </div>
     } @else {
@@ -781,11 +801,14 @@
         <button
           class="pflicht-chip"
           [class.pflicht-chip--active]="isPflichtfeld(feld.key)"
+          [class.pflicht-chip--locked]="isFeldGesperrt(feld.key)"
+          [disabled]="isFeldGesperrt(feld.key)"
+          [title]="isFeldGesperrt(feld.key) ? ('widget_einstellungen.field_always_required' | translate) : ''"
           (click)="togglePflichtfeld(feld.key)">
           <mat-icon>{{ feld.icon }}</mat-icon>
           <span>{{ feld.label | translate }}</span>
           <mat-icon class="pflicht-chip__check">
-            {{ isPflichtfeld(feld.key) ? 'check_circle' : 'radio_button_unchecked' }}
+            {{ isFeldGesperrt(feld.key) ? 'lock' : (isPflichtfeld(feld.key) ? 'check_circle' : 'radio_button_unchecked') }}
           </mat-icon>
         </button>
       }
@@ -865,7 +888,7 @@
       <p class="maxpers-preview__hint">{{ 'widget_einstellungen.preview_widget' | translate }}</p>
       <div class="maxpers-preview__card">
         <mat-icon class="maxpers-preview__icon">groups</mat-icon>
-        <p class="maxpers-preview__text">{{ settings.maxPersonenText }}</p>
+        <p class="maxpers-preview__text">{{ maxPersonenPreviewText() }}</p>
         <div class="maxpers-preview__contacts">
           @if (settings.maxPersonenPhone) {
             <a class="maxpers-preview__btn" href="tel:{{ settings.maxPersonenPhone }}">
@@ -927,19 +950,23 @@
     <div class="stepper-grid" [class.stepper-grid--disabled]="!settings.kinderStuehleAktiv">
       <div class="stepper-card">
         <span class="stepper-card__label">{{ 'widget_einstellungen.total_available' | translate }}</span>
-        <div class="we-number">
-          <button (click)="stepDown('kinderStuehleGesamt', 1, 0)" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>remove</mat-icon></button>
-          <span>{{ settings.kinderStuehleGesamt }}</span>
-          <button (click)="stepUp('kinderStuehleGesamt')" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>add</mat-icon></button>
-        </div>
+        <select class="we-select" [class.muted]="!settings.kinderStuehleAktiv"
+                [disabled]="!settings.kinderStuehleAktiv"
+                [(ngModel)]="settings.kinderStuehleGesamt">
+          @for (n of kinderStuehleGesamtOptions; track n) {
+            <option [ngValue]="n">{{ n }}</option>
+          }
+        </select>
       </div>
       <div class="stepper-card">
         <span class="stepper-card__label">{{ 'widget_einstellungen.online_bookable' | translate }}</span>
-        <div class="we-number">
-          <button (click)="stepDown('kinderStuehleOnline', 1, 0)" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>remove</mat-icon></button>
-          <span>{{ settings.kinderStuehleOnline }}</span>
-          <button (click)="stepUp('kinderStuehleOnline')" [disabled]="!settings.kinderStuehleAktiv"><mat-icon>add</mat-icon></button>
-        </div>
+        <select class="we-select" [class.muted]="!settings.kinderStuehleAktiv"
+                [disabled]="!settings.kinderStuehleAktiv"
+                [(ngModel)]="settings.kinderStuehleOnline">
+          @for (n of kinderStuehleOnlineOptions; track n) {
+            <option [ngValue]="n">{{ n }}</option>
+          }
+        </select>
       </div>
     </div>
 
@@ -997,11 +1024,11 @@
     </div>
 
     <div class="voraus-row">
-      <div class="we-number">
-        <button (click)="stepDown('vorausbuchungWert', 1, 1)"><mat-icon>remove</mat-icon></button>
-        <span>{{ settings.vorausbuchungWert }}</span>
-        <button (click)="stepUp('vorausbuchungWert')"><mat-icon>add</mat-icon></button>
-      </div>
+      <select class="we-select" [(ngModel)]="settings.vorausbuchungWert">
+        @for (n of vorausbuchungOptions; track n) {
+          <option [ngValue]="n">{{ n }}</option>
+        }
+      </select>
       <div class="type-toggle type-toggle--small">
         <button [class.active]="settings.vorausbuchungEinheit === 'tage'"
                 (click)="settings.vorausbuchungEinheit = 'tage'">{{ 'widget_einstellungen.days' | translate }}</button>
@@ -1036,11 +1063,11 @@
     </div>
 
     <div class="vorlauf-row">
-      <div class="we-number">
-        <button (click)="stepDown('mindestvorlaufMinuten', 15, 0)"><mat-icon>remove</mat-icon></button>
-        <span class="vorlauf-value">{{ formatMinuten(settings.mindestvorlaufMinuten) }}</span>
-        <button (click)="stepUp('mindestvorlaufMinuten', 15)"><mat-icon>add</mat-icon></button>
-      </div>
+      <select class="we-select" [(ngModel)]="settings.mindestvorlaufMinuten">
+        @for (n of mindestvorlaufOptions; track n) {
+          <option [ngValue]="n">{{ formatMinuten(n) }}</option>
+        }
+      </select>
       <span class="vorlauf-hint">{{ 'widget_einstellungen.before_start' | translate }}</span>
     </div>
 
@@ -1081,17 +1108,13 @@
     </div>
 
     <div class="vorlauf-row">
-      <div class="we-number">
-        <button (click)="stepDown('onlineAenderungenMinuten', 15, 0)" [disabled]="!settings.onlineAenderungen">
-          <mat-icon>remove</mat-icon>
-        </button>
-        <span class="vorlauf-value" [class.muted]="!settings.onlineAenderungen">
-          {{ formatMinuten(settings.onlineAenderungenMinuten) }}
-        </span>
-        <button (click)="stepUp('onlineAenderungenMinuten', 15)" [disabled]="!settings.onlineAenderungen">
-          <mat-icon>add</mat-icon>
-        </button>
-      </div>
+      <select class="we-select" [class.muted]="!settings.onlineAenderungen"
+              [disabled]="!settings.onlineAenderungen"
+              [(ngModel)]="settings.onlineAenderungenMinuten">
+        @for (n of onlineAenderungenOptions; track n) {
+          <option [ngValue]="n">{{ formatMinuten(n) }}</option>
+        }
+      </select>
       <span class="vorlauf-hint">{{ 'widget_einstellungen.min_lead_changes' | translate }}</span>
     </div>
 
@@ -1132,17 +1155,13 @@
     </div>
 
     <div class="vorlauf-row">
-      <div class="we-number">
-        <button (click)="stepDown('onlineStornierungMinuten', 15, 0)" [disabled]="!settings.onlineStornierung">
-          <mat-icon>remove</mat-icon>
-        </button>
-        <span class="vorlauf-value" [class.muted]="!settings.onlineStornierung">
-          {{ formatMinuten(settings.onlineStornierungMinuten) }}
-        </span>
-        <button (click)="stepUp('onlineStornierungMinuten', 15)" [disabled]="!settings.onlineStornierung">
-          <mat-icon>add</mat-icon>
-        </button>
-      </div>
+      <select class="we-select" [class.muted]="!settings.onlineStornierung"
+              [disabled]="!settings.onlineStornierung"
+              [(ngModel)]="settings.onlineStornierungMinuten">
+        @for (n of onlineStornierungOptions; track n) {
+          <option [ngValue]="n">{{ formatMinuten(n) }}</option>
+        }
+      </select>
       <span class="vorlauf-hint">{{ 'widget_einstellungen.min_lead_cancel' | translate }}</span>
     </div>
 
@@ -1186,33 +1205,25 @@
       <div class="stepper-grid">
         <div class="stepper-card">
           <span class="stepper-card__label">{{ 'widget_einstellungen.max_spots' | translate }}</span>
-          <div class="we-number">
-            <button (click)="stepDown('wartelisteMaxPlaetze', 1, 1)" [disabled]="!settings.wartelisteAktiv">
-              <mat-icon>remove</mat-icon>
-            </button>
-            <span class="stepper-card__value" [class.muted]="!settings.wartelisteAktiv">
-              {{ settings.wartelisteMaxPlaetze }}
-            </span>
-            <button (click)="stepUp('wartelisteMaxPlaetze', 1)" [disabled]="!settings.wartelisteAktiv">
-              <mat-icon>add</mat-icon>
-            </button>
-          </div>
+          <select class="we-select" [class.muted]="!settings.wartelisteAktiv"
+                  [disabled]="!settings.wartelisteAktiv"
+                  [(ngModel)]="settings.wartelisteMaxPlaetze">
+            @for (n of wartelisteMaxPlaetzeOptions; track n) {
+              <option [ngValue]="n">{{ n }}</option>
+            }
+          </select>
           <span class="stepper-card__sub">{{ 'widget_einstellungen.persons_waiting' | translate }}</span>
         </div>
 
         <div class="stepper-card">
           <span class="stepper-card__label">{{ 'widget_einstellungen.reply_time' | translate }}</span>
-          <div class="we-number">
-            <button (click)="stepDown('wartelisteAntwortStunden', 1, 1)" [disabled]="!settings.wartelisteAktiv">
-              <mat-icon>remove</mat-icon>
-            </button>
-            <span class="stepper-card__value" [class.muted]="!settings.wartelisteAktiv">
-              {{ settings.wartelisteAntwortStunden }} {{ 'widget_einstellungen.hours' | translate }}
-            </span>
-            <button (click)="stepUp('wartelisteAntwortStunden', 1)" [disabled]="!settings.wartelisteAktiv">
-              <mat-icon>add</mat-icon>
-            </button>
-          </div>
+          <select class="we-select" [class.muted]="!settings.wartelisteAktiv"
+                  [disabled]="!settings.wartelisteAktiv"
+                  [(ngModel)]="settings.wartelisteAntwortStunden">
+            @for (n of wartelisteAntwortStundenOptions; track n) {
+              <option [ngValue]="n">{{ n }} {{ 'widget_einstellungen.hours' | translate }}</option>
+            }
+          </select>
           <span class="stepper-card__sub">{{ 'widget_einstellungen.reply_time_hint' | translate }}</span>
         </div>
       </div>
@@ -1254,22 +1265,20 @@
     <div class="section-header">
       <h2 class="section-title">
         <mat-icon class="section-icon">no_meals</mat-icon>
-        Allergene
+        {{ 'widget_einstellungen.allergene_title' | translate }}
       </h2>
       <button class="info-button" [class.active]="info16()" (click)="info16.set(!info16())">
         <mat-icon>info</mat-icon>
       </button>
     </div>
     <div class="info-box" [class.open]="info16()">
-      Wenn aktiviert, können Gäste beim Buchungsvorgang ihre Allergien aus der Liste auswählen, die du unter
-      <strong>Einstellungen → Gäste → Allergene</strong> gepflegt hast. Die Auswahl wird als Hinweis
-      zur Reservierung gespeichert.
+      {{ 'widget_einstellungen.info_allergene_query' | translate }}
     </div>
 
     <div class="toggle-row">
       <div class="toggle-row__label">
-        <span>Allergene-Abfrage aktivieren</span>
-        <small>Gäste können beim Buchen ihre Unverträglichkeiten / Allergene angeben</small>
+        <span>{{ 'widget_einstellungen.allergene_toggle_label' | translate }}</span>
+        <small>{{ 'widget_einstellungen.allergene_toggle_hint' | translate }}</small>
       </div>
       <label class="toggle">
         <input type="checkbox" [(ngModel)]="settings.allergeneAktiv">

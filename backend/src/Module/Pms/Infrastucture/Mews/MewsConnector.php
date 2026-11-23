@@ -202,7 +202,13 @@ final class MewsConnector implements PmsConnectorInterface
             return $response['Customers'][0]['Id'];
         }
 
-        [$firstName, $lastName] = $this->splitName($reservation->getGuestName());
+        $nativeFirstName = $reservation->getGuestFirstName();
+        if ($nativeFirstName !== null && $nativeFirstName !== '') {
+            $firstName = $nativeFirstName;
+            $lastName  = $reservation->getGuestName();
+        } else {
+            [$firstName, $lastName] = $this->splitName($reservation->getGuestName());
+        }
 
         $created = $this->post('/api/connector/v1/customers/add', [
             ...$this->auth(),

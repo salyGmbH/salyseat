@@ -230,6 +230,16 @@ export interface TenantUiSettings {
    * Betrifft nur Räume des jeweiligen Tenants.
    */
   autoCheckoutEnabled?: boolean;
+
+  /**
+   * Gäste-Bewertungs-Mail: X Zeit nach Reservierungsende automatisch verschickt.
+   * Eigener Top-Level-Key (nicht in emailSettings), da die E-Mails-Seite
+   * emailSettings beim Speichern komplett überschreibt (kein Deep-Merge).
+   */
+  guestReviewSettings?: {
+    enabled: boolean;
+    delay:   '2min' | '1h' | '4h' | '24h' | '3d';
+  };
 }
 
 // ─── Widget-Functional-Typen ──────────────────────────────────────────────────

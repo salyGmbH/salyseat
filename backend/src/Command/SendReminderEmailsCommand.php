@@ -87,6 +87,8 @@ final class SendReminderEmailsCommand extends Command
                     venueName:     $reservation->getVenue()->getName(),
                     partySize:     $reservation->getPartySize(),
                     tenantId:      $tenant->getId()->toRfc4122(),
+                    guestFirstName: $reservation->getGuestFirstName(),
+                    occasion:       $reservation->getOccasion(),
                 ));
 
                 $reservation->markReminderSent();

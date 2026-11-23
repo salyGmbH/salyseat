@@ -135,7 +135,68 @@
             }
           </div>
 
-          @if (cardStep() === 1) {
+          @if (needsVenuePick()) {
+            <!-- Raum-Auswahl zuerst: Datum/Uhrzeit hängen von der echten
+                 Verfügbarkeit des gewählten Raums ab (siehe needsVenuePick()). -->
+            <h4 class="preview-card__title">{{ t().chooseVenueTitle }}</h4>
+            <p class="preview-card__subtitle">{{ t().chooseVenueHint }}</p>
+            <div class="preview-card__venue-grid" role="group" [attr.aria-label]="t().chooseVenueTitle">
+              @for (v of filteredVenues(); track v.id) {
+                <button type="button" class="preview-card__venue-card" (click)="selectVenue(v)">
+                  <span class="preview-card__venue-card-name">{{ v.name }}</span>
+                  @if (v.category) {
+                    <span class="preview-card__venue-card-category">{{ v.category }}</span>
+                  }
+                </button>
+              }
+            </div>
+
+          } @else if (needsTischwahlPick()) {
+            <!-- Tischwahl-Präferenz: wird jetzt NACH Datum/Uhrzeit/Personenzahl
+                 abgefragt, damit der Tischplan nur noch passende Tische zeigt
+                 (siehe needsTischwahlPick() / hasPassedInitialDateTime). -->
+            <button type="button" class="tischwahl-inline__back" (click)="backFromTischwahlPick()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                <polyline points="13,4 7,10 13,16"/>
+              </svg>
+              {{ t().back }}
+            </button>
+            <h4 class="preview-card__title">{{ t().selectTableTitle }}</h4>
+            <p class="preview-card__subtitle">{{ t().selectTableSubtitle }}</p>
+            <div class="tischwahl-inline">
+              <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--auto" (click)="chooseTischwahlAuto()">
+                <span class="tischwahl-inline__btn-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M13 3a9 9 0 1 0 5.66 15.9l-1.42-1.42A7 7 0 1 1 13 5V3z"/>
+                    <path d="M13 3v5l3-3-3-2z"/>
+                  </svg>
+                </span>
+                <span class="tischwahl-inline__btn-body">
+                  <span class="tischwahl-inline__btn-title">{{ t().autoAssign }}</span>
+                  <span class="tischwahl-inline__btn-sub">{{ t().autoAssignSub }}</span>
+                </span>
+              </button>
+              <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--self" (click)="chooseTischwahlSelbst()">
+                <span class="tischwahl-inline__btn-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                       width="20" height="20">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="9.5" r="1.5"/>
+                    <circle cx="15.5" cy="9.5" r="1.5"/>
+                    <circle cx="8.5" cy="15.5" r="1.5"/>
+                    <circle cx="15.5" cy="15.5" r="1.5"/>
+                  </svg>
+                </span>
+                <span class="tischwahl-inline__btn-body">
+                  <span class="tischwahl-inline__btn-title">{{ t().chooseSelf }}</span>
+                  <span class="tischwahl-inline__btn-sub">{{ t().chooseSelfSub }}</span>
+                </span>
+                <span class="tischwahl-inline__btn-arrow">›</span>
+              </button>
+            </div>
+
+          } @else if (cardStep() === 1) {
             <!-- Step 1: date / time / seats -->
             <h4 class="preview-card__title">{{ headingTitle() }}</h4>
             @if (showSubtitle() && headingSubtitle()) {
@@ -355,6 +416,10 @@
               </button>
             }
 
+            @if (cardTischwahlError() && !tischwahlValid()) {
+              <div class="widget-alert" role="alert" aria-live="assertive">{{ t().tischwahlInvalidHint }}</div>
+            }
+
             <button class="preview-card__cta" type="button" (click)="cardNextStep()">
               {{ buttonLabel() || t().reserve }}
             </button>
@@ -384,24 +449,38 @@
               }
 
               <div class="preview-card__form-row preview-card__form-row--split">
+                <div class="preview-card__field"
+                     [class.preview-card__field--required]="isRequired('vorname')"
+                     [class.preview-card__field--error]="cardShowErrors() && isRequired('vorname') && !guestFirstName().trim()">
+                  <label class="preview-card__field-label" for="card-first-name">
+                    {{ t().firstName }}
+                    @if (isRequired('vorname')) { <span class="field-required">*</span> }
+                    @else { <span class="preview-card__field-optional">(optional)</span> }
+                  </label>
+                  <input id="card-first-name" type="text" class="preview-card__field-input preview-card__field-input--real"
+                         [ngModel]="guestFirstName()" (ngModelChange)="guestFirstName.set($event)"
+                         [attr.placeholder]="t().firstName" autocomplete="given-name" name="cardFirstName"
+                         [attr.aria-invalid]="cardShowErrors() && isRequired('vorname') && !guestFirstName().trim() ? 'true' : null">
+                </div>
                 <div class="preview-card__field preview-card__field--required"
                      [class.preview-card__field--error]="cardShowErrors() && guestName().trim().length < 2">
-                  <label class="preview-card__field-label" for="card-name">Name <span class="field-required">*</span></label>
+                  <label class="preview-card__field-label" for="card-name">{{ t().lastName }} <span class="field-required">*</span></label>
                   <input id="card-name" type="text" class="preview-card__field-input preview-card__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="cardName"
+                         [attr.placeholder]="t().lastName" autocomplete="family-name" name="cardName"
                          aria-required="true"
                          [attr.aria-invalid]="cardShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
-                <div class="preview-card__field preview-card__field--required"
-                     [class.preview-card__field--error]="cardShowErrors() && !emailLooksOk()">
-                  <label class="preview-card__field-label" for="card-email">{{ t().email }} <span class="field-required">*</span></label>
-                  <input id="card-email" type="email" class="preview-card__field-input preview-card__field-input--real"
-                         [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="cardEmail"
-                         aria-required="true"
-                         [attr.aria-invalid]="cardShowErrors() && !emailLooksOk() ? 'true' : null">
-                </div>
+              </div>
+
+              <div class="preview-card__field preview-card__field--required"
+                   [class.preview-card__field--error]="cardShowErrors() && !emailLooksOk()">
+                <label class="preview-card__field-label" for="card-email">{{ t().email }} <span class="field-required">*</span></label>
+                <input id="card-email" type="email" class="preview-card__field-input preview-card__field-input--real"
+                       [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                       [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="cardEmail"
+                       aria-required="true"
+                       [attr.aria-invalid]="cardShowErrors() && !emailLooksOk() ? 'true' : null">
               </div>
 
               <div class="preview-card__field"
@@ -417,6 +496,116 @@
                        [attr.placeholder]="t().phonePlaceholder" autocomplete="tel" name="cardPhone">
               </div>
 
+              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
+                <div class="package-picker">
+                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
+                  <div class="package-picker__grid">
+                    @for (pkg of verfuegbarePackages(); track pkg.id) {
+                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
+                        <div class="package-card__media">
+                          @if (pkg.image) {
+                            <img [src]="pkg.image" alt="">
+                          } @else {
+                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
+                          }
+                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
+                        </div>
+                        <div class="package-card__body">
+                          <span class="package-card__title">{{ pkg.name }}</span>
+                          @if (pkg.description) {
+                            <span class="package-card__desc">{{ pkg.description }}</span>
+                          }
+                          <div class="package-card__meta">
+                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
+                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
+                            @if (pkg.durationHours) {
+                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
+                            }
+                          </div>
+                          @if (pkg.includes.length > 0) {
+                            <ul class="package-card__includes">
+                              @for (inc of pkg.includes.slice(0, 3); track $index) {
+                                <li>{{ inc }}</li>
+                              }
+                              @if (pkg.includes.length > 3) {
+                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
+                              }
+                            </ul>
+                          }
+                          <div class="package-card__stepper">
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="packageQuantity(pkg.id) === 0"
+                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
+                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="remainingPackageCapacity() === 0"
+                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="preview-card__field"
+                   [class.preview-card__field--required]="isRequired('anlass')"
+                   [class.preview-card__field--error]="cardShowErrors() && isRequired('anlass') && !occasion().trim()">
+                <label class="preview-card__field-label" for="card-occasion">
+                  {{ t().occasionLabel }}
+                  @if (isRequired('anlass')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-card__field-optional">(optional)</span> }
+                </label>
+                <input id="card-occasion" type="text" class="preview-card__field-input preview-card__field-input--real"
+                       [ngModel]="occasion()" (ngModelChange)="occasion.set($event)"
+                       [attr.placeholder]="t().occasionPlaceholder" name="cardOccasion"
+                       [attr.aria-invalid]="cardShowErrors() && isRequired('anlass') && !occasion().trim() ? 'true' : null">
+              </div>
+
+              <div class="preview-card__field"
+                   [class.preview-card__field--required]="isRequired('notes')"
+                   [class.preview-card__field--error]="cardShowErrors() && isRequired('notes') && !notes().trim()">
+                <label class="preview-card__field-label" for="card-notes">
+                  {{ t().notes }}
+                  @if (isRequired('notes')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-card__field-optional">(optional)</span> }
+                </label>
+                <textarea id="card-notes" class="preview-card__field-input preview-card__field-input--real preview-card__field-input--area"
+                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                          [attr.placeholder]="t().notesPlaceholder"
+                          name="cardNotes" rows="2"></textarea>
+              </div>
+            </div>
+
+            <label class="preview-card__consent"
+                   [class.is-checked]="cardConsent()"
+                   [class.is-error]="cardShowErrors() && !cardConsent()">
+              <input type="checkbox" class="preview-card__consent-input"
+                     [checked]="cardConsent()" (change)="cardToggleConsent()"
+                     aria-required="true"
+                     [attr.aria-invalid]="cardShowErrors() && !cardConsent() ? 'true' : null">
+              <span class="preview-card__consent-box" aria-hidden="true">
+                @if (cardConsent()) { <span class="check-icon">✓</span> }
+              </span>
+              <span class="preview-card__consent-text">
+                {{ t().consentText }} <span class="field-required">*</span>
+              </span>
+            </label>
+
+            <div class="preview-card__nav">
+              <button class="preview-card__cta"
+                      type="button"
+                      (click)="cardGoToSummary()">
+                {{ t().nextToSummary }}
+              </button>
+            </div>
+
+          } @else if (cardStep() === 3) {
+            <!-- Step 3: Zusatzwünsche (nur wenn mind. eine Option aktiv ist) -->
+            <h4 class="preview-card__title">{{ t().extrasTitle }}</h4>
+            <p class="preview-card__subtitle">{{ t().extrasSubtitle }}</p>
+
+            <div class="preview-card__form">
               @if (kinderStuehleAktiv()) {
                 <div class="preview-card__field">
                   <label class="preview-card__field-label">{{ t().childChairs }}</label>
@@ -478,98 +667,16 @@
                   </div>
                 </div>
               }
-              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
-                <div class="package-picker">
-                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
-                  <div class="package-picker__grid">
-                    @for (pkg of verfuegbarePackages(); track pkg.id) {
-                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
-                        <div class="package-card__media">
-                          @if (pkg.image) {
-                            <img [src]="pkg.image" alt="">
-                          } @else {
-                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
-                          }
-                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
-                        </div>
-                        <div class="package-card__body">
-                          <span class="package-card__title">{{ pkg.name }}</span>
-                          @if (pkg.description) {
-                            <span class="package-card__desc">{{ pkg.description }}</span>
-                          }
-                          <div class="package-card__meta">
-                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
-                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
-                            @if (pkg.durationHours) {
-                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
-                            }
-                          </div>
-                          @if (pkg.includes.length > 0) {
-                            <ul class="package-card__includes">
-                              @for (inc of pkg.includes.slice(0, 3); track $index) {
-                                <li>{{ inc }}</li>
-                              }
-                              @if (pkg.includes.length > 3) {
-                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
-                              }
-                            </ul>
-                          }
-                          <div class="package-card__stepper">
-                            <button type="button" class="package-card__stepper-btn"
-                                    [disabled]="packageQuantity(pkg.id) === 0"
-                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
-                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
-                            <button type="button" class="package-card__stepper-btn"
-                                    [disabled]="remainingPackageCapacity() === 0"
-                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
-                          </div>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-
-              <div class="preview-card__field"
-                   [class.preview-card__field--required]="isRequired('notes')"
-                   [class.preview-card__field--error]="cardShowErrors() && isRequired('notes') && !notes().trim()">
-                <label class="preview-card__field-label" for="card-notes">
-                  {{ t().notes }}
-                  @if (isRequired('notes')) { <span class="field-required">*</span> }
-                  @else { <span class="preview-card__field-optional">(optional)</span> }
-                </label>
-                <textarea id="card-notes" class="preview-card__field-input preview-card__field-input--real preview-card__field-input--area"
-                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                          [attr.placeholder]="t().notesPlaceholder"
-                          name="cardNotes" rows="2"></textarea>
-              </div>
             </div>
 
-            <label class="preview-card__consent"
-                   [class.is-checked]="cardConsent()"
-                   [class.is-error]="cardShowErrors() && !cardConsent()">
-              <input type="checkbox" class="preview-card__consent-input"
-                     [checked]="cardConsent()" (change)="cardToggleConsent()"
-                     aria-required="true"
-                     [attr.aria-invalid]="cardShowErrors() && !cardConsent() ? 'true' : null">
-              <span class="preview-card__consent-box" aria-hidden="true">
-                @if (cardConsent()) { <span class="check-icon">✓</span> }
-              </span>
-              <span class="preview-card__consent-text">
-                {{ t().consentText }} <span class="field-required">*</span>
-              </span>
-            </label>
-
             <div class="preview-card__nav">
-              <button class="preview-card__cta"
-                      type="button"
-                      (click)="cardGoToSummary()">
+              <button class="preview-card__cta" type="button" (click)="cardExtrasNext()">
                 {{ t().nextToSummary }}
               </button>
             </div>
 
           } @else {
-            <!-- Step 3: Zusammenfassung -->
+            <!-- Step 4: Zusammenfassung -->
 
             <div class="widget-summary">
               <div class="widget-summary__booking">
@@ -596,7 +703,7 @@
               <div class="widget-summary__guest">
                 <div class="widget-summary__field">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
-                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestFirstName().trim() ? guestFirstName().trim() + ' ' + guestName() : guestName() }}</span></div>
                 </div>
                 <div class="widget-summary__field">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
@@ -606,6 +713,12 @@
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
                     <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                  </div>
+                }
+                @if (occasion()) {
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="10" r="7.2"/><path d="M10 6v4l2.6 2.6"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().occasionLabel }}</span><span class="widget-summary__field-value">{{ occasion() }}</span></div>
                   </div>
                 }
                 @if (notes()) {
@@ -667,7 +780,68 @@
                [class.is-picker-open]="sidebarOpenPicker() !== null"
                [class.is-step-2]="sidebarStep() === 2">
 
-            @if (sidebarStep() === 1 && sidebarOpenPicker() === null) {
+            @if (needsVenuePick()) {
+              <!-- Raum-Auswahl zuerst: Datum/Uhrzeit hängen von der echten
+                   Verfügbarkeit des gewählten Raums ab (siehe needsVenuePick()). -->
+              <h4 class="preview-sidebar__title"><span>{{ t().chooseVenueTitle }}</span></h4>
+              <p class="preview-sidebar__subtitle">{{ t().chooseVenueHint }}</p>
+              <div class="preview-sidebar__venue-list" role="group" [attr.aria-label]="t().chooseVenueTitle">
+                @for (v of filteredVenues(); track v.id) {
+                  <button type="button" class="preview-sidebar__venue-card" (click)="selectVenue(v)">
+                    <span class="preview-sidebar__venue-card-name">{{ v.name }}</span>
+                    @if (v.category) {
+                      <span class="preview-sidebar__venue-card-category">{{ v.category }}</span>
+                    }
+                  </button>
+                }
+              </div>
+
+            } @else if (needsTischwahlPick()) {
+              <!-- Tischwahl-Präferenz: wird jetzt NACH Datum/Uhrzeit/Personenzahl
+                   abgefragt, damit der Tischplan nur noch passende Tische zeigt
+                   (siehe needsTischwahlPick() / hasPassedInitialDateTime). -->
+              <button type="button" class="tischwahl-inline__back" (click)="backFromTischwahlPick()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <polyline points="13,4 7,10 13,16"/>
+                </svg>
+                {{ t().back }}
+              </button>
+              <h4 class="preview-sidebar__title"><span>{{ t().selectTableTitle }}</span></h4>
+              <p class="preview-sidebar__subtitle">{{ t().selectTableSubtitle }}</p>
+              <div class="tischwahl-inline">
+                <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--auto" (click)="chooseTischwahlAuto()">
+                  <span class="tischwahl-inline__btn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                      <path d="M13 3a9 9 0 1 0 5.66 15.9l-1.42-1.42A7 7 0 1 1 13 5V3z"/>
+                      <path d="M13 3v5l3-3-3-2z"/>
+                    </svg>
+                  </span>
+                  <span class="tischwahl-inline__btn-body">
+                    <span class="tischwahl-inline__btn-title">{{ t().autoAssign }}</span>
+                    <span class="tischwahl-inline__btn-sub">{{ t().autoAssignSub }}</span>
+                  </span>
+                </button>
+                <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--self" (click)="chooseTischwahlSelbst()">
+                  <span class="tischwahl-inline__btn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                         width="20" height="20">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="9.5" r="1.5"/>
+                      <circle cx="15.5" cy="9.5" r="1.5"/>
+                      <circle cx="8.5" cy="15.5" r="1.5"/>
+                      <circle cx="15.5" cy="15.5" r="1.5"/>
+                    </svg>
+                  </span>
+                  <span class="tischwahl-inline__btn-body">
+                    <span class="tischwahl-inline__btn-title">{{ t().chooseSelf }}</span>
+                    <span class="tischwahl-inline__btn-sub">{{ t().chooseSelfSub }}</span>
+                  </span>
+                  <span class="tischwahl-inline__btn-arrow">›</span>
+                </button>
+              </div>
+
+            } @else if (sidebarStep() === 1 && sidebarOpenPicker() === null) {
               <!-- Step 1: overview -->
               <h4 class="preview-sidebar__title">
                 @for (word of titleWords(); track $index) {
@@ -764,6 +938,10 @@
                   </div>
                 </div>
               }
+              @if (sidebarTischwahlError() && !tischwahlValid()) {
+                <div class="widget-alert" role="alert" aria-live="assertive">{{ t().tischwahlInvalidHint }}</div>
+              }
+
               <button class="preview-sidebar__cta" type="button" (click)="sidebarNextStep()">
                 {{ buttonLabel() || t().reserve }}
               </button>
@@ -806,23 +984,36 @@
 
               <div class="preview-sidebar__row">
                 <div class="preview-sidebar__group"
+                     [class.preview-sidebar__group--error]="sidebarShowErrors() && isRequired('vorname') && !guestFirstName().trim()">
+                  <label class="preview-sidebar__label" for="sb-first-name">
+                    {{ t().firstName }}
+                    @if (isRequired('vorname')) { <span class="field-required">*</span> }
+                    @else { <span class="preview-sidebar__optional">(optional)</span> }
+                  </label>
+                  <input id="sb-first-name" type="text" class="preview-sidebar__input preview-sidebar__input--real"
+                         [ngModel]="guestFirstName()" (ngModelChange)="guestFirstName.set($event)"
+                         [attr.placeholder]="t().firstName" autocomplete="given-name" name="sbFirstName"
+                         [attr.aria-invalid]="sidebarShowErrors() && isRequired('vorname') && !guestFirstName().trim() ? 'true' : null">
+                </div>
+                <div class="preview-sidebar__group"
                      [class.preview-sidebar__group--error]="sidebarShowErrors() && guestName().trim().length < 2">
-                  <label class="preview-sidebar__label" for="sb-name">Name <span class="field-required">*</span></label>
+                  <label class="preview-sidebar__label" for="sb-name">{{ t().lastName }} <span class="field-required">*</span></label>
                   <input id="sb-name" type="text" class="preview-sidebar__input preview-sidebar__input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="sbName"
+                         [attr.placeholder]="t().lastName" autocomplete="family-name" name="sbName"
                          aria-required="true"
                          [attr.aria-invalid]="sidebarShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
-                <div class="preview-sidebar__group"
-                     [class.preview-sidebar__group--error]="sidebarShowErrors() && !emailLooksOk()">
-                  <label class="preview-sidebar__label" for="sb-email">{{ t().email }} <span class="field-required">*</span></label>
-                  <input id="sb-email" type="email" class="preview-sidebar__input preview-sidebar__input--real"
-                         [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="sbEmail"
-                         aria-required="true"
-                         [attr.aria-invalid]="sidebarShowErrors() && !emailLooksOk() ? 'true' : null">
-                </div>
+              </div>
+
+              <div class="preview-sidebar__group"
+                   [class.preview-sidebar__group--error]="sidebarShowErrors() && !emailLooksOk()">
+                <label class="preview-sidebar__label" for="sb-email">{{ t().email }} <span class="field-required">*</span></label>
+                <input id="sb-email" type="email" class="preview-sidebar__input preview-sidebar__input--real"
+                       [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                       [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="sbEmail"
+                       aria-required="true"
+                       [attr.aria-invalid]="sidebarShowErrors() && !emailLooksOk() ? 'true' : null">
               </div>
 
               <div class="preview-sidebar__group">
@@ -835,6 +1026,116 @@
                        [ngModel]="guestPhone()" (ngModelChange)="guestPhone.set($event)"
                        [attr.placeholder]="t().phonePlaceholder" autocomplete="tel" name="sbPhone">
               </div>
+
+              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
+                <div class="package-picker">
+                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
+                  <div class="package-picker__grid">
+                    @for (pkg of verfuegbarePackages(); track pkg.id) {
+                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
+                        <div class="package-card__media">
+                          @if (pkg.image) {
+                            <img [src]="pkg.image" alt="">
+                          } @else {
+                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
+                          }
+                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
+                        </div>
+                        <div class="package-card__body">
+                          <span class="package-card__title">{{ pkg.name }}</span>
+                          @if (pkg.description) {
+                            <span class="package-card__desc">{{ pkg.description }}</span>
+                          }
+                          <div class="package-card__meta">
+                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
+                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
+                            @if (pkg.durationHours) {
+                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
+                            }
+                          </div>
+                          @if (pkg.includes.length > 0) {
+                            <ul class="package-card__includes">
+                              @for (inc of pkg.includes.slice(0, 3); track $index) {
+                                <li>{{ inc }}</li>
+                              }
+                              @if (pkg.includes.length > 3) {
+                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
+                              }
+                            </ul>
+                          }
+                          <div class="package-card__stepper">
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="packageQuantity(pkg.id) === 0"
+                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
+                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="remainingPackageCapacity() === 0"
+                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="preview-sidebar__group"
+                   [class.preview-sidebar__group--error]="sidebarShowErrors() && isRequired('anlass') && !occasion().trim()">
+                <label class="preview-sidebar__label" for="sb-occasion">
+                  {{ t().occasionLabel }}
+                  @if (isRequired('anlass')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-sidebar__optional">(optional)</span> }
+                </label>
+                <input id="sb-occasion" type="text" class="preview-sidebar__input preview-sidebar__input--real"
+                       [ngModel]="occasion()" (ngModelChange)="occasion.set($event)"
+                       [attr.placeholder]="t().occasionPlaceholder" name="sbOccasion"
+                       [attr.aria-invalid]="sidebarShowErrors() && isRequired('anlass') && !occasion().trim() ? 'true' : null">
+              </div>
+
+              <div class="preview-sidebar__group">
+                <label class="preview-sidebar__label" for="sb-notes">
+                  {{ t().notes }}
+                  @if (isRequired('notes')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-sidebar__optional">(optional)</span> }
+                </label>
+                <textarea id="sb-notes" class="preview-sidebar__input preview-sidebar__input--real preview-sidebar__input--area"
+                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                          [attr.placeholder]="t().notesPlaceholder"
+                          name="sbNotes" rows="2"></textarea>
+              </div>
+
+              <label class="preview-sidebar__consent"
+                     [class.is-checked]="sidebarConsent()"
+                     [class.is-error]="sidebarShowErrors() && !sidebarConsent()">
+                <input type="checkbox" class="preview-sidebar__consent-input"
+                       [checked]="sidebarConsent()" (change)="sidebarToggleConsent()"
+                       aria-required="true"
+                       [attr.aria-invalid]="sidebarShowErrors() && !sidebarConsent() ? 'true' : null">
+                <span class="preview-sidebar__consent-box" aria-hidden="true">
+                  @if (sidebarConsent()) { <span class="check-icon">✓</span> }
+                </span>
+                <span class="preview-sidebar__consent-text">
+                  {{ t().consentText }} <span class="field-required">*</span>
+                </span>
+              </label>
+
+              <div class="preview-sidebar__nav">
+                <button class="preview-sidebar__cta"
+                        type="button"
+                        (click)="sidebarGoToSummary()">
+                  {{ t().nextToSummary }}
+                </button>
+              </div>
+
+            } @else if (sidebarStep() === 3) {
+              <!-- Step 3: Zusatzwünsche (nur wenn mind. eine Option aktiv ist) -->
+              <div class="preview-sidebar__topbar">
+                <button class="preview-sidebar__topbar-back" type="button" [attr.aria-label]="t().back" (click)="sidebarPrevStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
+                </button>
+              </div>
+              <h4 class="preview-sidebar__title"><span>{{ t().extrasTitle }}</span></h4>
+              <p class="preview-sidebar__subtitle">{{ t().extrasSubtitle }}</p>
 
               @if (kinderStuehleAktiv()) {
                 <div class="preview-sidebar__group">
@@ -897,95 +1198,15 @@
                   </div>
                 </div>
               }
-              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
-                <div class="package-picker">
-                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
-                  <div class="package-picker__grid">
-                    @for (pkg of verfuegbarePackages(); track pkg.id) {
-                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
-                        <div class="package-card__media">
-                          @if (pkg.image) {
-                            <img [src]="pkg.image" alt="">
-                          } @else {
-                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
-                          }
-                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
-                        </div>
-                        <div class="package-card__body">
-                          <span class="package-card__title">{{ pkg.name }}</span>
-                          @if (pkg.description) {
-                            <span class="package-card__desc">{{ pkg.description }}</span>
-                          }
-                          <div class="package-card__meta">
-                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
-                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
-                            @if (pkg.durationHours) {
-                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
-                            }
-                          </div>
-                          @if (pkg.includes.length > 0) {
-                            <ul class="package-card__includes">
-                              @for (inc of pkg.includes.slice(0, 3); track $index) {
-                                <li>{{ inc }}</li>
-                              }
-                              @if (pkg.includes.length > 3) {
-                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
-                              }
-                            </ul>
-                          }
-                          <div class="package-card__stepper">
-                            <button type="button" class="package-card__stepper-btn"
-                                    [disabled]="packageQuantity(pkg.id) === 0"
-                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
-                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
-                            <button type="button" class="package-card__stepper-btn"
-                                    [disabled]="remainingPackageCapacity() === 0"
-                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
-                          </div>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-
-              <div class="preview-sidebar__group">
-                <label class="preview-sidebar__label" for="sb-notes">
-                  {{ t().notes }}
-                  @if (isRequired('notes')) { <span class="field-required">*</span> }
-                  @else { <span class="preview-sidebar__optional">(optional)</span> }
-                </label>
-                <textarea id="sb-notes" class="preview-sidebar__input preview-sidebar__input--real preview-sidebar__input--area"
-                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                          [attr.placeholder]="t().notesPlaceholder"
-                          name="sbNotes" rows="2"></textarea>
-              </div>
-
-              <label class="preview-sidebar__consent"
-                     [class.is-checked]="sidebarConsent()"
-                     [class.is-error]="sidebarShowErrors() && !sidebarConsent()">
-                <input type="checkbox" class="preview-sidebar__consent-input"
-                       [checked]="sidebarConsent()" (change)="sidebarToggleConsent()"
-                       aria-required="true"
-                       [attr.aria-invalid]="sidebarShowErrors() && !sidebarConsent() ? 'true' : null">
-                <span class="preview-sidebar__consent-box" aria-hidden="true">
-                  @if (sidebarConsent()) { <span class="check-icon">✓</span> }
-                </span>
-                <span class="preview-sidebar__consent-text">
-                  {{ t().consentText }} <span class="field-required">*</span>
-                </span>
-              </label>
 
               <div class="preview-sidebar__nav">
-                <button class="preview-sidebar__cta"
-                        type="button"
-                        (click)="sidebarGoToSummary()">
+                <button class="preview-sidebar__cta" type="button" (click)="sidebarExtrasNext()">
                   {{ t().nextToSummary }}
                 </button>
               </div>
 
-            } @else if (sidebarStep() === 3) {
-              <!-- Step 3: Zusammenfassung -->
+            } @else if (sidebarStep() === 4) {
+              <!-- Step 4: Zusammenfassung -->
               <div class="preview-sidebar__topbar">
                 <button class="preview-sidebar__topbar-back" type="button" [attr.aria-label]="t().backToForm" (click)="sidebarPrevStep()">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="13,4 7,10 13,16"/></svg>
@@ -1018,7 +1239,7 @@
                 <div class="widget-summary__guest">
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
-                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestFirstName().trim() ? guestFirstName().trim() + ' ' + guestName() : guestName() }}</span></div>
                   </div>
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
@@ -1028,6 +1249,12 @@
                     <div class="widget-summary__field">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
                       <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                    </div>
+                  }
+                  @if (occasion()) {
+                    <div class="widget-summary__field">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="10" r="7.2"/><path d="M10 6v4l2.6 2.6"/></svg>
+                      <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().occasionLabel }}</span><span class="widget-summary__field-value">{{ occasion() }}</span></div>
                     </div>
                   }
                   @if (notes()) {
@@ -1199,20 +1426,32 @@
               }
               <nav class="preview-stacked__steps" [attr.aria-label]="t().bookingProgress">
                 <span class="preview-stacked__step"
-                      [class.is-active]="stackedStep() === 1"
-                      [class.is-done]="stackedStep() > 1"
-                      [attr.aria-current]="stackedStep() === 1 ? 'step' : null"
+                      [class.is-active]="stackedVisibleStep() === 1"
+                      [class.is-done]="stackedVisibleStep() > 1"
+                      [attr.aria-current]="stackedVisibleStep() === 1 ? 'step' : null"
                       [attr.aria-label]="'1: ' + t().stepDate">1</span>
-                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 1" aria-hidden="true"></span>
+                <span class="preview-stacked__step-bar" [class.is-done]="stackedVisibleStep() > 1" aria-hidden="true"></span>
                 <span class="preview-stacked__step"
-                      [class.is-active]="stackedStep() === 2"
-                      [class.is-done]="stackedStep() > 2"
-                      [attr.aria-current]="stackedStep() === 2 ? 'step' : null"
+                      [class.is-active]="stackedVisibleStep() === 2"
+                      [class.is-done]="stackedVisibleStep() > 2"
+                      [attr.aria-current]="stackedVisibleStep() === 2 ? 'step' : null"
                       [attr.aria-label]="'2: ' + t().stepContact">2</span>
-                <span class="preview-stacked__step-bar" [class.is-done]="stackedStep() > 2" aria-hidden="true"></span>
-                <span class="preview-stacked__step" [class.is-active]="stackedStep() === 3"
-                      [attr.aria-current]="stackedStep() === 3 ? 'step' : null"
-                      [attr.aria-label]="'3: ' + t().stepSummary">3</span>
+                <span class="preview-stacked__step-bar" [class.is-done]="stackedVisibleStep() > 2" aria-hidden="true"></span>
+                @if (hasExtrasStep()) {
+                  <span class="preview-stacked__step"
+                        [class.is-active]="stackedVisibleStep() === 3"
+                        [class.is-done]="stackedVisibleStep() > 3"
+                        [attr.aria-current]="stackedVisibleStep() === 3 ? 'step' : null"
+                        [attr.aria-label]="'3: ' + t().stepExtras">3</span>
+                  <span class="preview-stacked__step-bar" [class.is-done]="stackedVisibleStep() > 3" aria-hidden="true"></span>
+                  <span class="preview-stacked__step" [class.is-active]="stackedVisibleStep() === 4"
+                        [attr.aria-current]="stackedVisibleStep() === 4 ? 'step' : null"
+                        [attr.aria-label]="'4: ' + t().stepSummary">4</span>
+                } @else {
+                  <span class="preview-stacked__step" [class.is-active]="stackedVisibleStep() === 3"
+                        [attr.aria-current]="stackedVisibleStep() === 3 ? 'step' : null"
+                        [attr.aria-label]="'3: ' + t().stepSummary">3</span>
+                }
               </nav>
               @if (stackedStep() === 2 && stackedWasOnSummary()) {
                 <button class="preview-stacked__topbar-fwd" type="button" [attr.aria-label]="t().nextToSummary" (click)="stackedGoToSummary()">
@@ -1230,11 +1469,70 @@
             </header>
             <div class="preview-stacked__accent" aria-hidden="true">
               <span class="preview-stacked__accent-fill"
-                    [style.width.%]="stackedStep() === 1 ? 33 : stackedStep() === 2 ? 66 : 100"></span>
+                    [style.width.%]="(stackedVisibleStep() / stackedTotalSteps()) * 100"></span>
             </div>
           </div>
 
-          @if (stackedStep() === 1) {
+          @if (needsVenuePick()) {
+            <!-- Raum-Auswahl zuerst: Datum/Uhrzeit hängen von der echten
+                 Verfügbarkeit des gewählten Raums ab (siehe needsVenuePick()). -->
+            <p class="preview-stacked__summary">{{ t().chooseVenueHint }}</p>
+            <div class="preview-stacked__venue-grid" role="group" [attr.aria-label]="t().chooseVenueTitle">
+              @for (v of filteredVenues(); track v.id) {
+                <button type="button" class="preview-stacked__venue-card" (click)="selectVenue(v)">
+                  <span class="preview-stacked__venue-card-name">{{ v.name }}</span>
+                  @if (v.category) {
+                    <span class="preview-stacked__venue-card-category">{{ v.category }}</span>
+                  }
+                </button>
+              }
+            </div>
+
+          } @else if (needsTischwahlPick()) {
+            <!-- Tischwahl-Präferenz: wird jetzt NACH Datum/Uhrzeit/Personenzahl
+                 abgefragt, damit der Tischplan nur noch passende Tische zeigt
+                 (siehe needsTischwahlPick() / hasPassedInitialDateTime). -->
+            <button type="button" class="tischwahl-inline__back" (click)="backFromTischwahlPick()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                <polyline points="13,4 7,10 13,16"/>
+              </svg>
+              {{ t().back }}
+            </button>
+            <p class="preview-stacked__summary">{{ t().selectTableSubtitle }}</p>
+            <div class="tischwahl-inline">
+              <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--auto" (click)="chooseTischwahlAuto()">
+                <span class="tischwahl-inline__btn-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M13 3a9 9 0 1 0 5.66 15.9l-1.42-1.42A7 7 0 1 1 13 5V3z"/>
+                    <path d="M13 3v5l3-3-3-2z"/>
+                  </svg>
+                </span>
+                <span class="tischwahl-inline__btn-body">
+                  <span class="tischwahl-inline__btn-title">{{ t().autoAssign }}</span>
+                  <span class="tischwahl-inline__btn-sub">{{ t().autoAssignSub }}</span>
+                </span>
+              </button>
+              <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--self" (click)="chooseTischwahlSelbst()">
+                <span class="tischwahl-inline__btn-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                       width="20" height="20">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="9.5" r="1.5"/>
+                    <circle cx="15.5" cy="9.5" r="1.5"/>
+                    <circle cx="8.5" cy="15.5" r="1.5"/>
+                    <circle cx="15.5" cy="15.5" r="1.5"/>
+                  </svg>
+                </span>
+                <span class="tischwahl-inline__btn-body">
+                  <span class="tischwahl-inline__btn-title">{{ t().chooseSelf }}</span>
+                  <span class="tischwahl-inline__btn-sub">{{ t().chooseSelfSub }}</span>
+                </span>
+                <span class="tischwahl-inline__btn-arrow">›</span>
+              </button>
+            </div>
+
+          } @else if (stackedStep() === 1) {
             <div class="preview-stacked__tiles-host">
             <div class="preview-stacked__tiles">
               <button class="preview-stacked__tile"
@@ -1451,6 +1749,10 @@
                 }
               </div>
             }
+            @if (stackedTischwahlError() && !tischwahlValid()) {
+              <div class="widget-alert" role="alert" aria-live="assertive">{{ t().tischwahlInvalidHint }}</div>
+            }
+
             <button class="preview-stacked__cta" type="button" (click)="stackedNextStep()">
               <span>{{ buttonLabel() || t().reserve }}</span>
               <span>→</span>
@@ -1484,23 +1786,36 @@
             <div class="preview-stacked__form">
               <div class="preview-stacked__row">
                 <div class="preview-stacked__field"
+                     [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('vorname') && !guestFirstName().trim()">
+                  <label class="preview-stacked__field-label" for="st-first-name">
+                    {{ t().firstName }}
+                    @if (isRequired('vorname')) { <span class="field-required">*</span> }
+                    @else { <span class="preview-stacked__optional">(optional)</span> }
+                  </label>
+                  <input id="st-first-name" type="text" class="preview-stacked__field-input preview-stacked__field-input--real"
+                         [ngModel]="guestFirstName()" (ngModelChange)="guestFirstName.set($event)"
+                         [attr.placeholder]="t().firstName" autocomplete="given-name" name="stFirstName"
+                         [attr.aria-invalid]="stackedShowErrors() && isRequired('vorname') && !guestFirstName().trim() ? 'true' : null">
+                </div>
+                <div class="preview-stacked__field"
                      [class.preview-stacked__field--error]="stackedShowErrors() && guestName().trim().length < 2">
-                  <label class="preview-stacked__field-label" for="st-name">Name <span class="field-required">*</span></label>
+                  <label class="preview-stacked__field-label" for="st-name">{{ t().lastName }} <span class="field-required">*</span></label>
                   <input id="st-name" type="text" class="preview-stacked__field-input preview-stacked__field-input--real"
                          [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                         [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="stName"
+                         [attr.placeholder]="t().lastName" autocomplete="family-name" name="stName"
                          aria-required="true"
                          [attr.aria-invalid]="stackedShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                 </div>
-                <div class="preview-stacked__field"
-                     [class.preview-stacked__field--error]="stackedShowErrors() && !emailLooksOk()">
-                  <label class="preview-stacked__field-label" for="st-email">{{ t().email }} <span class="field-required">*</span></label>
-                  <input id="st-email" type="email" class="preview-stacked__field-input preview-stacked__field-input--real"
-                         [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
-                         [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="stEmail"
-                         aria-required="true"
-                         [attr.aria-invalid]="stackedShowErrors() && !emailLooksOk() ? 'true' : null">
-                </div>
+              </div>
+
+              <div class="preview-stacked__field"
+                   [class.preview-stacked__field--error]="stackedShowErrors() && !emailLooksOk()">
+                <label class="preview-stacked__field-label" for="st-email">{{ t().email }} <span class="field-required">*</span></label>
+                <input id="st-email" type="email" class="preview-stacked__field-input preview-stacked__field-input--real"
+                       [ngModel]="guestEmail()" (ngModelChange)="guestEmail.set($event)"
+                       [attr.placeholder]="t().emailPlaceholder" autocomplete="email" name="stEmail"
+                       aria-required="true"
+                       [attr.aria-invalid]="stackedShowErrors() && !emailLooksOk() ? 'true' : null">
               </div>
 
               <div class="preview-stacked__field"
@@ -1515,6 +1830,120 @@
                        [attr.placeholder]="t().phonePlaceholder" autocomplete="tel" name="stPhone">
               </div>
 
+              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
+                <div class="package-picker">
+                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
+                  <div class="package-picker__grid">
+                    @for (pkg of verfuegbarePackages(); track pkg.id) {
+                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
+                        <div class="package-card__media">
+                          @if (pkg.image) {
+                            <img [src]="pkg.image" alt="">
+                          } @else {
+                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
+                          }
+                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
+                        </div>
+                        <div class="package-card__body">
+                          <span class="package-card__title">{{ pkg.name }}</span>
+                          @if (pkg.description) {
+                            <span class="package-card__desc">{{ pkg.description }}</span>
+                          }
+                          <div class="package-card__meta">
+                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
+                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
+                            @if (pkg.durationHours) {
+                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
+                            }
+                          </div>
+                          @if (pkg.includes.length > 0) {
+                            <ul class="package-card__includes">
+                              @for (inc of pkg.includes.slice(0, 3); track $index) {
+                                <li>{{ inc }}</li>
+                              }
+                              @if (pkg.includes.length > 3) {
+                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
+                              }
+                            </ul>
+                          }
+                          <div class="package-card__stepper">
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="packageQuantity(pkg.id) === 0"
+                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
+                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
+                            <button type="button" class="package-card__stepper-btn"
+                                    [disabled]="remainingPackageCapacity() === 0"
+                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="preview-stacked__field"
+                   [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('anlass') && !occasion().trim()">
+                <label class="preview-stacked__field-label" for="st-occasion">
+                  {{ t().occasionLabel }}
+                  @if (isRequired('anlass')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-stacked__optional">(optional)</span> }
+                </label>
+                <input id="st-occasion" type="text" class="preview-stacked__field-input preview-stacked__field-input--real"
+                       [ngModel]="occasion()" (ngModelChange)="occasion.set($event)"
+                       [attr.placeholder]="t().occasionPlaceholder" name="stOccasion"
+                       [attr.aria-invalid]="stackedShowErrors() && isRequired('anlass') && !occasion().trim() ? 'true' : null">
+              </div>
+
+              <div class="preview-stacked__field"
+                   [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('notes') && !notes().trim()">
+                <label class="preview-stacked__field-label" for="st-notes">
+                  {{ t().notes }}
+                  @if (isRequired('notes')) { <span class="field-required">*</span> }
+                  @else { <span class="preview-stacked__optional">(optional)</span> }
+                </label>
+                <textarea id="st-notes" class="preview-stacked__field-input preview-stacked__field-input--real preview-stacked__field-input--area"
+                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+                          [attr.placeholder]="t().notesPlaceholder"
+                          name="stNotes" rows="2"></textarea>
+              </div>
+            </div>
+
+            <label class="preview-stacked__consent"
+                   [class.is-checked]="stackedConsent()"
+                   [class.is-error]="stackedShowErrors() && !stackedConsent()">
+              <input type="checkbox" class="preview-stacked__consent-input"
+                     [checked]="stackedConsent()" (change)="stackedToggleConsent()"
+                     aria-required="true"
+                     [attr.aria-invalid]="stackedShowErrors() && !stackedConsent() ? 'true' : null">
+              <span class="preview-stacked__consent-box" aria-hidden="true">
+                @if (stackedConsent()) { <span class="check-icon">✓</span> }
+              </span>
+              <span class="preview-stacked__consent-text">
+                {{ t().consentText }} <span class="field-required">*</span>
+              </span>
+            </label>
+
+            @if (state() === 'error') {
+              <div class="widget-alert" role="alert" aria-live="assertive" style="margin: 0 20px;">{{ errorMessage() }}</div>
+            }
+
+            <div class="preview-stacked__nav">
+              <button class="preview-stacked__cta preview-stacked__cta--goto-summary"
+                      type="button"
+                      (click)="stackedGoToSummary()">
+                {{ t().nextToSummary }}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <polyline points="7,4 13,10 7,16"/>
+                </svg>
+              </button>
+            </div>
+
+          } @else if (stackedStep() === 3) {
+            <!-- Step 3: Zusatzwünsche (nur wenn mind. eine Option aktiv ist) -->
+            <p class="preview-stacked__summary">{{ t().extrasSubtitle }}</p>
+
+            <div class="preview-stacked__form">
               @if (kinderStuehleAktiv()) {
                 <div class="preview-stacked__field">
                   <label class="preview-stacked__field-label">{{ t().childChairs }}</label>
@@ -1576,95 +2005,12 @@
                   </div>
                 </div>
               }
-              @if (packageBuchungAktiv() && verfuegbarePackages().length > 0) {
-                <div class="package-picker">
-                  <span class="package-picker__label">{{ t().packagesLabel }} ({{ totalSelectedPackages() }}/{{ people() }})</span>
-                  <div class="package-picker__grid">
-                    @for (pkg of verfuegbarePackages(); track pkg.id) {
-                      <div class="package-card package-card--{{ pkg.category }}" [class.is-selected]="packageQuantity(pkg.id) > 0">
-                        <div class="package-card__media">
-                          @if (pkg.image) {
-                            <img [src]="pkg.image" alt="">
-                          } @else {
-                            <span class="package-card__media-icon">{{ packageCategoryIcon(pkg.category) }}</span>
-                          }
-                          <span class="package-card__category-chip">{{ packageCategoryLabel(pkg.category) }}</span>
-                        </div>
-                        <div class="package-card__body">
-                          <span class="package-card__title">{{ pkg.name }}</span>
-                          @if (pkg.description) {
-                            <span class="package-card__desc">{{ pkg.description }}</span>
-                          }
-                          <div class="package-card__meta">
-                            <span class="package-card__meta-item package-card__meta-item--price">{{ pkg.pricePerPerson }}{{ t().perPersonSuffix }}</span>
-                            <span class="package-card__meta-item">{{ pkg.minPeople }}–{{ pkg.maxPeople }}</span>
-                            @if (pkg.durationHours) {
-                              <span class="package-card__meta-item">{{ pkg.durationHours }}{{ t().packageDurationSuffix }}</span>
-                            }
-                          </div>
-                          @if (pkg.includes.length > 0) {
-                            <ul class="package-card__includes">
-                              @for (inc of pkg.includes.slice(0, 3); track $index) {
-                                <li>{{ inc }}</li>
-                              }
-                              @if (pkg.includes.length > 3) {
-                                <li class="package-card__includes-more">+{{ pkg.includes.length - 3 }} {{ t().packageIncludesMore }}</li>
-                              }
-                            </ul>
-                          }
-                          <div class="package-card__stepper">
-                            <button type="button" class="package-card__stepper-btn"
-                                    [disabled]="packageQuantity(pkg.id) === 0"
-                                    (click)="decrementPackage(pkg.id)" aria-label="weniger">−</button>
-                            <span class="package-card__stepper-count">{{ packageQuantity(pkg.id) }}</span>
-                            <button type="button" class="package-card__stepper-btn"
-                                    [disabled]="remainingPackageCapacity() === 0"
-                                    (click)="incrementPackage(pkg.id)" aria-label="mehr">+</button>
-                          </div>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-
-              <div class="preview-stacked__field"
-                   [class.preview-stacked__field--error]="stackedShowErrors() && isRequired('notes') && !notes().trim()">
-                <label class="preview-stacked__field-label" for="st-notes">
-                  {{ t().notes }}
-                  @if (isRequired('notes')) { <span class="field-required">*</span> }
-                  @else { <span class="preview-stacked__optional">(optional)</span> }
-                </label>
-                <textarea id="st-notes" class="preview-stacked__field-input preview-stacked__field-input--real preview-stacked__field-input--area"
-                          [ngModel]="notes()" (ngModelChange)="notes.set($event)"
-                          [attr.placeholder]="t().notesPlaceholder"
-                          name="stNotes" rows="2"></textarea>
-              </div>
             </div>
-
-            <label class="preview-stacked__consent"
-                   [class.is-checked]="stackedConsent()"
-                   [class.is-error]="stackedShowErrors() && !stackedConsent()">
-              <input type="checkbox" class="preview-stacked__consent-input"
-                     [checked]="stackedConsent()" (change)="stackedToggleConsent()"
-                     aria-required="true"
-                     [attr.aria-invalid]="stackedShowErrors() && !stackedConsent() ? 'true' : null">
-              <span class="preview-stacked__consent-box" aria-hidden="true">
-                @if (stackedConsent()) { <span class="check-icon">✓</span> }
-              </span>
-              <span class="preview-stacked__consent-text">
-                {{ t().consentText }} <span class="field-required">*</span>
-              </span>
-            </label>
-
-            @if (state() === 'error') {
-              <div class="widget-alert" role="alert" aria-live="assertive" style="margin: 0 20px;">{{ errorMessage() }}</div>
-            }
 
             <div class="preview-stacked__nav">
               <button class="preview-stacked__cta preview-stacked__cta--goto-summary"
                       type="button"
-                      (click)="stackedGoToSummary()">
+                      (click)="stackedExtrasNext()">
                 {{ t().nextToSummary }}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                   <polyline points="7,4 13,10 7,16"/>
@@ -1673,7 +2019,7 @@
             </div>
 
           } @else {
-            <!-- Step 3: Zusammenfassung -->
+            <!-- Step 4: Zusammenfassung -->
             <h4 class="preview-stacked__summary-title">{{ t().stepSummary }}</h4>
 
             <div class="widget-summary">
@@ -1701,7 +2047,7 @@
               <div class="widget-summary__guest">
                 <div class="widget-summary__field">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
-                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                  <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestFirstName().trim() ? guestFirstName().trim() + ' ' + guestName() : guestName() }}</span></div>
                 </div>
                 <div class="widget-summary__field">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
@@ -1711,6 +2057,12 @@
                   <div class="widget-summary__field">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
                     <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                  </div>
+                }
+                @if (occasion()) {
+                  <div class="widget-summary__field">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="10" r="7.2"/><path d="M10 6v4l2.6 2.6"/></svg>
+                    <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().occasionLabel }}</span><span class="widget-summary__field-value">{{ occasion() }}</span></div>
                   </div>
                 }
                 @if (notes()) {
@@ -1770,6 +2122,91 @@
 
           <div class="preview-planner" [attr.data-step]="plannerStep()">
 
+            @if (needsVenuePick()) {
+              <!-- Raum-Auswahl zuerst: Datum/Uhrzeit hängen von der echten
+                   Verfügbarkeit des gewählten Raums ab (siehe needsVenuePick()). -->
+              <section class="preview-planner__panel preview-planner__panel--intro is-active">
+                <div class="preview-planner__panel-head">
+                  <span class="preview-planner__panel-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <path d="M10 2a6 6 0 0 1 6 6c0 4.5-6 10-6 10S4 12.5 4 8a6 6 0 0 1 6-6z"/>
+                      <circle cx="10" cy="8" r="2" fill="currentColor" stroke="none"/>
+                    </svg>
+                  </span>
+                  <span class="preview-planner__panel-title">{{ t().chooseVenueTitle }}</span>
+                </div>
+                <p class="preview-planner__panel-hint">{{ t().chooseVenueHint }}</p>
+                <div class="preview-planner__venue-grid" role="group" [attr.aria-label]="t().chooseVenueTitle">
+                  @for (v of filteredVenues(); track v.id) {
+                    <button type="button" class="preview-planner__venue-card" (click)="selectVenue(v)">
+                      <span class="preview-planner__venue-card-name">{{ v.name }}</span>
+                      @if (v.category) {
+                        <span class="preview-planner__venue-card-category">{{ v.category }}</span>
+                      }
+                    </button>
+                  }
+                </div>
+              </section>
+
+            } @else if (needsTischwahlPick()) {
+              <!-- Tischwahl-Präferenz: wird jetzt NACH Datum/Uhrzeit/Personenzahl
+                   abgefragt, damit der Tischplan nur noch passende Tische zeigt
+                   (siehe needsTischwahlPick() / hasPassedInitialDateTime). -->
+              <section class="preview-planner__panel preview-planner__panel--intro is-active">
+                <div class="preview-planner__panel-head">
+                  <span class="preview-planner__panel-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                      <rect x="3" y="11" width="18" height="2" rx="1"/>
+                      <rect x="6" y="13" width="2" height="7" rx="1"/>
+                      <rect x="16" y="13" width="2" height="7" rx="1"/>
+                      <rect x="2" y="9" width="20" height="3" rx="1.2"/>
+                    </svg>
+                  </span>
+                  <span class="preview-planner__panel-title">{{ t().selectTableTitle }}</span>
+                </div>
+                <button type="button" class="tischwahl-inline__back" (click)="backFromTischwahlPick()">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                    <polyline points="13,4 7,10 13,16"/>
+                  </svg>
+                  {{ t().back }}
+                </button>
+                <p class="preview-planner__panel-hint">{{ t().selectTableSubtitle }}</p>
+                <div class="tischwahl-inline">
+                  <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--auto" (click)="chooseTischwahlAuto()">
+                    <span class="tischwahl-inline__btn-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                        <path d="M13 3a9 9 0 1 0 5.66 15.9l-1.42-1.42A7 7 0 1 1 13 5V3z"/>
+                        <path d="M13 3v5l3-3-3-2z"/>
+                      </svg>
+                    </span>
+                    <span class="tischwahl-inline__btn-body">
+                      <span class="tischwahl-inline__btn-title">{{ t().autoAssign }}</span>
+                      <span class="tischwahl-inline__btn-sub">{{ t().autoAssignSub }}</span>
+                    </span>
+                  </button>
+                  <button type="button" class="tischwahl-inline__btn tischwahl-inline__btn--self" (click)="chooseTischwahlSelbst()">
+                    <span class="tischwahl-inline__btn-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                           width="20" height="20">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="9.5" r="1.5"/>
+                        <circle cx="15.5" cy="9.5" r="1.5"/>
+                        <circle cx="8.5" cy="15.5" r="1.5"/>
+                        <circle cx="15.5" cy="15.5" r="1.5"/>
+                      </svg>
+                    </span>
+                    <span class="tischwahl-inline__btn-body">
+                      <span class="tischwahl-inline__btn-title">{{ t().chooseSelf }}</span>
+                      <span class="tischwahl-inline__btn-sub">{{ t().chooseSelfSub }}</span>
+                    </span>
+                    <span class="tischwahl-inline__btn-arrow">›</span>
+                  </button>
+                </div>
+              </section>
+
+            } @else {
+
             <!-- Topbar navigation (step 2+) -->
             @if (plannerStep() > 1) {
               <div class="preview-planner__topbar">
@@ -1779,7 +2216,7 @@
                   </svg>
                 </button>
                 @if (plannerStep() < plannerMaxStep()) {
-                  <button class="preview-planner__topbar-fwd" type="button" [attr.aria-label]="t().next" (click)="plannerNext()">
+                  <button class="preview-planner__topbar-fwd" type="button" [attr.aria-label]="t().next" (click)="plannerStepForward()">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                       <polyline points="7,4 13,10 7,16"/>
                     </svg>
@@ -2000,6 +2437,18 @@
                     </span>
                   </div>
                 </div>
+
+                @if (wartelisteAktiv() && waitlistSlots().length > 0) {
+                  <div class="preview-planner__chips preview-planner__chips--waitlist" role="group" [attr.aria-label]="t().waitlistHint">
+                    @for (slot of waitlistSlots(); track slot) {
+                      <button type="button"
+                              class="preview-planner__chip preview-planner__chip--waitlist"
+                              (click)="openWaitlistForm(slot)">
+                        {{ slot }} · {{ t().waitlistFull }}
+                      </button>
+                    }
+                  </div>
+                }
               </section>
 
               <!-- Panel 3: Seats -->
@@ -2142,14 +2591,26 @@
                 }
 
                 <div class="preview-planner__form">
-                  <!-- Zeile 1: Name | E-Mail | Telefon -->
-                  <div class="preview-planner__form-row preview-planner__form-row--3col">
+                  <!-- Zeile 1: Vorname | Name | E-Mail | Telefon -->
+                  <div class="preview-planner__form-row preview-planner__form-row--4col">
+                    <div class="preview-planner__form-group"
+                         [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('vorname') && !guestFirstName().trim()">
+                      <label class="preview-planner__form-label" for="pl-first-name">
+                        {{ t().firstName }}
+                        @if (isRequired('vorname')) { <span class="field-required">*</span> }
+                        @else { <span class="preview-planner__form-optional">(optional)</span> }
+                      </label>
+                      <input id="pl-first-name" type="text" class="preview-planner__form-input preview-planner__form-input--real"
+                             [ngModel]="guestFirstName()" (ngModelChange)="guestFirstName.set($event)"
+                             [attr.placeholder]="t().firstName" autocomplete="given-name" name="plFirstName"
+                             [attr.aria-invalid]="plannerShowErrors() && isRequired('vorname') && !guestFirstName().trim() ? 'true' : null">
+                    </div>
                     <div class="preview-planner__form-group"
                          [class.preview-planner__form-group--error]="plannerShowErrors() && guestName().trim().length < 2">
-                      <label class="preview-planner__form-label" for="pl-name">Name <span class="field-required">*</span></label>
+                      <label class="preview-planner__form-label" for="pl-name">{{ t().lastName }} <span class="field-required">*</span></label>
                       <input id="pl-name" type="text" class="preview-planner__form-input preview-planner__form-input--real"
                              [ngModel]="guestName()" (ngModelChange)="guestName.set($event)"
-                             [attr.placeholder]="t().firstName + ' ' + t().lastName" autocomplete="name" name="plName"
+                             [attr.placeholder]="t().lastName" autocomplete="family-name" name="plName"
                              aria-required="true"
                              [attr.aria-invalid]="plannerShowErrors() && guestName().trim().length < 2 ? 'true' : null">
                     </div>
@@ -2179,6 +2640,18 @@
                   <div class="preview-planner__form-extras-row">
                     <!-- Notizen — wächst auf Höhe der rechten Spalte -->
                     <div class="preview-planner__form-notes-col">
+                      <div class="preview-planner__form-group"
+                           [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('anlass') && !occasion().trim()">
+                        <label class="preview-planner__form-label" for="pl-occasion">
+                          {{ t().occasionLabel }}
+                          @if (isRequired('anlass')) { <span class="field-required">*</span> }
+                          @else { <span class="preview-planner__form-optional">(optional)</span> }
+                        </label>
+                        <input id="pl-occasion" type="text" class="preview-planner__form-input preview-planner__form-input--real"
+                               [ngModel]="occasion()" (ngModelChange)="occasion.set($event)"
+                               [attr.placeholder]="t().occasionPlaceholder" name="plOccasion"
+                               [attr.aria-invalid]="plannerShowErrors() && isRequired('anlass') && !occasion().trim() ? 'true' : null">
+                      </div>
                       <div class="preview-planner__form-group preview-planner__form-group--stretch"
                            [class.preview-planner__form-group--error]="plannerShowErrors() && isRequired('notes') && !notes().trim()">
                         <label class="preview-planner__form-label" for="pl-notes">
@@ -2388,7 +2861,7 @@
                     <div class="widget-summary__guest">
                       <div class="widget-summary__field">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="7" r="3.5"/><path d="M2.5 18.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5"/></svg>
-                        <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestName() }}</span></div>
+                        <div class="widget-summary__field-text"><span class="widget-summary__field-label">Name</span><span class="widget-summary__field-value">{{ guestFirstName().trim() ? guestFirstName().trim() + ' ' + guestName() : guestName() }}</span></div>
                       </div>
                       <div class="widget-summary__field">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="16" height="12" rx="2"/><polyline points="2,4 10,11 18,4"/></svg>
@@ -2398,6 +2871,12 @@
                         <div class="widget-summary__field">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6.5 2h7a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-13A1.5 1.5 0 0 1 6.5 2z"/><line x1="10" y1="15" x2="10" y2="15.01" stroke-width="2.5"/></svg>
                           <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().phone }}</span><span class="widget-summary__field-value">{{ guestPhone() }}</span></div>
+                        </div>
+                      }
+                      @if (occasion()) {
+                        <div class="widget-summary__field">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="10" cy="10" r="7.2"/><path d="M10 6v4l2.6 2.6"/></svg>
+                          <div class="widget-summary__field-text"><span class="widget-summary__field-label">{{ t().occasionLabel }}</span><span class="widget-summary__field-value">{{ occasion() }}</span></div>
                         </div>
                       }
                       @if (notes()) {
@@ -2427,6 +2906,10 @@
                 </div>
               </section>
             </div>
+
+            @if (plannerStep() < 4 && plannerTischwahlError() && !tischwahlValid()) {
+              <div class="widget-alert" role="alert" aria-live="assertive">{{ t().tischwahlInvalidHint }}</div>
+            }
 
             <!-- Footer nav -->
             <div class="preview-planner__nav">
@@ -2460,6 +2943,8 @@
               }
             </div>
           <div class="saly-credit">created by <a class="saly-credit__name" href="https://saly-tech.de/" target="_blank" rel="noopener">SALY</a></div>
+
+            }
           </div>
         </div>
       }
@@ -2470,60 +2955,6 @@
       }
     }
 
-    <!-- ─── Tisch-Wahl Zwischenschritt (Tablet+, Plan-Modus) ──────────────── -->
-    @if (tischwahlActive()) {
-      <div class="tischwahl-overlay">
-        <div class="tischwahl-overlay__box">
-          <button type="button" class="tischwahl-overlay__close" (click)="tischwahlActive.set(false)" [attr.aria-label]="t().close">✕</button>
-          <div class="tischwahl-overlay__icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="36" height="36">
-              <rect x="3" y="11" width="18" height="2" rx="1"/>
-              <rect x="6" y="13" width="2" height="7" rx="1"/>
-              <rect x="16" y="13" width="2" height="7" rx="1"/>
-              <rect x="2" y="9" width="20" height="3" rx="1.2"/>
-            </svg>
-          </div>
-          <h3 class="tischwahl-overlay__title">{{ t().selectTableTitle }}</h3>
-          <p class="tischwahl-overlay__subtitle">
-            {{ t().selectTableSubtitle }}
-          </p>
-          <div class="tischwahl-overlay__actions">
-            <button type="button" class="tischwahl-overlay__btn tischwahl-overlay__btn--auto"
-                    (click)="tischwahlAutoAssign()">
-              <span class="tischwahl-overlay__btn-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-                  <path d="M13 3a9 9 0 1 0 5.66 15.9l-1.42-1.42A7 7 0 1 1 13 5V3z"/>
-                  <path d="M13 3v5l3-3-3-2z"/>
-                </svg>
-              </span>
-              <span class="tischwahl-overlay__btn-body">
-                <span class="tischwahl-overlay__btn-title">{{ t().autoAssign }}</span>
-                <span class="tischwahl-overlay__btn-sub">{{ t().autoAssignSub }}</span>
-              </span>
-            </button>
-            <button type="button" class="tischwahl-overlay__btn tischwahl-overlay__btn--self"
-                    (click)="tischwahlSelbst()">
-              <span class="tischwahl-overlay__btn-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-                     width="22" height="22">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                  <circle cx="8.5" cy="9.5" r="1.5"/>
-                  <circle cx="15.5" cy="9.5" r="1.5"/>
-                  <circle cx="8.5" cy="15.5" r="1.5"/>
-                  <circle cx="15.5" cy="15.5" r="1.5"/>
-                </svg>
-              </span>
-              <span class="tischwahl-overlay__btn-body">
-                <span class="tischwahl-overlay__btn-title">{{ t().chooseSelf }}</span>
-                <span class="tischwahl-overlay__btn-sub">{{ t().chooseSelfSub }}</span>
-              </span>
-              <span class="tischwahl-overlay__btn-arrow">›</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    }
 
     <!-- ─── Tischplan Vollbild-Overlay (Tablet+) ──────────────────────────── -->
     @if (tischplanOverlayOpen()) {
@@ -2563,17 +2994,24 @@
           </button>
         </div>
 
-        <!-- Raumauswahl im Overlay -->
-        @if (filteredVenues().length > 1) {
-          <div class="tischplan-overlay__venue-bar">
-            @for (v of filteredVenues(); track v.id) {
-              <button type="button"
-                      class="tischplan-overlay__venue-chip"
-                      [class.is-active]="selectedVenue()?.id === v.id"
-                      (click)="selectVenueInPlan(v)">
-                {{ v.name }}
-              </button>
-            }
+        <!-- Raumauswahl im Overlay — nur wenn der Raum NICHT schon als eigener
+             Schritt vorher gewählt wurde (Einstellung "Raumauswahl"). Ist die
+             Raumauswahl aktiv, hat der Gast den Raum bereits verbindlich
+             gewählt und Datum/Uhrzeit/Verfügbarkeit richten sich schon danach —
+             ein Raumwechsel hier würde das unbemerkt unterlaufen. -->
+        @if (!raumauswahl() && filteredVenues().length > 1) {
+          <div class="tischplan-overlay__venue-section">
+            <span class="tischplan-overlay__venue-label">{{ t().chooseRoomLabel }}</span>
+            <div class="tischplan-overlay__venue-bar">
+              @for (v of filteredVenues(); track v.id) {
+                <button type="button"
+                        class="tischplan-overlay__venue-chip"
+                        [class.is-active]="selectedVenue()?.id === v.id"
+                        (click)="selectVenueInPlan(v)">
+                  {{ v.name }}
+                </button>
+              }
+            </div>
           </div>
         }
 
@@ -2600,7 +3038,7 @@
               @let isWide    = d.type === 'bar' || d.type === 'stage' || d.type === 'sofa';
               @let isWindow  = d.type === 'window';
               @let isLabel   = d.type === 'label';
-              @let baseW     = (isWide || isWindow) ? 140 : (isLabel ? 120 : 70);
+              @let baseW     = (isWide || isWindow) ? 140 : (isLabel ? getLabelWidth(d.text) : 70);
               @let baseH     = isWindow ? 32 : (isLabel ? 40 : 70);
               @let dw        = baseW * d.scale;
               @let dh        = baseH * d.scale;
@@ -2688,8 +3126,8 @@
                     <rect x="118" y="24" width="16" height="36" rx="4" class="plan-decor__base"/>
                   }
                   @case ('label') {
-                    <rect x="1" y="1" width="118" height="38" rx="4" class="plan-decor__label-bg"/>
-                    <text x="60" y="24" text-anchor="middle" dominant-baseline="middle"
+                    <rect x="1" y="1" [attr.width]="baseW - 2" height="38" rx="4" class="plan-decor__label-bg"/>
+                    <text [attr.x]="baseW / 2" y="24" text-anchor="middle" dominant-baseline="middle"
                           font-family="sans-serif" font-size="11" font-weight="600"
                           class="plan-decor__label-text">{{ d.text }}</text>
                   }
@@ -2795,6 +3233,10 @@
             <div class="widget-waitlist-modal__body">
               <p class="widget-waitlist-modal__slot">{{ selectedDateLabel() }} · {{ waitlistSlotTime() }}{{ t().clockSuffix }}</p>
 
+              @if (wartelisteHinweis()) {
+                <p class="widget-waitlist-modal__hinweis">{{ wartelisteHinweis() }}</p>
+              }
+
               <label class="widget-waitlist-modal__field">
                 <span>{{ t().firstName }} {{ t().lastName }}</span>
                 <input type="text"
@@ -2810,7 +3252,7 @@
               </label>
 
               <label class="widget-waitlist-modal__field">
-                <span>{{ t().phone }}</span>
+                <span>{{ t().phone }}{{ !waitlistPhoneRequired() ? ' (' + t().optionalLabel + ')' : '' }}</span>
                 <input type="tel"
                        [ngModel]="waitlistGuestPhone()" (ngModelChange)="waitlistGuestPhone.set($event)"
                        name="waitlistPhone" autocomplete="tel" />

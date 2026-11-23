@@ -6,8 +6,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
 import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
-import { PlacedTable, PlacedWall, PlacedDecor, SavedRoom, TableType, DecorType } from '../../services/room.types';
+import { PlacedTable, PlacedWall, PlacedDecor, SavedRoom, TableType, DecorType, getLabelWidth } from '../../services/room.types';
 import { localDateIso } from '../../shared/local-date.util';
+import { OpenDatePickerDirective } from '../../shared/directives/open-date-picker.directive';
 
 interface MergeDialogData {
   movingId: number;
@@ -27,7 +28,7 @@ type ActiveDrag =
 @Component({
   selector: 'app-restaurant-plan',
   standalone: true,
-  imports: [MatIconModule, RouterLink, DatePipe, DecimalPipe, TranslateModule],
+  imports: [MatIconModule, RouterLink, DatePipe, DecimalPipe, TranslateModule, OpenDatePickerDirective],
   templateUrl: './restaurant-plan.component.html',
   styleUrl: './restaurant-plan.component.scss'
 })
@@ -93,6 +94,19 @@ export class RestaurantPlanComponent implements OnInit {
   selectedWallId  = signal<number | null>(null);
   selectedDecorId = signal<number | null>(null);
   editingSeatsId  = signal<number | null>(null);
+
+  /**
+   * Kombinieren-Modus: solange gesetzt, wartet der Editor auf den Klick auf
+   * einen zweiten Tisch, um beide bidirektional als `combinableWith`
+   * miteinander zu verknüpfen (siehe onTableMouseDown). Anders als
+   * `mergedWith` bleiben beide Tische dabei eigenständig — die Verknüpfung
+   * sagt dem Backend nur, dass beide bei zu großen Reservierungen
+   * automatisch zusammen zugewiesen werden dürfen.
+   */
+  combineLinkSourceId = signal<number | null>(null);
+
+  /** Öffnet/schließt die Übersicht "Welche Tische sind kombiniert?" im Header. */
+  combineOverviewOpen = signal(false);
 
   // Edit-Modus: id des geladenen Raums, sonst null = neuer Raum
   editingRoomId  = signal<string | null>(null);
@@ -619,15 +633,15 @@ export class RestaurantPlanComponent implements OnInit {
    * Fenster (Wand-ähnlich):           140x32.
    * Alles andere quadratisch:          70x70.
    */
-  getDecorSize(type: DecorType): { w: number; h: number } {
+  getDecorSize(type: DecorType, text?: string): { w: number; h: number } {
     if (type === 'bar' || type === 'stage' || type === 'sofa') return { w: 140, h: 70 };
     if (type === 'window') return { w: 140, h: 32 };
-    if (type === 'label') return { w: 120, h: 40 };
+    if (type === 'label') return { w: getLabelWidth(text), h: 40 };
     return { w: 70, h: 70 };
   }
 
   getDecorCenter(d: PlacedDecor): { x: number; y: number } {
-    const { w, h } = this.getDecorSize(d.type);
+    const { w, h } = this.getDecorSize(d.type, d.text);
     return { x: d.x + (w * d.scale) / 2, y: d.y + (h * d.scale) / 2 };
   }
 
@@ -696,6 +710,16 @@ export class RestaurantPlanComponent implements OnInit {
 
   onTableMouseDown(event: PointerEvent, id: number) {
     event.preventDefault(); event.stopPropagation();
+
+    // Kombinieren-Modus aktiv: Klick auf einen (anderen) Tisch verknüpft
+    // beide statt eine Verschiebung zu starten.
+    const linkSource = this.combineLinkSourceId();
+    if (linkSource !== null) {
+      if (linkSource !== id) this.toggleCombinable(linkSource, id);
+      this.combineLinkSourceId.set(null);
+      return;
+    }
+
     this.selectedTableId.set(id);
     this.selectedWallId.set(null);
     this.selectedDecorId.set(null);
@@ -801,6 +825,14 @@ export class RestaurantPlanComponent implements OnInit {
         group.includes(t.id) ? { ...t, mergedWith: undefined, originalSeats: undefined } : t
       ));
     }
+    // Verwaiste combinableWith-Referenzen auf den gelöschten Tisch bereinigen
+    // (sonst bleibt seine ID in anderen Tischen "hängen" und wird als
+    // Phantom-Tisch persistiert/im Backend-Fallback fälschlich berücksichtigt).
+    this.placedTables.update(ts => ts.map(t =>
+      t.combinableWith?.includes(id)
+        ? { ...t, combinableWith: t.combinableWith.filter(cid => cid !== id) }
+        : t
+    ));
     this.placedTables.update(ts => ts.filter(t => t.id !== id));
     this.selectedTableId.set(null);
     this.normalizeLayoutOrigin();
@@ -910,9 +942,9 @@ export class RestaurantPlanComponent implements OnInit {
 
     this.placedTables.update(ts => ts.map(t => {
       if (t.id === data.movingId)
-        return { ...t, mergedWith: data.targetId, seats: seatsA, originalSeats: data.originalSeatsA };
+        return { ...t, mergedWith: data.targetId, seats: seatsA, originalSeats: data.originalSeatsA, combinableWith: t.combinableWith?.filter(id => id !== data.targetId) };
       if (t.id === data.targetId)
-        return { ...t, mergedWith: data.movingId, seats: seatsB, originalSeats: data.originalSeatsB };
+        return { ...t, mergedWith: data.movingId, seats: seatsB, originalSeats: data.originalSeatsB, combinableWith: t.combinableWith?.filter(id => id !== data.movingId) };
       return t;
     }));
     this.mergeSeatsDialog.set(null);
@@ -967,6 +999,133 @@ export class RestaurantPlanComponent implements OnInit {
       error: () => console.warn('Auto-Speichern fehlgeschlagen'),
     });
   }
+
+  // ── Kombinierbare Tische (für große Reservierungen) ───────────────────────
+
+  /**
+   * Startet/beendet den Kombinieren-Modus für den ausgewählten Tisch.
+   * Ein erneuter Klick auf denselben Tisch oder Escape bricht ab.
+   */
+  onCombineHandleClick(event: Event, id: number) {
+    event.stopPropagation();
+    this.combineLinkSourceId.set(this.combineLinkSourceId() === id ? null : id);
+  }
+
+  cancelCombineLink() {
+    this.combineLinkSourceId.set(null);
+  }
+
+  /** Verknüpft (oder trennt, falls bereits verknüpft) zwei Tische bidirektional. */
+  toggleCombinable(aId: number, bId: number) {
+    const tableA = this.placedTables().find(t => t.id === aId);
+    const isLinked = tableA?.combinableWith?.includes(bId) ?? false;
+    // Ein physisch zusammengestellter (mergedWith) Tisch braucht keinen
+    // combinableWith-Fallback zum selben Partner — beide Features würden sich
+    // sonst semantisch widersprechen. Neues Verknüpfen wird daher blockiert,
+    // solange die beiden Tische bereits gemerged sind.
+    if (!isLinked && (tableA?.mergedWith === bId || this.placedTables().find(t => t.id === bId)?.mergedWith === aId)) {
+      return;
+    }
+    this.placedTables.update(ts => ts.map(t => {
+      if (t.id !== aId && t.id !== bId) return t;
+      const otherId = t.id === aId ? bId : aId;
+      const current = t.combinableWith ?? [];
+      const next = isLinked
+        ? current.filter(id => id !== otherId)
+        : [...current, otherId];
+      return { ...t, combinableWith: next };
+    }));
+    this.autoSaveLayout();
+  }
+
+  /** Trennt eine bestehende Kombinierbar-Verknüpfung (Klick auf die Badge). */
+  onUncombineClick(event: Event, aId: number, bId: number) {
+    event.stopPropagation();
+    this.toggleCombinable(aId, bId);
+  }
+
+  /** Alle kombinierbaren Tisch-Paare, für die Verbindungslinien im Editor. */
+  getCombinablePairs(): Array<{ a: PlacedTable; b: PlacedTable }> {
+    const tables = this.placedTables();
+    const pairs: Array<{ a: PlacedTable; b: PlacedTable }> = [];
+    const seen = new Set<string>();
+    for (const t of tables) {
+      for (const otherId of t.combinableWith ?? []) {
+        const key = [t.id, otherId].sort((x, y) => x - y).join('-');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const other = tables.find(o => o.id === otherId);
+        if (other) pairs.push({ a: t, b: other });
+      }
+    }
+    return pairs;
+  }
+
+  /**
+   * Gruppiert alle über `combinableWith` verbundenen Tische zu ihrer
+   * jeweiligen vollständigen Kombinations-Gruppe (transitiver Abschluss,
+   * nicht nur direkte Paare — z. B. wenn A–B und B–C verknüpft sind, gehören
+   * A, B und C zur selben Gruppe). Nur Gruppen ab 2 Tischen werden geliefert.
+   * Grundlage für die Header-Übersicht "Welche Tische sind kombiniert?".
+   */
+  getCombinationGroups(): Array<{ tableIds: number[]; totalSeats: number }> {
+    const tables = this.placedTables();
+    const visited = new Set<number>();
+    const groups: Array<{ tableIds: number[]; totalSeats: number }> = [];
+
+    for (const t of tables) {
+      if (visited.has(t.id) || !t.combinableWith?.length) continue;
+
+      const groupIds = new Set<number>([t.id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const gid of Array.from(groupIds)) {
+          const gt = tables.find(x => x.id === gid);
+          // Ausgehende Kanten: nur echte, noch existierende Tische aufnehmen
+          // (verhindert Phantom-Chips im Overview, falls doch mal eine
+          // verwaiste ID im Layout übrig bleibt, z. B. aus alten Daten).
+          for (const neighborId of gt?.combinableWith ?? []) {
+            if (!groupIds.has(neighborId) && tables.some(x => x.id === neighborId)) {
+              groupIds.add(neighborId);
+              changed = true;
+            }
+          }
+          // Eingehende Kanten: analog zu getMergedGroup() auch bei
+          // asymmetrisch verlinkten Daten (A→B ohne B→A) robust gruppieren.
+          for (const other of tables) {
+            if (!groupIds.has(other.id) && other.combinableWith?.includes(gid)) {
+              groupIds.add(other.id);
+              changed = true;
+            }
+          }
+        }
+      }
+
+      groupIds.forEach(id => visited.add(id));
+      if (groupIds.size < 2) continue;
+
+      const tableIds = Array.from(groupIds).sort((a, b) => a - b);
+      const totalSeats = tableIds.reduce((sum, id) => sum + (tables.find(x => x.id === id)?.seats ?? 0), 0);
+      groups.push({ tableIds, totalSeats });
+    }
+
+    return groups;
+  }
+
+  openCombineOverview() {
+    // Andere Dialoge/Modi schließen: der Header-Button bleibt auch bei
+    // offenem Block-/Merge-/Split-Dialog klickbar, da er außerhalb des
+    // dafür zuständigen Backdrop-Bereichs liegt. Ohne diese Absicherung
+    // könnten zwei Dialoge gleichzeitig sichtbar sein.
+    this.blockModalOpen.set(false);
+    this.mergeConfirmDialog.set(null);
+    this.mergeSeatsDialog.set(null);
+    this.splitDialog.set(null);
+    this.combineLinkSourceId.set(null);
+    this.combineOverviewOpen.set(true);
+  }
+  closeCombineOverview() { this.combineOverviewOpen.set(false); }
 
   // ── Merge-Paare für Darstellung ───────────────────────────────────────────
 
@@ -1075,6 +1234,17 @@ export class RestaurantPlanComponent implements OnInit {
       input?.focus();
       input?.select();
     }, 0);
+  }
+
+  /**
+   * Live-Update während des Tippens, damit sich die Textbox-Breite sofort an
+   * die aktuelle Zeichenlänge anpasst (statt erst nach Enter/Blur). Speichert
+   * noch nicht — das passiert erst über applyLabelText() beim Verlassen des
+   * Editier-Modus.
+   */
+  onLabelInputChange(event: Event, id: number) {
+    const value = (event.target as HTMLInputElement).value;
+    this.placedDecors.update(ds => ds.map(d => d.id === id ? { ...d, text: value } : d));
   }
 
   onLabelInputKeydown(event: KeyboardEvent, id: number) {
@@ -1201,7 +1371,7 @@ export class RestaurantPlanComponent implements OnInit {
                 y: wcy - (h * newScale) / 2 } : t));
         } else {
           const decor    = this.placedDecors().find(d => d.id === drag.id)!;
-          const { w, h } = this.getDecorSize(decor.type);
+          const { w, h } = this.getDecorSize(decor.type, decor.text);
           const wcx = (drag.cx - rect.left - px) / z;
           const wcy = (drag.cy - rect.top  - py) / z;
           this.placedDecors.update(ds => ds.map(d => d.id === drag.id

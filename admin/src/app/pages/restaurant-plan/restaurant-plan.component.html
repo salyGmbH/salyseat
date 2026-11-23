@@ -87,6 +87,13 @@
           <mat-icon>delete_outline</mat-icon> {{ 'restaurant_plan.delete_room' | translate }}
         </button>
       }
+      @if (getCombinationGroups().length > 0) {
+        <button class="btn-header btn-header--combine" (click)="openCombineOverview()">
+          <mat-icon>link</mat-icon>
+          {{ 'restaurant_plan.combinations_overview' | translate }}
+          <span class="btn-header__badge">{{ getCombinationGroups().length }}</span>
+        </button>
+      }
       <button class="btn-primary btn-primary--small" (click)="openSaveDialog()">
         <mat-icon>save</mat-icon> {{ 'common.save' | translate }}
       </button>
@@ -302,6 +309,17 @@
         <button class="zoom-btn zoom-btn--reset" (click)="zoomReset()" title="Zurücksetzen"><mat-icon>center_focus_strong</mat-icon></button>
       </div>
 
+      <!-- Hinweis-Banner im Kombinieren-Modus -->
+      @if (combineLinkSourceId() !== null) {
+        <div class="combine-hint-banner" (pointerdown)="$event.stopPropagation()">
+          <mat-icon>add_link</mat-icon>
+          <span>{{ 'restaurant_plan.combine_pick_target' | translate }}</span>
+          <button class="combine-hint-banner__cancel" (click)="cancelCombineLink()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+
       <!-- Inner canvas — verschiebbarer & zoombarer Bereich -->
       <div class="canvas-inner" [style.transform]="canvasTransform()">
 
@@ -338,8 +356,8 @@
              [class.placed-decor--label]="decor.type === 'label'"
              [style.left.px]="decor.x"
              [style.top.px]="decor.y"
-             [style.width.px]="getDecorSize(decor.type).w * decor.scale"
-             [style.height.px]="getDecorSize(decor.type).h * decor.scale"
+             [style.width.px]="getDecorSize(decor.type, decor.text).w * decor.scale"
+             [style.height.px]="getDecorSize(decor.type, decor.text).h * decor.scale"
              [style.transform]="'rotate(' + decor.rotation + 'deg)'"
              (pointerdown)="onDecorMouseDown($event, decor.id)">
 
@@ -468,6 +486,7 @@
                          [value]="decor.text ?? ''"
                          placeholder="Text eingeben…"
                          (pointerdown)="$event.stopPropagation()"
+                         (input)="onLabelInputChange($event, decor.id)"
                          (keydown)="onLabelInputKeydown($event, decor.id)"
                          (blur)="onLabelInputBlur($event, decor.id)">
                 } @else {
@@ -498,11 +517,25 @@
         </div>
       }
 
+      <!-- Verbindungslinien zwischen kombinierbaren Tischen (für große
+           Reservierungen, die auf mehrere Tische verteilt werden dürfen) -->
+      @for (pair of getCombinablePairs(); track pair.a.id + '-' + pair.b.id) {
+        <div class="combine-line" [style]="getMergeLineStyle(pair.a, pair.b)"></div>
+        <div class="combine-badge" [style]="getMidpointStyle(pair.a, pair.b)"
+             (pointerdown)="$event.stopPropagation()"
+             (click)="onUncombineClick($event, pair.a.id, pair.b.id)"
+             [title]="'restaurant_plan.uncombine_confirm' | translate">
+          <mat-icon>add_link</mat-icon>
+        </div>
+      }
+
       <!-- Tische -->
       @for (table of placedTables(); track table.id) {
         <div class="placed-table"
              [class.is-selected]="selectedTableId() === table.id"
              [class.is-merged]="table.mergedWith !== undefined"
+             [class.is-combine-source]="combineLinkSourceId() === table.id"
+             [class.is-combine-target]="combineLinkSourceId() !== null && combineLinkSourceId() !== table.id"
              [style.left.px]="table.x"
              [style.top.px]="table.y"
              [style.width.px]="getTableSize(table.type).w * table.scale"
@@ -546,6 +579,12 @@
                 <mat-icon>link_off</mat-icon>
               </div>
             }
+            <div class="handle handle--combine" [class.is-active]="combineLinkSourceId() === table.id"
+                 (pointerdown)="$event.stopPropagation()"
+                 (click)="onCombineHandleClick($event, table.id)"
+                 [title]="'restaurant_plan.combine_hint' | translate">
+              <mat-icon>add_link</mat-icon>
+            </div>
           }
         </div>
 
@@ -567,8 +606,8 @@
 
       <!-- ── Dialoge ──────────────────────────────────────────────────── -->
 
-      @if (mergeConfirmDialog() || mergeSeatsDialog() || splitDialog() !== null || saveDialogOpen() || discardDialogOpen() || deleteConfirmOpen() || blockModalOpen()) {
-        <div class="dialog-backdrop" (click)="cancelMerge(); cancelSplit(); cancelSaveDialog(); cancelDiscard(); cancelDelete(); closeBlockModal()"></div>
+      @if (mergeConfirmDialog() || mergeSeatsDialog() || splitDialog() !== null || saveDialogOpen() || discardDialogOpen() || deleteConfirmOpen() || blockModalOpen() || combineOverviewOpen()) {
+        <div class="dialog-backdrop" (click)="cancelMerge(); cancelSplit(); cancelSaveDialog(); cancelDiscard(); cancelDelete(); closeBlockModal(); closeCombineOverview()"></div>
       }
 
       @if (discardDialogOpen()) {
@@ -766,6 +805,31 @@
           <div class="dialog__actions">
             <button class="dialog__btn dialog__btn--secondary" (click)="cancelSplit()">{{ 'common.no' | translate }}</button>
             <button class="dialog__btn dialog__btn--primary"   (click)="confirmSplit()">{{ 'restaurant_plan.split_yes' | translate }}</button>
+          </div>
+        </div>
+      }
+
+      @if (combineOverviewOpen()) {
+        <div class="dialog dialog--combine-overview">
+          <div class="dialog__icon dialog__icon--combine"><mat-icon>link</mat-icon></div>
+          <h3 class="dialog__title">{{ 'restaurant_plan.combinations_overview_title' | translate }}</h3>
+          <p class="dialog__text">{{ 'restaurant_plan.combinations_overview_hint' | translate }}</p>
+          <ul class="combine-overview-list">
+            @for (group of getCombinationGroups(); track $index) {
+              <li class="combine-overview-list__item">
+                <span class="combine-overview-list__tables">
+                  @for (id of group.tableIds; track id; let last = $last) {
+                    <span class="combine-overview-list__table-chip">#{{ id }}</span>@if (!last) { <mat-icon class="combine-overview-list__plus">add</mat-icon> }
+                  }
+                </span>
+                <span class="combine-overview-list__seats">
+                  <mat-icon>people</mat-icon>{{ group.totalSeats }} {{ 'restaurant_plan.combinations_overview_seats' | translate }}
+                </span>
+              </li>
+            }
+          </ul>
+          <div class="dialog__actions">
+            <button class="dialog__btn dialog__btn--primary" (click)="closeCombineOverview()">{{ 'common.close' | translate }}</button>
           </div>
         </div>
       }

@@ -22,7 +22,7 @@
     </div>
 
     <p class="section-subtitle">
-      {{ 'reservierungen_settings.subtitle_auto_expire' | translate }}
+      {{ 'reservierungen_settings.subtitle_duration' | translate }}
     </p>
 
     <div class="preset-row">
@@ -42,7 +42,8 @@
         <input type="number"
                min="15" max="480" step="15"
                [ngModel]="defaultDuration()"
-               (ngModelChange)="setDuration($event)" />
+               (ngModelChange)="onDurationInput($event)"
+               (blur)="onDurationBlur()" />
         <span class="custom-input__unit">min</span>
       </div>
     </label>
@@ -150,7 +151,8 @@
           <input type="number"
                  min="5" max="120" step="5"
                  [ngModel]="cleanupMinutes()"
-                 (ngModelChange)="setCleanup($event)" />
+                 (ngModelChange)="onCleanupInput($event)"
+                 (blur)="onCleanupBlur()" />
           <span class="custom-input__unit">min</span>
         </div>
       </label>
@@ -184,32 +186,48 @@
       </h2>
     </div>
 
-    <div class="timeline">
-      <div class="timeline__segment timeline__segment--reservation"
-           [style.flex]="defaultDuration()">
-        <div class="timeline__label">
-          <strong>{{ 'reservierungen_settings.reservation_label' | translate }}</strong>
-          <span>{{ previewExample().start }} – {{ previewExample().endRes }}</span>
-          <span class="timeline__minutes">{{ defaultDuration() }} min</span>
+    <!-- ── Realistische Reservierungs-Vorschau ── -->
+    <div class="prev-row">
+      <div class="prev-row__time">{{ previewExample().start }}</div>
+      <div class="prev-row__body">
+        <div class="prev-row__top">
+          <span class="prev-row__name">Müller, Thomas</span>
+          <span class="prev-row__party">· {{ 'reservierungen_settings.preview_guest_party' | translate: { n: 4 } }}</span>
+        </div>
+        <div class="prev-row__sub">
+          <span><mat-icon>table_restaurant</mat-icon>{{ 'reservierungen_settings.preview_table_label' | translate: { n: 7 } }}</span>
+          <span>· {{ 'reservierungen_settings.preview_duration' | translate: { min: defaultDuration() } }}</span>
+          @if (cleanupOn() && cleanupMinutes() > 0) {
+            <span>{{ 'reservierungen_settings.preview_cleanup_extra' | translate: { min: cleanupMinutes() } }}</span>
+          }
         </div>
       </div>
+      <div class="prev-row__actions">
+        <span class="prev-action prev-action--primary"><mat-icon>login</mat-icon></span>
+        <span class="prev-action"><mat-icon>more_vert</mat-icon></span>
+      </div>
+    </div>
 
-      @if (cleanupOn()) {
-        <div class="timeline__segment timeline__segment--cleanup"
-             [style.flex]="cleanupMinutes()">
-          <div class="timeline__label">
-            <strong>{{ 'reservierungen_settings.cleanup_label' | translate }}</strong>
-            <span>{{ previewExample().endRes }} – {{ previewExample().endSlot }}</span>
-            <span class="timeline__minutes">{{ cleanupMinutes() }} min</span>
+    @if (cleanupOn() && cleanupMinutes() > 0) {
+      <div class="prev-row prev-row--cleanup">
+        <div class="prev-row__time">{{ previewExample().endRes }}</div>
+        <div class="prev-row__body">
+          <div class="prev-row__top">
+            <span class="prev-row__name">{{ 'reservierungen_settings.preview_being_cleaned' | translate }}</span>
+            <span class="prev-row__party">· {{ 'reservierungen_settings.preview_table_label' | translate: { n: 7 } }}</span>
+          </div>
+          <div class="prev-row__sub">
+            <span><mat-icon>hourglass_empty</mat-icon>{{ 'reservierungen_settings.preview_cleanup_duration' | translate: { min: cleanupMinutes() } }}</span>
           </div>
         </div>
-      }
-    </div>
+        <div class="prev-row__actions"></div>
+      </div>
+    }
 
     <div class="preview-summary">
       <mat-icon>event_available</mat-icon>
       {{ 'reservierungen_settings.preview_free_at' | translate }}
-      <strong>{{ previewExample().endSlot }}</strong> Uhr.
+      <strong>{{ previewExample().endSlot }}</strong>{{ 'reservierungen_settings.preview_time_suffix' | translate }}
     </div>
   </div>
 
@@ -262,7 +280,7 @@
     <div class="status-hint" [class.status-hint--active]="getraenkeOn()">
       <mat-icon>{{ getraenkeOn() ? 'notifications_active' : 'notifications_off' }}</mat-icon>
       @if (getraenkeOn()) {
-        {{ 'reservierungen_settings.drinks_on' | translate }}
+        {{ 'reservierungen_settings.drinks_on' | translate: { min: getraenkeMinutes() } }}
       } @else {
         {{ 'reservierungen_settings.drinks_off' | translate }}
       }
@@ -319,7 +337,7 @@
 
     <div class="status-hint" [class.status-hint--active]="true">
       <mat-icon>workspace_premium</mat-icon>
-      {{ 'reservierungen_settings.vip_marked' | translate }}
+      {{ 'reservierungen_settings.vip_marked' | translate: { n: vipThresholdInput } }}
     </div>
 
     <div class="actions">
@@ -341,6 +359,13 @@
         </div>
         {{ 'reservierungen_settings.auto_block' | translate }}
       </h2>
+      <button class="info-button" [class.active]="info7()" (click)="info7.set(!info7())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+
+    <div class="info-box" [class.open]="info7()">
+      {{ 'reservierungen_settings.info_auto_block' | translate }}
     </div>
 
     <p class="section-subtitle">{{ 'reservierungen_settings.subtitle_block' | translate }}</p>
@@ -366,7 +391,7 @@
     <div class="status-hint" [class.status-hint--active]="noShowThreshold() !== null">
       <mat-icon>{{ noShowThreshold() !== null ? 'gpp_bad' : 'radio_button_unchecked' }}</mat-icon>
       @if (noShowThreshold() !== null) {
-        {{ 'reservierungen_settings.block_on' | translate }}
+        {{ 'reservierungen_settings.block_on' | translate: { n: noShowThreshold() } }}
       } @else {
         {{ 'reservierungen_settings.block_off' | translate }}
       }
@@ -389,7 +414,7 @@
         <div class="section-icon-wrap section-icon-wrap--accent">
           <mat-icon>logout</mat-icon>
         </div>
-        Automatisches Auschecken
+        {{ 'reservierungen_settings.auto_checkout_title' | translate }}
       </h2>
       <div class="section-header__right">
         <button class="info-button" [class.active]="info6()" (click)="info6.set(!info6())">
@@ -403,18 +428,17 @@
     </div>
 
     <div class="info-box" [class.open]="info6()">
-      Wenn aktiv, werden täglich um 23:57 Uhr alle Gäste automatisch ausgecheckt —
-      nur aus Räumen, die zu diesem Restaurant gehören.
+      {{ 'reservierungen_settings.info_auto_checkout' | translate }}
     </div>
 
-    <p class="section-subtitle">Sollen am Ende des Tages alle Gäste automatisch ausgecheckt werden?</p>
+    <p class="section-subtitle">{{ 'reservierungen_settings.subtitle_auto_checkout' | translate }}</p>
 
     <div class="status-hint" [class.status-hint--active]="autoCheckout()">
       <mat-icon>{{ autoCheckout() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
       @if (autoCheckout()) {
-        Alle Gäste werden täglich um 23:57 Uhr automatisch ausgecheckt.
+        {{ 'reservierungen_settings.auto_checkout_on' | translate }}
       } @else {
-        Automatisches Auschecken ist deaktiviert.
+        {{ 'reservierungen_settings.auto_checkout_off' | translate }}
       }
     </div>
 

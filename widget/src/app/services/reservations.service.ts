@@ -13,6 +13,8 @@ export interface WidgetVenueTable {
   scale: number;
   rotation: number;
   mergedWith?: number;
+  /** Vom Admin im Tischplan-Editor ("Kombinieren-Modus") verknüpfte Nachbartische. */
+  combinableWith?: number[];
 }
 
 export interface WidgetVenueWall {
@@ -142,6 +144,7 @@ export interface WidgetFunctionalConfig {
   onlineStornierung:       boolean;
   onlineStornierungMinuten: number;
   defaultDurationMinutes?: number;
+  cleanupMinutes?:         number;
   zahlungAktiv?:           boolean;
   zahlungPflicht?:         boolean;
   noShowSchutzAktiv?:      boolean;
@@ -175,11 +178,13 @@ export interface WidgetConfig {
 export interface CreateReservationPayload {
   venue_id:          string;
   guest_name:        string;
+  guest_first_name?: string;
   guest_email:       string;
   guest_phone?:      string;
   party_size:        number;
   starts_at:         string;
   notes?:            string;
+  occasion?:         string;
   table_id?:         number;
   duration_minutes?: number;
   packages?:         { package_id: string; quantity: number }[];

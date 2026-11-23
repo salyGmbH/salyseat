@@ -1,0 +1,73 @@
+<div class="bw">
+
+  @if (state() === 'loading') {
+    <div class="bw-card bw-card--center">
+      <div class="bw-spinner"></div>
+      <p>Wird geladen …</p>
+    </div>
+  }
+
+  @if (state() === 'invalid') {
+    <div class="bw-card bw-card--center">
+      <span class="bw-icon">⚠️</span>
+      <h1>Link ungültig</h1>
+      <p>Dieser Bewertungslink ist nicht (mehr) gültig.</p>
+    </div>
+  }
+
+  @if (state() === 'already') {
+    <div class="bw-card bw-card--center">
+      <span class="bw-icon">✓</span>
+      <h1>Vielen Dank!</h1>
+      <p>Du hast für diesen Besuch bereits eine Bewertung abgegeben.</p>
+    </div>
+  }
+
+  @if (state() === 'success') {
+    <div class="bw-card bw-card--center">
+      <span class="bw-icon">🎉</span>
+      <h1>Danke für deine Bewertung!</h1>
+      <p>Wir freuen uns, dich bald wieder bei {{ venueName() }} begrüßen zu dürfen.</p>
+    </div>
+  }
+
+  @if (state() === 'idle' || state() === 'submitting' || state() === 'error') {
+    <div class="bw-card">
+      <h1>Wie war dein Besuch bei {{ venueName() }}?</h1>
+      <p class="bw-sub">Deine Bewertung hilft uns, noch besser zu werden.</p>
+
+      @for (c of categories; track c.key) {
+        <div class="bw-field">
+          <span class="bw-field__label">{{ c.label }}</span>
+          <div class="bw-stars">
+            @for (n of [1, 2, 3, 4, 5]; track n) {
+              <button type="button" class="bw-star" [class.bw-star--filled]="ratings[c.key] >= n"
+                      (click)="setRating(c.key, n)" [attr.aria-label]="n + ' von 5 Sternen'">
+                ★
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="bw-field">
+        <span class="bw-field__label">Kommentar <em>(optional)</em></span>
+        <textarea class="bw-textarea" rows="4" [(ngModel)]="comment"
+                  placeholder="Was hat dir gefallen? Was können wir besser machen?"></textarea>
+      </div>
+
+      @if (state() === 'error') {
+        <p class="bw-error">{{ errorMessage() }}</p>
+      }
+
+      <button type="button" class="bw-submit" [disabled]="!allRated || state() === 'submitting'" (click)="submit()">
+        @if (state() === 'submitting') {
+          Wird gesendet …
+        } @else {
+          Bewertung abschicken
+        }
+      </button>
+    </div>
+  }
+
+</div>

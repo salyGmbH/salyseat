@@ -6,7 +6,8 @@ export interface GetraenkeSettings {
   minutes: number;
 }
 
-const DEFAULTS: GetraenkeSettings = { enabled: false, minutes: 20 };
+export const DEFAULT_GETRAENKE_SETTINGS: GetraenkeSettings = { enabled: false, minutes: 20 };
+const DEFAULTS: GetraenkeSettings = DEFAULT_GETRAENKE_SETTINGS;
 
 // Persistenz im Browser, damit ein Reload weder einen laufenden Countdown
 // noch ein bereits ausgelöstes (aber noch nicht bestätigtes) Icon verwirft —

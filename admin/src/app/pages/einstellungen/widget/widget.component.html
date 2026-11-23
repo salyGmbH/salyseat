@@ -6,10 +6,16 @@
   <div class="page-intro">
     <div class="page-intro__title">
       <mat-icon>dashboard_customize</mat-icon>
-      <div>
+      <div style="flex:1">
         <h2>{{ 'widget.title' | translate }}</h2>
         <p>{{ 'widget.subtitle' | translate }}</p>
       </div>
+      <button class="info-button" [class.active]="infoOpen()" (click)="infoOpen.set(!infoOpen())">
+        <mat-icon>info</mat-icon>
+      </button>
+    </div>
+    <div class="info-box" [class.open]="infoOpen()">
+      {{ 'widget.info' | translate }}
     </div>
   </div>
 
@@ -144,7 +150,7 @@
         <!-- Hauptbild (Hero / Sidebar-Hintergrund) — nur für Design 1 & 2 -->
         @if (selectedLayout() === 'card' || selectedLayout() === 'sidebar') {
         <div class="image-upload-row__item">
-          <span class="image-upload-row__label">Hauptbild</span>
+          <span class="image-upload-row__label">{{ 'widget.main_image_label' | translate }}</span>
           <div class="image-upload">
             @if (imageUploading()) {
               <div class="image-upload__uploading">
@@ -180,7 +186,7 @@
         <!-- Karten-Hintergrundbild (nur Karten-Stil) -->
         @if (selectedLayout() === 'card') {
           <div class="image-upload-row__item">
-            <span class="image-upload-row__label">Kartenhintergrund</span>
+            <span class="image-upload-row__label">{{ 'widget.card_bg_image_label' | translate }}</span>
             <div class="image-upload">
               @if (cardBgImageUploading()) {
                 <div class="image-upload__uploading">
@@ -199,8 +205,8 @@
                 <label class="image-upload__dropzone">
                   <input type="file" accept="image/*" (change)="onCardBgImageSelected($event)">
                   <mat-icon class="image-upload__dropzone-icon">wallpaper</mat-icon>
-                  <span class="image-upload__dropzone-title">Hintergrundbild</span>
-                  <span class="image-upload__dropzone-hint">Ersetzt die Hintergrundfarbe der Karte</span>
+                  <span class="image-upload__dropzone-title">{{ 'widget.bg_image_dropzone_title' | translate }}</span>
+                  <span class="image-upload__dropzone-hint">{{ 'widget.card_bg_replace_hint' | translate }}</span>
                 </label>
               }
               @if (cardBgImageUploadError()) {
@@ -216,7 +222,7 @@
         <!-- Stacked-Hintergrundbild (nur Design 3) -->
         @if (selectedLayout() === 'stacked') {
           <div class="image-upload-row__item">
-            <span class="image-upload-row__label">Seitenhintergrund</span>
+            <span class="image-upload-row__label">{{ 'widget.page_bg_image_label' | translate }}</span>
             <div class="image-upload">
               @if (stackedBgImageUploading()) {
                 <div class="image-upload__uploading">
@@ -235,8 +241,8 @@
                 <label class="image-upload__dropzone">
                   <input type="file" accept="image/*" (change)="onStackedBgImageSelected($event)">
                   <mat-icon class="image-upload__dropzone-icon">wallpaper</mat-icon>
-                  <span class="image-upload__dropzone-title">Hintergrundbild</span>
-                  <span class="image-upload__dropzone-hint">Ersetzt die Hintergrundfarbe der Seite</span>
+                  <span class="image-upload__dropzone-title">{{ 'widget.bg_image_dropzone_title' | translate }}</span>
+                  <span class="image-upload__dropzone-hint">{{ 'widget.page_bg_replace_hint' | translate }}</span>
                 </label>
               }
               @if (stackedBgImageUploadError()) {
@@ -252,7 +258,7 @@
         <!-- Planner-Hintergrundbild (nur Design 4) -->
         @if (selectedLayout() === 'planner') {
           <div class="image-upload-row__item">
-            <span class="image-upload-row__label">Seitenhintergrund</span>
+            <span class="image-upload-row__label">{{ 'widget.page_bg_image_label' | translate }}</span>
             <div class="image-upload">
               @if (plannerBgImageUploading()) {
                 <div class="image-upload__uploading">
@@ -271,8 +277,8 @@
                 <label class="image-upload__dropzone">
                   <input type="file" accept="image/*" (change)="onPlannerBgImageSelected($event)">
                   <mat-icon class="image-upload__dropzone-icon">wallpaper</mat-icon>
-                  <span class="image-upload__dropzone-title">Hintergrundbild</span>
-                  <span class="image-upload__dropzone-hint">Ersetzt die Hintergrundfarbe der Seite</span>
+                  <span class="image-upload__dropzone-title">{{ 'widget.bg_image_dropzone_title' | translate }}</span>
+                  <span class="image-upload__dropzone-hint">{{ 'widget.page_bg_replace_hint' | translate }}</span>
                 </label>
               }
               @if (plannerBgImageUploadError()) {
@@ -569,7 +575,7 @@
                    [checked]="pageGradientEnabled()"
                    (change)="togglePageGradient()">
             <span class="gradient-toggle__box"></span>
-            <span class="gradient-toggle__label">Farbverlauf aktivieren</span>
+            <span class="gradient-toggle__label">{{ 'widget.gradient_enable' | translate }}</span>
           </label>
 
           @if (pageGradientEnabled()) {
@@ -579,7 +585,7 @@
               </div>
               <div class="gradient-config__pickers">
                 <div class="gradient-config__picker-group">
-                  <span class="gradient-config__picker-label">Farbe 1</span>
+                  <span class="gradient-config__picker-label">{{ 'widget.gradient_color_1' | translate }}</span>
                   <label class="color-input">
                     <input type="color"
                            [value]="pageBackground().value"
@@ -589,7 +595,7 @@
                   </label>
                 </div>
                 <div class="gradient-config__picker-group">
-                  <span class="gradient-config__picker-label">Farbe 2</span>
+                  <span class="gradient-config__picker-label">{{ 'widget.gradient_color_2' | translate }}</span>
                   <label class="color-input">
                     <input type="color"
                            [value]="pageGradientColor2()"
@@ -1684,17 +1690,6 @@
                       <mat-icon class="preview-planner__panel-icon">schedule</mat-icon>
                       <span class="preview-planner__panel-title">Uhrzeit</span>
                     </div>
-
-                    <!--
-                      24h-Watch-Face-Dial (Layout 4 Uhrzeit). Das Zifferblatt
-                      zeigt alle 24 Stunden gleichmäßig verteilt; die geöffneten
-                      Stunden sind farblich kräftig, der Rest abgedimmt. Ein
-                      Primary-tinted Arc entlang des Außenrings markiert den
-                      Buchungs-Bereich. Verfügbare Slots sind klickbare Punkte
-                      auf dem Zifferblatt — die Nadel rotiert minutengenau zum
-                      ausgewählten Slot. Visuelles Konzept ist klar anders als
-                      RESERVISON's verschachtelte 24h-Doppelringe.
-                    -->
                     <div class="preview-planner__dial">
                       <svg class="preview-planner__dial-svg"
                            viewBox="0 0 140 140"

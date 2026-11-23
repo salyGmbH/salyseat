@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, computed, effect, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, NgZone, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -28,6 +28,21 @@ type SubmitState = 'loading' | 'idle' | 'submitting' | 'success' | 'error' | 'pa
 
 const DEFAULT_FROM = '10:00';
 const DEFAULT_TO   = '23:00';
+
+/**
+ * Cache für die Canvas-Textmessung (Text-Boxen im Tischplan). Lazy angelegt,
+ * damit diese Datei auch außerhalb des Browsers (SSR/Tests) geladen werden
+ * kann, ohne beim Import einen Fehler zu werfen.
+ */
+let labelMeasureCtx: CanvasRenderingContext2D | null | undefined;
+
+function getLabelMeasureCtx(): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') return null;
+  if (labelMeasureCtx === undefined) {
+    labelMeasureCtx = document.createElement('canvas').getContext('2d');
+  }
+  return labelMeasureCtx;
+}
 
 function buildSlots(from: string, to: string, step: number, breaks: Break[] = []): string[] {
   const slots: string[] = [];
@@ -59,6 +74,25 @@ export class StartComponent implements OnInit {
   private readonly sanitizer    = inject(DomSanitizer);
   private readonly zone         = inject(NgZone);
   readonly i18n                 = inject(WidgetI18nService);
+
+  /**
+   * Schließt ein offenes Card-/Stacked-Picker-Panel (Datum/Uhrzeit/Personen),
+   * wenn außerhalb des zugehörigen Feld+Panel-Containers geklickt wird —
+   * bisher musste man immer erst eine Auswahl treffen, um das Panel wieder
+   * zuzuklappen. Sidebar hat dafür schon einen eigenen Zurück-Button, Planner
+   * ist ein Schritt-Wizard ohne Overlay, daher hier nicht nötig.
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClickClosePicker(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (this.cardOpenPicker() !== null && !target.closest('.preview-card__group--picker-host')) {
+      this.cardClosePicker();
+    }
+    if (this.stackedOpenPicker() !== null && !target.closest('.preview-stacked__tiles-host')) {
+      this.stackedClosePicker();
+    }
+  }
 
   /** Shortcut: aktuelles Übersetzungs-Dictionary als computed Signal */
   readonly t = this.i18n.labels;
@@ -104,10 +138,12 @@ export class StartComponent implements OnInit {
   people = signal<number>(2);
 
   // ─── Gastdaten ───────────────────────────────────────────────────────────
-  guestName  = signal<string>('');
-  guestEmail = signal<string>('');
-  guestPhone = signal<string>('');
-  notes      = signal<string>('');
+  guestName      = signal<string>('');
+  guestFirstName = signal<string>('');
+  guestEmail     = signal<string>('');
+  guestPhone     = signal<string>('');
+  notes          = signal<string>('');
+  occasion       = signal<string>('');
 
   // ─── Personen-Stepper ────────────────────────────────────────────────────
   readonly minPeople = 1;
@@ -134,6 +170,10 @@ export class StartComponent implements OnInit {
   hinweisOpen             = signal<boolean>(false);
   cardShowErrors          = signal<boolean>(false);
   cardWasOnSummary        = signal<boolean>(false);
+  /** Zeigt einen Hinweis, wenn Datum/Uhrzeit/Personen (noch) ungültig sind
+   *  (geschlossener Tag, keine freien Zeiten) und "Weiter" deshalb nicht
+   *  zum Kontakt-Schritt weitergegangen ist. */
+  cardTischwahlError      = signal<boolean>(false);
 
   dismissHinweis(): void {
     this.hinweisOpen.set(false);
@@ -168,6 +208,12 @@ export class StartComponent implements OnInit {
     return this.selectedAllergene().includes(key);
   }
 
+  /** Eigener "Extras"-Schritt (Kinderstühle/Rollstuhl/Hund/Allergene) wird nur
+   *  angezeigt, wenn mind. eine dieser Optionen in der Admin aktiv ist. */
+  readonly hasExtrasStep = computed(() =>
+    this.kinderStuehleAktiv() || this.rollstuhlAktiv() || this.hundAktiv() || this.allergeneAktiv()
+  );
+
   // ─── Packages ────────────────────────────────────────────────────────────
   // Pro Package eine Menge wählbar; Summe aller Mengen darf die Personenzahl
   // (people()) nicht überschreiten — ein Package "gilt" pro Person.
@@ -189,6 +235,25 @@ export class StartComponent implements OnInit {
       .map(pkg => ({ pkg, quantity: this.packageQuantities()[pkg.id] ?? 0 }))
       .filter(x => x.quantity > 0)
   );
+
+  /**
+   * Tatsächlich zu verwendende Dauer in Minuten — berücksichtigt die vom
+   * Admin je Package hinterlegte durationHours (z.B. ein 4h-Event-Package),
+   * statt immer pauschal defaultDurationMinutes() zu nehmen. Bei mehreren
+   * gewählten Packages mit unterschiedlicher Dauer wird die längste genommen
+   * (die Reservierung muss so lange blockiert bleiben, wie das längste
+   * gebuchte Package dauert). Packages ohne durationHours-Angabe fließen
+   * nicht in die Berechnung ein; sind gar keine Packages mit Dauer gewählt,
+   * bleibt es beim generischen defaultDurationMinutes().
+   */
+  readonly effectiveDurationMinutes = computed<number>(() => {
+    if (!this.packageBuchungAktiv()) return this.defaultDurationMinutes();
+    const hours = this.selectedPackages()
+      .map(x => x.pkg.durationHours)
+      .filter((h): h is number => typeof h === 'number' && h > 0);
+    if (hours.length === 0) return this.defaultDurationMinutes();
+    return Math.max(...hours) * 60;
+  });
 
   packageQuantity(id: string): number {
     return this.packageQuantities()[id] ?? 0;
@@ -231,6 +296,31 @@ export class StartComponent implements OnInit {
     });
   });
 
+  // Wählt der Gast einen Tisch manuell aus dem Tischplan und geht danach über
+  // "Zurück" nochmal auf Schritt 1 (z.B. Personenzahl erhöhen), kann der zuvor
+  // gewählte Tisch zu klein werden — oder inzwischen durch eine andere Buchung
+  // blockiert sein. Ohne diese Prüfung würde die veraltete Tisch-Auswahl
+  // unbemerkt mit an die Reservierung übergeben (siehe weiter()).
+  //
+  // Wichtig: bei "selbst wählen" (tischwahlChoice === 'selbst') auch die
+  // Präferenz selbst zurücksetzen, nicht nur die Tisch-ID. Sonst bleibt
+  // needsTischwahlPick() false (da tischwahlChoice noch gesetzt ist), der
+  // Zwischenschritt erscheint nicht erneut, und der Gast landet unbemerkt bei
+  // der Auto-Zuweisung statt bei seiner ursprünglichen Wahl — derselbe
+  // Silent-Bug wie beim ursprünglich gemeldeten Reihenfolge-Problem, nur über
+  // den Zurück-Weg statt den Erstaufruf.
+  private readonly clearInvalidTableSelectionEffect = effect(() => {
+    const id = this.selectedTableId();
+    if (id === null) return;
+    const table = this.availableTables().find(t => t.id === id);
+    if (!table || table.seats < this.people()) {
+      this.selectedTableId.set(null);
+      if (this.tischwahlChoice() === 'selbst') {
+        this.tischwahlChoice.set(null);
+      }
+    }
+  });
+
   private readonly packageCategoryIcons: Record<string, string> = {
     menu: '🍽️', event: '🎉', feier: '🎂', sonstiges: '🏷️',
   };
@@ -256,6 +346,12 @@ export class StartComponent implements OnInit {
   // ─── Mindestvorlauf ──────────────────────────────────────────────────────
   mindestvorlaufMinuten     = signal<number>(60);
   defaultDurationMinutes    = signal<number>(120);
+  // Puffer vor/nach einer Reservierung, in dem der Tisch für andere Buchungen
+  // gesperrt bleibt (0 = Schalter beim Tenant aus). Muss identisch zum
+  // Backend-Wert sein (siehe findBestTable() in CreateReservationHandler.php),
+  // sonst zeigt timeSlots() Slots als buchbar, die das Backend beim Absenden
+  // wegen des Puffers ablehnt.
+  cleanupMinutes            = signal<number>(0);
 
   // ─── Tischarten ──────────────────────────────────────────────────────────
   tischartenAktiv      = signal<boolean>(false);
@@ -264,11 +360,23 @@ export class StartComponent implements OnInit {
   tischartenModus      = signal<string>('liste');
   selectedTableId      = signal<number | null>(null);
 
-  // ─── Tischplan-Zwischenschritt (Tablet+) ─────────────────────────────────
+  // ─── Tischplan-Zwischenschritt ────────────────────────────────────────────
   windowWidth            = signal(typeof window !== 'undefined' ? window.innerWidth : 1024);
   readonly isTablet      = computed(() => this.windowWidth() >= 768);
-  tischwahlActive        = signal(false);   // Zwischenschritt-Overlay: auto vs. selbst
+  // Präferenz "selbst wählen" vs. "automatisch zuweisen" — wird NACH Datum/Uhrzeit/
+  // Personenzahl inline abgefragt (siehe needsTischwahlPick()), weil die
+  // Verfügbarkeitsprüfung im Tischplan (suitableTables()) selbst von der echten
+  // Personenzahl abhängt. Vorher kam diese Abfrage VOR Datum/Uhrzeit/Personenzahl —
+  // dadurch wurden im Grundriss nur gegen den Default-Wert (2 Personen) passende
+  // Tische markiert, was bei größeren Gruppen zu einer scheinbar zufälligen
+  // Warteliste-Landung führte, obwohl der gewählte Tisch nie wirklich gepasst hatte.
+  tischwahlChoice        = signal<'auto' | 'selbst' | null>(null);
   tischplanOverlayOpen   = signal(false);   // Vollbild-Tischplan-Overlay
+  // Wird erst true, sobald der Gast das Datum/Uhrzeit/Personenzahl-Formular zum ersten
+  // Mal verlassen hat. Solange false, bezieht sich die im Tischplan-Overlay gezeigte
+  // Verfügbarkeit noch auf die Default-Werte (heute, 19:00) statt auf das echte
+  // Wunschdatum — der Hinweistext im Overlay wird nur bis dahin eingeblendet.
+  hasPassedInitialDateTime = signal(false);
 
   // ─── Geschlossene Wochentage (0=Mo … 6=So) ───────────────────────────────
   closedWeekdays = signal<number[]>([]);
@@ -318,23 +426,35 @@ export class StartComponent implements OnInit {
   calendarYear  = signal<number>(new Date().getFullYear());
 
   // ─── Card-Layout-State ───────────────────────────────────────────────────
-  cardStep       = signal<1 | 2 | 3>(1);
+  cardStep       = signal<1 | 2 | 3 | 4>(1);
   cardOpenPicker = signal<'date' | 'time' | 'seats' | null>(null);
   cardConsent    = signal(false);
 
   // ─── Sidebar-Layout-State ─────────────────────────────────────────────────
-  sidebarStep          = signal<1 | 2 | 3>(1);
+  sidebarStep          = signal<1 | 2 | 3 | 4>(1);
   sidebarOpenPicker    = signal<'date' | 'time' | 'seats' | null>(null);
   sidebarConsent       = signal(false);
   sidebarWasOnSummary  = signal(false);
   sidebarShowErrors    = signal(false);
+  sidebarTischwahlError = signal(false);
 
   // ─── Stacked-Layout-State ────────────────────────────────────────────────
-  stackedStep          = signal<1 | 2 | 3>(1);
+  stackedStep          = signal<1 | 2 | 3 | 4>(1);
   stackedOpenPicker    = signal<'date' | 'time' | 'seats' | null>(null);
   stackedConsent       = signal(false);
   stackedShowErrors    = signal(false);
   stackedWasOnSummary  = signal(false);
+  stackedTischwahlError = signal(false);
+
+  /** Sichtbare Schritt-Position für die 3/4-teilige Fortschrittsanzeige:
+   *  ohne Extras-Schritt wird der interne Schritt 4 (Zusammenfassung) auf
+   *  die 3. sichtbare Position abgebildet, da Schritt 3 dann übersprungen wird. */
+  readonly stackedVisibleStep = computed(() => {
+    const s = this.stackedStep();
+    if (this.hasExtrasStep()) { return s; }
+    return s === 4 ? 3 : s;
+  });
+  readonly stackedTotalSteps = computed(() => this.hasExtrasStep() ? 4 : 3);
 
   // ─── Planner-Layout-State ────────────────────────────────────────────────
   plannerStep         = signal<1 | 2 | 3 | 4 | 5>(1);
@@ -343,6 +463,7 @@ export class StartComponent implements OnInit {
   plannerDialPhase    = signal<'hour' | 'minute'>('hour');
   plannerShowErrors   = signal(false);
   plannerWasOnSummary = signal(false);
+  plannerTischwahlError = signal(false);
 
   // ─── Tag-Verfügbarkeit (ohne Zeit) — für Slot-Filterung ──────────────────
   // Reagiert nur auf Venue + Datum, NICHT auf Zeit. Liefert bookedPeriods +
@@ -388,8 +509,14 @@ export class StartComponent implements OnInit {
   readonly showMaxPersonenWarning = computed(() => this.people() >= this.maxPeople());
 
   readonly groupInfoText = computed(() => {
-    const threshold = this.maxPeople() + 1;
-    return `Ab ${threshold} Personen oder mehr bitten wir um direkte Kontaktaufnahme.`;
+    const max    = this.maxPeople();
+    const custom = this.maxPersonenText().trim();
+    // {{max}} wird 1:1 wie in der Admin-Vorschau (maxPersonenPreviewText) ersetzt,
+    // damit der Text im Widget exakt dem entspricht, was der Inhaber beim
+    // Konfigurieren als Vorschau sieht. Nur falls das Feld leer ist (z.B. alte
+    // Bestandsdaten ohne diesen Text), greift der bisherige Standardtext.
+    if (custom) return custom.replace('{{max}}', String(max));
+    return `Ab ${max + 1} Personen oder mehr bitten wir um direkte Kontaktaufnahme.`;
   });
 
   readonly safeMenuUrl = computed<SafeResourceUrl>(() =>
@@ -434,10 +561,121 @@ export class StartComponent implements OnInit {
     return result;
   });
 
+  /**
+   * true, solange bei aktiver Raumauswahl mit mehreren Räumen noch kein Raum gewählt
+   * wurde. Das Widget zeigt dann zuerst den Raum-Picker, bevor Datum/Uhrzeit
+   * angezeigt werden — sonst würde Datum/Uhrzeit auf Basis eines beliebig
+   * vorbelegten Raums berechnet und könnte beim späteren Raumwechsel im
+   * Formular still auf einen anderen (verfügbaren) Slot springen, ohne dass es
+   * dem Gast auffällt (siehe weiter() weiter unten: slots.includes(raw) ? raw : slots[0]).
+   */
+  readonly needsVenuePick = computed<boolean>(() =>
+    this.raumauswahl() && this.filteredVenues().length > 1 && !this.selectedVenue()
+  );
+
+  /**
+   * Ist die Tisch-Planauswahl aktiv, wird die Präferenz "selbst wählen" vs.
+   * "automatisch zuweisen" als Zwischenschritt NACH Datum/Uhrzeit/Personenzahl
+   * abgefragt (siehe hasPassedInitialDateTime — wird erst wahr, sobald Schritt 1
+   * einmal gültig verlassen wurde, siehe proceedAfterTischwahl()). So kann der
+   * Grundriss die im Overlay angezeigte Passend-Markierung (suitableTables())
+   * von Anfang an gegen die tatsächlich eingegebene Personenzahl prüfen, statt
+   * gegen den Default-Wert. Sobald tischwahlChoice() gesetzt ist, verschwindet
+   * dieser Zwischenschritt wieder.
+   *
+   * Zusätzliche Bedingung suitableTables().length > 0: passt KEIN einzelner
+   * Tisch zur Personenzahl (z.B. 11 Personen, größter Tisch 6P), wäre "selbst
+   * wählen" ohnehin eine Sackgasse — im Grundriss ist dann jeder Tisch
+   * ausgegraut und nichts anklickbar. In dem Fall den Zwischenschritt ganz
+   * überspringen und direkt zur automatischen Zuweisung durchreichen, die
+   * (im Gegensatz zur manuellen Auswahl) auch Tische kombinieren kann, siehe
+   * findBestCombination() im Backend. tischwahlChoice bleibt bewusst null
+   * (nicht auf 'auto' gesetzt) — reduziert der Gast die Personenzahl später
+   * wieder auf einen Wert mit passendem Einzeltisch, erscheint der
+   * Zwischenschritt dadurch von selbst erneut.
+   */
+  readonly needsTischwahlPick = computed<boolean>(() =>
+    this.tischartenAktiv() && this.tischartenModus() === 'plan'
+      && this.tischwahlChoice() === null && this.hasPassedInitialDateTime()
+      && this.suitableTables().length > 0
+  );
+
   private isVenueBlockedOn(venue: WidgetVenue, date: string): boolean {
     return (venue.blockedRanges ?? []).some(r =>
       r.full_day && r.date_from <= date && r.date_to >= date
     );
+  }
+
+  /**
+   * Prüft, ob die übergebenen freien Tische für `needed` Personen reichen —
+   * entweder ein einzelner Tisch, oder eine über combinableWith verknüpfte
+   * Gruppe freier Tische zusammen. Spiegelt findBestCombination() /
+   * searchCombination() im Backend (CreateReservationHandler.php), aber nur
+   * als Existenz-Check für die Slot-Anzeige im Widget: es reicht ein Ja/Nein
+   * (wird hier eine passende Gruppe gefunden, mit Early-Exit), die "beste"
+   * (verschwendungsärmste) Kombination muss nicht ermittelt werden — das
+   * macht ausschließlich das Backend beim tatsächlichen Buchen.
+   *
+   * Es werden bewusst NUR Tische kombiniert, die der Admin im Tischplan-
+   * Editor ("Kombinieren-Modus") explizit als nebeneinanderstehend markiert
+   * hat (combinableWith) — nie beliebige freie Tische im selben Raum.
+   */
+  /**
+   * Tische, die im Zeitfenster [slotStart, slotEnd) (Minuten seit Mitternacht)
+   * durch eine bestehende Reservierung belegt sind — inkl. Clean-up-Puffer
+   * symmetrisch vor/nach dem Slot (cleanupMinutes()). Spiegelt die
+   * Fenstererweiterung in findBestTable()/getBookedTableNumbers() im Backend
+   * (CreateReservationHandler.php): ohne diesen Puffer könnte das Widget
+   * einen Slot als buchbar anzeigen, den das Backend beim echten Absenden
+   * wegen des Puffers ablehnt — die Reservierung landet dann unbemerkt auf
+   * der Warteliste. cleanupMinutes()===0 (Schalter beim Tenant aus) ergibt
+   * exakt die Prüfung ohne Puffer.
+   */
+  private busyTableIdsAt(periods: BookedPeriod[], slotStart: number, slotEnd: number): Set<number> {
+    const cleanup        = this.cleanupMinutes();
+    const bufferedStart  = slotStart - cleanup;
+    const bufferedEnd    = slotEnd + cleanup;
+    const busy = new Set<number>();
+    for (const p of periods) {
+      const [fh, fm] = p.from.split(':').map(Number);
+      const [th, tm] = p.to.split(':').map(Number);
+      const pStart = fh * 60 + fm;
+      const pEnd   = th * 60 + tm;
+      if (pStart < bufferedEnd && pEnd > bufferedStart) busy.add(p.tableNumber);
+    }
+    return busy;
+  }
+
+  private canPartyBeSeated(freeTables: WidgetVenueTable[], needed: number): boolean {
+    if (freeTables.some(t => t.seats >= needed)) return true;
+
+    const byId = new Map(freeTables.map(t => [t.id, t]));
+    const maxGroupSize = 5; // identisch zu maxGroupSize im Backend
+
+    const search = (chosen: Set<number>, totalSeats: number): boolean => {
+      if (totalSeats >= needed) return true;
+      if (chosen.size >= maxGroupSize) return false;
+
+      const frontier = new Set<number>();
+      for (const id of chosen) {
+        for (const neighborId of byId.get(id)?.combinableWith ?? []) {
+          if (byId.has(neighborId) && !chosen.has(neighborId)) frontier.add(neighborId);
+        }
+      }
+
+      for (const nextId of frontier) {
+        const next = byId.get(nextId)!;
+        chosen.add(nextId);
+        if (search(chosen, totalSeats + next.seats)) return true;
+        chosen.delete(nextId);
+      }
+      return false;
+    };
+
+    for (const start of freeTables) {
+      if (search(new Set([start.id]), start.seats)) return true;
+    }
+    return false;
   }
 
   readonly timeSlots = computed<string[]>(() => {
@@ -472,26 +710,67 @@ export class StartComponent implements OnInit {
       });
     }
 
-    // Slots ausblenden wo ALLE Tische im Raum belegt sind
-    const periods    = avail?.bookedPeriods ?? [];
-    const totalTables = avail?.totalTables ?? 0;
-    const duration   = this.defaultDurationMinutes();
+    // Slots ausblenden wo der Tisch/Raum belegt ist.
+    // Ist über "selbst wählen" bereits ein konkreter Tisch vorausgewählt
+    // (selectedTableId), wird NUR gegen dessen eigene Buchungsperioden
+    // geprüft — nicht mehr aggregiert über alle Tische im Raum, da genau
+    // dieser Tisch reserviert werden soll.
+    //
+    // Ohne Vorauswahl (Auto-Pfad, der Normalfall) reicht es NICHT zu prüfen,
+    // ob irgendein Tisch frei ist (concurrent < totalTables) — ein Slot darf
+    // nur als buchbar gelten, wenn mindestens ein freier Tisch (oder eine
+    // freie, vom Admin verknüpfte Tischgruppe, siehe canPartyBeSeated()) auch
+    // GROSS GENUG für die eingegebene Personenzahl ist. Sonst sieht ein Slot
+    // im Widget "verfügbar" aus, obwohl real kein passender Tisch da ist, und
+    // der Gast landet nach dem Absenden unbemerkt auf der Warteliste, obwohl
+    // die Buchung im Widget wie ein normaler Erfolg aussah.
+    //
+    // venueTables() liefert die Sitzplatzdaten (inkl. combinableWith) pro
+    // Tisch bereits lokal aus der Venue-Konfiguration — unabhängig vom
+    // Tischarten-Feature, daher ohne zusätzlichen Backend-Call nutzbar. Nur
+    // wenn ein Venue gar keinen Tischplan hinterlegt hat (venueTables()
+    // leer), bleibt die alte Aggregat-Prüfung als Fallback bestehen.
+    const periods         = avail?.bookedPeriods ?? [];
+    const totalTables     = avail?.totalTables ?? 0;
+    const duration        = this.effectiveDurationMinutes();
+    const tableId         = this.selectedTableId();
+    const needed          = this.people();
+    const tables          = this.venueTables();
+    // Tage-Sperren (Admin-"Tisch blockieren", z.B. Reparatur) — gilt hier
+    // pauschal für den ganzen Tag (dayAvail() fragt ohne konkrete Uhrzeit ab),
+    // ist also bewusst konservativ: lieber ein Slot zu wenig zeigen als einen
+    // gesperrten Tisch fälschlich als verfügbar werten.
+    const blockedTableIds = new Set(avail?.blockedTableNumbers ?? []);
 
-    if (totalTables > 0 && periods.length > 0) {
+    if (tableId !== null) {
+      const tablePeriods = periods.filter(p => p.tableNumber === tableId);
+      if (tablePeriods.length > 0) {
+        slots = slots.filter(slotTime => {
+          const [sh, sm] = slotTime.split(':').map(Number);
+          const slotStart = sh * 60 + sm;
+          const slotEnd   = slotStart + duration;
+          return !this.busyTableIdsAt(periods, slotStart, slotEnd).has(tableId);
+        });
+      }
+    } else if (tables.length > 0) {
       slots = slots.filter(slotTime => {
         const [sh, sm] = slotTime.split(':').map(Number);
         const slotStart = sh * 60 + sm;
         const slotEnd   = slotStart + duration;
-
-        let concurrent = 0;
-        for (const p of periods) {
-          const [fh, fm] = p.from.split(':').map(Number);
-          const [th, tm] = p.to.split(':').map(Number);
-          const pStart = fh * 60 + fm;
-          const pEnd   = th * 60 + tm;
-          if (pStart < slotEnd && pEnd > slotStart) concurrent++;
-        }
-        return concurrent < totalTables;
+        const busyIds    = this.busyTableIdsAt(periods, slotStart, slotEnd);
+        const freeTables = tables.filter(t => !busyIds.has(t.id) && !blockedTableIds.has(t.id));
+        return this.canPartyBeSeated(freeTables, needed);
+      });
+    } else if (totalTables > 0 && periods.length > 0) {
+      // Fallback für Venues ohne Tischplan-Daten (keine Sitzplatz-Info pro
+      // Tisch vorhanden) — alte Aggregat-Prüfung, jetzt über busyTableIdsAt()
+      // immerhin mit Clean-up-Puffer, kann Kapazität/Sperren aber mangels
+      // Tischdaten weiterhin nicht berücksichtigen.
+      slots = slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;
+        const slotEnd   = slotStart + duration;
+        return this.busyTableIdsAt(periods, slotStart, slotEnd).size < totalTables;
       });
     }
 
@@ -519,6 +798,7 @@ export class StartComponent implements OnInit {
   wartelisteMaxPlaetze     = signal(3);
   wartelisteKanal          = signal<'email' | 'telefon' | 'beide'>('email');
   wartelisteAntwortStunden = signal(24);
+  wartelisteHinweis        = signal('');
 
   /**
    * Zeitslots, die für das gewählte Datum vollständig ausgebucht sind — Gegenstück
@@ -563,9 +843,31 @@ export class StartComponent implements OnInit {
       });
     }
 
-    const periods     = avail?.bookedPeriods ?? [];
-    const totalTables = avail?.totalTables ?? 0;
-    const duration    = this.defaultDurationMinutes();
+    const periods         = avail?.bookedPeriods ?? [];
+    const totalTables     = avail?.totalTables ?? 0;
+    const duration        = this.effectiveDurationMinutes();
+    const needed          = this.people();
+    const tables          = this.venueTables();
+    const blockedTableIds = new Set(avail?.blockedTableNumbers ?? []);
+
+    // Gegenstück zur kapazitätsbewussten Prüfung in timeSlots(): ein Slot
+    // gilt hier als "Warteliste anbieten", wenn KEIN freier Tisch bzw. keine
+    // freie Tischgruppe (canPartyBeSeated(), inkl. combinableWith) mehr für
+    // die Personenzahl reicht — nicht erst, wenn wirklich alle Tische belegt
+    // sind. So verschwindet ein zu kleiner Slot nicht einfach spurlos aus dem
+    // Widget, sondern der Gast bekommt bewusst die Warteliste angeboten.
+    // busyTableIdsAt() berücksichtigt den Clean-up-Puffer identisch zu
+    // timeSlots() (siehe dort für die Begründung).
+    if (tables.length > 0) {
+      return slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;
+        const slotEnd   = slotStart + duration;
+        const busyIds    = this.busyTableIdsAt(periods, slotStart, slotEnd);
+        const freeTables = tables.filter(t => !busyIds.has(t.id) && !blockedTableIds.has(t.id));
+        return !this.canPartyBeSeated(freeTables, needed);
+      });
+    }
 
     if (totalTables === 0 || periods.length === 0) return [];
 
@@ -573,16 +875,7 @@ export class StartComponent implements OnInit {
       const [sh, sm] = slotTime.split(':').map(Number);
       const slotStart = sh * 60 + sm;
       const slotEnd   = slotStart + duration;
-
-      let concurrent = 0;
-      for (const p of periods) {
-        const [fh, fm] = p.from.split(':').map(Number);
-        const [th, tm] = p.to.split(':').map(Number);
-        const pStart = fh * 60 + fm;
-        const pEnd   = th * 60 + tm;
-        if (pStart < slotEnd && pEnd > slotStart) concurrent++;
-      }
-      return concurrent >= totalTables;
+      return this.busyTableIdsAt(periods, slotStart, slotEnd).size >= totalTables;
     });
   });
 
@@ -599,9 +892,21 @@ export class StartComponent implements OnInit {
 
   readonly waitlistEmailLooksOk = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.waitlistGuestEmail().trim()));
 
+  /** Telefon zusätzlich zur E-Mail verlangen, wenn der Inhaber "Telefon" oder
+   *  "Beide" als Warteliste-Kontaktkanal gewählt hat. Die E-Mail selbst bleibt
+   *  in jedem Fall Pflicht — der Warteliste-Eintrag (WaitlistEntry) und die
+   *  Benachrichtigungs-Mail sind backend-seitig fest an eine E-Mail-Adresse
+   *  gebunden (nicht nullable), ein reiner "nur Telefon, keine E-Mail"-Kanal
+   *  würde eine Backend-Schemaänderung + SMS-Versand erfordern. */
+  readonly waitlistPhoneRequired = computed(() => {
+    const kanal = this.wartelisteKanal();
+    return kanal === 'telefon' || kanal === 'beide';
+  });
+
   readonly waitlistCanSubmit = computed(() =>
     this.waitlistGuestName().trim().length >= 2 &&
     this.waitlistEmailLooksOk() &&
+    (!this.waitlistPhoneRequired() || this.waitlistGuestPhone().trim().length > 0) &&
     this.waitlistPartySize() >= 1
   );
 
@@ -681,22 +986,38 @@ export class StartComponent implements OnInit {
                     l === 'stacked' ? this.stackedConsent() :
                     this.plannerConsent();
     const req = this.requiredFields();
-    return !!this.selectedVenue() &&
-      !!this.date() &&
-      this.hasBookableSlots() &&       // echte Slots müssen vorhanden sein
-      !!this.validTime() &&
-      !this.isClosedDay() &&
-      this.people() >= this.minPeople &&
+    return this.tischwahlValid() &&
       this.guestName().trim().length >= 2 &&
       this.emailLooksOk() &&
       (!req.includes('phone') || this.guestPhone().trim().length > 0) &&
       (!req.includes('notes') || this.notes().trim().length > 0) &&
+      (!req.includes('vorname') || this.guestFirstName().trim().length > 0) &&
+      (!req.includes('anlass') || this.occasion().trim().length > 0) &&
       (!this.tischartenAktiv() || this.tischartenModus() !== 'liste' || !!this.selectedTischart()) &&
       consent &&
       this.state() !== 'submitting';
   });
 
-  /** Prüft ob Formulardaten vollständig sind → für "Weiter zur Zusammenfassung" */
+  /** Prüft ob Bereich/Datum/Uhrzeit/Personenzahl bereits gültig sind — steuert
+   *  in ALLEN 4 Layouts (card/sidebar/stacked/planner), ob vom Tischwahl-Schritt
+   *  aus direkt zu Kontakt weitergegangen werden darf, oder ob (z.B. wegen
+   *  geschlossenem Tag / keinen freien Zeiten mehr) erst noch nachgebessert
+   *  werden muss, bevor man den Gast unnötig Kontaktdaten eintippen lässt. */
+  readonly tischwahlValid = computed(() =>
+    !!this.selectedVenue() &&
+    !!this.date() &&
+    !this.isClosedDay() &&
+    this.hasBookableSlots() &&
+    !!this.validTime() &&
+    this.people() >= this.minPeople,
+  );
+
+  /** Prüft ob Formulardaten vollständig sind → für "Weiter zur Zusammenfassung".
+   *  Nutzt dieselbe Basis-Prüfung (Bereich/Datum/Uhrzeit/Personenzahl) wie
+   *  `canSubmit()` über `tischwahlValid()` — vorher fehlten hier z.B. die
+   *  Prüfungen auf gewählten Bereich, gesetztes Datum und Mindestpersonenzahl,
+   *  wodurch man rein rechnerisch zur Zusammenfassung kommen konnte, obwohl
+   *  `canSubmit()` danach trotzdem noch false gewesen wäre. */
   readonly canGoToSummary = computed(() => {
     const req = this.requiredFields();
     const l = this.layout();
@@ -704,12 +1025,13 @@ export class StartComponent implements OnInit {
                     l === 'stacked' ? this.stackedConsent() :
                     l === 'planner' ? this.plannerConsent() :
                     this.cardConsent();
-    return !this.isClosedDay() &&
-      this.hasBookableSlots() &&
+    return this.tischwahlValid() &&
       this.guestName().trim().length >= 2 &&
       this.emailLooksOk() &&
       (!req.includes('phone') || this.guestPhone().trim().length > 0) &&
       (!req.includes('notes') || this.notes().trim().length > 0) &&
+      (!req.includes('vorname') || this.guestFirstName().trim().length > 0) &&
+      (!req.includes('anlass') || this.occasion().trim().length > 0) &&
       (!this.tischartenAktiv() || this.tischartenModus() !== 'liste' || !!this.selectedTischart()) &&
       consent;
   });
@@ -1025,17 +1347,18 @@ export class StartComponent implements OnInit {
   cardClosePicker(): void { this.cardOpenPicker.set(null); }
   cardNextStep(): void {
     this.cardClosePicker();
-    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
-      this.tischwahlActive.set(true);
+    if (this.tischwahlValid()) {
+      this.cardTischwahlError.set(false);
+      this.proceedAfterTischwahl();
     } else {
-      this.cardStep.set(2);
+      this.cardTischwahlError.set(true);
     }
   }
   cardGoToSummary(): void {
     if (this.canGoToSummary()) {
       this.cardShowErrors.set(false);
       this.cardWasOnSummary.set(true);
-      this.cardStep.set(3);
+      this.cardStep.set(this.hasExtrasStep() ? 3 : 4);
     } else {
       this.cardShowErrors.set(true);
       setTimeout(() => {
@@ -1046,7 +1369,14 @@ export class StartComponent implements OnInit {
       }, 50);
     }
   }
-  cardPrevStep(): void { this.cardStep.update(s => Math.max(1, s - 1) as 1 | 2 | 3); }
+  /** Von "Extras" (Schritt 3) weiter zur Zusammenfassung — keine Pflichtfelder. */
+  cardExtrasNext(): void { this.cardStep.set(4); }
+  cardPrevStep(): void {
+    this.cardStep.update(s => {
+      if (s === 4 && !this.hasExtrasStep()) { return 2; }
+      return Math.max(1, s - 1) as 1 | 2 | 3 | 4;
+    });
+  }
   cardToggleConsent(): void { this.cardConsent.update(v => !v); }
   cardDecSeats(): void { this.people.update(n => Math.max(1, n - 1)); }
   cardIncSeats(): void { this.people.update(n => Math.min(this.maxPeople(), n + 1)); }
@@ -1061,17 +1391,18 @@ export class StartComponent implements OnInit {
   sidebarClosePicker(): void { this.sidebarOpenPicker.set(null); }
   sidebarNextStep(): void {
     this.sidebarClosePicker();
-    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
-      this.tischwahlActive.set(true);
+    if (this.tischwahlValid()) {
+      this.sidebarTischwahlError.set(false);
+      this.proceedAfterTischwahl();
     } else {
-      this.sidebarStep.set(2);
+      this.sidebarTischwahlError.set(true);
     }
   }
   sidebarGoToSummary(): void {
     if (this.canGoToSummary()) {
       this.sidebarShowErrors.set(false);
       this.sidebarWasOnSummary.set(true);
-      this.sidebarStep.set(3);
+      this.sidebarStep.set(this.hasExtrasStep() ? 3 : 4);
     } else {
       this.sidebarShowErrors.set(true);
       setTimeout(() => {
@@ -1082,7 +1413,14 @@ export class StartComponent implements OnInit {
       }, 50);
     }
   }
-  sidebarPrevStep(): void { this.sidebarStep.update(s => Math.max(1, s - 1) as 1 | 2 | 3); }
+  /** Von "Extras" (Schritt 3) weiter zur Zusammenfassung — keine Pflichtfelder. */
+  sidebarExtrasNext(): void { this.sidebarStep.set(4); }
+  sidebarPrevStep(): void {
+    this.sidebarStep.update(s => {
+      if (s === 4 && !this.hasExtrasStep()) { return 2; }
+      return Math.max(1, s - 1) as 1 | 2 | 3 | 4;
+    });
+  }
   sidebarToggleConsent(): void { this.sidebarConsent.update(v => !v); }
   sidebarSelectDay(day: number): void { this.selectDay(day); this.sidebarClosePicker(); }
   sidebarSelectTime(t: string): void { this.time.set(t); this.sidebarClosePicker(); }
@@ -1095,17 +1433,18 @@ export class StartComponent implements OnInit {
   stackedClosePicker(): void { this.stackedOpenPicker.set(null); }
   stackedNextStep(): void {
     this.stackedClosePicker();
-    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
-      this.tischwahlActive.set(true);
+    if (this.tischwahlValid()) {
+      this.stackedTischwahlError.set(false);
+      this.proceedAfterTischwahl();
     } else {
-      this.stackedStep.set(2);
+      this.stackedTischwahlError.set(true);
     }
   }
   stackedGoToSummary(): void {
     if (this.canGoToSummary()) {
       this.stackedShowErrors.set(false);
       this.stackedWasOnSummary.set(true);
-      this.stackedStep.set(3);
+      this.stackedStep.set(this.hasExtrasStep() ? 3 : 4);
     } else {
       this.stackedShowErrors.set(true);
       setTimeout(() => {
@@ -1114,9 +1453,14 @@ export class StartComponent implements OnInit {
       }, 50);
     }
   }
+  /** Von "Extras" (Schritt 3) weiter zur Zusammenfassung — keine Pflichtfelder. */
+  stackedExtrasNext(): void { this.stackedStep.set(4); }
   stackedPrevStep(): void {
-    if (this.stackedStep() === 3) { this.stackedWasOnSummary.set(true); }
-    this.stackedStep.update(s => Math.max(1, s - 1) as 1 | 2 | 3);
+    if (this.stackedStep() === 4) { this.stackedWasOnSummary.set(true); }
+    this.stackedStep.update(s => {
+      if (s === 4 && !this.hasExtrasStep()) { return 2; }
+      return Math.max(1, s - 1) as 1 | 2 | 3 | 4;
+    });
   }
   stackedToggleConsent(): void { this.stackedConsent.update(v => !v); }
   stackedSelectDay(day: number): void { this.selectDay(day); this.stackedClosePicker(); }
@@ -1147,6 +1491,30 @@ export class StartComponent implements OnInit {
   readonly venueDecors = computed<WidgetVenueDecor[]>(() =>
     this.selectedVenue()?.decors ?? []
   );
+
+  /**
+   * Berechnet die passende Breite einer Textfeld-Box (Dekor-Typ 'label') für
+   * einen gegebenen Text. Misst die tatsächliche Pixel-Breite (600/11px
+   * sans-serif, identisch zur Anzeige in Editor, Tischplan und Widget) statt
+   * grob über die Zeichenanzahl zu schätzen — dadurch kein unnötiger
+   * Leerraum mehr links/rechts. Untergrenze 120px (Platzhalter-Breite),
+   * Obergrenze 360px – identisch zur Admin-Logik in room.types.ts, damit
+   * Editor und Gast-Ansicht übereinstimmen.
+   */
+  getLabelWidth(text?: string): number {
+    const t = (text ?? '').trim();
+    if (!t) return 120;
+    const ctx = getLabelMeasureCtx();
+    let textWidth: number;
+    if (ctx) {
+      ctx.font = '600 11px sans-serif';
+      textWidth = ctx.measureText(t).width;
+    } else {
+      textWidth = t.length * 6.5; // Fallback ohne Canvas-Kontext (z. B. SSR)
+    }
+    const estimated = Math.round(textWidth + 24); // Rand + minimaler Innenabstand
+    return Math.min(360, Math.max(120, estimated));
+  }
 
   readonly availableTables = computed<WidgetVenueTable[]>(() => {
     const booked   = this.availability()?.bookedTableNumbers  ?? [];
@@ -1269,16 +1637,38 @@ export class StartComponent implements OnInit {
       }
       return;
     }
-    // Von Schritt 3 (Personenzahl) aus: Tischwahl-Zwischenschritt einblenden,
-    // falls der Nutzer bereits eine Personenzahl gewählt hat und direkt über
-    // den "Weiter"-Button springt, statt nochmal auf einen Sitzplatz-Chip zu
-    // klicken (der Klick auf den Chip selbst löst die Prüfung schon über
-    // selectPlannerSeats() aus — hier greift sie zusätzlich für den CTA-Button).
-    if (s === 3 && this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
-      this.tischwahlActive.set(true);
+    // Schritte 1–3 (Datum/Uhrzeit/Personen): Datum, Uhrzeit und Personenzahl
+    // sind praktisch immer schon sinnvoll vorbelegt (Standardwerte). Wenn der
+    // Nutzer also z.B. direkt auf Schritt 1 auf "Weiter" klickt, ohne jedes
+    // Panel einzeln anzufassen, soll trotzdem direkt zu Schritt 4 (Kontakt)
+    // gesprungen werden, statt ihn Schritt für Schritt durch 1→2→3 zu
+    // schicken, obwohl an den (bereits gültigen) Werten nichts zu tun ist.
+    // Nur wenn die aktuelle Auswahl (noch) nicht gültig ist (z.B. geschlossener
+    // Tag, keine Slots mehr frei), bleiben wir bewusst auf dem aktuellen Panel
+    // und zeigen einen Hinweis, statt den Gast blind weiterzuschicken — das
+    // Problem sitzt ja genau hier (Datum/Uhrzeit/Personen) und nicht im
+    // nächsten Schritt.
+    if (s < 4) {
+      if (this.tischwahlValid()) {
+        this.plannerTischwahlError.set(false);
+        this.proceedAfterTischwahl();
+      } else {
+        this.plannerTischwahlError.set(true);
+      }
       return;
     }
-    if (s < 5) this.plannerAdvanceTo((s + 1) as 1 | 2 | 3 | 4 | 5);
+  }
+  /** Kleiner Vorwärts-Pfeil in der Topbar (nur sichtbar, wenn man zu einem
+   *  bereits besuchten Schritt zurückgegangen ist, siehe plannerMaxStep()).
+   *  Blättert bewusst nur EINEN Schritt weiter — anders als die "Weiter"-CTA
+   *  (plannerNext()), die bei gültigen Werten direkt zu Schritt 4 springt.
+   *  Ohne diese Trennung würde der Pfeil z.B. beim Review von Schritt 2 aus
+   *  versehentlich Schritt 3 (Personen) überspringen. */
+  plannerStepForward(): void {
+    const s = this.plannerStep();
+    if (s < this.plannerMaxStep() && s < 5) {
+      this.plannerAdvanceTo((s + 1) as 1 | 2 | 3 | 4 | 5);
+    }
   }
   plannerToggleConsent(): void { this.plannerConsent.update(v => !v); }
   selectPlannerDay(day: number): void { this.selectDay(day); this.plannerAdvanceTo(2); }
@@ -1307,44 +1697,108 @@ export class StartComponent implements OnInit {
     this.plannerDialPhase.set('hour');
     this.setPlannerStep(3);
   }
+  /** Setzt nur die Personenzahl — springt bewusst NICHT automatisch weiter
+   *  zu Schritt 4, damit man danach noch Datum/Uhrzeit nachjustieren kann,
+   *  ohne erst wieder zurückblättern zu müssen. Der Sprung zu Schritt 4
+   *  passiert ausschließlich über den expliziten "Weiter"-Klick
+   *  (siehe plannerNext()). */
   selectPlannerSeats(n: number): void {
     this.people.set(n);
-    if (this.tischartenAktiv() && this.tischartenModus() === 'plan' && this.suitableTables().length > 0) {
-      this.tischwahlActive.set(true);
-    } else {
-      this.setPlannerStep(4);
-    }
   }
 
-  // ─── Tischplan-Zwischenschritt-Methoden ───────────────────────────────────
-  tischwahlAutoAssign(): void {
+  // ─── Tischwahl-Präferenz (Zwischenschritt NACH Datum/Uhrzeit/Personenzahl,
+  //     siehe needsTischwahlPick()) ─────────────────────────────────────────
+  chooseTischwahlAuto(): void {
     this.selectedTableId.set(null);
-    this.tischwahlActive.set(false);
-    this.proceedAfterTischwahl();
+    this.tischwahlChoice.set('auto');
+    this.advanceToContactStep();
   }
 
-  tischwahlSelbst(): void {
-    this.tischwahlActive.set(false);
+  /**
+   * Bei "selbst wählen" öffnet sich der Tischplan, NACHDEM Datum/Uhrzeit/
+   * Personenzahl bereits feststehen (siehe needsTischwahlPick()). Dadurch
+   * markiert die Passend-Prüfung im Plan (suitableTables()) von Anfang an
+   * die Tische korrekt gegen die echte Personenzahl — vorher öffnete sich
+   * der Plan sofort nach der Präferenzwahl, noch bevor die Personenzahl
+   * bekannt war, wodurch z.B. nur 4er-Tische markiert wirkten, obwohl der
+   * Gast später 9 Personen einträgt und am Ende unerwartet auf der
+   * Warteliste landete.
+   */
+  chooseTischwahlSelbst(): void {
+    this.tischwahlChoice.set('selbst');
     this.tischplanOverlayOpen.set(true);
+    this.advanceToContactStep();
   }
 
-  tischplanOverlayConfirm(): void {
-    this.tischplanOverlayOpen.set(false);
-    this.proceedAfterTischwahl();
+  /** Zurück von der Tischwahl-Präferenz zu Datum/Uhrzeit/Personenzahl (Schritt 1) —
+   *  setzt hasPassedInitialDateTime zurück, wodurch needsTischwahlPick() wieder
+   *  false wird und das Formular erneut sichtbar wird. */
+  backFromTischwahlPick(): void {
+    this.hasPassedInitialDateTime.set(false);
   }
 
-  tischplanOverlayBack(): void {
-    this.tischplanOverlayOpen.set(false);
-    this.tischwahlActive.set(true);
-  }
-
-  private proceedAfterTischwahl(): void {
+  /** Rückt in allen 4 Layouts vom Datum/Uhrzeit/Personenzahl-Formular (bzw. der
+   *  Tischwahl-Präferenz) zum Kontakt-Schritt vor. Gemeinsam genutzt von
+   *  proceedAfterTischwahl() (Auto-Fall ohne aktive Tisch-Planauswahl) sowie
+   *  chooseTischwahlAuto()/chooseTischwahlSelbst() (nachdem die Präferenz
+   *  feststeht). */
+  private advanceToContactStep(): void {
     switch (this.layout()) {
       case 'card':    this.cardStep.set(2);     break;
       case 'sidebar': this.sidebarStep.set(2);  break;
       case 'stacked': this.stackedStep.set(2);  break;
       case 'planner': this.setPlannerStep(4);   break;
     }
+  }
+
+  // ─── Tischplan-Zwischenschritt-Methoden ───────────────────────────────────
+  /**
+   * Schließt den Tischplan und bestätigt die Auswahl. Ein erzwungener
+   * Schritt-Wechsel ist nicht nötig: Der Schritt wurde bereits beim Öffnen
+   * (chooseTischwahlSelbst()) auf den Kontakt-Schritt vorgerückt, das
+   * dahinterliegende Kontakt-Formular kommt also von selbst zum Vorschein.
+   * Wird der Plan später erneut geöffnet (Button "Tisch ändern" während der
+   * Gastdaten-Erfassung), bleibt der aktuelle Schritt ohnehin unverändert.
+   */
+  tischplanOverlayConfirm(): void {
+    this.tischplanOverlayOpen.set(false);
+  }
+
+  /**
+   * Zurück aus dem Tischplan. Wurde noch gar kein Tisch angeklickt (erster
+   * Aufruf direkt nach "selbst wählen", noch nichts ausgewählt), heißt
+   * "Zurück" so viel wie "Auswahl abbrechen" — dann geht es zurück zur
+   * Auto/Selbst-Präferenz. Wurde bereits ein Tisch gewählt (auch beim
+   * späteren "Tisch ändern"), bleibt die Auswahl erhalten und es wird nur
+   * der Plan geschlossen.
+   */
+  tischplanOverlayBack(): void {
+    this.tischplanOverlayOpen.set(false);
+    if (this.selectedTableId() === null) {
+      this.tischwahlChoice.set(null);
+    }
+  }
+
+  // Raumwechsel direkt im Tischplan-Overlay — nur relevant, wenn die
+  // Raumauswahl-Einstellung AUS ist (sonst wurde der Raum schon vorher über
+  // needsVenuePick() fest gewählt). Setzt die Tischauswahl zurück, da sich
+  // mit dem Raum auch der Grundriss/die freien Tische ändern.
+  selectVenueInPlan(venue: WidgetVenue): void {
+    this.selectedVenue.set(venue);
+    this.selectedTableId.set(null);
+  }
+
+  private proceedAfterTischwahl(): void {
+    this.hasPassedInitialDateTime.set(true);
+    if (this.needsTischwahlPick()) {
+      // Tisch-Plan-Auswahl aktiv, aber noch keine Präferenz (auto/selbst)
+      // gewählt — needsTischwahlPick() zeigt jetzt (siehe @else-if-Kette in
+      // den Templates) den Zwischenschritt, bevor es zum Kontakt-Formular
+      // weitergeht. advanceToContactStep() wird erst in chooseTischwahlAuto()/
+      // chooseTischwahlSelbst() aufgerufen, sobald die Präferenz feststeht.
+      return;
+    }
+    this.advanceToContactStep();
   }
 
   ngOnInit(): void {
@@ -1373,9 +1827,13 @@ export class StartComponent implements OnInit {
 
     // Config neu laden wenn der Tab sichtbar wird (Tab-Wechsel) ODER
     // das Fenster den Fokus bekommt (z.B. Admin-Tab → Widget-Tab click).
-    // Nur wenn kein Buchungsvorgang läuft.
+    // Nur wenn kein Buchungsvorgang läuft. preserveSelection=true, damit eine
+    // bereits getroffene Auswahl (Datum/Raum/Tisch) durch den Reload NICHT
+    // überschrieben wird — state() bleibt während der ganzen Buchungsstrecke
+    // 'idle', ein Gast der z.B. kurz den Tab wechselt würde sonst seine
+    // Auswahl verlieren.
     const reloadIfIdle = () => {
-      if (this.state() === 'idle') this.loadConfig(publicKey);
+      if (this.state() === 'idle') this.loadConfig(publicKey, true);
     };
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) reloadIfIdle();
@@ -1386,7 +1844,13 @@ export class StartComponent implements OnInit {
     window.addEventListener('resize', () => this.windowWidth.set(window.innerWidth));
   }
 
-  private loadConfig(publicKey: string): void {
+  /**
+   * @param preserveSelection true bei einem Reload im Hintergrund (Tab-Refocus)
+   *   — dann werden Datum/Raum-Vorbelegung NICHT angefasst, damit eine bereits
+   *   getroffene Gast-Auswahl erhalten bleibt. Der ausgewählte Raum wird
+   *   lediglich mit den frischen Daten (z.B. geänderter Tischplan) abgeglichen.
+   */
+  private loadConfig(publicKey: string, preserveSelection = false): void {
     this.reservations.loadConfig(publicKey).subscribe(config => {
       this.restaurantName.set(config.name);
       this.venues.set(config.venues);
@@ -1409,7 +1873,9 @@ export class StartComponent implements OnInit {
 
       // Find the first selectable day: not a closed weekday, not a special closing,
       // and still has at least one bookable time slot left.
-      {
+      // Nur bei Erstladung — bei preserveSelection (Tab-Refocus-Reload) soll
+      // das vom Gast bereits gewählte Datum unangetastet bleiben.
+      if (!preserveSelection) {
         const now        = new Date();
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
         const step       = this.stepMinutes();
@@ -1448,10 +1914,25 @@ export class StartComponent implements OnInit {
       }
 
       const filtered = this.filteredVenues();
-      // Always pre-select the first venue so availability is checked immediately.
-      // When raumauswahl is true the chips still show and the user can switch rooms.
-      if (filtered.length > 0) {
-        this.selectedVenue.set(filtered[0]);
+      if (!preserveSelection) {
+        // Ist die Raumauswahl aktiv und gibt es mehrere Räume: KEINEN Raum
+        // vorbelegen — der Gast muss den Raum zuerst wählen (siehe
+        // needsVenuePick()), damit Datum & Uhrzeit direkt mit der echten
+        // Verfügbarkeit dieses Raums berechnet werden. Sonst (nur 1 Raum /
+        // Raumauswahl deaktiviert) sofort vorbelegen, damit die Verfügbarkeits-
+        // prüfung ohne zusätzlichen Klick greift.
+        if (filtered.length > 0 && !(this.raumauswahl() && filtered.length > 1)) {
+          this.selectedVenue.set(filtered[0]);
+        }
+      } else {
+        // Bereits gewählten Raum mit den frischen Daten abgleichen (z.B. falls
+        // der Admin währenddessen den Tischplan geändert hat), ohne die
+        // Auswahl selbst zu verwerfen.
+        const current = this.selectedVenue();
+        if (current) {
+          const fresh = filtered.find(v => v.id === current.id);
+          if (fresh) this.selectedVenue.set(fresh);
+        }
       }
 
       this.state.set(filtered.length > 0 ? 'idle' : 'error');
@@ -1626,6 +2107,7 @@ export class StartComponent implements OnInit {
     if (typeof func.vorausbuchungWert === 'number')    this.vorausbuchungWert.set(func.vorausbuchungWert);
     if (typeof func.mindestvorlaufMinuten === 'number')  this.mindestvorlaufMinuten.set(func.mindestvorlaufMinuten);
     if (typeof func.defaultDurationMinutes === 'number') this.defaultDurationMinutes.set(func.defaultDurationMinutes);
+    if (typeof func.cleanupMinutes === 'number')       this.cleanupMinutes.set(func.cleanupMinutes);
     if (typeof func.tischartenAktiv === 'boolean')     this.tischartenAktiv.set(func.tischartenAktiv);
     if (Array.isArray(func.tischartenAktiveTypes))     this.tischartenAktiveTypes.set(func.tischartenAktiveTypes);
     if (func.tischartenAuswahlModus)                   this.tischartenModus.set(func.tischartenAuswahlModus);
@@ -1642,6 +2124,7 @@ export class StartComponent implements OnInit {
     if (typeof func.wartelisteMaxPlaetze === 'number')   this.wartelisteMaxPlaetze.set(func.wartelisteMaxPlaetze);
     if (func.wartelisteKanal)                            this.wartelisteKanal.set(func.wartelisteKanal);
     if (typeof func.wartelisteAntwortStunden === 'number') this.wartelisteAntwortStunden.set(func.wartelisteAntwortStunden);
+    if (func.wartelisteHinweis != null)                    this.wartelisteHinweis.set(func.wartelisteHinweis);
   }
 
   private isDarkBackground(hex: string): boolean {
@@ -1751,12 +2234,6 @@ export class StartComponent implements OnInit {
     this.selectedVenue.set(venue);
   }
 
-  // Raumwechsel direkt im Tischplan-Overlay — setzt Tischauswahl zurück
-  selectVenueInPlan(venue: WidgetVenue): void {
-    this.selectedVenue.set(venue);
-    this.selectedTableId.set(null);
-  }
-
   onTimeChange(val: string): void {
     this.time.set(val);
   }
@@ -1798,7 +2275,13 @@ export class StartComponent implements OnInit {
     let tableId: number | undefined;
     if (this.tischartenAktiv()) {
       if (this.tischartenModus() === 'plan') {
-        tableId = this.selectedTableId() ?? undefined;
+        // Sicherheitsprüfung: ein manuell gewählter Tisch darf nur übernommen
+        // werden, wenn er für die aktuelle Personenzahl auch wirklich noch
+        // passt (siehe clearInvalidTableSelectionEffect — das ist hier nur
+        // die zusätzliche Absicherung direkt vorm Absenden).
+        const chosen = this.selectedTableId();
+        const chosenTable = chosen !== null ? this.availableTables().find(t => t.id === chosen) : undefined;
+        tableId = (chosenTable && chosenTable.seats >= this.people()) ? chosenTable.id : undefined;
       } else if (this.tischartenModus() === 'liste' && this.selectedTischart()) {
         // Best-fit: smallest available table of selected type with enough seats
         const match = this.availableTables()
@@ -1819,13 +2302,15 @@ export class StartComponent implements OnInit {
     this.reservations.create({
       venue_id:          venue.id,
       guest_name:        this.guestName().trim(),
+      guest_first_name:  this.guestFirstName().trim() || undefined,
       guest_email:       this.guestEmail().trim(),
       guest_phone:       this.guestPhone().trim() || undefined,
       party_size:        this.people(),
       starts_at:         toAtomDateTime(this.date(), time),
       notes:             notesText || undefined,
+      occasion:          this.occasion().trim() || undefined,
       table_id:          tableId,
-      duration_minutes:  this.defaultDurationMinutes(),
+      duration_minutes:  this.effectiveDurationMinutes(),
       packages:          this.packageBuchungAktiv() && this.selectedPackages().length > 0
         ? this.selectedPackages().map(x => ({ package_id: x.pkg.id, quantity: x.quantity }))
         : undefined,
@@ -1876,37 +2361,62 @@ export class StartComponent implements OnInit {
     this.time.set('19:00');
     this.people.set(2);
     this.guestName.set('');
+    this.guestFirstName.set('');
     this.guestEmail.set('');
     this.guestPhone.set('');
     this.notes.set('');
+    this.occasion.set('');
     this.packageQuantities.set({});
     this.state.set('idle');
     this.errorMessage.set('');
     this.successInfo.set(null);
     this.cardStep.set(1);
     this.cardConsent.set(false);
+    this.cardShowErrors.set(false);
+    this.cardWasOnSummary.set(false);
+    this.cardTischwahlError.set(false);
+    this.cardOpenPicker.set(null);
     this.sidebarStep.set(1);
     this.sidebarConsent.set(false);
+    this.sidebarOpenPicker.set(null);
+    this.sidebarWasOnSummary.set(false);
+    this.sidebarShowErrors.set(false);
+    this.sidebarTischwahlError.set(false);
     this.stackedStep.set(1);
     this.stackedConsent.set(false);
     this.stackedShowErrors.set(false);
     this.stackedWasOnSummary.set(false);
+    this.stackedOpenPicker.set(null);
+    this.stackedTischwahlError.set(false);
     this.plannerStep.set(1);
     this.plannerMaxStep.set(1);
     this.plannerConsent.set(false);
     this.plannerShowErrors.set(false);
     this.plannerWasOnSummary.set(false);
-    if (this.filteredVenues().length > 0) {
-      this.selectedVenue.set(this.filteredVenues()[0]);
-    }
+    this.plannerDialPhase.set('hour');
+    this.plannerTischwahlError.set(false);
+    const filteredReset = this.filteredVenues();
+    // Gleiche Logik wie beim initialen Laden: ist die Raumauswahl aktiv und
+    // gibt es mehrere Räume, keinen Raum vorbelegen, damit die Raum-Auswahl
+    // (needsVenuePick) vor der nächsten Buchung erneut zuerst angezeigt wird.
+    this.selectedVenue.set(
+      filteredReset.length > 0 && !(this.raumauswahl() && filteredReset.length > 1)
+        ? filteredReset[0]
+        : null
+    );
     this.kinderStuehle.set(0);
     this.rollstuhl.set(false);
     this.hund.set(false);
     this.selectedAllergene.set([]);
     this.selectedTischart.set('');
     this.selectedTableId.set(null);
-    this.tischwahlActive.set(false);
+    this.tischwahlChoice.set(null);
     this.tischplanOverlayOpen.set(false);
+    // Ohne diesen Reset würde needsTischwahlPick() bei einer zweiten Buchung
+    // in derselben Sitzung sofort wieder true liefern (weil hasPassedInitial-
+    // DateTime aus der vorherigen Buchung noch true wäre) und den Zwischen-
+    // schritt fälschlich überspringen bzw. verfrüht anzeigen.
+    this.hasPassedInitialDateTime.set(false);
   }
 
   formatDate(iso: string): string {

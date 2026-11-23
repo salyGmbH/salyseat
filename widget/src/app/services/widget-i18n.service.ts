@@ -16,8 +16,11 @@ export interface WidgetLabels {
   stepTime:          string;
   stepGuests:        string;
   stepContact:       string;
+  stepExtras:        string;
   stepSummary:       string;
   stepPayment:       string;
+  extrasTitle:       string;
+  extrasSubtitle:    string;
 
   // Form labels
   firstName:         string;
@@ -26,6 +29,8 @@ export interface WidgetLabels {
   phone:             string;
   notes:             string;
   notesPlaceholder:  string;
+  occasionLabel:       string;
+  occasionPlaceholder: string;
 
   // Date / time
   today:             string;
@@ -74,6 +79,9 @@ export interface WidgetLabels {
   childChairs:       string;
   wheelchair:        string;
   venue:             string;
+  chooseVenueTitle:  string;
+  chooseVenueHint:   string;
+  tischwahlInvalidHint: string;
 
   // Extended – booking flow UI
   understood:           string;
@@ -91,6 +99,7 @@ export interface WidgetLabels {
   dogLabel:             string;
   wheelchairLabel:      string;
   packagesLabel:        string;
+  optionalLabel:        string;
   noPackageOption:      string;
   perPersonSuffix:      string;
   packageCatMenu:       string;
@@ -110,6 +119,7 @@ export interface WidgetLabels {
   hour:                 string;
   minute:               string;
   selectTableTitle:     string;
+  chooseRoomLabel:      string;
   tapTable:             string;
   confirmTable:         string;
   tablesDimmed:         string;
@@ -126,6 +136,7 @@ export interface WidgetLabels {
   selectGuests:         string;
   overviewLabel:        string;
   selectTableSubtitle:  string;
+  tablePlanDateHint:    string;
 
   // Time / locale
   clockSuffix:          string; // ' Uhr' in DE, '' in EN
@@ -179,8 +190,11 @@ const DE: WidgetLabels = {
   stepTime:          'Uhrzeit',
   stepGuests:        'Personen',
   stepContact:       'Kontakt',
+  stepExtras:        'Zusatzwünsche',
   stepSummary:       'Zusammenfassung',
   stepPayment:       'Zahlung',
+  extrasTitle:       'Zusatzwünsche',
+  extrasSubtitle:    'Optional — nur ausfüllen, falls gewünscht.',
 
   firstName:         'Vorname',
   lastName:          'Nachname',
@@ -188,6 +202,8 @@ const DE: WidgetLabels = {
   phone:             'Telefon',
   notes:             'Nachricht',
   notesPlaceholder:  'Besondere Wünsche, Anlässe …',
+  occasionLabel:       'Anlass',
+  occasionPlaceholder: 'z. B. Geburtstag, Jubiläum …',
 
   today:             'Heute',
   noSlotsAvailable:  'Keine verfügbaren Zeiten',
@@ -228,6 +244,9 @@ const DE: WidgetLabels = {
   childChairs:       'Kinderstühle',
   wheelchair:        'Rollstuhlgerecht',
   venue:             'Bereich',
+  chooseVenueTitle:  'Wähle deinen Bereich',
+  chooseVenueHint:   'Die Verfügbarkeit von Datum und Uhrzeit richtet sich nach dem gewählten Bereich.',
+  tischwahlInvalidHint: 'Für diese Auswahl ist aktuell keine Reservierung möglich. Bitte passe Datum, Uhrzeit oder Personenzahl an.',
 
   understood:           'Verstanden',
   menuLabel:            'Speisekarte ansehen',
@@ -244,6 +263,7 @@ const DE: WidgetLabels = {
   dogLabel:             'Hund dabei',
   wheelchairLabel:      'Rollstuhlgerechter Platz gewünscht',
   packagesLabel:        'Package auswählen (optional)',
+  optionalLabel:        'optional',
   noPackageOption:      'Kein Package',
   perPersonSuffix:      '€ / Person',
   packageCatMenu:       'Menü',
@@ -263,6 +283,7 @@ const DE: WidgetLabels = {
   hour:                 'Stunde',
   minute:               'Minute',
   selectTableTitle:     'Tisch wählen',
+  chooseRoomLabel:      'Wähle einen Raum',
   tapTable:             'Tisch antippen',
   confirmTable:         'bestätigen',
   tablesDimmed:         'Tisch ausgegraut',
@@ -279,6 +300,7 @@ const DE: WidgetLabels = {
   selectGuests:         'Personen wählen',
   overviewLabel:        'Übersicht',
   selectTableSubtitle:  'Möchtest du deinen Tisch selbst aussuchen oder soll automatisch ein passender Tisch für dich reserviert werden?',
+  tablePlanDateHint:    'Verfügbarkeit bezieht sich auf heute — dein Datum wählst du im nächsten Schritt.',
 
   clockSuffix:          ' Uhr',
   emailPlaceholder:     'name@beispiel.de',
@@ -328,8 +350,11 @@ const EN: WidgetLabels = {
   stepTime:          'Time',
   stepGuests:        'Guests',
   stepContact:       'Contact',
+  stepExtras:        'Extras',
   stepSummary:       'Summary',
   stepPayment:       'Payment',
+  extrasTitle:       'Extras',
+  extrasSubtitle:    'Optional — fill in only if needed.',
 
   firstName:         'First name',
   lastName:          'Last name',
@@ -337,6 +362,8 @@ const EN: WidgetLabels = {
   phone:             'Phone',
   notes:             'Message',
   notesPlaceholder:  'Special requests, occasions …',
+  occasionLabel:       'Occasion',
+  occasionPlaceholder: 'e.g. birthday, anniversary …',
 
   today:             'Today',
   noSlotsAvailable:  'No available times',
@@ -377,6 +404,9 @@ const EN: WidgetLabels = {
   childChairs:       'High chairs',
   wheelchair:        'Wheelchair accessible',
   venue:             'Area',
+  chooseVenueTitle:  'Choose your area',
+  chooseVenueHint:   'Date and time availability depends on the selected area.',
+  tischwahlInvalidHint: 'No reservation is possible for this selection right now. Please adjust the date, time, or party size.',
 
   understood:           'Got it',
   menuLabel:            'View menu',
@@ -393,6 +423,7 @@ const EN: WidgetLabels = {
   dogLabel:             'Dog with me',
   wheelchairLabel:      'Wheelchair-accessible seat requested',
   packagesLabel:        'Select a package (optional)',
+  optionalLabel:        'optional',
   noPackageOption:      'No package',
   perPersonSuffix:      '€ / person',
   packageCatMenu:       'Menu',
@@ -412,6 +443,7 @@ const EN: WidgetLabels = {
   hour:                 'Hour',
   minute:               'Minute',
   selectTableTitle:     'Select table',
+  chooseRoomLabel:      'Choose a room',
   tapTable:             'Tap a table',
   confirmTable:         'confirm',
   tablesDimmed:         'table dimmed',
@@ -428,6 +460,7 @@ const EN: WidgetLabels = {
   selectGuests:         'Select guests',
   overviewLabel:        'Overview',
   selectTableSubtitle:  'Would you like to choose your own table or have one automatically assigned to you?',
+  tablePlanDateHint:    'Availability shown is for today — you\'ll pick your date in the next step.',
 
   clockSuffix:          '',
   emailPlaceholder:     'name@example.com',

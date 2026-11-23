@@ -9,7 +9,7 @@ import {
   ReservationTimingSettings,
   TenantSettingsService,
 } from '../../../services/tenant-settings.service';
-import { GetraenkeReminderService } from '../../../services/getraenke-reminder.service';
+import { DEFAULT_GETRAENKE_SETTINGS, GetraenkeReminderService } from '../../../services/getraenke-reminder.service';
 
 interface DurationPreset {
   label: string;
@@ -60,21 +60,7 @@ export class ReservierungenComponent {
   info6             = signal(false);
 
   constructor() {
-    // defaultDuration/autoExpire/cleanupOn/cleanupMinutes werden oben mit dem
-    // AKTUELLEN Stand von ReservationTimingService initialisiert — das ist beim
-    // allerersten Konstruieren des Service (z.B. frischer Reload dieser Seite)
-    // noch der Default, weil dessen eigener Backend-Load zu dem Zeitpunkt noch
-    // nicht angekommen ist. Ohne diesen Effect blieben die Felder dauerhaft auf
-    // "aus", auch wenn im Backend längst etwas anderes gespeichert ist.
-    effect(() => {
-      const s = this.timing.settings();
-      this.defaultDuration.set(s.defaultDurationMinutes);
-      this.autoExpire.set(s.autoExpireEnabled);
-      this.cleanupOn.set(s.cleanupEnabled);
-      this.cleanupMinutes.set(s.cleanupMinutes);
-    }, { allowSignalWrites: true });
-
-    // Gleicher Grund/gleicher Fix wie oben: getraenkeOn/getraenkeMinutes werden
+    // Gleicher Grund/gleicher Fix wie unten: getraenkeOn/getraenkeMinutes werden
     // unten mit dem aktuellen Stand von GetraenkeReminderService initialisiert,
     // der bei frischem Reload dieser Seite noch der Default sein kann, weil der
     // eigene Backend-Load des Service noch nicht angekommen ist.
@@ -84,8 +70,32 @@ export class ReservierungenComponent {
     }, { allowSignalWrites: true });
 
     this.tenantSettings.load().subscribe(s => {
+      // defaultDuration/autoExpire/cleanupOn/cleanupMinutes bewusst NUR hier beim
+      // initialen Laden setzen — NICHT (mehr) reaktiv per effect() auf
+      // timing.settings(). Grund: Alle drei Karten (Dauer/Auto-Expire/Clean-up)
+      // teilen sich EIN gemeinsames Settings-Objekt im ReservationTimingService.
+      // Ein effect(), der bei JEDER Änderung von timing.settings() alle vier
+      // Felder neu setzt, hätte auch nach dem Speichern einer EINZELNEN Karte
+      // (z.B. Clean-up) ausgelöst — und dabei ungespeicherte Änderungen in den
+      // ANDEREN Karten (z.B. eine gerade eingegebene, noch nicht gespeicherte
+      // Standarddauer) stillschweigend mit dem zuletzt gespeicherten
+      // Backend-Wert überschrieben. Ein einmaliger Sync beim Laden reicht aus,
+      // da jede Karte ihre eigenen Änderungen ohnehin lokal sofort im Feld hält.
+      const rt = { ...DEFAULT_RESERVATION_TIMING, ...(s.reservationTiming ?? {}) };
+      this.defaultDuration.set(rt.defaultDurationMinutes);
+      this.autoExpire.set(rt.autoExpireEnabled);
+      this.cleanupOn.set(rt.cleanupEnabled);
+      this.cleanupMinutes.set(rt.cleanupMinutes);
+
       this.noShowThreshold.set(s.noShowAutoBlockThreshold ?? null);
       this.autoCheckout.set(s.autoCheckoutEnabled ?? false);
+      // Ohne diese beiden Zeilen blieb die VIP-Schwelle beim Direktaufruf dieser
+      // Seite (ohne vorher geladenen tenantSettings.snapshot) fälschlich auf dem
+      // Default (5) stehen — ein Speichern hätte dann den echten gespeicherten
+      // Wert stillschweigend überschrieben.
+      const vip = s.vipThreshold ?? 5;
+      this.vipThreshold.set(vip);
+      this.vipThresholdInput = vip;
     });
   }
 
@@ -137,16 +147,45 @@ export class ReservierungenComponent {
   // ────────────────────────────────────────────────────────────────
   //  Aktionen
   // ────────────────────────────────────────────────────────────────
+  /** Setzt + klemmt den Wert auf [15, 480] — für Presets, Blur und Speichern. */
   setDuration(min: number): void {
     if (min < 15) min = 15;
     if (min > 480) min = 480;
     this.defaultDuration.set(Math.round(min));
   }
 
+  /** Setzt + klemmt den Wert auf [5, 120] — für Presets, Blur und Speichern. */
   setCleanup(min: number): void {
     if (min < 5) min = 5;
     if (min > 120) min = 120;
     this.cleanupMinutes.set(Math.round(min));
+  }
+
+  /**
+   * Während des Tippens im "eigener Wert"-Feld bewusst NICHT klemmen (siehe
+   * setDuration/setCleanup) — sonst wird jede Zwischen-Eingabe unter dem
+   * Minimum sofort auf das Minimum hochgezogen und im Feld angezeigt. Beim
+   * Eintippen von z.B. "20" (Minimum 15) würde das erste Zeichen "2" bereits
+   * auf "15" springen, sodass die zweite Ziffer "0" an "15" statt an "2"
+   * angehängt wird → "150" statt "20". Geklemmt wird erst beim Verlassen des
+   * Feldes (onDurationBlur/onCleanupBlur) oder beim Speichern.
+   */
+  onDurationInput(value: number | null): void {
+    if (value === null || Number.isNaN(value)) return;
+    this.defaultDuration.set(value);
+  }
+
+  onDurationBlur(): void {
+    this.setDuration(this.defaultDuration());
+  }
+
+  onCleanupInput(value: number | null): void {
+    if (value === null || Number.isNaN(value)) return;
+    this.cleanupMinutes.set(value);
+  }
+
+  onCleanupBlur(): void {
+    this.setCleanup(this.cleanupMinutes());
   }
 
   toggleAutoExpire(): void { this.autoExpire.update(v => !v); }
@@ -170,9 +209,19 @@ export class ReservierungenComponent {
     this.autoExpire.set(    DEFAULT_RESERVATION_TIMING.autoExpireEnabled);
     this.cleanupOn.set(     DEFAULT_RESERVATION_TIMING.cleanupEnabled);
     this.cleanupMinutes.set(DEFAULT_RESERVATION_TIMING.cleanupMinutes);
+
+    this.getraenkeOn.set(     DEFAULT_GETRAENKE_SETTINGS.enabled);
+    this.getraenkeMinutes.set(DEFAULT_GETRAENKE_SETTINGS.minutes);
+
+    this.vipThreshold.set(5);
+    this.vipThresholdInput = 5;
+
+    this.noShowThreshold.set(null);
+    this.autoCheckout.set(false);
   }
 
   saveDuration(): void {
+    this.setDuration(this.defaultDuration());
     this.timing.save({ defaultDurationMinutes: this.defaultDuration() });
     this.savedDuration.set(true);
     setTimeout(() => this.savedDuration.set(false), 2000);
@@ -185,6 +234,7 @@ export class ReservierungenComponent {
   }
 
   saveCleanup(): void {
+    this.setCleanup(this.cleanupMinutes());
     this.timing.save({ cleanupEnabled: this.cleanupOn(), cleanupMinutes: this.cleanupMinutes() });
     this.savedCleanup.set(true);
     setTimeout(() => this.savedCleanup.set(false), 2000);
@@ -210,6 +260,7 @@ export class ReservierungenComponent {
   saveVipThreshold(): void {
     const t = Math.max(1, Math.min(100, this.vipThresholdInput));
     this.vipThreshold.set(t);
+    this.vipThresholdInput = t;
     this.tenantSettings.save({ ...this.tenantSettings.snapshot, vipThreshold: t }).subscribe();
     this.savedVipThreshold.set(true);
     setTimeout(() => this.savedVipThreshold.set(false), 2000);

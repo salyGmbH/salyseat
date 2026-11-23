@@ -167,6 +167,7 @@ class AvailabilityService
     {
         $rows = $this->dbal->fetchAllAssociative(
             'SELECT r.table_number                      AS tableNumber,
+                    r.table_ids                          AS tableIds,
                     DATE_FORMAT(r.starts_at, \'%H:%i\') AS `from`,
                     DATE_FORMAT(r.ends_at,   \'%H:%i\') AS `to`
                FROM reservations r
@@ -176,24 +177,67 @@ class AvailabilityService
             [$venue->getId()->toRfc4122(), $dateStr],
         );
 
-        return array_map(fn ($r) => [
-            'tableNumber' => (int) $r['tableNumber'],
-            'from'        => $r['from'],
-            'to'          => $r['to'],
-        ], $rows);
+        $periods = [];
+        foreach ($rows as $r) {
+            foreach ($this->resolveTableNumbers($r['tableNumber'], $r['tableIds']) as $tableNumber) {
+                $periods[] = [
+                    'tableNumber' => $tableNumber,
+                    'from'        => $r['from'],
+                    'to'          => $r['to'],
+                ];
+            }
+        }
+
+        return $periods;
+    }
+
+    /**
+     * Liefert alle Tischnummern einer Reservierung. Bei zusammengelegten
+     * Tischen (Mehrfach-Tischauswahl, gespeichert in table_ids als JSON-Array)
+     * werden ALLE Tische zurückgegeben, nicht nur der erste (table_number) —
+     * sonst gilt ein Venue fälschlich als "noch frei", obwohl eine einzelne
+     * Reservierung bereits mehrere/alle Tische belegt.
+     */
+    private function resolveTableNumbers(mixed $tableNumber, mixed $tableIdsJson): array
+    {
+        $tableIds = [];
+        if ($tableIdsJson !== null && $tableIdsJson !== '') {
+            $decoded = json_decode((string) $tableIdsJson, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                $tableIds = array_values(array_unique(array_map('intval', $decoded)));
+            }
+        }
+
+        if (count($tableIds) > 0) {
+            return $tableIds;
+        }
+
+        return ($tableNumber !== null && $tableNumber !== '') ? [(int) $tableNumber] : [];
     }
 
     private function fetchBlockedTableNumbers(Venue $venue, string $dateStr, string $timeStr): array
     {
         if ($timeStr !== '') {
+            // Nicht nur den Startzeitpunkt prüfen, sondern das volle Zeitfenster
+            // der Reservierung [Start, Ende) gegen die Sperrzeit — sonst würde
+            // eine Sperre wie 20:30–21:00 eine um 20:00 beginnende, bis 21:30
+            // laufende Reservierung nicht erkennen, obwohl sie in die Sperrzeit
+            // hineinragt. Dieselbe Dauer-Annahme wie bei fetchBookedTableNumbers()
+            // (Effective-Default-Dauer, ohne Clean-up-Puffer — die Sperre selbst
+            // markiert den Tisch bereits explizit als gesperrt, kein zusätzlicher
+            // Puffer nötig).
+            $startsAt   = new \DateTimeImmutable("{$dateStr}T{$timeStr}:00");
+            $endsAt     = $startsAt->modify(sprintf('+%d minutes', $venue->getEffectiveDefaultDurationMinutes()));
+            $endTimeStr = $endsAt->format('Y-m-d') === $dateStr ? $endsAt->format('H:i') : '24:00';
+
             $rows = $this->dbal->fetchFirstColumn(
                 'SELECT DISTINCT table_number
                    FROM table_blocks
                   WHERE venue_id  = UNHEX(REPLACE(?, \'-\', \'\'))
                     AND date_from <= ?
                     AND date_to   >= ?
-                    AND (full_day = 1 OR (time_from <= ? AND time_to > ?))',
-                [$venue->getId()->toRfc4122(), $dateStr, $dateStr, $timeStr, $timeStr],
+                    AND (full_day = 1 OR (time_from < ? AND time_to > ?))',
+                [$venue->getId()->toRfc4122(), $dateStr, $dateStr, $endTimeStr, $timeStr],
             );
         } else {
             $rows = $this->dbal->fetchFirstColumn(
@@ -216,7 +260,7 @@ class AvailabilityService
         }
 
         $startsAt = new \DateTimeImmutable("{$dateStr}T{$timeStr}:00");
-        $endsAt   = $startsAt->modify(sprintf('+%d minutes', $venue->getDefaultDurationMinutes()));
+        $endsAt   = $startsAt->modify(sprintf('+%d minutes', $venue->getEffectiveDefaultDurationMinutes()));
 
         // Clean-up-Zeit symmetrisch auf beide Seiten des gesuchten Fensters anwenden —
         // hält den Puffer zu jeder Nachbar-Reservierung ein, egal ob davor oder danach.
@@ -225,12 +269,13 @@ class AvailabilityService
         $windowStart    = $cleanupMinutes > 0 ? $startsAt->modify("-{$cleanupMinutes} minutes") : $startsAt;
         $windowEnd      = $cleanupMinutes > 0 ? $endsAt->modify("+{$cleanupMinutes} minutes")   : $endsAt;
 
-        $rows = $this->dbal->fetchFirstColumn(
-            'SELECT DISTINCT r.table_number
+        $rows = $this->dbal->fetchAllAssociative(
+            'SELECT r.table_number AS tableNumber,
+                    r.table_ids    AS tableIds
                FROM reservations r
               WHERE r.venue_id = UNHEX(REPLACE(?, \'-\', \'\'))
                 AND r.status NOT IN (\'cancelled\', \'completed\', \'no_show\')
-                AND r.table_number IS NOT NULL
+                AND (r.table_number IS NOT NULL OR r.table_ids IS NOT NULL)
                 AND r.starts_at < ?
                 AND r.ends_at   > ?',
             [
@@ -240,7 +285,14 @@ class AvailabilityService
             ],
         );
 
-        return array_map('intval', $rows);
+        $tableNumbers = [];
+        foreach ($rows as $r) {
+            foreach ($this->resolveTableNumbers($r['tableNumber'], $r['tableIds']) as $tableNumber) {
+                $tableNumbers[$tableNumber] = true;
+            }
+        }
+
+        return array_keys($tableNumbers);
     }
 
     /** Clean-up-Zeit in Minuten — 0 wenn der Schalter in den Tenant-Settings aus ist. */

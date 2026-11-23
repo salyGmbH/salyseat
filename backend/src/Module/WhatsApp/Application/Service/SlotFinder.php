@@ -70,7 +70,7 @@ class SlotFinder
         // aber ggf. leicht zu vorsichtig — akzeptabel für v1.
         $blockedTableNumbers = array_map('intval', $availability['blockedTableNumbers'] ?? []);
 
-        $duration = $venue->getDefaultDurationMinutes();
+        $duration = $venue->getEffectiveDefaultDurationMinutes();
 
         $slots = [];
         foreach ($this->generateCandidateTimes($availability['open_time'], $availability['close_time'], $availability['breaks'] ?? [], $intervalMinutes) as $time) {

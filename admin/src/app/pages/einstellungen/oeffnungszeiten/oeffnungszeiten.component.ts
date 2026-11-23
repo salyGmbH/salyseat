@@ -11,6 +11,7 @@ import {
 } from '../../../services/opening-hours.service';
 import { VenueService } from '../../../services/venue.service';
 import { localDateIso } from '../../../shared/local-date.util';
+import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
 
 interface BreakRow { from: string; to: string; }
 
@@ -37,7 +38,7 @@ const WEEKDAY_KEYS = ['common.days_long.mon','common.days_long.tue','common.days
 @Component({
   selector: 'app-oeffnungszeiten',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule, OpenDatePickerDirective],
   templateUrl: './oeffnungszeiten.component.html',
   styleUrl: './oeffnungszeiten.component.scss',
 })

@@ -28,7 +28,7 @@ final class UpdateReservationHandler
 
         $endsAt = null;
         if ($cmd->startsAt !== null) {
-            $minutes = $cmd->durationMinutes ?? $reservation->getVenue()->getDefaultDurationMinutes();
+            $minutes = $cmd->durationMinutes ?? $reservation->getVenue()->getEffectiveDefaultDurationMinutes();
             $endsAt  = $cmd->startsAt->modify(sprintf('+%d minutes', $minutes));
         }
 
@@ -39,6 +39,8 @@ final class UpdateReservationHandler
             endsAt:     $endsAt,
             guestPhone: $cmd->guestPhone,
             guestNotes: $cmd->guestNotes,
+            guestFirstName: $cmd->guestFirstName,
+            occasion:       $cmd->occasion,
         );
 
         if ($cmd->tableNumber !== false) {

@@ -14,6 +14,8 @@ export interface FloorReservation {
   backendId?: string;
   roomId: string;
   guestName: string;
+  guestFirstName?: string;
+  occasion?: string;
   partySize: number;
   date: string;
   time: string;

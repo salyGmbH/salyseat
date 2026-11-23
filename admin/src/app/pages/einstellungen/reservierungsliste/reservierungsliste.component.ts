@@ -7,13 +7,14 @@ import { RoomsService } from '../../../services/rooms.service';
 import { Reservation, ReservationStatus, STATUS_LABELS } from '../../../services/reservation.types';
 import { StatusColorsService, StatusKey } from '../../../services/status-colors.service';
 import { StatusIconComponent } from '../../../shared/status-icon/status-icon.component';
+import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 @Component({
   selector: 'app-reservierungsliste',
   standalone: true,
-  imports: [MatIconModule, FormsModule, TranslateModule, StatusIconComponent],
+  imports: [MatIconModule, FormsModule, TranslateModule, StatusIconComponent, OpenDatePickerDirective],
   templateUrl: './reservierungsliste.component.html',
   styleUrl: './reservierungsliste.component.scss',
 })
@@ -161,10 +162,11 @@ export class ReservierungslisteComponent implements OnInit {
 
     autoTable(doc, {
       startY: 28,
-      head: [['Datum / Zeit', 'Gast', 'Pers.', 'E-Mail', 'Telefon', 'Status', 'Notiz']],
+      head: [['Datum / Zeit', 'Gast', 'Anlass', 'Pers.', 'E-Mail', 'Telefon', 'Status', 'Notiz']],
       body: data.map(r => [
         `${this.formatDate(r.starts_at)}\n${this.formatTime(r.starts_at)} – ${this.formatTime(r.ends_at)}`,
-        r.guest_name,
+        r.guest_first_name ? `${r.guest_first_name} ${r.guest_name}` : r.guest_name,
+        r.occasion ?? '',
         String(r.party_size),
         this.isRealEmail(r.guest_email) ? r.guest_email : '—',
         r.guest_phone ?? '—',
@@ -231,7 +233,11 @@ export class ReservierungslisteComponent implements OnInit {
       case 'table':
         return [...list].sort((a, b) => (a.table_number ?? 9999) - (b.table_number ?? 9999));
       default: // 'time'
-        return [...list].sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+        // Direkter String-Vergleich statt new Date().getTime() — starts_at ist
+        // ein konsistent formatierter ISO-String, der lexikografisch bereits
+        // chronologisch sortiert (siehe formatDate()/formatTime() oben zur
+        // Begründung, warum new Date() hier vermieden wird).
+        return [...list].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
     }
   }
 
@@ -251,12 +257,40 @@ export class ReservierungslisteComponent implements OnInit {
     return STATUS_LABELS[s as ReservationStatus] ?? s;
   }
 
+  /**
+   * WICHTIG: NICHT `new Date(iso).toLocaleDateString()/toLocaleTimeString()`
+   * verwenden — das Backend liefert `starts_at` zwar mit UTC-Offset-Suffix
+   * (`\DateTimeInterface::ATOM`), der numerische Wert ist aber die
+   * tatsächliche lokale Uhrzeit des Venues, keine echte UTC-Zeit. `new Date()`
+   * würde diesen Wert daher fälschlich als UTC interpretieren und beim
+   * Anzeigen in die Zeitzone des BROWSERS/Geräts konvertieren — bei einer
+   * abweichenden Geräte-Zeitzone (z. B. unterwegs) verschieben sich die
+   * angezeigten Uhrzeiten dann um mehrere Stunden und passen nicht mehr zu
+   * den Öffnungszeiten. Stattdessen wird Datum/Uhrzeit direkt aus dem
+   * ISO-String geschnitten — exakt wie in floor-reservations.service.ts /
+   * raum-detail.component.ts.
+   */
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    return this.toLocalComponentsDate(iso).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return iso.substring(11, 16);
+  }
+
+  /**
+   * Baut ein Date-Objekt NUR aus den lokalen Y/M/D/H/m-Komponenten des
+   * ISO-Strings auf (Date-Konstruktor mit einzelnen Zahlen, nicht der
+   * ISO-String-Konstruktor) — dadurch liest `toLocaleDateString()` exakt
+   * dieselben Komponenten wieder aus, unabhängig von der Zeitzone des
+   * Geräts. Nur für formatierte Datumsanzeige (Wochentag etc.) nötig; die
+   * Uhrzeit wird oben direkt per substring() ausgegeben.
+   */
+  private toLocalComponentsDate(iso: string): Date {
+    const y  = Number(iso.substring(0, 4));
+    const mo = Number(iso.substring(5, 7));
+    const d  = Number(iso.substring(8, 10));
+    return new Date(y, mo - 1, d);
   }
 
   /** "2× Bday Feier, 1× Aperitif" — für Anzeige in der Reservierungsliste. */

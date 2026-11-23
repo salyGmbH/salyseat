@@ -8,6 +8,7 @@ import { GuestsService, Guest, GuestReservation, UpdateGuestDto } from '../../..
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
 import { ReminderService, Reminder } from '../../../services/reminder.service';
 import { localDateIso, localDateTimeSpace } from '../../../shared/local-date.util';
+import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
 
 type ModalTab  = 'profil' | 'hinweise' | 'reservierungen' | 'erinnerungen' | 'email';
 
@@ -23,7 +24,7 @@ type FilterKey = 'alle' | 'vip' | 'stammgast' | 'neukunde' | 'gesperrt' | 'nosho
 @Component({
   selector: 'app-kunden',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
+  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule, OpenDatePickerDirective],
   templateUrl: './kunden.component.html',
   styleUrl: './kunden.component.scss'
 })

@@ -101,4 +101,53 @@ class TableBlock
         $to      = $this->timeTo   ?? '23:59';
         return $hhmm >= $from && $hhmm < $to;
     }
+
+    /**
+     * Prüft ob dieser Block mit dem Zeitfenster [$start, $end) überlappt —
+     * anders als isActiveAt() (nur ein einzelner Zeitpunkt) wird hier das
+     * VOLLE Reservierungsfenster geprüft. Eine Sperre, die z. B. 20:30–21:00
+     * geht, würde bei reiner Startzeit-Prüfung eine um 20:00 beginnende, bis
+     * 21:30 laufende Reservierung nicht erkennen, obwohl sie in die
+     * Sperrzeit hineinragt.
+     *
+     * Iteriert Tag für Tag über [$start, $end) (i. d. R. nur eine Iteration,
+     * da Reservierungen praktisch nie über Mitternacht laufen) und prüft je
+     * berührtem Kalendertag innerhalb von [dateFrom, dateTo] das jeweilige
+     * Zeitsegment gegen [timeFrom, timeTo).
+     */
+    public function overlaps(\DateTimeImmutable $start, \DateTimeImmutable $end): bool
+    {
+        if ($end <= $start) {
+            return false;
+        }
+
+        $from = $this->timeFrom ?? '00:00';
+        $to   = $this->timeTo   ?? '23:59';
+
+        $cursor = $start;
+        while ($cursor < $end) {
+            $nextMidnight = (new \DateTimeImmutable($cursor->format('Y-m-d') . ' 00:00:00'))->modify('+1 day');
+            $segmentEnd   = $end < $nextMidnight ? $end : $nextMidnight;
+            $date         = $cursor->format('Y-m-d');
+
+            if ($date >= $this->dateFrom->format('Y-m-d') && $date <= $this->dateTo->format('Y-m-d')) {
+                if ($this->fullDay) {
+                    return true;
+                }
+                $segStart = $cursor->format('H:i');
+                // Segmentende exakt auf Mitternacht des Folgetags → als '24:00'
+                // werten, damit es lexikografisch größer als jede reguläre
+                // 'HH:MM'-Sperrzeit ist.
+                $segEnd = $segmentEnd == $nextMidnight ? '24:00' : $segmentEnd->format('H:i');
+
+                if ($segStart < $to && $segEnd > $from) {
+                    return true;
+                }
+            }
+
+            $cursor = $segmentEnd;
+        }
+
+        return false;
+    }
 }

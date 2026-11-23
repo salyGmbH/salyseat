@@ -9,6 +9,7 @@ import { LayoutService } from '../layout.service';
 import { AuthService } from '../../services/auth.service';
 import { PlanService } from '../../services/plan.service';
 import { NotizenStateService } from '../../services/notizen-state.service';
+import { GuestReviewService } from '../../services/guest-review.service';
 import { RoomsService } from '../../services/rooms.service';
 import { Router } from '@angular/router';
 
@@ -24,6 +25,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   readonly plan = inject(PlanService);
   readonly notizenState = inject(NotizenStateService);
+  readonly guestReviews = inject(GuestReviewService);
   private readonly router = inject(Router);
   private readonly roomsService = inject(RoomsService);
 
@@ -47,6 +49,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   /** Untermenü "Gutscheine" (z. B. Link zum Gutschein-Designer) auf-/zuklappen */
   readonly vouchersExpanded = signal(false);
+  readonly schichtplanExpanded = signal(false);
 
   // Eingeloggten User für die Sidebar zugänglich machen
   currentUserEmail = computed(() => this.auth.user()?.email ?? '');
@@ -85,6 +88,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.vouchersExpanded.update(v => !v);
+  }
+
+  toggleSchichtplanMenu(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.schichtplanExpanded.update(v => !v);
   }
 
   logout() {

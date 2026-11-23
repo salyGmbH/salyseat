@@ -29,6 +29,8 @@ export interface PlacedTable {
   seats: number;
   mergedWith?: number;
   originalSeats?: number;
+  /** IDs der Tische, mit denen dieser Tisch kombinierbar ist (bidirektional) */
+  combinableWith?: number[];
 }
 
 export interface PlacedWall {
@@ -60,4 +62,10 @@ export interface SavedRoom {
   seatCount: number;
   isBlockedToday: boolean;
   activeBlockIds: string[];
+}
+
+/** Breite eines Text-Labels im Plan: mindestens 120px, wächst mit der Textlänge. */
+export function getLabelWidth(text?: string): number {
+  const len = (text ?? '').trim().length;
+  return Math.max(120, len * 9 + 32);
 }

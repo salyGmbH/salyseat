@@ -48,7 +48,7 @@
 
         <span class="heading-badge">{{ heading_title }}</span>
 
-        <p class="greeting">Hallo {{ guest_name }},</p>
+        <p class="greeting">Hallo {{ guest_first_name is defined and guest_first_name ? guest_first_name : guest_name }},</p>
 
         <div class="fixed-text">
             {% for line in fixed_lines %}
@@ -67,6 +67,12 @@
             <div class="detail-row">
                 <span class="detail-label">👥 Personenanzahl</span>
                 <span class="detail-value">{{ party_size }}</span>
+            </div>
+            {% endif %}
+            {% if occasion is defined and occasion %}
+            <div class="detail-row">
+                <span class="detail-label">🎉 Anlass</span>
+                <span class="detail-value">{{ occasion }}</span>
             </div>
             {% endif %}
         </div>

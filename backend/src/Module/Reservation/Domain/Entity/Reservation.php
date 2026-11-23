@@ -37,6 +37,10 @@ class Reservation
     #[ORM\Column(length: 255)]
     private string $guestName;
 
+    /** Vorname — separat vom (Nach-)Namen; optional, da abhängig von den Pflichtfelder-Einstellungen im Widget. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $guestFirstName = null;
+
     #[ORM\Column(length: 255)]
     private string $guestEmail;
 
@@ -45,6 +49,10 @@ class Reservation
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $guestNotes = null;
+
+    /** Anlass der Reservierung (z. B. Geburtstag, Jubiläum) — optional, abhängig von den Pflichtfelder-Einstellungen. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $occasion = null;
 
     #[ORM\Column]
     private int $partySize;
@@ -88,6 +96,10 @@ class Reservation
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $reminderSentAt = null;
 
+    /** Zeitstempel wann die Bewertungs-Anfrage versendet wurde (null = noch nicht gesendet) */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $reviewRequestSentAt = null;
+
     /** Externe Reservierungs-ID im Mews PMS (null = noch nicht synchronisiert) */
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $mewsReservationId = null;
@@ -100,15 +112,21 @@ class Reservation
     private ?string $hotelRoomNumber = null;
 
     /**
+     * Gewählte Packages (aus tenant.uiSettings.packages) mit Menge — nur
+     * Kalkulationszwecke, keine Zahlung. Mehrere Packages pro Reservierung
+     * möglich (z.B. 2× Bday Feier + 1× Aperitif bei 4 Personen).
+     *
+     * @var Collection<int, ReservationPackage>
+     */
+    #[ORM\OneToMany(mappedBy: 'reservation', targetEntity: ReservationPackage::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $packages;
+
+    /**
      * Audit-Trail: wer hat welche Aktion ausgeführt (Mitarbeiter-ID-Abfrage).
      * Append-only-Liste von {employeeNumber, name, action, at}.
      */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $staffActions = null;
-
-    /** @var Collection<int, ReservationPackage> */
-    #[ORM\OneToMany(targetEntity: ReservationPackage::class, mappedBy: 'reservation', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $packages;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -125,31 +143,24 @@ class Reservation
         \DateTimeImmutable $endsAt,
         ?string $guestPhone = null,
         ?string $guestNotes = null,
+        ?string $guestFirstName = null,
+        ?string $occasion = null,
     ) {
         $this->id = Uuid::v7();
         $this->venue = $venue;
         $this->token = bin2hex(random_bytes(24));
         $this->guestName = $guestName;
+        $this->guestFirstName = $guestFirstName;
         $this->guestEmail = $guestEmail;
         $this->guestPhone = $guestPhone;
         $this->guestNotes = $guestNotes;
+        $this->occasion = $occasion;
         $this->partySize = $partySize;
         $this->startsAt = $startsAt;
         $this->endsAt = $endsAt;
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
-        $this->packages = new ArrayCollection();
-    }
-
-    /** @return Collection<int, ReservationPackage> */
-    public function getPackages(): Collection
-    {
-        return $this->packages;
-    }
-
-    public function addPackage(string $packageId, string $packageName, ?int $pricePerPerson, int $quantity): void
-    {
-        $this->packages->add(new ReservationPackage($this, $packageId, $packageName, $pricePerPerson, $quantity));
+        $this->packages  = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -214,6 +225,10 @@ class Reservation
     {
         return $this->guestName;
     }
+    public function getGuestFirstName(): ?string
+    {
+        return $this->guestFirstName;
+    }
     public function getGuestEmail(): string
     {
         return $this->guestEmail;
@@ -225,6 +240,10 @@ class Reservation
     public function getGuestNotes(): ?string
     {
         return $this->guestNotes;
+    }
+    public function getOccasion(): ?string
+    {
+        return $this->occasion;
     }
     public function getPartySize(): int
     {
@@ -288,6 +307,16 @@ class Reservation
         $this->reminderSentAt = new \DateTimeImmutable();
     }
 
+    public function getReviewRequestSentAt(): ?\DateTimeImmutable
+    {
+        return $this->reviewRequestSentAt;
+    }
+
+    public function markReviewRequestSent(): void
+    {
+        $this->reviewRequestSentAt = new \DateTimeImmutable();
+    }
+
     public function updateDetails(
         ?string $guestName,
         ?int $partySize,
@@ -295,6 +324,8 @@ class Reservation
         ?\DateTimeImmutable $endsAt,
         ?string $guestPhone,
         ?string $guestNotes,
+        ?string $guestFirstName = null,
+        ?string $occasion = null,
     ): void {
         if ($guestName !== null) {
             $this->guestName = $guestName;
@@ -313,6 +344,12 @@ class Reservation
         }
         if ($guestNotes !== null) {
             $this->guestNotes = $guestNotes !== '' ? $guestNotes : null;
+        }
+        if ($guestFirstName !== null) {
+            $this->guestFirstName = $guestFirstName !== '' ? $guestFirstName : null;
+        }
+        if ($occasion !== null) {
+            $this->occasion = $occasion !== '' ? $occasion : null;
         }
     }
 
@@ -342,6 +379,17 @@ class Reservation
     public function setHotelRoomNumber(?string $n): void { $this->hotelRoomNumber = $n; }
 
     public function getPmsSyncStatus(): ?string     { return $this->pmsSyncStatus;     }
+
+    /** @return Collection<int, ReservationPackage> */
+    public function getPackages(): Collection
+    {
+        return $this->packages;
+    }
+
+    public function addPackage(string $packageId, string $packageName, ?int $pricePerPerson, int $quantity): void
+    {
+        $this->packages->add(new ReservationPackage($this, $packageId, $packageName, $pricePerPerson, $quantity));
+    }
 
     public function getStaffActions(): ?array { return $this->staffActions; }
 
