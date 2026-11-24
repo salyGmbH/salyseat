@@ -27,6 +27,26 @@ interface ApiTableBlock {
   reason: string | null;
 }
 
+/** Bereits bestehende Reservierung, die von einer neu angelegten Tischsperre betroffen ist. */
+export interface AffectedReservation {
+  id: string;
+  guest_name: string;
+  guest_first_name: string | null;
+  party_size: number;
+  starts_at: string;
+  table_number: number | null;
+}
+
+interface ApiCreateTableBlockResponse extends ApiTableBlock {
+  affected_reservations_count: number;
+  affected_reservations: AffectedReservation[];
+}
+
+export interface CreateTableBlockResult {
+  block: TableBlock;
+  affected: AffectedReservation[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TableBlockService {
   private readonly http = inject(HttpClient);
@@ -91,7 +111,13 @@ export class TableBlockService {
     });
   }
 
-  addBlock(venueId: string, block: Omit<TableBlock, 'id' | 'roomId'>): Observable<TableBlock> {
+  /**
+   * Legt eine neue Tischsperre an. Die Antwort enthält zusätzlich alle bereits
+   * bestehenden, noch relevanten Reservierungen auf diesem Tisch, die in das
+   * Sperrfenster fallen — diese werden dabei NICHT automatisch storniert,
+   * sondern dienen nur als Hinweis für die Verwaltung.
+   */
+  addBlock(venueId: string, block: Omit<TableBlock, 'id' | 'roomId'>): Observable<CreateTableBlockResult> {
     const body = {
       table_id:  block.tableId,
       date_from: block.dateFrom,
@@ -101,9 +127,9 @@ export class TableBlockService {
       time_to:   block.fullDay ? null : (block.timeTo   ?? null),
       reason:    block.reason ?? null,
     };
-    return this.http.post<ApiTableBlock>(`${this.base}/${venueId}/table-blocks`, body).pipe(
+    return this.http.post<ApiCreateTableBlockResponse>(`${this.base}/${venueId}/table-blocks`, body).pipe(
       tap(created => this._blocks.update(list => [...list, this.fromApi(created)])),
-      map(created => this.fromApi(created)),
+      map(created => ({ block: this.fromApi(created), affected: created.affected_reservations ?? [] })),
     );
   }
 

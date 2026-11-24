@@ -26,6 +26,10 @@ final class SendWaitlistNotificationHandler
 
     public function __invoke(SendWaitlistNotification $message): void
     {
+        $fullName = $message->guestFirstName !== null && $message->guestFirstName !== ''
+            ? $message->guestFirstName . ' ' . $message->guestName
+            : $message->guestName;
+
         $html = sprintf(
             '<p>Ein Gast hat sich für einen ausgebuchten Zeitslot bei <strong>%s</strong> auf die Warteliste gesetzt:</p>'
             . '<ul>'
@@ -39,7 +43,7 @@ final class SendWaitlistNotificationHandler
             htmlspecialchars($message->venueName),
             htmlspecialchars($message->requestedAt),
             $message->partySize,
-            htmlspecialchars($message->guestName),
+            htmlspecialchars($fullName),
             htmlspecialchars($message->guestEmail),
             htmlspecialchars($message->guestPhone ?? '—'),
             $message->answerHours,

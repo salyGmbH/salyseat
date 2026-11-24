@@ -6,6 +6,7 @@ namespace App\Messenger\Service;
 
 use App\Module\Tenant\Domain\Entity\Tenant;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -16,6 +17,8 @@ final class TenantEmailSettingsProvider
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        #[Autowire(param: 'backend_public_url')]
+        private readonly string $backendPublicUrl,
     ) {}
 
     public function defaults(): array
@@ -80,9 +83,8 @@ final class TenantEmailSettingsProvider
                 'facebook'  => $social['facebook']  ?? '',
                 'tiktok'    => $social['tiktok']    ?? '',
             ],
-            'attachments' => $es['attachments'] ?? [],
-            'logoLight' => $ui['logoLight'] ?? null,
-            'logoDark'  => $ui['logoDark']  ?? null,
+            'attachments'  => $es['attachments'] ?? [],
+            'headerImage'  => $this->toAbsoluteUrl($es['headerImage'] ?? null),
             'policy' => [
                 'onlineAenderungen'        => (bool) ($wf['onlineAenderungen'] ?? false),
                 'onlineAenderungenMinuten' => (int) ($wf['onlineAenderungenMinuten'] ?? 120),
@@ -90,5 +92,19 @@ final class TenantEmailSettingsProvider
                 'onlineStornierungMinuten' => (int) ($wf['onlineStornierungMinuten'] ?? 120),
             ],
         ];
+    }
+
+    /**
+     * Bilder werden im Frontend als relative Pfade (/uploads/…) gespeichert — das
+     * funktioniert im Browser (SPA-Kontext), aber nicht in E-Mail-Clients, die keine
+     * Basis-URL haben. Deshalb hier zu einer absoluten URL auflösen.
+     */
+    private function toAbsoluteUrl(?string $path): ?string
+    {
+        if ($path === null || $path === '' || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return rtrim($this->backendPublicUrl, '/') . '/' . ltrim($path, '/');
     }
 }

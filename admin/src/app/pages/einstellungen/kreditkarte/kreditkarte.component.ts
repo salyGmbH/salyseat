@@ -16,13 +16,11 @@ export class KreditkarteComponent implements OnInit {
   private readonly tenantSettings = inject(TenantSettingsService);
   private readonly translate       = inject(TranslateService);
 
+  infoHeader  = signal(false);
+  infoStripe  = signal(false);
+  infoNoshow  = signal(false);
+
   publishableKey    = signal('');
-  zahlungAktiv      = signal(false);
-  zahlungPflicht    = signal(false);
-  methKreditkarte   = signal(false);
-  methSepa          = signal(false);
-  methVorkasse      = signal(false);
-  methBar           = signal(false);
 
   noShowSchutzAktiv = signal(false);
   noShowBetragEuro  = signal('20');
@@ -44,24 +42,12 @@ export class KreditkarteComponent implements OnInit {
   ngOnInit(): void {
     this.tenantSettings.load().subscribe(s => {
       const fn = s.widgetFunctional ?? DEFAULT_WIDGET_FUNCTIONAL;
-      this.zahlungAktiv.set(fn.zahlungAktiv ?? false);
-      this.zahlungPflicht.set(fn.zahlungPflicht ?? false);
-      this.methKreditkarte.set(fn.zahlungsmethoden?.kreditkarte ?? false);
-      this.methSepa.set(fn.zahlungsmethoden?.sepa ?? false);
-      this.methVorkasse.set(fn.zahlungsmethoden?.vorkasse ?? false);
-      this.methBar.set(fn.zahlungsmethoden?.bar ?? false);
       this.publishableKey.set(s.stripeSettings?.publishableKey ?? '');
       this.noShowSchutzAktiv.set(fn.noShowSchutzAktiv ?? false);
       const betragCents = fn.noShowBetragCents ?? 2000;
       this.noShowBetragEuro.set((betragCents / 100).toFixed(2).replace('.', ','));
       this.noShowWidgetText.set(fn.noShowWidgetText ?? 'Kreditkarte wird nur bei Nicht-Erscheinen belastet.');
     });
-  }
-
-  toggleZahlungAktiv(): void {
-    if (!this.canActivate() && !this.zahlungAktiv()) return;
-    this.zahlungAktiv.update(v => !v);
-    if (!this.zahlungAktiv()) this.zahlungPflicht.set(false);
   }
 
   save(): void {
@@ -71,17 +57,15 @@ export class KreditkarteComponent implements OnInit {
 
     const snapshot = this.tenantSettings.snapshot;
     const fn = { ...(snapshot.widgetFunctional ?? DEFAULT_WIDGET_FUNCTIONAL) };
-    fn.zahlungAktiv    = this.zahlungAktiv();
-    fn.zahlungPflicht  = this.zahlungPflicht();
+    // Online-Zahlung (Sofort-Kassieren) wird über diese Seite bewusst nicht mehr
+    // angeboten — nur noch der No-Show-Schutz (Karte hinterlegen, erst bei
+    // Nichterscheinen abbuchen). Explizit deaktiviert halten, unabhängig vom
+    // zuvor gespeicherten Wert.
+    fn.zahlungAktiv    = false;
+    fn.zahlungPflicht  = false;
     fn.noShowSchutzAktiv = this.noShowSchutzAktiv();
     fn.noShowBetragCents = Math.round(parseFloat(this.noShowBetragEuro().replace(',', '.')) * 100) || 2000;
     fn.noShowWidgetText  = this.noShowWidgetText();
-    fn.zahlungsmethoden = {
-      kreditkarte: this.methKreditkarte(),
-      sepa:        this.methSepa(),
-      vorkasse:    this.methVorkasse(),
-      bar:         this.methBar(),
-    };
 
     this.tenantSettings.save({
       ...snapshot,

@@ -206,13 +206,14 @@ export interface CreateReservationResponse {
 }
 
 export interface JoinWaitlistPayload {
-  venue_id:      string;
-  requested_at:  string;
-  party_size:    number;
-  guest_name:    string;
-  guest_email:   string;
-  guest_phone?:  string;
-  notes?:        string;
+  venue_id:          string;
+  requested_at:      string;
+  party_size:        number;
+  guest_name:        string;
+  guest_first_name?: string;
+  guest_email:       string;
+  guest_phone?:      string;
+  notes?:            string;
 }
 
 export interface JoinWaitlistResponse {
@@ -221,6 +222,7 @@ export interface JoinWaitlistResponse {
     status:       string;
     venue_id:     string;
     venue_name:   string;
+    guest_first_name: string | null;
     guest_name:   string;
     guest_email:  string;
     guest_phone:  string | null;

@@ -7,10 +7,10 @@
     <style>
         body { margin: 0; padding: 0; background-color: {{ design.backgroundColor }}; font-family: {{ design.fontFamily }}, Arial, sans-serif; }
         .wrapper { max-width: 600px; margin: 0 auto; padding: 32px 16px; }
-        .logo-row { text-align: center; margin-bottom: 24px; }
-        .logo-row img { max-height: 60px; max-width: 200px; object-fit: contain; }
-        .logo-placeholder { display: inline-block; padding: 10px 20px; background: {{ design.cardColor }}; border-radius: 8px; color: {{ design.mutedColor }}; font-size: 13px; }
+        .header-img-wrap { line-height: 0; }
+        .header-img { width: 100%; max-height: 220px; object-fit: cover; display: block; border-radius: {{ design.borderRadius }}px {{ design.borderRadius }}px 0 0; }
         .card { background-color: {{ design.cardColor }}; border-radius: {{ design.borderRadius }}px; padding: 32px; margin-bottom: 8px; }
+        .card--no-top-radius { border-top-left-radius: 0; border-top-right-radius: 0; }
         .greeting { color: {{ design.textColor }}; font-size: 16px; margin: 0 0 16px 0; }
         .fixed-text { color: {{ design.mutedColor }}; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; }
         .heading-badge { display: inline-block; background: {{ design.primaryColor }}22; color: {{ design.primaryColor }}; border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
@@ -32,19 +32,15 @@
 <body>
 <div class="wrapper">
 
-    {# ── Logo ── #}
-    <div class="logo-row">
-        {% if design.mode == 'dark' and logoLight %}
-            <img src="{{ logoLight }}" alt="Logo">
-        {% elseif design.mode == 'light' and logoDark %}
-            <img src="{{ logoDark }}" alt="Logo">
-        {% elseif logoLight %}
-            <img src="{{ logoLight }}" alt="Logo">
-        {% endif %}
+    {# ── Header-Bild ── #}
+    {% if header_image %}
+    <div class="header-img-wrap">
+        <img src="{{ header_image }}" alt="" class="header-img">
     </div>
+    {% endif %}
 
     {# ── Karte ── #}
-    <div class="card">
+    <div class="card{% if header_image %} card--no-top-radius{% endif %}">
 
         <span class="heading-badge">{{ heading_title }}</span>
 

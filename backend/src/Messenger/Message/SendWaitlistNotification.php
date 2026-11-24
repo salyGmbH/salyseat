@@ -16,5 +16,6 @@ final readonly class SendWaitlistNotification
         public int $partySize,
         public string $requestedAt,
         public int $answerHours,
+        public ?string $guestFirstName = null,
     ) {}
 }

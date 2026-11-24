@@ -139,6 +139,7 @@ export class AboComponent {
         'abo.features.shift_plan_sub_templates',
         'abo.features.shift_plan_sub_swap',
         'abo.features.shift_plan_sub_warning',
+        'abo.features.shift_plan_sub_timeclock',
       ] },
     { labelKey: 'abo.features.table_selection',  tisch: false,   menu: false,   maitre: true,
       subKeys: [

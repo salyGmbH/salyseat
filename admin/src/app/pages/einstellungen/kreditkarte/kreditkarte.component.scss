@@ -1,6 +1,52 @@
 @use '../../../../styles/variables' as *;
 @use '../_placeholder' as *;
 
+// ── Info-Button & Info-Box ────────────────────────────────────────────────────
+.info-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-accent !important;
+  padding: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: background .2s, transform .2s;
+
+  mat-icon {
+    font-size: 20px;
+    color: $color-accent !important;
+  }
+
+  &:hover { background: rgba(var(--color-accent-rgb), 0.1); transform: scale(1.05); }
+  &.active { background: rgba(var(--color-accent-rgb), 0.15); }
+}
+
+.info-box {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  color: $color-text-muted;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.25s ease;
+  margin-top: 8px;
+
+  &.open {
+    max-height: 200px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .settings-block {
   margin-bottom: 16px;
 }
@@ -132,6 +178,19 @@
     color: $color-text-muted;
     border: 1px solid $color-border;
   }
+
+  &--clickable {
+    cursor: pointer;
+    transition: background .2s, border-color .2s;
+
+    &:hover {
+      background: rgba(var(--color-accent-rgb), 0.08);
+      border-color: rgba(var(--color-accent-rgb), 0.3);
+      color: $color-accent;
+
+      mat-icon { color: $color-accent; }
+    }
+  }
 }
 
 .stripe-docs-hint {
@@ -188,21 +247,23 @@
 }
 
 .toggle {
-  width: 42px;
-  height: 24px;
-  border-radius: 999px;
-  background: $color-border;
   position: relative;
+  display: inline-flex;
+  cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.2s;
 
-  &--on {
-    background: $color-primary;
+  input { position: absolute; opacity: 0; width: 0; height: 0; }
 
-    .toggle__knob { transform: translateX(18px); }
+  &__track {
+    width: 44px;
+    height: 24px;
+    background: rgba(var(--color-text-rgb), 0.12);
+    border-radius: 99px;
+    transition: background 0.2s;
+    position: relative;
   }
 
-  &__knob {
+  &__thumb {
     position: absolute;
     top: 3px;
     left: 3px;
@@ -210,8 +271,23 @@
     height: 18px;
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
     transition: transform 0.2s;
+  }
+
+  input:checked ~ .toggle__track {
+    background: rgba(var(--color-accent-rgb), 0.35);
+  }
+
+  input:checked ~ .toggle__track .toggle__thumb {
+    transform: translateX(20px);
+    background: $color-accent;
+    box-shadow: 0 1px 6px rgba(var(--color-accent-rgb), 0.6);
+  }
+
+  input:disabled ~ .toggle__track {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 }
 
@@ -328,23 +404,37 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
+  padding: 8px 22px;
   border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  background: $color-accent;
-  color: #fff;
+  border: 1px solid rgba(var(--color-primary-rgb), 0.55);
+  background: rgba(var(--color-primary-rgb), 0.10);
+  color: var(--color-primary);
   font-weight: 600;
   font-size: 13px;
-  transition: all 0.2s;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.18),
+              inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.08);
+  transition: all 0.2s ease;
 
   mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-  &:hover:not(:disabled) { background: $color-accent-dark; }
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    background: rgba(var(--color-primary-rgb), 0.16);
+    box-shadow: 0 0 16px rgba(var(--color-primary-rgb), 0.30),
+                inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.12);
+  }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  &--saved   { background: $color-success; &:hover:not(:disabled) { background: $color-success; } }
-  &--loading { background: $color-text-muted; }
+  &--saved {
+    border-color: rgba(var(--color-success-rgb), 0.55);
+    background: rgba(var(--color-success-rgb), 0.10);
+    color: var(--color-success);
+    box-shadow: 0 0 10px rgba(var(--color-success-rgb), 0.18),
+                inset 0 0 0 1px rgba(var(--color-success-rgb), 0.08);
+    &:hover:not(:disabled) { background: rgba(var(--color-success-rgb), 0.16); }
+  }
+  &--loading { opacity: 0.6; }
 }
 
 // ── No-Show-Felder ────────────────────────────────────────────────────────────

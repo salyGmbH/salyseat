@@ -40,6 +40,7 @@ class WaitlistController extends AbstractController
             'venue_id'     => [new Assert\NotBlank(), new Assert\Uuid()],
             'requested_at' => [new Assert\NotBlank(), new Assert\DateTime(\DateTimeInterface::ATOM)],
             'party_size'   => [new Assert\NotBlank(), new Assert\Range(min: 1, max: 50)],
+            'guest_first_name' => new Assert\Optional([new Assert\Length(max: 255)]),
             'guest_name'   => [new Assert\NotBlank(), new Assert\Length(min: 2, max: 255)],
             'guest_email'  => [new Assert\NotBlank(), new Assert\Email()],
             'guest_phone'  => new Assert\Optional([new Assert\Length(max: 20)]),
@@ -65,6 +66,7 @@ class WaitlistController extends AbstractController
                 guestEmail:  $data['guest_email'],
                 guestPhone:  $data['guest_phone'] ?? null,
                 notes:       $data['notes'] ?? null,
+                guestFirstName: ($data['guest_first_name'] ?? '') !== '' ? (string) $data['guest_first_name'] : null,
             ));
         } catch (\DomainException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);

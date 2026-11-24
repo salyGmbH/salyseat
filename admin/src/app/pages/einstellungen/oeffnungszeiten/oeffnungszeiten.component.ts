@@ -9,9 +9,9 @@ import {
   SpecialClosing,
   CreateSpecialClosingDto,
 } from '../../../services/opening-hours.service';
+import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
 import { VenueService } from '../../../services/venue.service';
 import { localDateIso } from '../../../shared/local-date.util';
-import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
 
 interface BreakRow { from: string; to: string; }
 

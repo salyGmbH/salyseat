@@ -200,6 +200,8 @@
 
   &--full { grid-column: 1 / -1; }
 
+  &--full { grid-column: 1 / -1; }
+
   &__label {
     font-size: 12px;
     font-weight: 600;
@@ -327,9 +329,16 @@
     margin-bottom: 12px;
     mat-icon { font-size: 22px; width: 22px; height: 22px; }
   }
+
+  &--loading {
+    pointer-events: none;
+    opacity: 0.6;
+    mat-icon { animation: spin 1s linear infinite; }
+  }
 }
 
 .upload-preview {
+  position: relative;
   margin-top: 4px;
   border-radius: 8px;
   overflow: hidden;
@@ -340,9 +349,34 @@
 
   &--wide {
     max-width: 100%;
-    max-height: 80px;
-    img { object-fit: cover; max-height: 80px; }
+    max-height: 140px;
+    img { object-fit: cover; max-height: 140px; }
   }
+
+  &__remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, .5);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+    &:hover { background: rgba(239, 68, 68, .85); }
+  }
+}
+
+.upload-status {
+  font-size: 12px;
+  color: $color-text-muted;
 }
 
 // ─── Content Tabs ─────────────────────────────────────────────────────────────
@@ -535,6 +569,8 @@
   border-radius: 12px;
   padding: 14px;
   transition: background-color 0.3s;
+
+  &--no-top-radius { border-top-left-radius: 0; border-top-right-radius: 0; }
 }
 
 .ep-greeting {
@@ -715,7 +751,28 @@
     margin-bottom: 10px;
 
     mat-icon { font-size: 18px; width: 18px; height: 18px; color: $color-primary; flex-shrink: 0; }
-    strong   { font-size: 13px; font-weight: 600; color: $color-text-on-dark; }
+    strong   { font-size: 13px; font-weight: 600; color: $color-text-on-dark; flex: 1; }
+  }
+
+  &__remove {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(var(--color-text-rgb), 0.4);
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; color: inherit; }
+
+    &:hover {
+      background: rgba(229, 57, 53, 0.12);
+      color: #e53935;
+    }
   }
 }
 
@@ -803,3 +860,16 @@
   .settings-block { padding: 24px; border-radius: 16px; }
   .section-title  { font-size: 17px; }
 }
+
+.upload-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e53935;
+  font-size: 13px;
+  margin-bottom: 10px;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

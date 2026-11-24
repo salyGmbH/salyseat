@@ -2,10 +2,16 @@
 <div class="settings-block">
   <div class="page-hero">
     <div class="page-hero__icon"><mat-icon>credit_card</mat-icon></div>
-    <div>
+    <div style="flex:1">
       <h2 class="page-hero__title">{{ 'stripe_settings.title' | translate }}</h2>
       <p class="page-hero__sub">{{ 'stripe_settings.subtitle' | translate }}</p>
     </div>
+    <button class="info-button" [class.active]="infoHeader()" (click)="infoHeader.set(!infoHeader())">
+      <mat-icon>info</mat-icon>
+    </button>
+  </div>
+  <div class="info-box" [class.open]="infoHeader()">
+    {{ 'stripe_settings.info_header' | translate }}
   </div>
 </div>
 
@@ -14,6 +20,12 @@
   <div class="section-header">
     <mat-icon>vpn_key</mat-icon>
     <h3 class="section-title">{{ 'stripe_settings.stripe_title' | translate }}</h3>
+    <button class="info-button" [class.active]="infoStripe()" (click)="infoStripe.set(!infoStripe())">
+      <mat-icon>info</mat-icon>
+    </button>
+  </div>
+  <div class="info-box" [class.open]="infoStripe()">
+    {{ 'stripe_settings.info_stripe' | translate }}
   </div>
   <p class="section-desc">{{ 'stripe_settings.stripe_desc' | translate }}</p>
 
@@ -34,7 +46,10 @@
       }
     </div>
 
-    <div class="key-badge" [class]="'key-badge--' + keyMode()">
+    <div class="key-badge"
+         [class]="'key-badge--' + keyMode()"
+         [class.key-badge--clickable]="keyMode() === 'empty'"
+         (click)="keyMode() === 'empty' && infoStripe.set(true)">
       @if (keyMode() === 'live') {
         <mat-icon>check_circle</mat-icon>
         {{ 'stripe_settings.stripe_key_hint_live' | translate }}
@@ -54,130 +69,29 @@
   </p>
 </div>
 
-<!-- Online-Zahlung -->
-<div class="settings-block">
-  <div class="section-header">
-    <mat-icon>payments</mat-icon>
-    <h3 class="section-title">{{ 'stripe_settings.payment_title' | translate }}</h3>
-  </div>
-  <p class="section-desc">{{ 'stripe_settings.payment_desc' | translate }}</p>
-
-  <div class="toggle-row" [class.toggle-row--disabled]="!canActivate()" (click)="toggleZahlungAktiv()">
-    <div class="toggle-row__text">
-      <strong>{{ 'stripe_settings.payment_active_label' | translate }}</strong>
-      <span>{{ 'stripe_settings.payment_active_desc' | translate }}</span>
-    </div>
-    <div class="toggle" [class.toggle--on]="zahlungAktiv()">
-      <span class="toggle__knob"></span>
-    </div>
-  </div>
-
-  @if (!canActivate()) {
-    <div class="no-key-warning">
-      <mat-icon>warning_amber</mat-icon>
-      {{ 'stripe_settings.payment_no_key' | translate }}
-    </div>
-  }
-</div>
-
-<!-- Zahlungsoptionen (nur wenn aktiv) -->
-@if (zahlungAktiv()) {
-
-  <!-- Pflicht-Toggle -->
-  <div class="settings-block">
-    <div class="toggle-row" (click)="zahlungPflicht.set(!zahlungPflicht())">
-      <div class="toggle-row__text">
-        <strong>{{ 'stripe_settings.payment_required_label' | translate }}</strong>
-        <span>{{ 'stripe_settings.payment_required_desc' | translate }}</span>
-      </div>
-      <div class="toggle" [class.toggle--on]="zahlungPflicht()">
-        <span class="toggle__knob"></span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Zahlungsmethoden -->
-  <div class="settings-block">
-    <div class="section-header">
-      <mat-icon>account_balance_wallet</mat-icon>
-      <h3 class="section-title">{{ 'stripe_settings.methods_title' | translate }}</h3>
-    </div>
-    <p class="section-desc">{{ 'stripe_settings.methods_desc' | translate }}</p>
-
-    <div class="method-grid">
-
-      <div class="method-card" [class.method-card--on]="methKreditkarte()" (click)="methKreditkarte.set(!methKreditkarte())">
-        <div class="method-card__icon">
-          <mat-icon>credit_card</mat-icon>
-        </div>
-        <div class="method-card__text">
-          <strong>{{ 'stripe_settings.method_card' | translate }}</strong>
-          <span>{{ 'stripe_settings.method_card_desc' | translate }}</span>
-        </div>
-        <div class="method-card__check">
-          <mat-icon>{{ methKreditkarte() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-        </div>
-      </div>
-
-      <div class="method-card" [class.method-card--on]="methSepa()" (click)="methSepa.set(!methSepa())">
-        <div class="method-card__icon">
-          <mat-icon>account_balance</mat-icon>
-        </div>
-        <div class="method-card__text">
-          <strong>{{ 'stripe_settings.method_sepa' | translate }}</strong>
-          <span>{{ 'stripe_settings.method_sepa_desc' | translate }}</span>
-        </div>
-        <div class="method-card__check">
-          <mat-icon>{{ methSepa() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-        </div>
-      </div>
-
-      <div class="method-card" [class.method-card--on]="methVorkasse()" (click)="methVorkasse.set(!methVorkasse())">
-        <div class="method-card__icon">
-          <mat-icon>send</mat-icon>
-        </div>
-        <div class="method-card__text">
-          <strong>{{ 'stripe_settings.method_vorkasse' | translate }}</strong>
-          <span>{{ 'stripe_settings.method_vorkasse_desc' | translate }}</span>
-        </div>
-        <div class="method-card__check">
-          <mat-icon>{{ methVorkasse() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-        </div>
-      </div>
-
-      <div class="method-card" [class.method-card--on]="methBar()" (click)="methBar.set(!methBar())">
-        <div class="method-card__icon">
-          <mat-icon>storefront</mat-icon>
-        </div>
-        <div class="method-card__text">
-          <strong>{{ 'stripe_settings.method_bar' | translate }}</strong>
-          <span>{{ 'stripe_settings.method_bar_desc' | translate }}</span>
-        </div>
-        <div class="method-card__check">
-          <mat-icon>{{ methBar() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-        </div>
-      </div>
-
-    </div>
-  </div>
-}
-
 <!-- No-Show-Schutz -->
 <div class="settings-block">
   <div class="section-header">
     <mat-icon>person_off</mat-icon>
     <h3 class="section-title">{{ 'stripe_settings.noshow_title' | translate }}</h3>
+    <button class="info-button" [class.active]="infoNoshow()" (click)="infoNoshow.set(!infoNoshow())">
+      <mat-icon>info</mat-icon>
+    </button>
+  </div>
+  <div class="info-box" [class.open]="infoNoshow()">
+    {{ 'stripe_settings.info_noshow' | translate }}
   </div>
   <p class="section-desc">{{ 'stripe_settings.noshow_desc' | translate }}</p>
 
-  <div class="toggle-row" [class.toggle-row--disabled]="!canActivate()" (click)="canActivate() && noShowSchutzAktiv.set(!noShowSchutzAktiv())">
+  <div class="toggle-row" [class.toggle-row--disabled]="!canActivate()">
     <div class="toggle-row__text">
       <strong>{{ 'stripe_settings.noshow_active_label' | translate }}</strong>
       <span>{{ 'stripe_settings.noshow_active_desc' | translate }}</span>
     </div>
-    <div class="toggle" [class.toggle--on]="noShowSchutzAktiv()">
-      <span class="toggle__knob"></span>
-    </div>
+    <label class="toggle">
+      <input type="checkbox" [checked]="noShowSchutzAktiv()" [disabled]="!canActivate()" (change)="noShowSchutzAktiv.set(!noShowSchutzAktiv())" />
+      <span class="toggle__track"><span class="toggle__thumb"></span></span>
+    </label>
   </div>
 
   @if (!canActivate()) {
@@ -240,7 +154,6 @@
         <mat-icon>check</mat-icon>
         {{ 'common.saved' | translate }}
       } @else {
-        <mat-icon>save</mat-icon>
         {{ 'common.save' | translate }}
       }
     </button>

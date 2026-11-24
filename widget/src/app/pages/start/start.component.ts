@@ -3,7 +3,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { combineLatest, switchMap, of } from 'rxjs';
+import { combineLatest, switchMap, of, forkJoin, map } from 'rxjs';
 import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
 
 import { environment } from '../../../environments/environment';
@@ -294,7 +294,7 @@ export class StartComponent implements OnInit {
       }
       return next;
     });
-  });
+  }, { allowSignalWrites: true });
 
   // Wählt der Gast einen Tisch manuell aus dem Tischplan und geht danach über
   // "Zurück" nochmal auf Schritt 1 (z.B. Personenzahl erhöhen), kann der zuvor
@@ -319,7 +319,7 @@ export class StartComponent implements OnInit {
         this.tischwahlChoice.set(null);
       }
     }
-  });
+  }, { allowSignalWrites: true });
 
   private readonly packageCategoryIcons: Record<string, string> = {
     menu: '🍽️', event: '🎉', feier: '🎂', sonstiges: '🏷️',
@@ -403,14 +403,49 @@ export class StartComponent implements OnInit {
       ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
       : ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
   );
-  readonly seatOptions = computed<{ count: number; label: string }[]>(() => {
-    const max  = this.maxPeople();
-    const lbl  = this.i18n.t();
-    return Array.from({ length: max }, (_, i) => {
+  /**
+   * Personenzahlen, für die der Tischplan der aktuellen Venue (alle Tische,
+   * unabhängig vom Buchungsstatus — reines "geht das theoretisch") NIE eine
+   * ausreichend große Einzel- oder Kombi-Tischgruppe hergibt. Für diese Werte
+   * kann es unabhängig von Datum/Uhrzeit nie eine reguläre Buchung geben,
+   * nur die Warteliste bleibt übrig. Wird direkt im Personen-Picker sichtbar
+   * gemacht (statt dass der Gast das erst nach Datum/Uhrzeit-Auswahl merkt,
+   * wenn plötzlich überall nur Warteliste-Slots auftauchen).
+   *
+   * Ist die Warteliste am Standort deaktiviert, gibt es für diese Personenzahlen
+   * gar keinen möglichen Weg zu einer Buchung — dann werden sie komplett
+   * ausgeblendet statt nur markiert, damit der Gast erst gar keine Option sieht,
+   * die ohnehin ins Leere läuft.
+   *
+   * Personenzahl wird VOR Datum/Uhrzeit und (bei aktiver Mehrfach-Raumauswahl)
+   * auch VOR der Raumwahl abgefragt — zu diesem Zeitpunkt steht selectedVenue()
+   * ggf. noch gar nicht fest. Solange das so ist, gilt eine Personenzahl schon
+   * dann als strukturell möglich, wenn IRGENDEIN Kandidat-Raum sie seaten kann
+   * (Union über alle Räume, analog zu unionSlots()/needsVenuePick()) — sonst
+   * würde die Prüfung mangels Tischplan komplett wirkungslos verpuffen und
+   * auch Personenzahlen anzeigen, die in KEINEM Raum je buchbar wären.
+   */
+  readonly seatOptions = computed<{ count: number; label: string; overCapacity: boolean }[]>(() => {
+    const max        = this.maxPeople();
+    const lbl         = this.i18n.t();
+    const waitlistOn  = this.wartelisteAktiv();
+    const venue       = this.selectedVenue();
+    const candidateTableSets: WidgetVenueTable[][] =
+      venue
+        ? [venue.tables ?? []]
+        : (this.raumauswahl() && this.filteredVenues().length > 1)
+          ? this.filteredVenues().map(v => v.tables ?? [])
+          : [this.venueTables()];
+    const knownSets = candidateTableSets.filter(t => t.length > 0);
+    const all = Array.from({ length: max }, (_, i) => {
       const n = i + 1;
-      if (n === 1) return { count: 1, label: `1 ${lbl.guest}` };
-      return { count: n, label: `${n} ${lbl.guests}` };
+      // Kein Tischplan in irgendeinem Kandidat-Raum hinterlegt → nichts kann
+      // strukturell ausgeschlossen werden.
+      const overCapacity = knownSets.length > 0 && !knownSets.some(t => this.canPartyBeSeated(t, n));
+      const label = n === 1 ? `1 ${lbl.guest}` : `${n} ${lbl.guests}`;
+      return { count: n, label, overCapacity };
     });
+    return waitlistOn ? all : all.filter(o => !o.overCapacity);
   });
 
   /** Hinweisblock anzeigen wenn Telefon oder E-Mail hinterlegt ist – unabhängig von der gewählten Personenzahl. */
@@ -482,6 +517,108 @@ export class StartComponent implements OnInit {
     ),
     { initialValue: null },
   );
+
+  /**
+   * Reine Slot-Filterung für EINEN Raum, parametrisiert über avail/tables
+   * statt über den fest gewählten selectedVenue() — Kern-Logik 1:1 gespiegelt
+   * aus timeSlots()/waitlistSlots() (siehe dort für Begründung der einzelnen
+   * Schritte), aber wiederverwendbar für Kandidat-Räume vor der Raumwahl
+   * (siehe unionSlots()). Bewusst OHNE Sonderfall für eine bereits gewählte
+   * Tisch-ID (selectedTableId) — die kann es hier noch nicht geben, da Tisch-
+   * wahl erst NACH Raumwahl abgefragt wird.
+   */
+  private slotsForVenueAvail(
+    avail: DayAvailability | null,
+    tables: WidgetVenueTable[],
+    dateStr: string,
+    forWaitlist: boolean,
+  ): string[] {
+    if (!avail || avail.open === false) return [];
+    const from   = avail.open_time  ?? DEFAULT_FROM;
+    const to     = avail.close_time ?? DEFAULT_TO;
+    const breaks = avail.breaks     ?? [];
+    let slots = buildSlots(from, to, this.stepMinutes(), breaks);
+
+    if (dateStr === this.today) {
+      const now = new Date();
+      const cutoff = now.getHours() * 60 + now.getMinutes() + (forWaitlist ? 0 : this.mindestvorlaufMinuten());
+      slots = slots.filter(s => {
+        const [h, mm] = s.split(':').map(Number);
+        return h * 60 + mm >= cutoff;
+      });
+    }
+
+    const blockedRanges = avail.blockedRanges ?? [];
+    if (blockedRanges.length > 0) {
+      slots = slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotMin = sh * 60 + sm;
+        return !blockedRanges.some(br => {
+          const [fh, fm] = br.from.split(':').map(Number);
+          const [th, tm] = br.to.split(':').map(Number);
+          return slotMin >= fh * 60 + fm && slotMin < th * 60 + tm;
+        });
+      });
+    }
+
+    const periods         = avail.bookedPeriods ?? [];
+    const totalTables     = avail.totalTables ?? 0;
+    const duration        = this.effectiveDurationMinutes();
+    const needed          = this.people();
+    const blockedTableIds = new Set(avail.blockedTableNumbers ?? []);
+
+    if (tables.length > 0) {
+      return slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;
+        const slotEnd   = slotStart + duration;
+        const busyIds    = this.busyTableIdsAt(periods, slotStart, slotEnd);
+        const freeTables = tables.filter(t => !busyIds.has(t.id) && !blockedTableIds.has(t.id));
+        const seated = this.canPartyBeSeated(freeTables, needed);
+        return forWaitlist ? !seated : seated;
+      });
+    }
+
+    if (totalTables > 0 && periods.length > 0) {
+      return slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;
+        const slotEnd   = slotStart + duration;
+        const busyCount = this.busyTableIdsAt(periods, slotStart, slotEnd).size;
+        return forWaitlist ? busyCount >= totalTables : busyCount < totalTables;
+      });
+    }
+
+    return forWaitlist ? [] : slots;
+  }
+
+  /**
+   * Kombinierte (Union-)Zeitslots über alle Kandidat-Räume (candidateVenuesDayAvail()),
+   * solange bei aktiver Mehrfach-Raumauswahl noch kein Raum gewählt ist — ein
+   * Slot gilt als buchbar, wenn IRGENDEIN Kandidat-Raum ihn anbieten kann
+   * (siehe needsVenuePick()). Für die Warteliste gilt das Gegenstück: ein
+   * Slot wird nur als Warteliste-Kandidat gezeigt, wenn er in KEINEM Raum
+   * normal buchbar ist, aber in mindestens einem als voll/Warteliste gilt.
+   */
+  private unionSlots(forWaitlist: boolean): string[] {
+    const dateStr = this.date();
+    const candidates = this.candidateVenuesDayAvail();
+    if (!forWaitlist) {
+      const union = new Set<string>();
+      for (const { venue, avail } of candidates) {
+        for (const s of this.slotsForVenueAvail(avail, venue.tables ?? [], dateStr, false)) union.add(s);
+      }
+      return [...union].sort();
+    }
+    const bookableUnion = new Set(this.unionSlots(false));
+    const waitlistUnion = new Set<string>();
+    for (const { venue, avail } of candidates) {
+      for (const s of this.slotsForVenueAvail(avail, venue.tables ?? [], dateStr, true)) {
+        if (!bookableUnion.has(s)) waitlistUnion.add(s);
+      }
+    }
+    return [...waitlistUnion].sort();
+  }
 
   // ─── Slot-Verfügbarkeit (mit Zeit) — für konkret gewählten Slot ──────────
   readonly availability = toSignal<DayAvailability | null>(
@@ -561,17 +698,71 @@ export class StartComponent implements OnInit {
     return result;
   });
 
+  // ─── Verfügbarkeit pro Kandidat-Raum (VOR der Raumwahl) ──────────────────
+  // Solange bei aktiver Mehrfach-Raumauswahl noch kein Raum feststeht (siehe
+  // needsVenuePick()), wird Datum/Uhrzeit-Verfügbarkeit kombiniert über ALLE
+  // Kandidat-Räume berechnet (Union), statt wie sonst nur für selectedVenue().
+  // Ist bereits ein Raum gewählt (oder gibt's nur einen), bleibt die Liste
+  // leer und die bestehende Einzel-Raum-Logik (dayAvail() etc.) greift wie
+  // gehabt — dieses Signal kostet dann keine zusätzlichen Requests.
+  readonly candidateVenuesDayAvail = toSignal(
+    combineLatest([
+      toObservable(this.selectedVenue),
+      toObservable(this.filteredVenues),
+      toObservable(this.date),
+    ]).pipe(
+      switchMap(([venue, venues, date]) => {
+        if (venue || !date || venues.length <= 1) return of<{ venue: WidgetVenue; avail: DayAvailability }[]>([]);
+        return forkJoin(
+          venues.map(v => this.reservations.checkAvailability(v.id, date).pipe(
+            map(avail => ({ venue: v, avail })),
+          )),
+        );
+      }),
+    ),
+    { initialValue: [] as { venue: WidgetVenue; avail: DayAvailability }[] },
+  );
+
   /**
    * true, solange bei aktiver Raumauswahl mit mehreren Räumen noch kein Raum gewählt
-   * wurde. Das Widget zeigt dann zuerst den Raum-Picker, bevor Datum/Uhrzeit
-   * angezeigt werden — sonst würde Datum/Uhrzeit auf Basis eines beliebig
-   * vorbelegten Raums berechnet und könnte beim späteren Raumwechsel im
-   * Formular still auf einen anderen (verfügbaren) Slot springen, ohne dass es
-   * dem Gast auffällt (siehe weiter() weiter unten: slots.includes(raw) ? raw : slots[0]).
+   * wurde. Der Raum-Picker erscheint jetzt als Zwischenschritt NACH Datum/
+   * Uhrzeit/Personenzahl (siehe hasPassedInitialDateTime — wird erst wahr,
+   * sobald Schritt 1 einmal gültig verlassen wurde, siehe proceedAfterTischwahl()),
+   * genau wie die Tisch-Planauswahl (needsTischwahlPick()) — vorher wurde der
+   * Raum ganz am Anfang abgefragt, noch bevor überhaupt feststand, für welches
+   * Datum/welche Personenzahl gebucht wird, was aus Gast-Sicht keinen Sinn
+   * ergab. Bis dahin wird Datum/Uhrzeit kombiniert über alle Kandidat-Räume
+   * berechnet (siehe unionSlots()/candidateVenuesDayAvail()) — ein Tag/Slot
+   * gilt als buchbar, sobald IRGENDEIN Raum ihn anbieten kann.
    */
   readonly needsVenuePick = computed<boolean>(() =>
     this.raumauswahl() && this.filteredVenues().length > 1 && !this.selectedVenue()
+      && this.hasPassedInitialDateTime()
   );
+
+  /**
+   * Kandidat-Räume für den Raum-Picker NACH Datum/Uhrzeit/Personenzahl, samt
+   * ihrer tatsächlichen Verfügbarkeit für die konkret gewählte Uhrzeit
+   * (validTime()) — Gegenstück zur reinen Namensliste filteredVenues().
+   * bookable=true → normal wählbar. bookable=false, aber waitlistOnly=true
+   * (und Warteliste aktiv) → gedimmt mit "Warteliste"-Hinweis anzeigen,
+   * Klick öffnet das Warteliste-Formular für genau diesen Raum. Räume, die
+   * für den Slot weder buchbar noch warteliste-fähig sind, werden hier schon
+   * herausgefiltert (mirrort das Ausblenden bei Personenzahl-Überbuchung,
+   * siehe seatOptions()).
+   */
+  readonly venuePickCandidates = computed<{ venue: WidgetVenue; bookable: boolean; waitlistOnly: boolean }[]>(() => {
+    const t = this.validTime();
+    const dateStr = this.date();
+    const wl = this.wartelisteAktiv();
+    return this.candidateVenuesDayAvail()
+      .map(({ venue, avail }) => {
+        const bookable = this.slotsForVenueAvail(avail, venue.tables ?? [], dateStr, false).includes(t);
+        const waitlistOnly = !bookable && this.slotsForVenueAvail(avail, venue.tables ?? [], dateStr, true).includes(t);
+        return { venue, bookable, waitlistOnly };
+      })
+      .filter(c => c.bookable || (wl && c.waitlistOnly));
+  });
 
   /**
    * Ist die Tisch-Planauswahl aktiv, wird die Präferenz "selbst wählen" vs.
@@ -679,6 +870,12 @@ export class StartComponent implements OnInit {
   }
 
   readonly timeSlots = computed<string[]>(() => {
+    // Solange bei aktiver Mehrfach-Raumauswahl noch kein Raum feststeht,
+    // zeigt Schritt 1 (Datum/Uhrzeit) die kombinierte Verfügbarkeit über alle
+    // Kandidat-Räume (siehe needsVenuePick()/unionSlots()).
+    if (!this.selectedVenue() && this.raumauswahl() && this.filteredVenues().length > 1) {
+      return this.unionSlots(false);
+    }
     const avail = this.dayAvail();
     if (avail?.open === false) return [];
     const from   = avail?.open_time  ?? DEFAULT_FROM;
@@ -790,12 +987,24 @@ export class StartComponent implements OnInit {
     return slots.includes(t) ? t : slots[0];
   });
 
+  /**
+   * true, wenn die zuletzt aktiv gewählte Uhrzeit für die aktuelle Personenzahl/Datum
+   * nicht mehr verfügbar ist und validTime() deshalb still auf einen anderen Slot
+   * ausgewichen ist (z. B. nach Zurück-Navigation + Personenzahl ändern). Wird genutzt,
+   * um dem Gast einen Hinweis statt eines stillen Wechsels zu zeigen.
+   */
+  readonly timeWasAutoAdjusted = computed(() => {
+    const slots = this.timeSlots();
+    const t = this.time();
+    return slots.length > 0 && !slots.includes(t);
+  });
+
   /** Gibt es tatsächlich buchbare Slots für das gewählte Datum? */
   readonly hasBookableSlots = computed(() => this.timeSlots().length > 0);
 
   // ─── Warteliste ──────────────────────────────────────────────────────────
   wartelisteAktiv          = signal(false);
-  wartelisteMaxPlaetze     = signal(3);
+  wartelisteMaxPlaetze     = signal(20);
   wartelisteKanal          = signal<'email' | 'telefon' | 'beide'>('email');
   wartelisteAntwortStunden = signal(24);
   wartelisteHinweis        = signal('');
@@ -809,6 +1018,10 @@ export class StartComponent implements OnInit {
    */
   readonly waitlistSlots = computed<string[]>(() => {
     if (!this.wartelisteAktiv()) return [];
+
+    if (!this.selectedVenue() && this.raumauswahl() && this.filteredVenues().length > 1) {
+      return this.unionSlots(true);
+    }
 
     const avail = this.dayAvail();
     if (avail?.open === false) return [];
@@ -882,6 +1095,13 @@ export class StartComponent implements OnInit {
   // ─── Warteliste-Anmeldung (eigenständiges Formular, unabhängig vom Buchungsflow) ──
   waitlistModalOpen   = signal(false);
   waitlistSlotTime    = signal<string | null>(null);
+  /** Für welchen Raum die aktuell offene Warteliste-Anmeldung eingetragen wird —
+   *  separat von selectedVenue() gehalten (siehe openWaitlistForm()), damit ein
+   *  Warteliste-Eintrag VOR der eigentlichen Raumwahl (Mehrfach-Raumauswahl,
+   *  siehe needsVenuePick()) nicht versehentlich schon endgültig einen Raum
+   *  für die restliche Buchung festlegt. */
+  waitlistVenue       = signal<WidgetVenue | null>(null);
+  waitlistGuestFirstName = signal('');
   waitlistGuestName   = signal('');
   waitlistGuestEmail  = signal('');
   waitlistGuestPhone  = signal('');
@@ -910,8 +1130,37 @@ export class StartComponent implements OnInit {
     this.waitlistPartySize() >= 1
   );
 
-  openWaitlistForm(slot: string): void {
+  /**
+   * Öffnet das Warteliste-Formular für einen Slot. `venue` optional: wird im
+   * neuen Raum-Picker-Zwischenschritt (venuePickCandidates()) übergeben, wenn
+   * dort noch gar kein Raum global gewählt ist, aber ein bestimmter Kandidat-
+   * Raum für den Slot nur noch per Warteliste buchbar ist.
+   *
+   * WICHTIG: Setzt NICHT mehr selectedVenue(), sondern das separate
+   * waitlistVenue()-Signal — sonst würde ein Warteliste-Eintrag, der VOR der
+   * eigentlichen Raumwahl passiert (Mehrfach-Raumauswahl, siehe
+   * needsVenuePick()), schon endgültig einen Raum für die restliche Buchung
+   * festlegen. Ist noch kein Raum bekannt (Aufruf ohne `venue`-Argument aus
+   * den Warteliste-Slot-Chips im Datum/Uhrzeit-Schritt, wo bei aktiver
+   * Mehrfach-Raumauswahl selectedVenue() noch null sein kann), wird der Raum
+   * anhand des Slots über die Kandidaten-Verfügbarkeiten (candidateVenuesDayAvail())
+   * aufgelöst — der erste Kandidat-Raum, in dem der Slot per Warteliste
+   * buchbar ist.
+   */
+  openWaitlistForm(slot: string, venue?: WidgetVenue): void {
+    let target = venue ?? this.selectedVenue();
+    if (!target && this.raumauswahl()) {
+      const dateStr = this.date();
+      if (dateStr) {
+        const match = this.candidateVenuesDayAvail().find(({ venue: v, avail }) =>
+          this.slotsForVenueAvail(avail, v.tables ?? [], dateStr, true).includes(slot),
+        );
+        target = match?.venue ?? null;
+      }
+    }
+    this.waitlistVenue.set(target ?? null);
     this.waitlistSlotTime.set(slot);
+    this.waitlistGuestFirstName.set('');
     this.waitlistGuestName.set('');
     this.waitlistGuestEmail.set('');
     this.waitlistGuestPhone.set('');
@@ -922,11 +1171,15 @@ export class StartComponent implements OnInit {
   }
 
   closeWaitlistModal(): void {
+    const wasSuccess = this.waitlistSuccess();
     this.waitlistModalOpen.set(false);
+    if (wasSuccess) {
+      this.reset();
+    }
   }
 
   submitWaitlist(): void {
-    const venue = this.selectedVenue();
+    const venue = this.waitlistVenue() ?? this.selectedVenue();
     const date  = this.date();
     const slot  = this.waitlistSlotTime();
     if (!venue || !date || !slot || !this.waitlistCanSubmit()) return;
@@ -938,6 +1191,7 @@ export class StartComponent implements OnInit {
       venue_id:     venue.id,
       requested_at: toAtomDateTime(date, slot),
       party_size:   this.waitlistPartySize(),
+      guest_first_name: this.waitlistGuestFirstName().trim() || undefined,
       guest_name:   this.waitlistGuestName().trim(),
       guest_email:  this.waitlistGuestEmail().trim(),
       guest_phone:  this.waitlistGuestPhone().trim() || undefined,
@@ -1012,6 +1266,36 @@ export class StartComponent implements OnInit {
     this.people() >= this.minPeople,
   );
 
+  /**
+   * Gate für den "Weiter"-Klick NACH Schritt 1 (Personen/Datum/Uhrzeit) in
+   * allen 4 Layouts — bewusst NICHT identisch zu `tischwahlValid()`.
+   *
+   * Ist die Mehrfach-Raumauswahl aktiv und gibt es noch mehrere Kandidaten-
+   * Räume, ist `selectedVenue()` an dieser Stelle ABSICHTLICH noch null — der
+   * Raum wird ja erst im nächsten Zwischenschritt (needsVenuePick(), siehe
+   * proceedAfterTischwahl()) gewählt, anhand der hier schon feststehenden
+   * Datum/Uhrzeit/Personenzahl. `tischwahlValid()` verlangt aber zwingend
+   * `!!selectedVenue()` (u.a. für canSubmit()/canGoToSummary(), wo ein Raum
+   * wirklich feststehen muss). Wurde `tischwahlValid()` versehentlich auch
+   * hier als Gate verwendet, konnte dieser Schritt NIE verlassen werden,
+   * sobald raumauswahl() mit >1 Räumen aktiv ist — ein Deadlock, der jede
+   * Reservierung über das Widget unabhängig von Datum/Uhrzeit/Personenzahl
+   * verhindert (der Raum-Picker-Schritt wurde nie erreicht). Die übrigen
+   * Prüfungen (isClosedDay/hasBookableSlots/validTime) funktionieren in
+   * diesem Fall bereits korrekt gegen die kombinierte Verfügbarkeit aller
+   * Kandidaten-Räume (siehe timeSlots()/unionSlots()), daher hier unverändert
+   * übernommen — nur die Raum-Pflicht wird für den Fall gelockert, dass der
+   * Raum erst im nächsten Schritt gewählt wird.
+   */
+  readonly step1Valid = computed(() =>
+    !!this.date() &&
+    !this.isClosedDay() &&
+    this.hasBookableSlots() &&
+    !!this.validTime() &&
+    this.people() >= this.minPeople &&
+    (!!this.selectedVenue() || (this.raumauswahl() && this.filteredVenues().length > 1)),
+  );
+
   /** Prüft ob Formulardaten vollständig sind → für "Weiter zur Zusammenfassung".
    *  Nutzt dieselbe Basis-Prüfung (Bereich/Datum/Uhrzeit/Personenzahl) wie
    *  `canSubmit()` über `tischwahlValid()` — vorher fehlten hier z.B. die
@@ -1068,17 +1352,53 @@ export class StartComponent implements OnInit {
     return `${months[this.calendarMonth()]} ${this.calendarYear()}`;
   });
 
-  // ─── Calendar cells ──────────────────────────────────────────────────────
-  readonly calendarCells = computed(() => {
-    const m = this.calendarMonth();
-    const y = this.calendarYear();
-    const firstOfMonth = new Date(y, m, 1);
-    const monthStartWeekday = (firstOfMonth.getDay() + 6) % 7;
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
+  /**
+   * Prüft rein anhand von Öffnungszeiten/Sperren (OHNE Tisch-Kapazität), ob ein
+   * Tag grundsätzlich außerhalb des buchbaren Fensters liegt — z. B. vergangen,
+   * jenseits des Vorausbuchungsfensters, Schließtag oder Sonderschließung, oder
+   * es bleibt nach der Vorlaufzeit kein einziger Slot mehr übrig. Gemeinsam
+   * genutzt von calendarCells() und scheduleEnabledDatesForMonth(), damit beide
+   * Stellen nicht auseinanderlaufen können.
+   */
+  private isDayScheduleDisabled(
+    cellDate: Date,
+    dateStr: string,
+    isCellToday: boolean,
+    ctx: {
+      todayStart: Date;
+      maxD: Date;
+      closed: number[];
+      specialRanges: { date_from: string; date_to: string }[];
+      schedule: Record<number, { open_time: string | null; close_time: string | null }>;
+      step: number;
+      minLead: number;
+      nowMinutes: number;
+    },
+  ): boolean {
+    const weekday = (cellDate.getDay() + 6) % 7;
+    const isSpecialClosed = ctx.specialRanges.some(r => dateStr >= r.date_from && dateStr <= r.date_to);
+    let isDisabled = cellDate < ctx.todayStart || cellDate > ctx.maxD || ctx.closed.includes(weekday) || isSpecialClosed;
+
+    if (!isDisabled) {
+      const sched    = ctx.schedule[weekday];
+      const openStr  = sched?.open_time  ?? DEFAULT_FROM;
+      const closeStr = sched?.close_time ?? DEFAULT_TO;
+      const [oh, om] = openStr.split(':').map(Number);
+      const [ch, cm] = closeStr.split(':').map(Number);
+      const openMin  = oh * 60 + om;
+      const closeMin = ch * 60 + cm;
+      const cutoff   = isCellToday ? ctx.nowMinutes + ctx.minLead : openMin;
+
+      let firstSlot = openMin;
+      while (firstSlot < closeMin && firstSlot < cutoff) firstSlot += ctx.step;
+      if (firstSlot >= closeMin) isDisabled = true;
+    }
+    return isDisabled;
+  }
+
+  /** Baut den gemeinsamen Kontext für isDayScheduleDisabled() für einen gegebenen Monat. */
+  private scheduleContextForMonth(m: number, y: number) {
     const now = new Date();
-    const isCurrentMonth = now.getFullYear() === y && now.getMonth() === m;
-    const todayDay = now.getDate();
-    const sel = this.selectedDay();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const maxD = new Date(now);
     if (this.vorausbuchungEinheit() === 'tage') {
@@ -1087,47 +1407,207 @@ export class StartComponent implements OnInit {
       maxD.setMonth(maxD.getMonth() + this.vorausbuchungWert());
     }
     maxD.setHours(23, 59, 59, 999);
-    const closed        = this.closedWeekdays();
-    const specialRanges = this.specialClosedRanges();
-    const schedule      = this.openingSchedule();
-    const step          = this.stepMinutes();
-    const minLead       = this.mindestvorlaufMinuten();
-    const nowMinutes    = now.getHours() * 60 + now.getMinutes();
+    return {
+      now,
+      isCurrentMonth: now.getFullYear() === y && now.getMonth() === m,
+      todayDay: now.getDate(),
+      todayStart,
+      maxD,
+      closed: this.closedWeekdays(),
+      specialRanges: this.specialClosedRanges(),
+      schedule: this.openingSchedule(),
+      step: this.stepMinutes(),
+      minLead: this.mindestvorlaufMinuten(),
+      nowMinutes: now.getHours() * 60 + now.getMinutes(),
+    };
+  }
 
-    const cells: { day: number | null; isToday: boolean; isSelected: boolean; isDisabled: boolean }[] = [];
-    for (let i = 0; i < monthStartWeekday; i++) cells.push({ day: null, isToday: false, isSelected: false, isDisabled: false });
+  /**
+   * Liefert alle Datums-Strings (YYYY-MM-DD) im angegebenen Monat, die laut
+   * Öffnungszeiten/Sperren grundsätzlich buchbar wären — d. h. genau die Tage,
+   * für die sich eine Kapazitäts-Abfrage beim Backend überhaupt lohnt. Wird von
+   * monthDayAvailability() genutzt, um nicht unnötig für längst geschlossene
+   * oder vergangene Tage Requests zu feuern.
+   */
+  private scheduleEnabledDatesForMonth(m: number, y: number): string[] {
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const ctx = this.scheduleContextForMonth(m, y);
+    const dates: string[] = [];
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(y, m, d);
-      const weekday  = (cellDate.getDay() + 6) % 7;
       const dateStr  = StartComponent.localDate(cellDate);
-      const isCellToday = isCurrentMonth && d === todayDay;
+      const isCellToday = ctx.isCurrentMonth && d === ctx.todayDay;
+      if (!this.isDayScheduleDisabled(cellDate, dateStr, isCellToday, ctx)) dates.push(dateStr);
+    }
+    return dates;
+  }
 
-      const isSpecialClosed = specialRanges.some(r => dateStr >= r.date_from && dateStr <= r.date_to);
+  /**
+   * Prüft anhand einer geladenen DayAvailability, ob für die aktuelle
+   * Personenzahl mindestens ein Slot existiert — entweder als normale Buchung
+   * (forWaitlist = false) oder als Warteliste-Kandidat (forWaitlist = true,
+   * Gegenstück wie bei waitlistSlots()). Spiegelt bewusst die Filterlogik von
+   * timeSlots()/waitlistSlots(), prüft aber nur auf "existiert mindestens ein
+   * Treffer" statt die volle Liste aufzubauen (genügt für die Tages-Ampel).
+   */
+  private hasAnyBookableSlot(avail: DayAvailability | null, dateStr: string, forWaitlist: boolean, tablesOverride?: WidgetVenueTable[]): boolean {
+    if (!avail || avail.open === false) return false;
+    const from   = avail.open_time  ?? DEFAULT_FROM;
+    const to     = avail.close_time ?? DEFAULT_TO;
+    const breaks = avail.breaks     ?? [];
+    let slots = buildSlots(from, to, this.stepMinutes(), breaks);
 
-      let isDisabled = cellDate < todayStart || cellDate > maxD || closed.includes(weekday) || isSpecialClosed;
+    if (dateStr === this.today) {
+      const now = new Date();
+      const cutoff = now.getHours() * 60 + now.getMinutes() + (forWaitlist ? 0 : this.mindestvorlaufMinuten());
+      slots = slots.filter(s => {
+        const [h, mm] = s.split(':').map(Number);
+        return h * 60 + mm >= cutoff;
+      });
+    }
 
-      // Prüfen ob an diesem Tag noch buchbare Slots verbleiben.
-      // Für heute: echte Schließzeit aus dem Schedule nutzen statt 23:00 hardcoded.
-      // Für zukünftige Tage: Prüfen ob überhaupt Öffnungszeiten existieren die Slots liefern.
+    const blockedRanges = avail.blockedRanges ?? [];
+    if (blockedRanges.length > 0) {
+      slots = slots.filter(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotMin = sh * 60 + sm;
+        return !blockedRanges.some(br => {
+          const [fh, fm] = br.from.split(':').map(Number);
+          const [th, tm] = br.to.split(':').map(Number);
+          return slotMin >= fh * 60 + fm && slotMin < th * 60 + tm;
+        });
+      });
+    }
+    if (slots.length === 0) return false;
+
+    const periods         = avail.bookedPeriods ?? [];
+    const totalTables     = avail.totalTables ?? 0;
+    const duration        = this.effectiveDurationMinutes();
+    const needed          = this.people();
+    // tablesOverride: erlaubt den Aufruf für einen KANDIDAT-Raum (noch nicht
+    // selectedVenue()), z.B. für die kombinierte Verfügbarkeit über alle Räume
+    // vor der Raumwahl (siehe needsVenuePick()/monthDayAvailability()).
+    const tables          = tablesOverride ?? this.venueTables();
+    const blockedTableIds = new Set(avail.blockedTableNumbers ?? []);
+
+    if (tables.length > 0) {
+      return slots.some(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;
+        const slotEnd   = slotStart + duration;
+        const busyIds    = this.busyTableIdsAt(periods, slotStart, slotEnd);
+        const freeTables = tables.filter(t => !busyIds.has(t.id) && !blockedTableIds.has(t.id));
+        const seated = this.canPartyBeSeated(freeTables, needed);
+        return forWaitlist ? !seated : seated;
+      });
+    }
+
+    if (totalTables > 0 && periods.length > 0) {
+      return slots.some(slotTime => {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;
+        const slotEnd   = slotStart + duration;
+        const busyCount = this.busyTableIdsAt(periods, slotStart, slotEnd).size;
+        return forWaitlist ? busyCount >= totalTables : busyCount < totalTables;
+      });
+    }
+
+    // Keine Tisch-/Belegungsdaten vorhanden — wie timeSlots()/waitlistSlots():
+    // ohne Kapazitätsdaten konservativ als normal buchbar werten.
+    return !forWaitlist;
+  }
+
+  /**
+   * Verfügbarkeit für die aktuelle Personenzahl, für jeden (grundsätzlich
+   * offenen) Tag im sichtbaren Kalendermonat — Grundlage für das Ausgrauen
+   * voll ausgebuchter Tage. Im Gegensatz zu dayAvail() (nur das gewählte
+   * Datum) wird hier pro sichtbarem Monat einmal parallel für alle offenen
+   * Tage abgefragt (forkJoin) und bei Monats-/Venue-/Personenzahl-Wechsel neu
+   * geladen. Während des Ladens (oder ohne Daten) wird ein Tag NICHT
+   * ausgegraut, um kein falsches Grau vor Eintreffen der Antwort zu zeigen.
+   */
+  readonly monthDayAvailability = toSignal(
+    combineLatest([
+      toObservable(this.selectedVenue),
+      toObservable(this.filteredVenues),
+      toObservable(this.raumauswahl),
+      toObservable(this.calendarMonth),
+      toObservable(this.calendarYear),
+      toObservable(this.people),
+      toObservable(this.effectiveDurationMinutes),
+    ]).pipe(
+      switchMap(([venue, filtered, raumauswahlOn, month, year]) => {
+        const dates = this.scheduleEnabledDatesForMonth(month, year);
+        if (dates.length === 0) return of(new Map<string, { bookable: boolean; waitlistOnly: boolean }>());
+
+        // Kein Raum gewählt (aktive Mehrfach-Raumauswahl, siehe needsVenuePick()):
+        // Kombinierte Verfügbarkeit über alle Kandidat-Räume statt nur einen.
+        const venues = venue ? [venue] : (raumauswahlOn && filtered.length > 1 ? filtered : []);
+        if (venues.length === 0) return of(new Map<string, { bookable: boolean; waitlistOnly: boolean }>());
+
+        return forkJoin(
+          dates.map(dateStr =>
+            forkJoin(
+              venues.map(v =>
+                this.reservations.checkAvailability(v.id, dateStr).pipe(
+                  map(avail => ({ venue: v, avail })),
+                ),
+              ),
+            ).pipe(
+              map(perVenue => {
+                const bookable = perVenue.some(({ venue: v, avail }) =>
+                  this.hasAnyBookableSlot(avail, dateStr, false, v.tables ?? []));
+                const waitlistOnly = !bookable && perVenue.some(({ venue: v, avail }) =>
+                  this.hasAnyBookableSlot(avail, dateStr, true, v.tables ?? []));
+                return [dateStr, { bookable, waitlistOnly }] as const;
+              }),
+            ),
+          ),
+        ).pipe(
+          map(pairs => new Map(pairs)),
+        );
+      }),
+    ),
+    { initialValue: new Map<string, { bookable: boolean; waitlistOnly: boolean }>() },
+  );
+
+  // ─── Calendar cells ──────────────────────────────────────────────────────
+  readonly calendarCells = computed(() => {
+    const m = this.calendarMonth();
+    const y = this.calendarYear();
+    const firstOfMonth = new Date(y, m, 1);
+    const monthStartWeekday = (firstOfMonth.getDay() + 6) % 7;
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const sel = this.selectedDay();
+    const ctx = this.scheduleContextForMonth(m, y);
+    const availMap   = this.monthDayAvailability();
+    const waitlistOn = this.wartelisteAktiv();
+
+    const cells: { day: number | null; isToday: boolean; isSelected: boolean; isDisabled: boolean; isWaitlistOnly: boolean }[] = [];
+    for (let i = 0; i < monthStartWeekday; i++) cells.push({ day: null, isToday: false, isSelected: false, isDisabled: false, isWaitlistOnly: false });
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cellDate = new Date(y, m, d);
+      const dateStr  = StartComponent.localDate(cellDate);
+      const isCellToday = ctx.isCurrentMonth && d === ctx.todayDay;
+
+      let isDisabled = this.isDayScheduleDisabled(cellDate, dateStr, isCellToday, ctx);
+      let isWaitlistOnly = false;
+
+      // Kapazitätsprüfung für die aktuelle Personenzahl: nur anwenden, wenn
+      // der Tag laut Schedule grundsätzlich offen ist UND bereits Daten dafür
+      // geladen sind (fehlender Eintrag = noch nicht geladen → nicht ausgrauen).
       if (!isDisabled) {
-        const sched      = schedule[weekday];
-        const openStr    = sched?.open_time  ?? DEFAULT_FROM;
-        const closeStr   = sched?.close_time ?? DEFAULT_TO;
-        const [oh, om]   = openStr.split(':').map(Number);
-        const [ch, cm]   = closeStr.split(':').map(Number);
-        const openMin    = oh * 60 + om;
-        const closeMin   = ch * 60 + cm;
-        const cutoff     = isCellToday ? nowMinutes + minLead : openMin;
-
-        // Ersten gültigen Slot suchen: start >= cutoff und < closeMin
-        let firstSlot = openMin;
-        while (firstSlot < closeMin && firstSlot < cutoff) firstSlot += step;
-        if (firstSlot >= closeMin) {
-          isDisabled = true;
+        const dayAvail = availMap.get(dateStr);
+        if (dayAvail && !dayAvail.bookable) {
+          if (waitlistOn && dayAvail.waitlistOnly) {
+            isWaitlistOnly = true;
+          } else {
+            isDisabled = true;
+          }
         }
       }
 
-      cells.push({ day: d, isToday: isCellToday, isSelected: d === sel, isDisabled });
+      cells.push({ day: d, isToday: isCellToday, isSelected: d === sel, isDisabled, isWaitlistOnly });
     }
     return cells;
   });
@@ -1347,7 +1827,7 @@ export class StartComponent implements OnInit {
   cardClosePicker(): void { this.cardOpenPicker.set(null); }
   cardNextStep(): void {
     this.cardClosePicker();
-    if (this.tischwahlValid()) {
+    if (this.step1Valid()) {
       this.cardTischwahlError.set(false);
       this.proceedAfterTischwahl();
     } else {
@@ -1391,7 +1871,7 @@ export class StartComponent implements OnInit {
   sidebarClosePicker(): void { this.sidebarOpenPicker.set(null); }
   sidebarNextStep(): void {
     this.sidebarClosePicker();
-    if (this.tischwahlValid()) {
+    if (this.step1Valid()) {
       this.sidebarTischwahlError.set(false);
       this.proceedAfterTischwahl();
     } else {
@@ -1433,7 +1913,7 @@ export class StartComponent implements OnInit {
   stackedClosePicker(): void { this.stackedOpenPicker.set(null); }
   stackedNextStep(): void {
     this.stackedClosePicker();
-    if (this.tischwahlValid()) {
+    if (this.step1Valid()) {
       this.stackedTischwahlError.set(false);
       this.proceedAfterTischwahl();
     } else {
@@ -1612,7 +2092,7 @@ export class StartComponent implements OnInit {
   setPlannerStep(s: 1 | 2 | 3 | 4 | 5): void { this.plannerAdvanceTo(s); }
   plannerPrev(): void {
     // Im Minuten-Modus: erst zurück zur Stunden-Auswahl
-    if (this.plannerStep() === 2 && this.plannerDialPhase() === 'minute') {
+    if (this.plannerStep() === 3 && this.plannerDialPhase() === 'minute') {
       this.plannerDialPhase.set('hour');
       return;
     }
@@ -1637,7 +2117,7 @@ export class StartComponent implements OnInit {
       }
       return;
     }
-    // Schritte 1–3 (Datum/Uhrzeit/Personen): Datum, Uhrzeit und Personenzahl
+    // Schritte 1–3 (Personen/Datum/Uhrzeit): Personenzahl, Datum und Uhrzeit
     // sind praktisch immer schon sinnvoll vorbelegt (Standardwerte). Wenn der
     // Nutzer also z.B. direkt auf Schritt 1 auf "Weiter" klickt, ohne jedes
     // Panel einzeln anzufassen, soll trotzdem direkt zu Schritt 4 (Kontakt)
@@ -1649,7 +2129,7 @@ export class StartComponent implements OnInit {
     // Problem sitzt ja genau hier (Datum/Uhrzeit/Personen) und nicht im
     // nächsten Schritt.
     if (s < 4) {
-      if (this.tischwahlValid()) {
+      if (this.step1Valid()) {
         this.plannerTischwahlError.set(false);
         this.proceedAfterTischwahl();
       } else {
@@ -1671,10 +2151,14 @@ export class StartComponent implements OnInit {
     }
   }
   plannerToggleConsent(): void { this.plannerConsent.update(v => !v); }
-  selectPlannerDay(day: number): void { this.selectDay(day); this.plannerAdvanceTo(2); }
-  selectPlannerTime(t: string): void { this.time.set(t); this.plannerAdvanceTo(3); }
+  /** Datum ist jetzt Schritt 2 (nach Personenzahl) → weiter zu Schritt 3 (Uhrzeit). */
+  selectPlannerDay(day: number): void { this.selectDay(day); this.plannerAdvanceTo(3); }
+  /** Springt danach direkt zum nächsten Zwischenschritt/Kontakt-Formular — über
+   *  proceedAfterTischwahl() (statt fest plannerAdvanceTo(4)), damit dabei
+   *  auch needsVenuePick()/needsTischwahlPick() korrekt greifen (siehe dort). */
+  selectPlannerTime(t: string): void { this.time.set(t); this.proceedAfterTischwahl(); }
 
-  /** Phase 1: Stunde wählen → wechselt zu Minuten-Phase (oder direkt zu Schritt 3 bei 60-Min-Intervall). */
+  /** Phase 1: Stunde wählen → wechselt zu Minuten-Phase (oder direkt weiter bei 60-Min-Intervall). */
   selectPlannerHour(hour: number): void {
     const slots = this.timeSlots();
     const match = slots.find(s => parseInt(s.split(':')[0], 10) === hour);
@@ -1682,28 +2166,30 @@ export class StartComponent implements OnInit {
     this.time.set(match);
     if (this.dialIntervalMinutes() >= 60) {
       this.plannerDialPhase.set('hour');
-      this.setPlannerStep(3);
+      // proceedAfterTischwahl() statt fest setPlannerStep(4), siehe selectPlannerTime().
+      this.proceedAfterTischwahl();
     } else {
       this.plannerDialPhase.set('minute');
     }
   }
 
-  /** Phase 2: Minute wählen → setzt die Uhrzeit und wechselt zu Schritt 3. */
+  /** Phase 2: Minute wählen → setzt die Uhrzeit und rückt weiter vor (Kontakt-Formular
+   *  oder ggf. erst Raum-/Tischwahl-Zwischenschritt, siehe proceedAfterTischwahl()). */
   selectPlannerMinute(minute: number): void {
     const pad = (n: number) => String(n).padStart(2, '0');
     const [h] = this.validTime().split(':').map(Number);
     const t = `${pad(h)}:${pad(minute)}`;
     if (this.timeSlots().includes(t)) this.time.set(t);
     this.plannerDialPhase.set('hour');
-    this.setPlannerStep(3);
+    this.proceedAfterTischwahl();
   }
-  /** Setzt nur die Personenzahl — springt bewusst NICHT automatisch weiter
-   *  zu Schritt 4, damit man danach noch Datum/Uhrzeit nachjustieren kann,
-   *  ohne erst wieder zurückblättern zu müssen. Der Sprung zu Schritt 4
-   *  passiert ausschließlich über den expliziten "Weiter"-Klick
-   *  (siehe plannerNext()). */
+  /** Setzt die Personenzahl und springt automatisch zu Schritt 2 (Datum) weiter —
+   *  Personenzahl ist jetzt der erste Schritt, damit Datum/Uhrzeit direkt von
+   *  Anfang an nach der echten Personenzahl gefiltert werden (statt erst
+   *  nachträglich, was zu einem stillen Uhrzeit-Wechsel führen konnte). */
   selectPlannerSeats(n: number): void {
     this.people.set(n);
+    this.plannerAdvanceTo(2);
   }
 
   // ─── Tischwahl-Präferenz (Zwischenschritt NACH Datum/Uhrzeit/Personenzahl,
@@ -1788,8 +2274,32 @@ export class StartComponent implements OnInit {
     this.selectedTableId.set(null);
   }
 
+  /**
+   * Rückt nach einem gültig verlassenen Schritt 1 (Personenzahl/Datum/Uhrzeit)
+   * weiter vor — prüft dabei der Reihe nach die beiden möglichen Zwischen-
+   * schritte: zuerst die Raumauswahl (needsVenuePick(), nur bei aktiver
+   * Mehrfach-Raumauswahl), danach die Tisch-Planauswahl (needsTischwahlPick(),
+   * die ja pro Raum unterschiedliche Tische zeigt und daher erst greifen kann,
+   * sobald der Raum feststeht). Erst wenn keiner der beiden mehr aktiv ist,
+   * geht's zum Kontakt-Formular weiter. Wird auch von selectVenue() erneut
+   * aufgerufen, sobald der Raum gewählt wurde.
+   */
   private proceedAfterTischwahl(): void {
     this.hasPassedInitialDateTime.set(true);
+    // Falls die Blockierung einzelner Räume für das gewählte Datum
+    // (isVenueBlockedOn(), siehe filteredVenues() Schritt 3) die Kandidaten-
+    // Liste inzwischen auf genau einen Raum reduziert hat, muss dieser hier
+    // automatisch übernommen werden — sonst bliebe selectedVenue() dauerhaft
+    // leer, weil needsVenuePick() den Picker nur bei >1 Kandidaten zeigt.
+    if (!this.selectedVenue() && this.raumauswahl()) {
+      const candidates = this.filteredVenues();
+      if (candidates.length === 1) { this.selectedVenue.set(candidates[0]); }
+    }
+    if (this.needsVenuePick()) {
+      // Mehrfach-Raumauswahl aktiv, aber noch kein Raum gewählt — der
+      // Raum-Picker erscheint jetzt (siehe @if-Kette in den Templates).
+      return;
+    }
     if (this.needsTischwahlPick()) {
       // Tisch-Plan-Auswahl aktiv, aber noch keine Präferenz (auto/selbst)
       // gewählt — needsTischwahlPick() zeigt jetzt (siehe @else-if-Kette in
@@ -2230,8 +2740,27 @@ export class StartComponent implements OnInit {
     return this.requiredFields().includes(field);
   }
 
+  /**
+   * Setzt den gewählten Raum. Wurde der Raum-Picker als Zwischenschritt NACH
+   * Datum/Uhrzeit/Personenzahl gezeigt (siehe needsVenuePick()), rückt hier
+   * direkt weiter vor (Tisch-Planauswahl oder Kontakt-Formular, je nachdem —
+   * siehe proceedAfterTischwahl()). Bei einem Raumwechsel, der NICHT über
+   * diesen Zwischenschritt lief (z.B. der Inline-Wechsel im Planner-Kontakt-
+   * formular, siehe Panel 4), ist hasPassedInitialDateTime() bereits true,
+   * wodurch proceedAfterTischwahl() hier harmlos ein zweites Mal durchläuft.
+   */
   selectVenue(venue: WidgetVenue): void {
     this.selectedVenue.set(venue);
+    if (this.hasPassedInitialDateTime()) {
+      this.proceedAfterTischwahl();
+    }
+  }
+
+  /** Zurück von der Raumauswahl (nach Datum/Uhrzeit/Personenzahl) zu Schritt 1 —
+   *  setzt hasPassedInitialDateTime zurück, wodurch needsVenuePick() wieder
+   *  false wird und das Formular erneut sichtbar wird (siehe backFromTischwahlPick()). */
+  backFromVenuePick(): void {
+    this.hasPassedInitialDateTime.set(false);
   }
 
   onTimeChange(val: string): void {

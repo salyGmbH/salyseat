@@ -655,6 +655,32 @@
 
           <!-- Neuer Block: Formular -->
           <div class="block-form">
+            <div class="block-form__row block-form__row--scope">
+              <label class="block-form__radio">
+                <input type="radio" name="blockScope" value="room" [checked]="blockScope === 'room'"
+                       (change)="blockScope = 'room'; blockTableId = null">
+                <span>{{ 'restaurant_plan.block_scope_room' | translate }}</span>
+              </label>
+              <label class="block-form__radio">
+                <input type="radio" name="blockScope" value="table" [checked]="blockScope === 'table'"
+                       (change)="blockScope = 'table'">
+                <span>{{ 'restaurant_plan.block_scope_table' | translate }}</span>
+              </label>
+            </div>
+
+            @if (blockScope === 'table') {
+              <label class="block-form__field block-form__field--full">
+                <span>{{ 'restaurant_plan.block_table_label' | translate }}</span>
+                <select class="block-form__input" [value]="blockTableId ?? ''"
+                        (change)="blockTableId = $any($event.target).value ? +$any($event.target).value : null">
+                  <option value="" disabled>{{ 'restaurant_plan.block_table_ph' | translate }}</option>
+                  @for (t of placedTables(); track t.id) {
+                    <option [value]="t.id">{{ 'restaurant_plan.table_short' | translate }} {{ t.id }} ({{ t.seats }} {{ 'restaurant_plan.seats_short' | translate }})</option>
+                  }
+                </select>
+              </label>
+            }
+
             <div class="block-form__row">
               <label class="block-form__field">
                 <span>{{ 'restaurant_plan.block_from' | translate }}</span>
@@ -706,13 +732,33 @@
             </button>
           </div>
 
+          <!-- Hinweis: bestehende Reservierungen im neuen Sperrfenster (werden NICHT automatisch storniert) -->
+          @if (blockAffectedReservations().length > 0) {
+            <div class="block-affected-warning">
+              <div class="block-affected-warning__head">
+                <mat-icon>warning</mat-icon>
+                <span>{{ 'restaurant_plan.block_affected_hint' | translate:{ count: blockAffectedReservations().length } }}</span>
+              </div>
+              @for (r of blockAffectedReservations(); track r.id) {
+                <div class="block-affected-warning__item">
+                  <span class="block-affected-warning__name">{{ r.guest_first_name ? (r.guest_first_name + ' ') : '' }}{{ r.guest_name }}</span>
+                  <span class="block-affected-warning__meta"> · {{ r.starts_at | date:'dd.MM.yy HH:mm' }} · {{ r.party_size }} {{ 'restaurant_plan.persons_short' | translate }}</span>
+                  @if (r.table_number) {
+                    <span class="block-affected-warning__meta"> · {{ 'restaurant_plan.table_short' | translate }} {{ r.table_number }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+
           <!-- Bestehende Sperrzeiten -->
-          @if (venueBlocks().length > 0) {
+          @if (venueBlocks().length > 0 || tableBlocksForRoom().length > 0) {
             <div class="block-list">
               <div class="block-list__header">{{ 'restaurant_plan.block_active' | translate }}</div>
               @for (block of venueBlocks(); track block.id) {
                 <div class="block-list__item">
                   <div class="block-list__info">
+                    <span class="block-list__scope-tag block-list__scope-tag--room">{{ 'restaurant_plan.block_scope_room' | translate }}</span>
                     <span class="block-list__dates">
                       {{ block.date_from }}
                       @if (block.date_from !== block.date_to) { → {{ block.date_to }} }
@@ -727,6 +773,28 @@
                     }
                   </div>
                   <button class="block-list__delete" (click)="removeBlock(block.id)" title="Löschen">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              }
+              @for (block of tableBlocksForRoom(); track block.id) {
+                <div class="block-list__item">
+                  <div class="block-list__info">
+                    <span class="block-list__scope-tag block-list__scope-tag--table">{{ 'restaurant_plan.table_short' | translate }} {{ block.tableId }}</span>
+                    <span class="block-list__dates">
+                      {{ block.dateFrom }}
+                      @if (block.dateFrom !== block.dateTo) { → {{ block.dateTo }} }
+                    </span>
+                    @if (!block.fullDay && block.timeFrom && block.timeTo) {
+                      <span class="block-list__time"> · {{ block.timeFrom }} – {{ block.timeTo }}</span>
+                    } @else {
+                      <span class="block-list__time"> · {{ 'restaurant_plan.block_ganztaegig' | translate }}</span>
+                    }
+                    @if (block.reason) {
+                      <span class="block-list__reason">{{ block.reason }}</span>
+                    }
+                  </div>
+                  <button class="block-list__delete" (click)="removeTableBlock(block.id)" title="Löschen">
                     <mat-icon>close</mat-icon>
                   </button>
                 </div>

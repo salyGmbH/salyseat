@@ -109,6 +109,7 @@ class WaitlistController extends AbstractController
             'status'       => $e->getStatus(),
             'venue_id'     => $e->getVenue()->getId()->toRfc4122(),
             'venue_name'   => $e->getVenue()->getName(),
+            'guest_first_name' => $e->getGuestFirstName(),
             'guest_name'   => $e->getGuestName(),
             'guest_email'  => $e->getGuestEmail(),
             'guest_phone'  => $e->getGuestPhone(),

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -84,6 +84,25 @@ export class WidgetComponent {
 
   readonly infoOpen = signal(false);
 
+  /**
+   * Schließt ein offenes Card-/Stacked-Picker-Panel (Datum/Uhrzeit/Personen),
+   * wenn außerhalb des zugehörigen Feld+Panel-Containers geklickt wird —
+   * sonst musste man immer erst eine Auswahl treffen, um das Panel wieder
+   * zuzuklappen. Sidebar hat dafür schon einen eigenen Zurück-Button, Planner
+   * ist ein Schritt-Wizard ohne Overlay, daher hier nicht nötig.
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClickClosePicker(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (this.cardOpenPicker() !== null && !target.closest('.preview-card__group--picker-host')) {
+      this.cardClosePicker();
+    }
+    if (this.stackedOpenPicker() !== null && !target.closest('.preview-stacked__tiles-host')) {
+      this.stackedClosePicker();
+    }
+  }
+
   /** Public Key des aktuellen Tenants — für den Embed-Code. */
   readonly publicKey = this.tenantSettings.publicKey;
 
@@ -168,9 +187,9 @@ export class WidgetComponent {
 
   /**
    * Drei-Stufen-Wizard im Planer-Stil:
-   *   1 — Datumsauswahl (Kalender)
-   *   2 — Uhrzeitauswahl (Chips)
-   *   3 — Personenanzahl (Chips)
+   *   1 — Personenanzahl (Chips)
+   *   2 — Datumsauswahl (Kalender)
+   *   3 — Uhrzeitauswahl (Chips)
    * Live-State für die Vorschau, damit man durchklicken kann.
    */
   readonly plannerStep          = signal<1 | 2 | 3 | 4>(1);
@@ -179,7 +198,7 @@ export class WidgetComponent {
   readonly plannerSelectedSeats = signal<number>(2);
   /** DSGVO-Einwilligung für Layout-4-Daten-Step. Pflichtfeld vor Submit. */
   readonly plannerConsent       = signal<boolean>(false);
-  readonly plannerCalendarMonth = signal<number>(4);  
+  readonly plannerCalendarMonth = signal<number>(4);   // 0 = Jan, 4 = Mai
   readonly plannerCalendarYear  = signal<number>(2026);
   readonly plannerCalendarMonthLabel = computed(() => {
     const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -218,21 +237,21 @@ export class WidgetComponent {
   /** DSGVO-Toggle für den Layout-4-Daten-Step. */
   plannerToggleConsent(): void { this.plannerConsent.set(!this.plannerConsent()); }
 
-  /** Datum klicken → speichern + automatisch zur nächsten Stufe. */
-  selectPlannerDay(day: number): void {
-    this.plannerSelectedDay.set(day);
+  /** Personenanzahl klicken → speichern + automatisch zur Datumsstufe. */
+  selectPlannerSeats(count: number): void {
+    this.plannerSelectedSeats.set(count);
     this.setPlannerStep(2);
   }
 
-  /** Uhrzeit klicken → speichern + automatisch zur Personenstufe. */
-  selectPlannerTime(label: string): void {
-    this.plannerSelectedTime.set(label);
+  /** Datum klicken → speichern + automatisch zur Uhrzeitstufe. */
+  selectPlannerDay(day: number): void {
+    this.plannerSelectedDay.set(day);
     this.setPlannerStep(3);
   }
 
-  /** Personenanzahl klicken → speichern + automatisch zum Daten-Step (4). */
-  selectPlannerSeats(count: number): void {
-    this.plannerSelectedSeats.set(count);
+  /** Uhrzeit klicken → speichern + automatisch zum Daten-Step (4). */
+  selectPlannerTime(label: string): void {
+    this.plannerSelectedTime.set(label);
     this.setPlannerStep(4);
   }
 
@@ -1111,7 +1130,7 @@ export class WidgetComponent {
       },
       error: (err) => {
         this.isSaving.set(false);
-        const msg = err?.error?.detail ?? err?.message ?? 'Einstellungen konnten nicht gespeichert werden.';
+        const msg = err?.error?.detail ?? err?.message ?? this.translate.instant('widget.save_error');
         this.saveError.set(msg);
         setTimeout(() => this.saveError.set(null), 5000);
       },
@@ -1143,12 +1162,22 @@ export class WidgetComponent {
     this.selectedRadius.set(d.cornerRadius);
     this.widgetDesign.reset();
 
+    // Upload-Fehlermeldungen zurücksetzen (sonst bleibt eine alte Meldung
+    // sichtbar, obwohl das zugehörige Bild bereits gelöscht wurde)
+    this.imageUploadError.set(null);
+    this.cardBgImageUploadError.set(null);
+    this.stackedBgImageUploadError.set(null);
+    this.plannerBgImageUploadError.set(null);
+    this.pageBgUploadError.set(null);
+
     // Ephemerer UI-State (Preview-Interaktion, nicht persistiert)
     this.plannerStep.set(1);
     this.plannerSelectedDay.set(2);
     this.plannerSelectedTime.set('19:00');
     this.plannerSelectedSeats.set(2);
     this.plannerConsent.set(false);
+    this.plannerCalendarMonth.set(4);
+    this.plannerCalendarYear.set(2026);
     this.cardStep.set(1);
     this.cardOpenPicker.set(null);
     this.cardConsent.set(false);

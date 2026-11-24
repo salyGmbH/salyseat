@@ -176,13 +176,6 @@ export interface TenantUiSettings {
    */
   vipThreshold?: number;
 
-  /**
-   * Restaurant-Logo (hell + dunkel).
-   * Gespeichert als relativer Pfad /uploads/…
-   */
-  logoLight?: string | null;
-  logoDark?:  string | null;
-
   /** Darstellung des Admin-Panels (light / dim / dark / system). In DB gespeichert. */
   themeMode?: ThemeMode;
 
@@ -217,6 +210,8 @@ export interface TenantUiSettings {
     content?: Record<string, { footerText: string; infoText: string; signature: string }>;
     social?:  { instagram: string; facebook: string; tiktok: string };
     attachments?: { url: string; name: string; assignedMails: Record<string, boolean> }[];
+    /** Foto, das in E-Mails als Header-Banner angezeigt wird. Relativer Pfad /uploads/… */
+    headerImage?: string | null;
   };
 
   /**
@@ -386,7 +381,7 @@ export const DEFAULT_WIDGET_FUNCTIONAL: WidgetFunctionalSettings = {
   onlineStornierung:        false,
   onlineStornierungMinuten: 120,
   wartelisteAktiv:          false,
-  wartelisteMaxPlaetze:     3,
+  wartelisteMaxPlaetze:     20,
   wartelisteKanal:          'email',
   wartelisteAntwortStunden: 24,
   wartelisteHinweis:        '',

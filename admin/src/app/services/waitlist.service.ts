@@ -9,6 +9,7 @@ export interface WaitlistEntry {
   status: WaitlistEntryStatus;
   venue_id: string;
   venue_name: string;
+  guest_first_name: string | null;
   guest_name: string;
   guest_email: string;
   guest_phone: string | null;

@@ -316,11 +316,17 @@
 .review-card {
   background: var(--color-card);
   border: 1px solid $color-border;
+  border-left: 3px solid $color-border;
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  // Farbakzent nach Bewertungs-Schnitt — schlechte Bewertungen sollen sofort auffallen.
+  &--good { border-left-color: $color-success; }
+  &--warn { border-left-color: $color-warn; }
+  &--bad  { border-left-color: $color-danger; }
 }
 
 .review-card__top {
@@ -353,11 +359,33 @@
 .review-card__categories {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
-  font-size: 12px;
-  color: $color-text-muted;
+  gap: 6px 18px;
+}
 
-  strong { color: $color-text-on-dark; }
+.review-card__category {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.review-card__category-label {
+  font-size: 11px;
+  color: $color-text-muted;
+  white-space: nowrap;
+}
+
+.review-card__dots {
+  display: flex;
+  gap: 3px;
+}
+
+.review-card__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(var(--color-text-rgb), 0.15);
+
+  &--filled { background: $color-accent; }
 }
 
 .review-card__comment {
@@ -367,6 +395,51 @@
   margin: 0;
   border-left: 2px solid $color-accent;
   padding-left: 10px;
+}
+
+.review-card__comment-toggle {
+  display: inline;
+  margin-left: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: $color-accent;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
+// ── Filter-Chips ────────────────────────────────────────────────────────
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-chip {
+  padding: 5px 14px;
+  border-radius: 10px;
+  border: 1px solid $color-border;
+  background: transparent;
+  color: $color-text-muted;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover { border-color: rgba(var(--color-text-rgb), 0.3); color: $color-text-on-dark; }
+
+  &--active {
+    border-color: $color-accent;
+    background: rgba(var(--color-accent-rgb), 0.12);
+    color: $color-accent;
+  }
+
+  &--bad.filter-chip--active  { border-color: $color-danger;  background: rgba(var(--color-danger-rgb, 239 68 68), .12);  color: $color-danger; }
+  &--good.filter-chip--active { border-color: $color-success; background: rgba(var(--color-success-rgb, 34 197 94), .12); color: $color-success; }
 }
 
 .review-card__date {

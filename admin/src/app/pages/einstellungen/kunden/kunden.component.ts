@@ -7,8 +7,8 @@ import { ActivatedRoute } from '@angular/router';
 import { GuestsService, Guest, GuestReservation, UpdateGuestDto } from '../../../services/guests.service';
 import { TenantSettingsService, ConfigItem } from '../../../services/tenant-settings.service';
 import { ReminderService, Reminder } from '../../../services/reminder.service';
-import { localDateIso, localDateTimeSpace } from '../../../shared/local-date.util';
 import { OpenDatePickerDirective } from '../../../shared/directives/open-date-picker.directive';
+import { localDateIso, localDateTimeSpace } from '../../../shared/local-date.util';
 
 type ModalTab  = 'profil' | 'hinweise' | 'reservierungen' | 'erinnerungen' | 'email';
 

@@ -5,10 +5,11 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RoomsService } from '../../services/rooms.service';
-import { RoomBlocksService, VenueBlock } from '../../services/room-blocks.service';
+import { RoomBlocksService, VenueBlock, AffectedReservation } from '../../services/room-blocks.service';
+import { TableBlockService, TableBlock } from '../../services/table-block.service';
 import { PlacedTable, PlacedWall, PlacedDecor, SavedRoom, TableType, DecorType, getLabelWidth } from '../../services/room.types';
-import { localDateIso } from '../../shared/local-date.util';
 import { OpenDatePickerDirective } from '../../shared/directives/open-date-picker.directive';
+import { localDateIso } from '../../shared/local-date.util';
 
 interface MergeDialogData {
   movingId: number;
@@ -129,15 +130,22 @@ export class RestaurantPlanComponent implements OnInit {
   // Raum sperren — Modal & Formular
   blockModalOpen = signal(false);
   venueBlocks    = signal<VenueBlock[]>([]);
+  tableBlocksForRoom = signal<TableBlock[]>([]);
   blockError     = signal<string | null>(null);
   blockSaving    = signal(false);
 
+  /** 'room' = ganzer Raum gesperrt, 'table' = nur ein einzelner Tisch. */
+  blockScope    : 'room' | 'table' = 'room';
+  blockTableId  : number | null = null;
   blockDateFrom = '';
   blockDateTo   = '';
   blockFullDay  = true;
   blockTimeFrom = '';
   blockTimeTo   = '';
   blockReason   = '';
+
+  /** Von der zuletzt angelegten Sperre betroffene, bestehende Reservierungen (Hinweis, keine Auto-Stornierung). */
+  blockAffectedReservations = signal<AffectedReservation[]>([]);
 
   private nextId     = 1;
   private activeDrag: ActiveDrag | null = null;
@@ -167,8 +175,9 @@ export class RestaurantPlanComponent implements OnInit {
 
   editingLabelId = signal<number | null>(null);
 
-  private readonly roomsService  = inject(RoomsService);
-  private readonly roomBlocksSvc = inject(RoomBlocksService);
+  private readonly roomsService   = inject(RoomsService);
+  private readonly roomBlocksSvc  = inject(RoomBlocksService);
+  private readonly tableBlockSvc  = inject(TableBlockService);
   private readonly router        = inject(Router);
   private readonly route         = inject(ActivatedRoute);
   private readonly translate     = inject(TranslateService);
@@ -406,17 +415,24 @@ export class RestaurantPlanComponent implements OnInit {
     if (!id) return;
 
     const today = localDateIso();
-    this.blockDateFrom = today;
-    this.blockDateTo   = today;
-    this.blockFullDay  = true;
-    this.blockTimeFrom = '';
-    this.blockTimeTo   = '';
-    this.blockReason   = '';
+    this.blockScope     = 'room';
+    this.blockTableId   = null;
+    this.blockDateFrom  = today;
+    this.blockDateTo    = today;
+    this.blockFullDay   = true;
+    this.blockTimeFrom  = '';
+    this.blockTimeTo    = '';
+    this.blockReason    = '';
     this.blockError.set(null);
+    this.blockAffectedReservations.set([]);
 
     this.roomBlocksSvc.getBlocks(id).subscribe({
       next: blocks => this.venueBlocks.set(blocks),
       error: () => this.venueBlocks.set([]),
+    });
+    this.tableBlockSvc.loadForVenue(id).subscribe({
+      next: () => this.tableBlocksForRoom.set(this.tableBlockSvc.blocksForRoom(id)),
+      error: () => this.tableBlocksForRoom.set([]),
     });
     this.blockModalOpen.set(true);
   }
@@ -437,9 +453,40 @@ export class RestaurantPlanComponent implements OnInit {
       this.blockError.set(this.translate.instant('restaurant_plan.block_time_required'));
       return;
     }
+    if (this.blockScope === 'table' && !this.blockTableId) {
+      this.blockError.set(this.translate.instant('restaurant_plan.block_table_required'));
+      return;
+    }
 
     this.blockSaving.set(true);
     this.blockError.set(null);
+    this.blockAffectedReservations.set([]);
+
+    if (this.blockScope === 'table' && this.blockTableId) {
+      this.tableBlockSvc.addBlock(id, {
+        tableId:  this.blockTableId,
+        dateFrom: this.blockDateFrom,
+        dateTo:   this.blockDateTo,
+        fullDay:  this.blockFullDay,
+        timeFrom: this.blockFullDay ? undefined : this.blockTimeFrom,
+        timeTo:   this.blockFullDay ? undefined : this.blockTimeTo,
+        reason:   this.blockReason.trim() || undefined,
+      }).subscribe({
+        next: ({ affected }) => {
+          this.blockSaving.set(false);
+          this.tableBlocksForRoom.set(this.tableBlockSvc.blocksForRoom(id));
+          this.blockAffectedReservations.set(affected);
+          this.blockDateFrom = localDateIso();
+          this.blockDateTo   = this.blockDateFrom;
+          this.blockReason   = '';
+        },
+        error: () => {
+          this.blockSaving.set(false);
+          this.blockError.set(this.translate.instant('restaurant_plan.block_save_error'));
+        },
+      });
+      return;
+    }
 
     this.roomBlocksSvc.createBlock(id, {
       date_from: this.blockDateFrom,
@@ -449,9 +496,10 @@ export class RestaurantPlanComponent implements OnInit {
       time_to:   this.blockFullDay ? undefined : this.blockTimeTo,
       reason:    this.blockReason.trim() || undefined,
     }).subscribe({
-      next: (block) => {
+      next: ({ block, affected }) => {
         this.blockSaving.set(false);
         this.venueBlocks.update(bs => [...bs, block]);
+        this.blockAffectedReservations.set(affected);
         this.blockDateFrom = localDateIso();
         this.blockDateTo   = this.blockDateFrom;
         this.blockReason   = '';
@@ -469,6 +517,14 @@ export class RestaurantPlanComponent implements OnInit {
     this.roomBlocksSvc.deleteBlock(id, blockId).subscribe(() => {
       this.venueBlocks.update(bs => bs.filter(b => b.id !== blockId));
       this.roomsService.load().subscribe();
+    });
+  }
+
+  removeTableBlock(blockId: string) {
+    const id = this.editingRoomId();
+    if (!id) return;
+    this.tableBlockSvc.removeBlock(id, blockId).subscribe(() => {
+      this.tableBlocksForRoom.set(this.tableBlockSvc.blocksForRoom(id));
     });
   }
 

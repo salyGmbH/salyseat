@@ -40,6 +40,9 @@ class WaitlistEntry
     #[ORM\Column]
     private int $partySize;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $guestFirstName = null;
+
     #[ORM\Column(length: 255)]
     private string $guestName;
 
@@ -70,18 +73,20 @@ class WaitlistEntry
         string $guestEmail,
         ?string $guestPhone = null,
         ?string $notes = null,
+        ?string $guestFirstName = null,
     ) {
-        $this->id          = Uuid::v7();
-        $this->tenant       = $tenant;
-        $this->venue        = $venue;
-        $this->requestedAt  = $requestedAt;
-        $this->partySize    = $partySize;
-        $this->guestName    = $guestName;
-        $this->guestEmail   = strtolower(trim($guestEmail));
-        $this->guestPhone   = $guestPhone;
-        $this->notes        = $notes;
-        $this->createdAt    = new \DateTimeImmutable();
-        $this->updatedAt    = new \DateTimeImmutable();
+        $this->id              = Uuid::v7();
+        $this->tenant           = $tenant;
+        $this->venue            = $venue;
+        $this->requestedAt      = $requestedAt;
+        $this->partySize        = $partySize;
+        $this->guestFirstName   = $guestFirstName !== null && $guestFirstName !== '' ? $guestFirstName : null;
+        $this->guestName        = $guestName;
+        $this->guestEmail       = strtolower(trim($guestEmail));
+        $this->guestPhone       = $guestPhone;
+        $this->notes            = $notes;
+        $this->createdAt        = new \DateTimeImmutable();
+        $this->updatedAt        = new \DateTimeImmutable();
     }
 
     #[ORM\PreUpdate]
@@ -113,6 +118,11 @@ class WaitlistEntry
     public function getPartySize(): int
     {
         return $this->partySize;
+    }
+
+    public function getGuestFirstName(): ?string
+    {
+        return $this->guestFirstName;
     }
 
     public function getGuestName(): string

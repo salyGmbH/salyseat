@@ -14,5 +14,6 @@ final readonly class JoinWaitlistCommand
         public string $guestEmail,
         public ?string $guestPhone = null,
         public ?string $notes = null,
+        public ?string $guestFirstName = null,
     ) {}
 }

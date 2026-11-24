@@ -2,6 +2,7 @@
 
 parameters:
     widget_base_url: '%env(WIDGET_BASE_URL)%'
+    backend_public_url: '%env(BACKEND_PUBLIC_URL)%'
     mailer_sender: '%env(MAILER_SENDER)%'
 
 services:

@@ -56,6 +56,80 @@
     </div>
   }
 
+  <!-- ── Liste ────────────────────────────────────────────────────────── -->
+  @if (reviewSvc.loading()) {
+    <div class="state-box">
+      <div class="spinner"></div>
+      <span>{{ 'bewertungen.loading' | translate }}</span>
+    </div>
+  } @else if (reviewSvc.reviews().length === 0) {
+    <div class="state-box">
+      <mat-icon class="state-box__icon">rate_review</mat-icon>
+      <span>{{ 'bewertungen.empty' | translate }}</span>
+    </div>
+  } @else {
+    <div class="filter-chips">
+      <button class="filter-chip" [class.filter-chip--active]="activeFilter === 'all'" (click)="setFilter('all')">
+        {{ 'bewertungen.filter_all' | translate }} ({{ reviewSvc.reviews().length }})
+      </button>
+      <button class="filter-chip filter-chip--bad" [class.filter-chip--active]="activeFilter === 'bad'" (click)="setFilter('bad')">
+        {{ 'bewertungen.filter_bad' | translate }} ({{ badCount }})
+      </button>
+      <button class="filter-chip filter-chip--good" [class.filter-chip--active]="activeFilter === 'good'" (click)="setFilter('good')">
+        {{ 'bewertungen.filter_good' | translate }} ({{ goodCount }})
+      </button>
+    </div>
+
+    @if (filteredReviews.length === 0) {
+      <div class="state-box">
+        <mat-icon class="state-box__icon">filter_alt_off</mat-icon>
+        <span>{{ 'bewertungen.filter_empty' | translate }}</span>
+      </div>
+    } @else {
+      <div class="review-list">
+        @for (r of filteredReviews; track r.id) {
+          <div class="review-card" [class]="'review-card--' + ratingTier(r)">
+            <div class="review-card__top">
+              <span class="review-card__name">{{ r.guestName }}</span>
+              <div class="review-card__stars">
+                @for (s of stars(averageFor(r)); track s) {
+                  <mat-icon>star</mat-icon>
+                }
+                <span class="review-card__avg">{{ averageFor(r).toFixed(1) }}</span>
+              </div>
+            </div>
+
+            <div class="review-card__categories">
+              @for (c of categories; track c.key) {
+                <div class="review-card__category">
+                  <span class="review-card__category-label">{{ c.label | translate }}</span>
+                  <span class="review-card__dots">
+                    @for (n of [1,2,3,4,5]; track n) {
+                      <span class="review-card__dot" [class.review-card__dot--filled]="(r[c.key] ?? 0) >= n"></span>
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+
+            @if (r.comment) {
+              <p class="review-card__comment">
+                „{{ isLongComment(r.comment) && !isCommentExpanded(r.id) ? truncatedComment(r.comment) : r.comment }}"
+                @if (isLongComment(r.comment)) {
+                  <button class="review-card__comment-toggle" (click)="toggleComment(r.id)">
+                    {{ (isCommentExpanded(r.id) ? 'bewertungen.comment_less' : 'bewertungen.comment_more') | translate }}
+                  </button>
+                }
+              </p>
+            }
+
+            <span class="review-card__date">{{ r.submittedAt | date:'dd.MM.yyyy HH:mm' }}</span>
+          </div>
+        }
+      </div>
+    }
+  }
+
   <!-- ── Einstellungen ────────────────────────────────────────────────── -->
   <div class="settings-card">
     <div class="settings-card__row">
@@ -95,48 +169,5 @@
       </button>
     </div>
   </div>
-
-  <!-- ── Liste ────────────────────────────────────────────────────────── -->
-  @if (reviewSvc.loading()) {
-    <div class="state-box">
-      <div class="spinner"></div>
-      <span>{{ 'bewertungen.loading' | translate }}</span>
-    </div>
-  } @else if (reviewSvc.reviews().length === 0) {
-    <div class="state-box">
-      <mat-icon class="state-box__icon">rate_review</mat-icon>
-      <span>{{ 'bewertungen.empty' | translate }}</span>
-    </div>
-  } @else {
-    <div class="review-list">
-      @for (r of reviewSvc.reviews(); track r.id) {
-        <div class="review-card">
-          <div class="review-card__top">
-            <span class="review-card__name">{{ r.guestName }}</span>
-            <div class="review-card__stars">
-              @for (s of stars(averageFor(r)); track s) {
-                <mat-icon>star</mat-icon>
-              }
-              <span class="review-card__avg">{{ averageFor(r).toFixed(1) }}</span>
-            </div>
-          </div>
-
-          <div class="review-card__categories">
-            @for (c of categories; track c.key) {
-              <span class="review-card__category">
-                {{ c.label | translate }}: <strong>{{ r[c.key] }}/5</strong>
-              </span>
-            }
-          </div>
-
-          @if (r.comment) {
-            <p class="review-card__comment">„{{ r.comment }}"</p>
-          }
-
-          <span class="review-card__date">{{ r.submittedAt | date:'dd.MM.yyyy HH:mm' }}</span>
-        </div>
-      }
-    </div>
-  }
 
 </div>

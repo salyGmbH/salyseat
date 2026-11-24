@@ -622,7 +622,7 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
           this.getraenke.cancelTimer(res.id);
         }
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   /** Zuletzt für Auto-Fit verarbeitete Layout-Signatur (siehe Effect im Constructor). */
@@ -699,6 +699,12 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
     const prefillRoomNumber = this.route.snapshot.queryParamMap.get('roomNumber') ?? '';
     let prefillHandled = false;
 
+    // Sprung aus der tenant-weiten Warteliste-Dropdown (jumpToWaitlistEntry):
+    // Zielraum ist bereits über die Route gesetzt, hier nur noch das Datum
+    // übernehmen und den Query-Param wieder entfernen.
+    const waitlistDateParam = this.route.snapshot.queryParamMap.get('waitlistDate');
+    let waitlistDateHandled = false;
+
     // paramMap als Observable abonnieren – damit wird loadRoomLayout AUCH beim
     // Raum-Wechsel (Tab-Klick) erneut ausgeführt, weil Angular die Komponente
     // wiederverwendet und ngOnInit nicht nochmal aufruft.
@@ -746,6 +752,13 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
           this.router.navigate([], { queryParams: {}, replaceUrl: true });
         }
 
+        // waitlistDate einmalig übernehmen (siehe jumpToWaitlistEntry)
+        if (!waitlistDateHandled && waitlistDateParam) {
+          waitlistDateHandled = true;
+          this.selectedDate.set(waitlistDateParam);
+          this.router.navigate([], { queryParams: {}, replaceUrl: true });
+        }
+
         // Hotelgast-Prefill: Dialog einmalig vorausgefüllt öffnen
         if (!prefillHandled && prefillName) {
           prefillHandled = true;
@@ -762,6 +775,10 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
       },
       error: () => this.layoutLoading.set(false),
     });
+
+    // Tenant-weite Warteliste initial laden — unabhängig vom gerade offenen
+    // Raum, damit das Badge auch Einträge aus anderen Räumen sofort zeigt.
+    this.loadGlobalWaitlist();
 
     // Alle 20s Reservierungen + Warteliste neu laden, solange der Raum offen
     // ist und der Tab sichtbar ist — deckt u. a. neue Warteliste-Einträge ab,
@@ -833,7 +850,7 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
       .map(e => ({
         id:              'wl:' + e.id,
         roomId:          e.venue_id,
-        guestName:       e.guest_name,
+        guestName:       e.guest_first_name ? `${e.guest_first_name} ${e.guest_name}` : e.guest_name,
         guestEmail:      e.guest_email,
         phone:           e.guest_phone ?? undefined,
         notes:           e.notes ?? undefined,
@@ -888,6 +905,71 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Tenant-weite Warteliste (Badge/Dropdown neben "Freie Slots heute") ──
+  //    Zeigt ALLE offenen Warteliste-Einträge des Mandanten, unabhängig davon,
+  //    welcher Raum gerade geöffnet ist — sonst bekommt der Gastronome
+  //    Einträge für Räume/Tage, die er nicht gerade anschaut, nie mit.
+  globalWaitlistEntries = signal<WaitlistEntry[]>([]);
+  globalWaitlistLoading = signal(false);
+  globalWaitlistOpen    = signal(false);
+
+  readonly globalWaitlistCount = computed(() => this.globalWaitlistEntries().length);
+
+  /** Nach Termin sortiert (nächster zuerst) — für die Dropdown-Liste. */
+  readonly globalWaitlistSorted = computed(() =>
+    [...this.globalWaitlistEntries()].sort((a, b) => a.requested_at.localeCompare(b.requested_at)),
+  );
+
+  private globalWaitlistRequestSeq = 0;
+
+  private loadGlobalWaitlist(): void {
+    const seq = ++this.globalWaitlistRequestSeq;
+    this.globalWaitlistLoading.set(true);
+    // Ohne status-Filter laden (Backend gibt sonst nur einen Status zurück)
+    // und clientseitig wie waitlistOpenEntries auf offene Einträge filtern.
+    this.waitlistService.list().subscribe({
+      next: res => {
+        if (seq !== this.globalWaitlistRequestSeq) return; // veraltete Antwort verwerfen
+        this.globalWaitlistEntries.set(
+          res.entries.filter(e => e.status === 'waiting' || e.status === 'notified'),
+        );
+        this.globalWaitlistLoading.set(false);
+      },
+      error: () => {
+        if (seq !== this.globalWaitlistRequestSeq) return;
+        this.globalWaitlistLoading.set(false);
+      },
+    });
+  }
+
+  /**
+   * Springt zum Raum/Datum eines Warteliste-Eintrags. Ist der Eintrag im
+   * aktuell geöffneten Raum, reicht ein Datumswechsel; sonst wird zum
+   * Zielraum navigiert und das Datum per Query-Param übergeben (siehe
+   * waitlistDate-Auswertung im ngOnInit-Subscribe).
+   */
+  jumpToWaitlistEntry(entry: WaitlistEntry): void {
+    this.globalWaitlistOpen.set(false);
+    const iso = entry.requested_at.substring(0, 10);
+    const currentRoom = this.room();
+    if (currentRoom && currentRoom.id === entry.venue_id) {
+      this.selectedDate.set(iso);
+      return;
+    }
+    this.router.navigate(['/raum', entry.venue_id], { queryParams: { waitlistDate: iso } });
+  }
+
+  /** "05.09." aus dem ISO-Datum — kein new Date() (gleiche Begründung wie waitlistAsReservations). */
+  waitlistEntryDateLabel(entry: WaitlistEntry): string {
+    const [, m, d] = entry.requested_at.substring(0, 10).split('-');
+    return `${d}.${m}.`;
+  }
+
+  /** "18:30" aus dem ISO-Timestamp. */
+  waitlistEntryTimeLabel(entry: WaitlistEntry): string {
+    return entry.requested_at.substring(11, 16);
+  }
+
   setWaitlistStatus(entry: WaitlistEntry, status: WaitlistEntryStatus): void {
     this.waitlistUpdatingId.set(entry.id);
     this.waitlistService.updateStatus(entry.id, status).subscribe({
@@ -910,7 +992,7 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
     this.selectedDate.set(iso);
     this.waitlistConversionEntryId = entry.id;
     this.openNewDialog({
-      guestName:  entry.guest_name,
+      guestName:  entry.guest_first_name ? `${entry.guest_first_name} ${entry.guest_name}` : entry.guest_name,
       guestEmail: entry.guest_email,
       phone:      entry.guest_phone ?? '',
       partySize:  entry.party_size,
@@ -2179,6 +2261,7 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.startLivePoll();
+    this.loadGlobalWaitlist();
     const room = this.room();
     if (room) {
       this.syncFromBackend(room.id, this.selectedDate());
@@ -2189,6 +2272,7 @@ export class RaumDetailComponent implements OnInit, OnDestroy {
   private startLivePoll(): void {
     if (this.livePollTimer) return; // läuft bereits
     this.livePollTimer = setInterval(() => {
+      this.loadGlobalWaitlist();
       const room = this.room();
       if (!room) return;
       this.syncFromBackend(room.id, this.selectedDate());

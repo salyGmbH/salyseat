@@ -53,11 +53,10 @@ export class EmailsComponent implements OnInit {
   facebook  = '';
   tiktok    = '';
 
-  // ── Logo / Header ─────────────────────────────────────────────────────────
-  logoFile:   File | null = null;
-  headerFile: File | null = null;
-  logoPreview:   string | null = null;
-  headerPreview: string | null = null;
+  // ── Header-Bild ───────────────────────────────────────────────────────────
+  headerImage: string | null = null;
+  headerImageUploading = false;
+  headerImageError: string | null = null;
 
   // ── Anhänge ───────────────────────────────────────────────────────────────
   attachments: { url: string; name: string; assignedMails: Record<string, boolean> }[] = [];
@@ -146,6 +145,8 @@ export class EmailsComponent implements OnInit {
         this.facebook  = es.social.facebook  ?? '';
         this.tiktok    = es.social.tiktok    ?? '';
       }
+      if (es.headerImage) this.headerImage = es.headerImage;
+
       console.log('[emails] loaded attachments:', es.attachments);
       if (Array.isArray(es.attachments)) {
         this.attachments = es.attachments;
@@ -211,22 +212,39 @@ export class EmailsComponent implements OnInit {
     }
   }
 
-  onLogoUpload(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
+  onHeaderImageSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
     if (!file) return;
-    this.logoFile = file;
-    const reader = new FileReader();
-    reader.onload = e => this.logoPreview = e.target?.result as string;
-    reader.readAsDataURL(file);
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.headerImageError = 'Datei darf max. 5 MB groß sein.';
+      input.value = '';
+      return;
+    }
+
+    this.headerImageUploading = true;
+    this.headerImageError = null;
+
+    const body = new FormData();
+    body.append('image', file);
+
+    this.http.post<{ url: string }>('/api/v1/admin/upload/image', body).subscribe({
+      next: res => {
+        this.headerImage = res.url;
+        this.headerImageUploading = false;
+      },
+      error: err => {
+        this.headerImageError = err?.error?.error ?? 'Upload fehlgeschlagen.';
+        this.headerImageUploading = false;
+      },
+    });
+
+    input.value = '';
   }
 
-  onHeaderUpload(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    this.headerFile = file;
-    const reader = new FileReader();
-    reader.onload = e => this.headerPreview = e.target?.result as string;
-    reader.readAsDataURL(file);
+  removeHeaderImage(): void {
+    this.headerImage = null;
   }
 
   uploadError: string | null = null;
@@ -284,6 +302,7 @@ export class EmailsComponent implements OnInit {
       content: this.perMailContent,
       social: { instagram: this.instagram, facebook: this.facebook, tiktok: this.tiktok },
       attachments: this.attachments.map(({ url, name, assignedMails }) => ({ url, name, assignedMails })),
+      headerImage: this.headerImage,
     };
 
     console.log('[emails] saving attachments:', emailSettings.attachments);

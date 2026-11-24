@@ -104,16 +104,75 @@
   }
 }
 
+// ── Kennzahlen ────────────────────────────────────────────────────────────
+.ze-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ze-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+  background: var(--color-card);
+  border: 1px solid $color-border;
+  border-radius: 14px;
+}
+
+.ze-stat__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--color-accent-rgb), .15);
+  color: $color-accent;
+  margin-bottom: 2px;
+
+  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+}
+
+.ze-stat__value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.ze-stat__label {
+  font-size: 11.5px;
+  color: $color-text-muted;
+  text-align: center;
+}
+
+// ── Zwei-Spalten-Layout ────────────────────────────────────────────────
+.ze-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 16px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
 // ── Kiosk ───────────────────────────────────────────────────────────────
 .ze-kiosk {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 28px 20px;
-  background: var(--color-card);
-  border: 1px solid $color-border;
-  border-radius: 14px;
+  padding: 8px 0 22px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid $color-border;
 }
 
 .ze-kiosk__btn {
@@ -177,6 +236,22 @@
   background: rgba(var(--color-success-rgb, 34 197 94), .08);
 }
 
+.ze-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 rgba(var(--color-success-rgb, 34 197 94), .6);
+  animation: ze-pulse 1.8s infinite;
+}
+
+@keyframes ze-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--color-success-rgb, 34 197 94), .6); }
+  70%  { box-shadow: 0 0 0 7px rgba(var(--color-success-rgb, 34 197 94), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--color-success-rgb, 34 197 94), 0); }
+}
+
 .ze-live-row__name { font-size: 13px; font-weight: 600; }
 .ze-live-row__time  { font-size: 11.5px; color: $color-text-muted; margin-left: auto; margin-right: 6px; }
 
@@ -200,6 +275,39 @@
 .ze-report__filters {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ze-report__presets {
+  display: flex;
+  gap: 6px;
+}
+
+.ze-preset {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid $color-border;
+  background: transparent;
+  color: $color-text-muted;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+
+  &:hover { border-color: rgba(var(--color-text-rgb), .3); color: $color-text-on-dark; }
+
+  &--active {
+    border-color: $color-accent;
+    background: rgba(var(--color-accent-rgb), .12);
+    color: $color-accent;
+  }
+}
+
+.ze-report__dates {
+  display: flex;
+  align-items: center;
   gap: 8px;
 
   span { color: $color-text-muted; font-size: 12px; }
@@ -217,21 +325,58 @@
 .ze-report__summary {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
-.ze-report-row {
-  display: flex;
+.ze-bar-row {
+  display: grid;
+  grid-template-columns: minmax(70px, 110px) 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: $color-surface-soft;
-  font-size: 12.5px;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
 }
 
-.ze-report-row__name { font-weight: 600; }
-.ze-report-row__meta { color: $color-text-muted; }
+.ze-bar-row__label {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ze-bar-row__track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(var(--color-text-rgb), 0.08);
+  overflow: hidden;
+}
+
+.ze-bar-row__fill {
+  height: 100%;
+  border-radius: 4px;
+  background: $color-accent;
+  transition: width .3s ease;
+}
+
+.ze-bar-row__value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  white-space: nowrap;
+  min-width: 72px;
+}
+
+.ze-bar-row__duration {
+  font-size: 13px;
+  font-weight: 700;
+  color: $color-text-on-dark;
+}
+
+.ze-bar-row__count {
+  font-size: 10.5px;
+  color: $color-text-muted;
+}
 
 .ze-notes {
   display: flex;
@@ -240,6 +385,15 @@
   margin-top: 4px;
   padding-top: 12px;
   border-top: 1px solid $color-border;
+}
+
+.ze-notes__title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: $color-text-muted;
+  margin: 0 0 2px;
 }
 
 .ze-note-row {

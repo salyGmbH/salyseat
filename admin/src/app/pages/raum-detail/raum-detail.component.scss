@@ -808,6 +808,125 @@
   }
 }
 
+// Tenant-weite Warteliste (Badge/Dropdown links neben "Freie Slots") —
+// mirrort das .tl-free-panel--inline Muster, damit es optisch dazu passt.
+.tl-waitlist-panel {
+  position: relative;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: $color-text-muted;
+    transition: color 0.15s, background 0.15s;
+
+    mat-icon { color: #f97316; font-size: 16px; width: 16px; height: 16px; }
+
+    &:hover {
+      background: rgba(var(--color-text-rgb), 0.06);
+      color: $color-text-on-dark;
+    }
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #f97316;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  &__list {
+    width: 280px;
+  }
+
+  &__hint {
+    padding: 4px 6px 8px;
+    font-size: 10px;
+    color: $color-text-muted;
+  }
+}
+
+.tl-waitlist-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+  background: rgba(249, 115, 22, 0.05);
+  cursor: pointer;
+  transition: background .12s;
+
+  &:hover { background: rgba(249, 115, 22, 0.12); }
+
+  &__dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #f97316;
+    flex-shrink: 0;
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__when {
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: $color-text-on-dark;
+  }
+
+  &__venue {
+    font-size: 10px;
+    font-weight: 600;
+    color: $color-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__guest {
+    font-size: 10px;
+    color: $color-text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__btn {
+    flex-shrink: 0;
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid rgba(var(--color-primary-rgb), 0.4);
+    background: rgba(var(--color-primary-rgb), 0.1);
+    color: $color-primary;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+
+    &:hover { background: rgba(var(--color-primary-rgb), 0.2); }
+  }
+}
+
 // ── Buttons ────────────────────────────────────────────────────────────────
 .btn-icon {
   display: inline-flex;
@@ -1025,6 +1144,15 @@
       height: 16px;
       color: $color-accent;
     }
+  }
+
+  // Gruppiert Warteliste-Badge + Freie-Slots-Panel rechts, damit
+  // justify-content: space-between oben nur 2 Blöcke sieht (Titel links,
+  // diese Gruppe rechts) statt die Warteliste mittig zu verteilen.
+  &__right-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   &__hint {
@@ -5823,6 +5951,33 @@
     &__head {
       color: #111;
       border-bottom-color: rgba(0, 0, 0, 0.10);
+    }
+  }
+
+  // ── Tenant-weite Warteliste (Badge/Dropdown) ─────────────────────────────
+  .tl-waitlist-panel__head {
+    color: rgba(0, 0, 0, 0.60);
+
+    &:hover { color: #111; }
+  }
+
+  .tl-waitlist-entry {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.10);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+    &:hover { background: rgba(249, 115, 22, 0.10); }
+
+    &__when  { color: #111111; }
+    &__guest { color: rgba(0, 0, 0, 0.45); }
+
+    &__btn {
+      background: rgba(var(--color-primary-rgb), 0.10);
+      border-color: rgba(var(--color-primary-rgb), 0.40);
+      color: var(--color-primary);
+      font-weight: 600;
+
+      &:hover { background: rgba(var(--color-primary-rgb), 0.18); }
     }
   }
 

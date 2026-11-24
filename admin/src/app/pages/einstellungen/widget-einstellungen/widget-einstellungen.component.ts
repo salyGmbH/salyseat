@@ -149,7 +149,7 @@ export class WidgetEinstellungenComponent implements OnInit {
 
     // 15. Warteliste
     wartelisteAktiv: false,
-    wartelisteMaxPlaetze: 3,
+    wartelisteMaxPlaetze: 20,
     wartelisteKanal: 'email' as 'email' | 'telefon' | 'beide',
     wartelisteAntwortStunden: 24,
     wartelisteHinweis: '',

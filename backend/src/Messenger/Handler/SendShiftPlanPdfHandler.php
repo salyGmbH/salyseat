@@ -33,8 +33,7 @@ final class SendShiftPlanPdfHandler
             'week_label' => $message->weekLabel,
             'design'     => $s['design'],
             'social'     => $s['social'],
-            'logoLight'  => $s['logoLight'],
-            'logoDark'   => $s['logoDark'],
+            'header_image'  => $s['headerImage'],
         ]);
 
         $email = (new Email())

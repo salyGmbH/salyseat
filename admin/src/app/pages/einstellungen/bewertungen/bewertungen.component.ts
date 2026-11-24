@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
-import { GuestReviewService } from '../../../services/guest-review.service';
+import { GuestReviewService, GuestReview } from '../../../services/guest-review.service';
 import { TenantSettingsService } from '../../../services/tenant-settings.service';
 
 interface CategoryStat {
@@ -30,6 +30,11 @@ export class BewertungenComponent implements OnInit {
 
   saving = false;
   saved  = false;
+
+  // ── Filter/Sortierung der Liste ────────────────────────────────────────
+  activeFilter: 'all' | 'bad' | 'good' = 'all';
+  private readonly expandedComments = new Set<string>();
+  private static readonly COMMENT_TRUNCATE_LENGTH = 180;
 
   readonly categories: { key: 'ratingService' | 'ratingFood' | 'ratingAmbiance' | 'ratingValue'; label: string }[] = [
     { key: 'ratingService',  label: 'bewertungen.category_service' },
@@ -97,6 +102,47 @@ export class BewertungenComponent implements OnInit {
 
   stars(n: number): number[] {
     return [1, 2, 3, 4, 5].slice(0, Math.round(n));
+  }
+
+  /** Farbliche Einstufung je Bewertung — damit schlechte Bewertungen sofort auffallen. */
+  ratingTier(review: { ratingService: number | null; ratingFood: number | null; ratingAmbiance: number | null; ratingValue: number | null }): 'good' | 'warn' | 'bad' {
+    const avg = this.averageFor(review);
+    if (avg >= 4) return 'good';
+    if (avg >= 3) return 'warn';
+    return 'bad';
+  }
+
+  /** Gefiltert (nach Filter-Chip) + sortiert (schlechteste zuerst als Standard). */
+  get filteredReviews(): GuestReview[] {
+    let list = this.reviewSvc.reviews();
+    if (this.activeFilter === 'bad')  list = list.filter(r => this.averageFor(r) < 4);
+    if (this.activeFilter === 'good') list = list.filter(r => this.averageFor(r) >= 4);
+    return [...list].sort((a, b) => this.averageFor(a) - this.averageFor(b));
+  }
+
+  get badCount(): number  { return this.reviewSvc.reviews().filter(r => this.averageFor(r) < 4).length; }
+  get goodCount(): number { return this.reviewSvc.reviews().filter(r => this.averageFor(r) >= 4).length; }
+
+  setFilter(filter: 'all' | 'bad' | 'good'): void {
+    this.activeFilter = filter;
+  }
+
+  // ── Kommentar-Kürzung ─────────────────────────────────────────────────
+  isLongComment(comment: string): boolean {
+    return comment.length > BewertungenComponent.COMMENT_TRUNCATE_LENGTH;
+  }
+
+  truncatedComment(comment: string): string {
+    return comment.slice(0, BewertungenComponent.COMMENT_TRUNCATE_LENGTH).trimEnd() + '…';
+  }
+
+  isCommentExpanded(id: string): boolean {
+    return this.expandedComments.has(id);
+  }
+
+  toggleComment(id: string): void {
+    if (this.expandedComments.has(id)) this.expandedComments.delete(id);
+    else this.expandedComments.add(id);
   }
 
   save(): void {

@@ -127,29 +127,21 @@
         </select>
       </div>
 
-      <!-- Logo -->
-      <div class="form-row">
-        <span class="form-row__label">{{ 'emails.logo_upload' | translate }}</span>
-        <label class="upload-btn">
-          <mat-icon>upload</mat-icon>
-          <span>{{ 'emails.choose_logo' | translate }}</span>
-          <input type="file" accept="image/*" (change)="onLogoUpload($event)" hidden>
-        </label>
-        <div class="upload-preview" *ngIf="logoPreview">
-          <img [src]="logoPreview" alt="Logo">
-        </div>
-      </div>
-
       <!-- Header-Bild -->
-      <div class="form-row">
+      <div class="form-row form-row--full">
         <span class="form-row__label">{{ 'emails.header_image' | translate }}</span>
         <label class="upload-btn">
-          <mat-icon>image</mat-icon>
-          <span>{{ 'emails.choose_image' | translate }}</span>
-          <input type="file" accept="image/*" (change)="onHeaderUpload($event)" hidden>
+          <mat-icon>upload</mat-icon>
+          <span>{{ headerImage ? ('emails.replace_image' | translate) : ('emails.choose_image' | translate) }}</span>
+          <input type="file" accept="image/*" (change)="onHeaderImageSelected($event)" hidden>
         </label>
-        <div class="upload-preview upload-preview--wide" *ngIf="headerPreview">
-          <img [src]="headerPreview" alt="Header">
+        <span *ngIf="headerImageUploading" class="upload-status">{{ 'emails.uploading' | translate }}</span>
+        <p *ngIf="headerImageError" class="upload-error">{{ headerImageError }}</p>
+        <div class="upload-preview upload-preview--wide" *ngIf="headerImage">
+          <img [src]="headerImage" alt="Header">
+          <button type="button" class="upload-preview__remove" (click)="removeHeaderImage()" [title]="'common.delete' | translate">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
       </div>
 
@@ -249,22 +241,19 @@
           [class.email-preview--light]="emailMode === 'light'"
           [style.background-color]="backgroundColor">
 
-          <!-- Logo -->
-          <div class="ep-logo-row">
-            <img *ngIf="logoPreview" [src]="logoPreview" class="ep-logo-img" alt="Logo">
-            <div *ngIf="!logoPreview" class="ep-logo-placeholder">
+          <!-- Header-Bild -->
+          <div class="ep-header-img" *ngIf="headerImage">
+            <img [src]="headerImage" alt="Header" [style.border-radius.px]="borderRadius" style="border-bottom-left-radius:0;border-bottom-right-radius:0;">
+          </div>
+          <div class="ep-logo-row" *ngIf="!headerImage">
+            <div class="ep-logo-placeholder">
               <mat-icon>storefront</mat-icon>
-              <span>Ihr Logo</span>
+              <span>{{ 'emails.no_header_image' | translate }}</span>
             </div>
           </div>
 
-          <!-- Header-Bild -->
-          <div class="ep-header-img" *ngIf="headerPreview">
-            <img [src]="headerPreview" alt="Header">
-          </div>
-
           <!-- Card / Body -->
-          <div class="ep-card" [style.background-color]="cardColor"
+          <div class="ep-card" [class.ep-card--no-top-radius]="!!headerImage" [style.background-color]="cardColor"
             [style.border-radius.px]="borderRadius">
 
             <!-- Begrüßung -->

@@ -7,6 +7,7 @@ namespace App\Api\Controller\Admin;
 use App\Module\Availability\Domain\Entity\VenueBlock;
 use App\Module\Availability\Infrastructure\Persistence\DoctrineVenueBlockRepository;
 use App\Module\Venue\Domain\Entity\Venue;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,6 +22,7 @@ class VenueBlockController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly DoctrineVenueBlockRepository $blockRepo,
+        private readonly Connection $dbal,
     ) {}
 
     /**
@@ -83,7 +85,72 @@ class VenueBlockController extends AbstractController
 
         $this->blockRepo->save($block);
 
-        return $this->json($this->serialize($block), Response::HTTP_CREATED);
+        $affected = $this->findAffectedReservations(
+            $venue->getId()->toRfc4122(),
+            $dateFrom,
+            $dateTo,
+            $fullDay,
+            $block->getTimeFrom(),
+            $block->getTimeTo(),
+        );
+
+        return $this->json(
+            $this->serialize($block) + [
+                'affected_reservations_count' => \count($affected),
+                'affected_reservations'       => $affected,
+            ],
+            Response::HTTP_CREATED,
+        );
+    }
+
+    /**
+     * Findet bereits bestehende, noch relevante Reservierungen (weder storniert
+     * noch No-Show), die in das Fenster einer neuen Raumsperre fallen. Bei
+     * Sperren ohne Ganztag gilt das Zeitfenster für JEDEN Tag im Datumsbereich
+     * (analog zu VenueBlock::affectsDate()), daher der Zeit-Abgleich unabhängig
+     * vom konkreten Datum. Die Sperre storniert nichts automatisch — die Liste
+     * dient nur als Hinweis für die Verwaltung.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function findAffectedReservations(
+        string $venueId,
+        \DateTimeImmutable $dateFrom,
+        \DateTimeImmutable $dateTo,
+        bool $fullDay,
+        ?string $timeFrom,
+        ?string $timeTo,
+    ): array {
+        $rows = $this->dbal->fetchAllAssociative(
+            'SELECT BIN_TO_UUID(id) AS id, guest_name AS guestName, guest_first_name AS guestFirstName,
+                    party_size AS partySize, starts_at AS startsAt, ends_at AS endsAt,
+                    table_number AS tableNumber
+               FROM reservations
+              WHERE venue_id     = UNHEX(REPLACE(:venueId, \'-\', \'\'))
+                AND status       NOT IN (\'cancelled\', \'no_show\')
+                AND DATE(starts_at) <= :dateTo
+                AND DATE(ends_at)   >= :dateFrom
+                AND (:fullDay = 1 OR (TIME(starts_at) < :timeTo AND TIME(ends_at) > :timeFrom))
+              ORDER BY starts_at ASC
+              LIMIT 50',
+            [
+                'venueId'   => $venueId,
+                'dateFrom'  => $dateFrom->format('Y-m-d'),
+                'dateTo'    => $dateTo->format('Y-m-d'),
+                'fullDay'   => $fullDay ? 1 : 0,
+                'timeFrom'  => $timeFrom ?? '00:00',
+                'timeTo'    => $timeTo   ?? '23:59',
+            ],
+        );
+
+        return array_map(static fn (array $r) => [
+            'id'               => $r['id'],
+            'guest_name'       => $r['guestName'],
+            'guest_first_name' => $r['guestFirstName'],
+            'party_size'       => (int) $r['partySize'],
+            'starts_at'        => (new \DateTimeImmutable($r['startsAt']))->format(\DateTimeInterface::ATOM),
+            'table_number'     => $r['tableNumber'] !== null ? (int) $r['tableNumber'] : null,
+        ], $rows);
     }
 
     /**

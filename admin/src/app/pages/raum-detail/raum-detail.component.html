@@ -605,35 +605,68 @@
             <span class="day-load-bar__title">
               <mat-icon>query_stats</mat-icon> {{ 'raum_detail.day_load' | translate }}
             </span>
-            <div class="tl-free-panel tl-free-panel--inline" [class.tl-free-panel--collapsed]="!planFreeSlotsOpen()">
-              <div class="tl-free-panel__head" style="cursor:pointer" (click)="planFreeSlotsOpen.set(!planFreeSlotsOpen())">
-                <mat-icon>event_available</mat-icon>
-                {{ 'raum_detail.free_slots' | translate }}
-                <mat-icon class="tl-free-panel__chevron" [class.is-open]="planFreeSlotsOpen()">expand_more</mat-icon>
-              </div>
-              @if (planFreeSlotsOpen()) {
-                <div class="tl-free-panel__list tl-free-panel__list--dropdown">
-                  @for (s of freeSlotsToday(); track s.time) {
-                    <div class="tl-free-slot" [class.tl-free-slot--limited]="s.limitedCount > 0">
-                      <span class="tl-free-slot__dot"></span>
-                      <span class="tl-free-slot__time">{{ s.time }}</span>
-                      <span class="tl-free-slot__count">{{ s.freeCount }} Tisch{{ s.freeCount !== 1 ? 'e' : '' }}</span>
-                      <button class="tl-free-slot__btn" (click)="openNewDialog({time: s.time})">{{ 'raum_detail.book' | translate }}</button>
-                      @if (s.limitedCount > 0) {
-                        <span class="tl-free-slot__hint">
-                          {{ s.limitedCount }}× davon nur {{ formatAvailableDuration(s.minAvailableMinutes!) }} verfügbar
-                        </span>
+            <div class="day-load-bar__right-group">
+              @if (globalWaitlistCount() > 0) {
+                <div class="tl-waitlist-panel tl-waitlist-panel--inline">
+                  <div class="tl-waitlist-panel__head" style="cursor:pointer" (click)="globalWaitlistOpen.set(!globalWaitlistOpen())">
+                    <mat-icon>hourglass_top</mat-icon>
+                    {{ 'raum_detail.waitlist_global_title' | translate }}
+                    <span class="tl-waitlist-panel__badge">{{ globalWaitlistCount() }}</span>
+                    <mat-icon class="tl-free-panel__chevron" [class.is-open]="globalWaitlistOpen()">expand_more</mat-icon>
+                  </div>
+                  @if (globalWaitlistOpen()) {
+                    <div class="tl-free-panel__list tl-free-panel__list--dropdown tl-waitlist-panel__list">
+                      <div class="tl-waitlist-panel__hint">{{ 'raum_detail.waitlist_global_hint' | translate }}</div>
+                      @for (entry of globalWaitlistSorted(); track entry.id) {
+                        <div class="tl-waitlist-entry" (click)="jumpToWaitlistEntry(entry)">
+                          <span class="tl-waitlist-entry__dot"></span>
+                          <div class="tl-waitlist-entry__main">
+                            <span class="tl-waitlist-entry__when">{{ waitlistEntryDateLabel(entry) }} {{ waitlistEntryTimeLabel(entry) }}</span>
+                            <span class="tl-waitlist-entry__venue">{{ entry.venue_name }}</span>
+                            <span class="tl-waitlist-entry__guest">
+                              {{ entry.guest_first_name ? (entry.guest_first_name + ' ' + entry.guest_name) : entry.guest_name }}
+                              · {{ entry.party_size }}p
+                            </span>
+                          </div>
+                          <button class="tl-waitlist-entry__btn" (click)="jumpToWaitlistEntry(entry); $event.stopPropagation()">
+                            {{ 'raum_detail.waitlist_global_jump' | translate }}
+                          </button>
+                        </div>
                       }
-                    </div>
-                  }
-                  @if (freeSlotsToday().length === 0) {
-                    <div class="tl-free-panel__empty">
-                      <mat-icon>event_busy</mat-icon>
-                      <span>{{ 'raum_detail.no_free_slots' | translate }}</span>
                     </div>
                   }
                 </div>
               }
+              <div class="tl-free-panel tl-free-panel--inline" [class.tl-free-panel--collapsed]="!planFreeSlotsOpen()">
+                <div class="tl-free-panel__head" style="cursor:pointer" (click)="planFreeSlotsOpen.set(!planFreeSlotsOpen())">
+                  <mat-icon>event_available</mat-icon>
+                  {{ 'raum_detail.free_slots' | translate }}
+                  <mat-icon class="tl-free-panel__chevron" [class.is-open]="planFreeSlotsOpen()">expand_more</mat-icon>
+                </div>
+                @if (planFreeSlotsOpen()) {
+                  <div class="tl-free-panel__list tl-free-panel__list--dropdown">
+                    @for (s of freeSlotsToday(); track s.time) {
+                      <div class="tl-free-slot" [class.tl-free-slot--limited]="s.limitedCount > 0">
+                        <span class="tl-free-slot__dot"></span>
+                        <span class="tl-free-slot__time">{{ s.time }}</span>
+                        <span class="tl-free-slot__count">{{ s.freeCount }} Tisch{{ s.freeCount !== 1 ? 'e' : '' }}</span>
+                        <button class="tl-free-slot__btn" (click)="openNewDialog({time: s.time})">{{ 'raum_detail.book' | translate }}</button>
+                        @if (s.limitedCount > 0) {
+                          <span class="tl-free-slot__hint">
+                            {{ s.limitedCount }}× davon nur {{ formatAvailableDuration(s.minAvailableMinutes!) }} verfügbar
+                          </span>
+                        }
+                      </div>
+                    }
+                    @if (freeSlotsToday().length === 0) {
+                      <div class="tl-free-panel__empty">
+                        <mat-icon>event_busy</mat-icon>
+                        <span>{{ 'raum_detail.no_free_slots' | translate }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
             </div>
           </div>
           <div class="day-load">

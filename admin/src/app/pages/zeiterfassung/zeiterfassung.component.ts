@@ -41,6 +41,17 @@ export class ZeiterfassungComponent implements OnInit {
 
   readonly notedEntries = computed(() => this.reportEntries().filter(e => !!e.note));
 
+  // ── Übersicht: Kennzahlen + Balken für die Auswertung ────────────────────
+  readonly totalMinutes = computed(() => this.reportSummary().reduce((sum, s) => sum + s.minutes, 0));
+  readonly maxEmployeeMinutes = computed(() => Math.max(1, ...this.reportSummary().map(s => s.minutes)));
+
+  readonly avgMinutesPerDay = computed(() => {
+    const days = this.daysBetween(this.reportFrom, this.reportTo);
+    return Math.round(this.totalMinutes() / days);
+  });
+
+  activePreset: 'today' | 'week' | 'month' | null = 'week';
+
   ngOnInit(): void {
     this.loadLiveEntries();
     this.loadReport();
@@ -48,6 +59,42 @@ export class ZeiterfassungComponent implements OnInit {
 
   private toIso(date: Date): string {
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  }
+
+  private daysBetween(from: string, to: string): number {
+    const diff = new Date(to).getTime() - new Date(from).getTime();
+    return Math.max(1, Math.round(diff / 86_400_000) + 1);
+  }
+
+  setPreset(preset: 'today' | 'week' | 'month'): void {
+    const now = new Date();
+    this.activePreset = preset;
+
+    if (preset === 'today') {
+      this.reportFrom = this.toIso(now);
+      this.reportTo   = this.toIso(now);
+    } else if (preset === 'week') {
+      const weekday = now.getDay() || 7; // Montag=1 … Sonntag=7
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - weekday + 1);
+      this.reportFrom = this.toIso(monday);
+      this.reportTo   = this.toIso(now);
+    } else {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      this.reportFrom = this.toIso(first);
+      this.reportTo   = this.toIso(now);
+    }
+
+    this.loadReport();
+  }
+
+  onManualDateChange(): void {
+    this.activePreset = null;
+    this.loadReport();
+  }
+
+  barWidth(minutes: number): number {
+    return (minutes / this.maxEmployeeMinutes()) * 100;
   }
 
   loadLiveEntries(): void {

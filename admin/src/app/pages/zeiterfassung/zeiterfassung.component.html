@@ -21,83 +21,127 @@
     {{ 'zeiterfassung.info' | translate }}
   </div>
 
-  <!-- Kiosk: Ein-/Auschecken -->
-  <div class="ze-kiosk">
-    <button class="ze-kiosk__btn" [disabled]="timeClockBusy()" (click)="openStempelPrompt()">
-      <mat-icon>badge</mat-icon>
-      {{ 'zeiterfassung.stamp_btn' | translate }}
-    </button>
-    @if (timeClockMessage()) {
-      <p class="ze-msg" [class.ze-msg--error]="timeClockError()">{{ timeClockMessage() }}</p>
-    }
-  </div>
-
-  <!-- Live-Übersicht -->
-  <div class="ze-section">
-    <h2 class="ze-section__title">{{ 'zeiterfassung.live_title' | translate }}</h2>
-    @if (liveLoading()) {
-      <div class="state-box"><div class="spinner"></div><span>{{ 'common.loading' | translate }}</span></div>
-    } @else if (liveEntries().length === 0) {
-      <div class="state-box">
-        <mat-icon class="state-box__icon">groups</mat-icon>
-        <span>{{ 'zeiterfassung.live_empty' | translate }}</span>
-      </div>
-    } @else {
-      <div class="ze-live-list">
-        @for (e of liveEntries(); track e.id) {
-          <div class="ze-live-row">
-            <span class="ze-live-row__name">{{ e.employeeName }}</span>
-            <span class="ze-live-row__time">
-              {{ 'zeiterfassung.since' | translate }} {{ e.clockInAt | date:'HH:mm' }} · {{ formatDuration(e.durationMinutes) }}
-            </span>
-            <button class="ze-live-row__checkout" [title]="'zeiterfassung.manual_checkout' | translate"
-                    (click)="openManualCheckout(e)">
-              <mat-icon>logout</mat-icon>
-            </button>
-          </div>
-        }
-      </div>
-    }
-  </div>
-
-  <!-- Auswertung -->
-  <div class="ze-section">
-    <h2 class="ze-section__title">{{ 'zeiterfassung.report_title' | translate }}</h2>
-
-    <div class="ze-report__filters">
-      <input type="date" class="ze-report__date" [(ngModel)]="reportFrom" (change)="loadReport()">
-      <span>–</span>
-      <input type="date" class="ze-report__date" [(ngModel)]="reportTo" (change)="loadReport()">
+  <!-- ── Kennzahlen ───────────────────────────────────────────────────── -->
+  <div class="ze-stats">
+    <div class="ze-stat">
+      <span class="ze-stat__icon"><mat-icon>groups</mat-icon></span>
+      <span class="ze-stat__value">{{ liveEntries().length }}</span>
+      <span class="ze-stat__label">{{ 'zeiterfassung.stat_live' | translate }}</span>
     </div>
+    <div class="ze-stat">
+      <span class="ze-stat__icon"><mat-icon>schedule</mat-icon></span>
+      <span class="ze-stat__value">{{ formatDuration(totalMinutes()) }}</span>
+      <span class="ze-stat__label">{{ 'zeiterfassung.stat_total' | translate }}</span>
+    </div>
+    <div class="ze-stat">
+      <span class="ze-stat__icon"><mat-icon>trending_up</mat-icon></span>
+      <span class="ze-stat__value">{{ formatDuration(avgMinutesPerDay()) }}</span>
+      <span class="ze-stat__label">{{ 'zeiterfassung.stat_avg_day' | translate }}</span>
+    </div>
+  </div>
 
-    @if (reportLoading()) {
-      <div class="state-box"><div class="spinner"></div><span>{{ 'common.loading' | translate }}</span></div>
-    } @else if (reportSummary().length === 0) {
-      <div class="state-box">
-        <mat-icon class="state-box__icon">bar_chart</mat-icon>
-        <span>{{ 'zeiterfassung.report_empty' | translate }}</span>
-      </div>
-    } @else {
-      <div class="ze-report__summary">
-        @for (s of reportSummary(); track s.employeeId) {
-          <div class="ze-report-row">
-            <span class="ze-report-row__name">{{ s.employeeName }}</span>
-            <span class="ze-report-row__meta">{{ s.entryCount }}× · {{ formatDuration(s.minutes) }}</span>
-          </div>
+  <!-- ── Zwei Spalten: Wer ist da / Auswertung ─────────────────────────── -->
+  <div class="ze-columns">
+
+    <!-- Wer ist da: Kiosk + Live-Liste zusammen -->
+    <div class="ze-section">
+      <div class="ze-kiosk">
+        <button class="ze-kiosk__btn" [disabled]="timeClockBusy()" (click)="openStempelPrompt()">
+          <mat-icon>badge</mat-icon>
+          {{ 'zeiterfassung.stamp_btn' | translate }}
+        </button>
+        @if (timeClockMessage()) {
+          <p class="ze-msg" [class.ze-msg--error]="timeClockError()">{{ timeClockMessage() }}</p>
         }
       </div>
 
-      @if (notedEntries().length > 0) {
-        <div class="ze-notes">
-          @for (e of notedEntries(); track e.id) {
-            <div class="ze-note-row">
-              <mat-icon>sticky_note_2</mat-icon>
-              <span><strong>{{ e.employeeName }}</strong> ({{ formatDateTime(e.clockInAt) }}): {{ e.note }}</span>
+      <h2 class="ze-section__title">{{ 'zeiterfassung.live_title' | translate }}</h2>
+      @if (liveLoading()) {
+        <div class="state-box"><div class="spinner"></div><span>{{ 'common.loading' | translate }}</span></div>
+      } @else if (liveEntries().length === 0) {
+        <div class="state-box">
+          <mat-icon class="state-box__icon">groups</mat-icon>
+          <span>{{ 'zeiterfassung.live_empty' | translate }}</span>
+        </div>
+      } @else {
+        <div class="ze-live-list">
+          @for (e of liveEntries(); track e.id) {
+            <div class="ze-live-row">
+              <span class="ze-live-dot"></span>
+              <span class="ze-live-row__name">{{ e.employeeName }}</span>
+              <span class="ze-live-row__time">
+                {{ 'zeiterfassung.since' | translate }} {{ e.clockInAt | date:'HH:mm' }} · {{ formatDuration(e.durationMinutes) }}
+              </span>
+              <button class="ze-live-row__checkout" [title]="'zeiterfassung.manual_checkout' | translate"
+                      (click)="openManualCheckout(e)">
+                <mat-icon>logout</mat-icon>
+              </button>
             </div>
           }
         </div>
       }
-    }
+    </div>
+
+    <!-- Auswertung -->
+    <div class="ze-section">
+      <h2 class="ze-section__title">{{ 'zeiterfassung.report_title' | translate }}</h2>
+
+      <div class="ze-report__filters">
+        <div class="ze-report__presets">
+          <button class="ze-preset" [class.ze-preset--active]="activePreset === 'today'" (click)="setPreset('today')">
+            {{ 'zeiterfassung.preset_today' | translate }}
+          </button>
+          <button class="ze-preset" [class.ze-preset--active]="activePreset === 'week'" (click)="setPreset('week')">
+            {{ 'zeiterfassung.preset_week' | translate }}
+          </button>
+          <button class="ze-preset" [class.ze-preset--active]="activePreset === 'month'" (click)="setPreset('month')">
+            {{ 'zeiterfassung.preset_month' | translate }}
+          </button>
+        </div>
+        <div class="ze-report__dates">
+          <input type="date" class="ze-report__date" [(ngModel)]="reportFrom" (change)="onManualDateChange()">
+          <span>–</span>
+          <input type="date" class="ze-report__date" [(ngModel)]="reportTo" (change)="onManualDateChange()">
+        </div>
+      </div>
+
+      @if (reportLoading()) {
+        <div class="state-box"><div class="spinner"></div><span>{{ 'common.loading' | translate }}</span></div>
+      } @else if (reportSummary().length === 0) {
+        <div class="state-box">
+          <mat-icon class="state-box__icon">bar_chart</mat-icon>
+          <span>{{ 'zeiterfassung.report_empty' | translate }}</span>
+        </div>
+      } @else {
+        <div class="ze-report__summary">
+          @for (s of reportSummary(); track s.employeeId) {
+            <div class="ze-bar-row">
+              <span class="ze-bar-row__label" [title]="s.employeeName">{{ s.employeeName }}</span>
+              <div class="ze-bar-row__track">
+                <div class="ze-bar-row__fill" [style.width.%]="barWidth(s.minutes)"></div>
+              </div>
+              <span class="ze-bar-row__value">
+                <span class="ze-bar-row__duration">{{ formatDuration(s.minutes) }}</span>
+                <span class="ze-bar-row__count">{{ s.entryCount }} {{ (s.entryCount === 1 ? 'zeiterfassung.shift_one' : 'zeiterfassung.shift_other') | translate }}</span>
+              </span>
+            </div>
+          }
+        </div>
+
+        @if (notedEntries().length > 0) {
+          <div class="ze-notes">
+            <h3 class="ze-notes__title">{{ 'zeiterfassung.notes_title' | translate }}</h3>
+            @for (e of notedEntries(); track e.id) {
+              <div class="ze-note-row">
+                <mat-icon>sticky_note_2</mat-icon>
+                <span><strong>{{ e.employeeName }}</strong> ({{ formatDateTime(e.clockInAt) }}): {{ e.note }}</span>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+
   </div>
 
   @if (checkOutTarget(); as target) {

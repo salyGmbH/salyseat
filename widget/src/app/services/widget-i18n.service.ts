@@ -82,6 +82,7 @@ export interface WidgetLabels {
   chooseVenueTitle:  string;
   chooseVenueHint:   string;
   tischwahlInvalidHint: string;
+  timeAutoAdjustedHint: string;
 
   // Extended – booking flow UI
   understood:           string;
@@ -247,6 +248,7 @@ const DE: WidgetLabels = {
   chooseVenueTitle:  'Wähle deinen Bereich',
   chooseVenueHint:   'Die Verfügbarkeit von Datum und Uhrzeit richtet sich nach dem gewählten Bereich.',
   tischwahlInvalidHint: 'Für diese Auswahl ist aktuell keine Reservierung möglich. Bitte passe Datum, Uhrzeit oder Personenzahl an.',
+  timeAutoAdjustedHint: 'Die gewählte Uhrzeit war nicht mehr verfügbar und wurde auf die nächste freie Zeit angepasst.',
 
   understood:           'Verstanden',
   menuLabel:            'Speisekarte ansehen',
@@ -407,6 +409,7 @@ const EN: WidgetLabels = {
   chooseVenueTitle:  'Choose your area',
   chooseVenueHint:   'Date and time availability depends on the selected area.',
   tischwahlInvalidHint: 'No reservation is possible for this selection right now. Please adjust the date, time, or party size.',
+  timeAutoAdjustedHint: 'The selected time was no longer available and has been adjusted to the next free time.',
 
   understood:           'Got it',
   menuLabel:            'View menu',

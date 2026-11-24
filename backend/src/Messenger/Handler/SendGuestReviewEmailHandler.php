@@ -39,8 +39,7 @@ final class SendGuestReviewEmailHandler
             'mail_content' => $s['content']['guest_review'],
             'design'       => $s['design'],
             'social'       => $s['social'],
-            'logoLight'    => $s['logoLight'],
-            'logoDark'     => $s['logoDark'],
+            'header_image'  => $s['headerImage'],
         ]);
 
         $email = (new Email())
